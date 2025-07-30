@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+/* styles/globals.css */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  line-height: 1.6;
+  display: flex;
+
+  flex-direction: column;
+  min-height: 105vh; /* Ensure the body takes up at least the height of the viewport */
+  position: relative; /* Ensure body is positioned relative for absolute positioning of footer */
+}
+
+main {
+
+  flex: 1; /* Main content area takes up remaining space */
+}
+
+footer {
+  background-color: #ffffff;
+  border-top: 1px solid #ccc;
+  padding: 1rem;
+  text-align: center;
+  position: absolute;
+  bottom: 0; /* Stick to the bottom of the viewport */
+  width: 100%; /* Full width of the viewport */
+}

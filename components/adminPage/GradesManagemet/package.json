@@ -1,0 +1,41 @@
+{
+  "name": "grades-management-components",
+  "version": "1.0.0",
+  "description": "React UI components for grades management system focusing on UI elements without backend calls or API integrations",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "react",
+    "components",
+    "grades",
+    "education",
+    "school",
+    "learners",
+    "ui",
+    "management"
+  ],
+  "author": "Manus AI",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0",
+    "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0"
+  },
+  "dependencies": {
+    "react-icons": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/grades-management-components.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/grades-management-components/issues"
+  },
+  "homepage": "https://github.com/your-org/grades-management-components#readme"
+}
+
