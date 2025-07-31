@@ -1,362 +1,350 @@
-import React, { useState } from 'react';
-import { FiMail, FiSend, FiUsers, FiEye, FiCalendar, FiClock, FiMessageSquare, FiSmartphone, FiCheckCircle } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiSend, FiEye, FiUsers, FiCalendar, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import ChannelSelector from './ChannelSelector';
+import TemplateRenderer from './TemplateRenderer';
+import { createProvider, getAvailableProviders } from './providers';
 
-// Channel Selector Component
-function ChannelSelector({ selectedChannels, onChange }) {
-  const channels = [
-    { 
-      id: 'whatsapp', 
-      name: 'WhatsApp', 
-      icon: FiMessageSquare, 
-      recommended: true,
-      description: 'Instant delivery, high open rates'
+/**
+ * InvitationComposer Component (Refactored)
+ * 
+ * Main orchestrator component for creating and sending multi-channel invitations.
+ * Manages state, coordinates sub-components, and handles the sending process.
+ * 
+ * @param {Object} props
+ * @param {Array} props.schools - Array of available schools
+ * @param {Object} props.selectedSchool - Currently selected school
+ * @param {Object} props.user - Current user object
+ * @param {Array} props.grades - Available grades data
+ * @param {Function} props.onSendComplete - Callback when sending is complete
+ */
+const InvitationComposer = ({ 
+  schools = [], 
+  selectedSchool = null, 
+  user = null, 
+  grades = [],
+  onSendComplete 
+}) => {
+  // Main state management
+  const [composerState, setComposerState] = useState({
+    // Channel and content state
+    selectedChannels: ['whatsapp'], // Default to WhatsApp
+    content: {},
+    subject: '',
+    
+    // Recipients state
+    recipients: 'all', // 'all', 'grade', 'custom'
+    selectedGrade: '',
+    customRecipients: [],
+    
+    // Scheduling state
+    scheduleType: 'now', // 'now', 'later'
+    scheduledDate: '',
+    scheduledTime: '',
+    
+    // Template state
+    selectedTemplate: '',
+    
+    // UI state
+    showPreview: false,
+    isSending: false,
+    sendingProgress: 0,
+    
+    // Settings
+    priority: 'normal',
+    includeAttachments: false
+  });
+
+  // Available templates
+  const templates = [
+    {
+      id: 'welcome_new_learner',
+      name: 'Welcome New Learner',
+      description: 'Welcome message for newly enrolled students',
+      channels: ['whatsapp', 'email'],
+      subject: 'Welcome to {{schoolName}} - {{learnerName}}',
+      content: {
+        whatsapp: `Hello {{parentName}}! 👋\n\nYour child {{learnerName}} has been successfully enrolled at {{schoolName}} for the {{academicYear}} academic year.\n\n🎓 Grade: {{grade}}\n📱 Parent Portal: {{portalUrl}}\n\nWelcome to our school community!\n\nBest regards,\n{{schoolName}} Team`,
+        email: `Dear {{parentName}},\n\nWe are delighted to welcome {{learnerName}} to {{schoolName}} for the {{academicYear}} academic year.\n\nENROLLMENT DETAILS:\n• Student: {{learnerName}}\n• Grade: {{grade}}\n• Academic Year: {{academicYear}}\n\nNEXT STEPS:\n1. Access your Parent Portal at {{portalUrl}}\n2. Complete any outstanding documentation\n3. Attend the orientation session\n\nWe look forward to partnering with you in {{learnerName}}'s educational journey.\n\nWarm regards,\n\n{{principalName}}\nPrincipal\n{{schoolName}}`
+      }
     },
-    { 
-      id: 'sms', 
-      name: 'SMS', 
-      icon: FiSmartphone, 
-      recommended: false,
-      description: 'Direct to mobile, reliable'
+    {
+      id: 'grade_assignment',
+      name: 'Grade Assignment Notification',
+      description: 'Notification about grade/class assignment',
+      channels: ['sms', 'email'],
+      subject: 'Grade Assignment - {{learnerName}}',
+      content: {
+        sms: `Hi {{parentName}}, {{learnerName}} has been assigned to {{grade}} at {{schoolName}}. Contact: {{contactNumber}}`,
+        email: `Dear {{parentName}},\n\nWe are pleased to inform you that {{learnerName}} has been assigned to {{grade}} for the {{academicYear}} academic year.\n\nClass details and teacher information will be shared closer to the start of the academic year.\n\nBest regards,\n{{schoolName}} Administration`
+      }
     },
-    { 
-      id: 'email', 
-      name: 'Email', 
-      icon: FiMail, 
-      recommended: false,
-      description: 'Detailed content, attachments'
+    {
+      id: 'portal_access',
+      name: 'Parent Portal Access',
+      description: 'Parent portal login credentials and instructions',
+      channels: ['whatsapp', 'email'],
+      subject: 'Your Parent Portal Access - {{schoolName}}',
+      content: {
+        whatsapp: `Hi {{parentName}}! 📱\n\nYour parent portal is ready:\n🔗 {{portalUrl}}\n👤 Username: {{username}}\n🔑 Password: {{password}}\n\nFor support: {{contactNumber}}`,
+        email: `Dear {{parentName}},\n\nYour parent portal access is now ready.\n\nLOGIN DETAILS:\n• URL: {{portalUrl}}\n• Username: {{username}}\n• Password: {{password}}\n\nFEATURES:\n• View academic progress\n• Access school communications\n• Update contact information\n• Make fee payments\n\nFor technical support, contact us at {{contactEmail}}\n\nBest regards,\n{{schoolName}} IT Team`
+      }
     }
   ];
 
-  return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
-        Delivery Channels
-      </label>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {channels.map(channel => {
-          const IconComponent = channel.icon;
-          const isSelected = selectedChannels.includes(channel.id);
-          
-          return (
-            <div
-              key={channel.id}
-              className={`relative rounded-lg border p-4 cursor-pointer transition-all ${
-                isSelected 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              onClick={() => onChange(channel.id)}
-            >
-              <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => onChange(channel.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex items-center">
-                    <IconComponent className="h-4 w-4 text-gray-500 mr-2" />
-                    <span className="font-medium text-gray-900">
-                      {channel.name}
-                    </span>
-                    {channel.recommended && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                        Recommended
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {channel.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {selectedChannels.length === 0 && (
-        <p className="text-sm text-red-600">Please select at least one delivery channel.</p>
-      )}
-    </div>
-  );
-}
-
-// Message Content Component for different channels
-function MessageContentEditor({ channels, content, onChange }) {
-  const [activeTab, setActiveTab] = useState(channels[0] || 'email');
-
-  if (channels.length === 0) return null;
-
-  const getPlaceholder = (channel) => {
-    switch (channel) {
-      case 'whatsapp':
-        return `Hello {{parentName}}! 👋
-
-Your child {{learnerName}} has been enrolled at {{schoolName}}.
-
-Welcome to our school community! 🎓
-
-Best regards,
-{{schoolName}} Team`;
-      case 'sms':
-        return `Hi {{parentName}}, {{learnerName}} is enrolled at {{schoolName}}. Welcome! For more info visit: {{schoolWebsite}}`;
-      case 'email':
-        return `Dear {{parentName}},
-
-We are pleased to inform you that {{learnerName}} has been successfully enrolled at {{schoolName}}.
-
-Welcome to our school community!
-
-Best regards,
-{{schoolName}} Administration`;
-      default:
-        return 'Enter your message content here...';
-    }
-  };
-
-  const getCharacterLimit = (channel) => {
-    switch (channel) {
-      case 'sms': return 160;
-      case 'whatsapp': return 4096;
-      case 'email': return null;
-      default: return null;
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {channels.map(channel => (
-            <button
-              key={channel}
-              onClick={() => setActiveTab(channel)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm capitalize ${
-                activeTab === channel
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {channel} Content
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Message
-        </label>
-        <textarea
-          rows={activeTab === 'sms' ? 4 : 8}
-          value={content[activeTab] || ''}
-          onChange={(e) => onChange(activeTab, e.target.value)}
-          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder={getPlaceholder(activeTab)}
-        />
-        
-        {getCharacterLimit(activeTab) && (
-          <div className="flex justify-between text-xs">
-            {/* The fix is here: Render as a string literal instead of trying to evaluate variables */}
-            <span className="text-gray-500">
-              Available variables: {'{{parentName}}, {{learnerName}}, {{schoolName}}, {{schoolWebsite}}'}
-            </span>
-            <span className={`${
-              (content[activeTab] || '').length > getCharacterLimit(activeTab) 
-                ? 'text-red-600' 
-                : 'text-gray-500'
-            }`}>
-              {(content[activeTab] || '').length}/{getCharacterLimit(activeTab)}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const InvitationComposer = () => {
-  const [composerData, setComposerData] = useState({
-    template: '',
-    recipients: 'all',
-    customRecipients: [],
-    scheduleType: 'now',
-    scheduledDate: '',
-    scheduledTime: '',
-    subject: '',
-    channels: ['whatsapp'], // Default to WhatsApp
-    content: {},
-    includeAttachments: false,
-    priority: 'normal'
-  });
-
-  const [selectedLearners, setSelectedLearners] = useState([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-
-  // Mock data
-  const templates = [
+  // Mock learners data (in real app, this would come from props or API)
+  const mockLearners = [
     { 
       id: 1, 
-      name: 'Welcome New Learner', 
-      subject: 'Welcome to {{schoolName}}',
-      channels: ['whatsapp', 'email'],
-      content: {
-        whatsapp: 'Welcome {{parentName}}! 👋 {{learnerName}} is now enrolled at {{schoolName}}. We\'re excited to have you!',
-        email: 'Dear {{parentName}},\n\nWelcome to {{schoolName}}! We are delighted to have {{learnerName}} join our school community.\n\nBest regards,\n{{schoolName}} Team'
-      }
+      name: 'John Smith', 
+      parentName: 'Mary Smith', 
+      email: 'mary.smith@email.com', 
+      phone: '+27821234567',
+      whatsapp: '+27821234567',
+      grade: 'Grade 9',
+      gradeId: grades[0]?.id || '68893527f01744107e6f0d68'
     },
     { 
       id: 2, 
-      name: 'Grade Assignment', 
-      subject: 'Grade Assignment - {{learnerName}}',
-      channels: ['sms', 'email'],
-      content: {
-        sms: 'Hi {{parentName}}, {{learnerName}} has been assigned to Grade {{grade}} at {{schoolName}}.',
-        email: 'Dear {{parentName}},\n\nWe are pleased to inform you that {{learnerName}} has been assigned to Grade {{grade}}.\n\nBest regards,\n{{schoolName}} Administration'
-      }
+      name: 'Sarah Johnson', 
+      parentName: 'David Johnson', 
+      email: 'david.johnson@email.com', 
+      phone: '+27821234568',
+      whatsapp: '+27821234568',
+      grade: 'Grade 9',
+      gradeId: grades[0]?.id || '68893527f01744107e6f0d68'
     },
     { 
       id: 3, 
-      name: 'Parent Portal Access', 
-      subject: 'Your Parent Portal Access Details',
-      channels: ['whatsapp', 'email'],
-      content: {
-        whatsapp: 'Hi {{parentName}}! 📱 Your parent portal is ready. Login: {{portalUrl}} Username: {{username}}',
-        email: 'Dear {{parentName}},\n\nYour parent portal access is now ready.\n\nLogin URL: {{portalUrl}}\nUsername: {{username}}\n\nBest regards,\n{{schoolName}} IT Team'
-      }
+      name: 'Michael Brown', 
+      parentName: 'Lisa Brown', 
+      email: 'lisa.brown@email.com', 
+      phone: '+27821234569',
+      whatsapp: '+27821234569',
+      grade: 'Grade 9 k',
+      gradeId: grades[1]?.id || '6889365ff01744107e6f0d6a'
     }
   ];
 
-  const mockLearners = [
-    { id: 1, name: 'John Smith', parentName: 'Mary Smith', parentEmail: 'mary.smith@email.com', parentPhone: '+27821234567', grade: 'Grade 1' },
-    { id: 2, name: 'Sarah Johnson', parentName: 'David Johnson', parentEmail: 'david.johnson@email.com', parentPhone: '+27821234568', grade: 'Grade 1' },
-    { id: 3, name: 'Michael Brown', parentName: 'Lisa Brown', parentEmail: 'lisa.brown@email.com', parentPhone: '+27821234569', grade: 'Grade 2' },
-    { id: 4, name: 'Emma Davis', parentName: 'Robert Davis', parentEmail: 'robert.davis@email.com', parentPhone: '+27821234570', grade: 'Grade 2' },
-    { id: 5, name: 'James Wilson', parentName: 'Jennifer Wilson', parentEmail: 'jennifer.wilson@email.com', parentPhone: '+27821234571', grade: 'Grade 3' }
-  ];
+  // Update state helper
+  const updateState = (updates) => {
+    setComposerState(prev => ({ ...prev, ...updates }));
+  };
 
+  // Handle template selection
   const handleTemplateChange = (templateId) => {
-    const template = templates.find(t => t.id === parseInt(templateId));
+    const template = templates.find(t => t.id === templateId);
     if (template) {
-      setComposerData({
-        ...composerData,
-        template: templateId,
+      updateState({
+        selectedTemplate: templateId,
         subject: template.subject,
-        channels: template.channels,
+        selectedChannels: template.channels,
         content: template.content
       });
     } else {
-      setComposerData({
-        ...composerData,
-        template: '',
+      updateState({
+        selectedTemplate: '',
         subject: '',
-        channels: ['whatsapp'],
+        selectedChannels: ['whatsapp'],
         content: {}
       });
     }
   };
 
+  // Handle channel selection
   const handleChannelChange = (channelId) => {
-    const updatedChannels = composerData.channels.includes(channelId)
-      ? composerData.channels.filter(id => id !== channelId)
-      : [...composerData.channels, channelId];
+    const updatedChannels = composerState.selectedChannels.includes(channelId)
+      ? composerState.selectedChannels.filter(id => id !== channelId)
+      : [...composerState.selectedChannels, channelId];
     
-    setComposerData({
-      ...composerData,
-      channels: updatedChannels
-    });
+    updateState({ selectedChannels: updatedChannels });
   };
 
+  // Handle content changes
   const handleContentChange = (channel, content) => {
-    setComposerData({
-      ...composerData,
+    updateState({
       content: {
-        ...composerData.content,
+        ...composerState.content,
         [channel]: content
       }
     });
   };
 
-  const handleSendInvitations = async () => {
-    if (composerData.channels.length === 0) {
-      alert('Please select at least one delivery channel.');
-      return;
-    }
-
-    const hasContent = composerData.channels.some(channel => 
-      composerData.content[channel] && composerData.content[channel].trim()
-    );
-
-    if (!hasContent) {
-      alert('Please add content for at least one selected channel.');
-      return;
-    }
-
-    setIsSending(true);
-    
-    try {
-      // Simulate sending process
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      console.log('Sending invitations:', {
-        ...composerData,
-        recipientCount: getRecipientCount()
-      });
-
-      // Reset form
-      setComposerData({
-        template: '',
-        recipients: 'all',
-        customRecipients: [],
-        scheduleType: 'now',
-        scheduledDate: '',
-        scheduledTime: '',
-        subject: '',
-        channels: ['whatsapp'],
-        content: {},
-        includeAttachments: false,
-        priority: 'normal'
-      });
-      setSelectedLearners([]);
-
-      alert(`Invitations sent successfully via ${composerData.channels.join(', ')}!`);
-    } catch (error) {
-      console.error('Error sending invitations:', error);
-      alert('Error sending invitations. Please try again.');
-    } finally {
-      setIsSending(false);
-    }
+  // Handle subject change
+  const handleSubjectChange = (subject) => {
+    updateState({ subject });
   };
 
+  // Get recipient count
   const getRecipientCount = () => {
-    switch (composerData.recipients) {
+    switch (composerState.recipients) {
       case 'all':
         return mockLearners.length;
-      case 'custom':
-        return composerData.customRecipients.length;
       case 'grade':
-        return mockLearners.filter(l => l.grade === 'Grade 1').length; // Assuming 'Grade 1' for example, you'd likely have a grade selection
+        return mockLearners.filter(l => l.gradeId === composerState.selectedGrade).length;
+      case 'custom':
+        return composerState.customRecipients.length;
       default:
         return 0;
     }
   };
 
-  const handleLearnerSelection = (learnerId) => {
-    const updatedSelection = selectedLearners.includes(learnerId)
-      ? selectedLearners.filter(id => id !== learnerId)
-      : [...selectedLearners, learnerId];
-    
-    setSelectedLearners(updatedSelection);
-    setComposerData({
-      ...composerData,
-      customRecipients: updatedSelection
-    });
+  // Get filtered recipients
+  const getRecipients = () => {
+    switch (composerState.recipients) {
+      case 'all':
+        return mockLearners;
+      case 'grade':
+        return mockLearners.filter(l => l.gradeId === composerState.selectedGrade);
+      case 'custom':
+        return mockLearners.filter(l => composerState.customRecipients.includes(l.id));
+      default:
+        return [];
+    }
   };
 
+  // Handle learner selection for custom recipients
+  const handleLearnerSelection = (learnerId) => {
+    const updatedSelection = composerState.customRecipients.includes(learnerId)
+      ? composerState.customRecipients.filter(id => id !== learnerId)
+      : [...composerState.customRecipients, learnerId];
+    
+    updateState({ customRecipients: updatedSelection });
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const errors = [];
+
+    if (composerState.selectedChannels.length === 0) {
+      errors.push('Please select at least one delivery channel.');
+    }
+
+    const hasContent = composerState.selectedChannels.some(channel => 
+      composerState.content[channel] && composerState.content[channel].trim()
+    );
+
+    if (!hasContent) {
+      errors.push('Please add content for at least one selected channel.');
+    }
+
+    if (composerState.selectedChannels.includes('email') && !composerState.subject.trim()) {
+      errors.push('Email subject is required when email channel is selected.');
+    }
+
+    if (getRecipientCount() === 0) {
+      errors.push('Please select at least one recipient.');
+    }
+
+    if (composerState.scheduleType === 'later') {
+      if (!composerState.scheduledDate) {
+        errors.push('Please select a scheduled date.');
+      }
+      if (!composerState.scheduledTime) {
+        errors.push('Please select a scheduled time.');
+      }
+    }
+
+    return errors;
+  };
+
+  // Handle send invitations
+  const handleSendInvitations = async () => {
+    const errors = validateForm();
+    if (errors.length > 0) {
+      alert('Please fix the following errors:\n\n' + errors.join('\n'));
+      return;
+    }
+
+    updateState({ isSending: true, sendingProgress: 0 });
+
+    try {
+      const recipients = getRecipients();
+      const totalMessages = composerState.selectedChannels.length * recipients.length;
+      let sentMessages = 0;
+
+      console.log('Starting invitation send process:', {
+        channels: composerState.selectedChannels,
+        recipientCount: recipients.length,
+        totalMessages,
+        scheduleType: composerState.scheduleType
+      });
+
+      // Simulate sending process
+      for (const channel of composerState.selectedChannels) {
+        console.log(`Sending ${channel} messages to ${recipients.length} recipients`);
+        
+        // Create appropriate provider (this is just for demonstration)
+        let provider;
+        try {
+          if (channel === 'sms' || channel === 'whatsapp') {
+            provider = createProvider('twilio', {
+              accountSid: 'demo_sid',
+              authToken: 'demo_token',
+              fromNumber: '+27123456789'
+            });
+          } else if (channel === 'email') {
+            provider = createProvider('sendgrid', {
+              apiKey: 'demo_key',
+              fromEmail: selectedSchool?.email || 'noreply@school.edu'
+            });
+          }
+
+          // Simulate sending with progress updates
+          for (let i = 0; i < recipients.length; i++) {
+            const recipient = recipients[i];
+            
+            // Simulate individual message sending
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            console.log(`Sent ${channel} message to ${recipient.parentName}`);
+            sentMessages++;
+            
+            updateState({ 
+              sendingProgress: Math.round((sentMessages / totalMessages) * 100) 
+            });
+          }
+
+        } catch (error) {
+          console.error(`Error with ${channel} provider:`, error);
+        }
+      }
+
+      // Reset form after successful send
+      updateState({
+        selectedTemplate: '',
+        selectedChannels: ['whatsapp'],
+        content: {},
+        subject: '',
+        recipients: 'all',
+        selectedGrade: '',
+        customRecipients: [],
+        scheduleType: 'now',
+        scheduledDate: '',
+        scheduledTime: '',
+        isSending: false,
+        sendingProgress: 0
+      });
+
+      alert(`Invitations sent successfully!\n\n${sentMessages} messages sent via ${composerState.selectedChannels.join(', ')}`);
+
+      // Call completion callback if provided
+      if (typeof onSendComplete === 'function') {
+        onSendComplete({
+          success: true,
+          messagesSent: sentMessages,
+          channels: composerState.selectedChannels,
+          recipients: recipients.length
+        });
+      }
+
+    } catch (error) {
+      console.error('Error sending invitations:', error);
+      alert('Error sending invitations. Please try again.');
+      updateState({ isSending: false, sendingProgress: 0 });
+    }
+  };
+
+  // Get estimated delivery time
   const getEstimatedDelivery = () => {
     const channelTimes = {
       whatsapp: 'Instant',
@@ -364,7 +352,7 @@ const InvitationComposer = () => {
       email: '< 5 minutes'
     };
     
-    return composerData.channels.map(channel => 
+    return composerState.selectedChannels.map(channel => 
       `${channel.charAt(0).toUpperCase() + channel.slice(1)}: ${channelTimes[channel]}`
     ).join(', ');
   };
@@ -372,6 +360,7 @@ const InvitationComposer = () => {
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="px-4 py-5 sm:p-6">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-xl leading-6 font-semibold text-gray-900">
@@ -380,11 +369,16 @@ const InvitationComposer = () => {
             <p className="mt-1 text-sm text-gray-500">
               Send invitations via WhatsApp, SMS, and Email to parents and learners
             </p>
+            {selectedSchool && (
+              <p className="mt-1 text-xs text-blue-600">
+                School: {selectedSchool.name}
+              </p>
+            )}
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setShowPreview(true)}
-              disabled={composerData.channels.length === 0}
+              onClick={() => updateState({ showPreview: true })}
+              disabled={composerState.selectedChannels.length === 0}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiEye className="mr-2 h-4 w-4" />
@@ -392,16 +386,16 @@ const InvitationComposer = () => {
             </button>
             <button
               onClick={handleSendInvitations}
-              disabled={isSending || composerData.channels.length === 0 || !composerData.channels.some(channel => composerData.content[channel]?.trim())}
+              disabled={composerState.isSending || validateForm().length > 0}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSending ? (
+              {composerState.isSending ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Sending...
+                  Sending... {composerState.sendingProgress}%
                 </>
               ) : (
                 <>
@@ -417,10 +411,10 @@ const InvitationComposer = () => {
           {/* Template Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Email Template
+              Message Template
             </label>
             <select
-              value={composerData.template}
+              value={composerState.selectedTemplate}
               onChange={(e) => handleTemplateChange(e.target.value)}
               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
@@ -431,12 +425,19 @@ const InvitationComposer = () => {
                 </option>
               ))}
             </select>
+            {composerState.selectedTemplate && (
+              <p className="mt-1 text-sm text-gray-500">
+                {templates.find(t => t.id === composerState.selectedTemplate)?.description}
+              </p>
+            )}
           </div>
 
           {/* Channel Selection */}
           <ChannelSelector 
-            selectedChannels={composerData.channels}
+            selectedChannels={composerState.selectedChannels}
             onChange={handleChannelChange}
+            user={user}
+            selectedSchool={selectedSchool}
           />
 
           {/* Recipients Selection */}
@@ -451,8 +452,8 @@ const InvitationComposer = () => {
                   id="all-recipients"
                   name="recipients"
                   value="all"
-                  checked={composerData.recipients === 'all'}
-                  onChange={(e) => setComposerData({ ...composerData, recipients: e.target.value })}
+                  checked={composerState.recipients === 'all'}
+                  onChange={(e) => updateState({ recipients: e.target.value })}
                   className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                 />
                 <label htmlFor="all-recipients" className="ml-3 text-sm text-gray-700">
@@ -466,8 +467,8 @@ const InvitationComposer = () => {
                   id="grade-recipients"
                   name="recipients"
                   value="grade"
-                  checked={composerData.recipients === 'grade'}
-                  onChange={(e) => setComposerData({ ...composerData, recipients: e.target.value })}
+                  checked={composerState.recipients === 'grade'}
+                  onChange={(e) => updateState({ recipients: e.target.value })}
                   className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                 />
                 <label htmlFor="grade-recipients" className="ml-3 text-sm text-gray-700">
@@ -475,38 +476,55 @@ const InvitationComposer = () => {
                 </label>
               </div>
 
+              {composerState.recipients === 'grade' && (
+                <div className="ml-7">
+                  <select
+                    value={composerState.selectedGrade}
+                    onChange={(e) => updateState({ selectedGrade: e.target.value })}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">Select a grade</option>
+                    {grades.map(grade => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name} ({grade.learners_count} learners)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex items-center">
                 <input
                   type="radio"
                   id="custom-recipients"
                   name="recipients"
                   value="custom"
-                  checked={composerData.recipients === 'custom'}
-                  onChange={(e) => setComposerData({ ...composerData, recipients: e.target.value })}
+                  checked={composerState.recipients === 'custom'}
+                  onChange={(e) => updateState({ recipients: e.target.value })}
                   className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                 />
                 <label htmlFor="custom-recipients" className="ml-3 text-sm text-gray-700">
-                  Select specific learners ({selectedLearners.length} selected)
+                  Select specific learners ({composerState.customRecipients.length} selected)
                 </label>
               </div>
             </div>
 
             {/* Custom Recipients Selection */}
-            {composerData.recipients === 'custom' && (
+            {composerState.recipients === 'custom' && (
               <div className="mt-4 border border-gray-200 rounded-md p-4 max-h-64 overflow-y-auto">
                 <div className="space-y-3">
                   {mockLearners.map(learner => (
                     <label key={learner.id} className="flex items-start p-2 hover:bg-gray-50 rounded">
                       <input
                         type="checkbox"
-                        checked={selectedLearners.includes(learner.id)}
+                        checked={composerState.customRecipients.includes(learner.id)}
                         onChange={() => handleLearnerSelection(learner.id)}
                         className="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                       />
                       <div className="ml-3 flex-1">
                         <div className="text-sm font-medium text-gray-900">{learner.name}</div>
                         <div className="text-xs text-gray-500">
-                          Parent: {learner.parentName} | {learner.parentEmail} | {learner.parentPhone}
+                          Parent: {learner.parentName} | {learner.email} | {learner.phone}
                         </div>
                         <div className="text-xs text-gray-500">{learner.grade}</div>
                       </div>
@@ -515,6 +533,16 @@ const InvitationComposer = () => {
                 </div>
               </div>
             )}
+
+            {/* Recipient Summary */}
+            <div className="mt-3 p-3 bg-blue-50 rounded-md">
+              <div className="flex items-center">
+                <FiUsers className="h-4 w-4 text-blue-600 mr-2" />
+                <span className="text-sm text-blue-800">
+                  {getRecipientCount()} recipient{getRecipientCount() !== 1 ? 's' : ''} selected
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Scheduling */}
@@ -529,8 +557,8 @@ const InvitationComposer = () => {
                   id="send-now"
                   name="scheduleType"
                   value="now"
-                  checked={composerData.scheduleType === 'now'}
-                  onChange={(e) => setComposerData({ ...composerData, scheduleType: e.target.value })}
+                  checked={composerState.scheduleType === 'now'}
+                  onChange={(e) => updateState({ scheduleType: e.target.value })}
                   className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                 />
                 <label htmlFor="send-now" className="ml-3 text-sm text-gray-700">
@@ -547,8 +575,8 @@ const InvitationComposer = () => {
                   id="send-later"
                   name="scheduleType"
                   value="later"
-                  checked={composerData.scheduleType === 'later'}
-                  onChange={(e) => setComposerData({ ...composerData, scheduleType: e.target.value })}
+                  checked={composerState.scheduleType === 'later'}
+                  onChange={(e) => updateState({ scheduleType: e.target.value })}
                   className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
                 />
                 <label htmlFor="send-later" className="ml-3 text-sm text-gray-700">
@@ -557,7 +585,7 @@ const InvitationComposer = () => {
               </div>
             </div>
 
-            {composerData.scheduleType === 'later' && (
+            {composerState.scheduleType === 'later' && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -566,8 +594,8 @@ const InvitationComposer = () => {
                   </label>
                   <input
                     type="date"
-                    value={composerData.scheduledDate}
-                    onChange={(e) => setComposerData({ ...composerData, scheduledDate: e.target.value })}
+                    value={composerState.scheduledDate}
+                    onChange={(e) => updateState({ scheduledDate: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
@@ -579,8 +607,8 @@ const InvitationComposer = () => {
                   </label>
                   <input
                     type="time"
-                    value={composerData.scheduledTime}
-                    onChange={(e) => setComposerData({ ...composerData, scheduledTime: e.target.value })}
+                    value={composerState.scheduledTime}
+                    onChange={(e) => updateState({ scheduledTime: e.target.value })}
                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
@@ -588,192 +616,64 @@ const InvitationComposer = () => {
             )}
           </div>
 
-          {/* Subject Line (for email) */}
-          {composerData.channels.includes('email') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Subject Line
-              </label>
-              <input
-                type="text"
-                value={composerData.subject}
-                onChange={(e) => setComposerData({ ...composerData, subject: e.target.value })}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Enter email subject..."
-              />
-            </div>
-          )}
-
-          {/* Message Content Editor */}
-          <MessageContentEditor 
-            channels={composerData.channels}
-            content={composerData.content}
+          {/* Template Renderer */}
+          <TemplateRenderer 
+            channels={composerState.selectedChannels}
+            content={composerState.content}
+            subject={composerState.subject}
             onChange={handleContentChange}
+            onSubjectChange={handleSubjectChange}
+            selectedSchool={selectedSchool}
+            user={user}
           />
 
-          {/* Priority Setting */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Message Priority
-            </label>
-            <div className="flex items-center space-x-6">
-              {[
-                { value: 'low', label: 'Low', color: 'text-gray-600' },
-                { value: 'normal', label: 'Normal', color: 'text-blue-600' },
-                { value: 'high', label: 'High', color: 'text-orange-600' },
-                { value: 'urgent', label: 'Urgent', color: 'text-red-600' }
-              ].map(priority => (
-                <label key={priority.value} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="priority"
-                    value={priority.value}
-                    checked={composerData.priority === priority.value}
-                    onChange={(e) => setComposerData({ ...composerData, priority: e.target.value })}
-                    className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
-                  />
-                  <span className={`ml-2 text-sm ${priority.color}`}>
-                    {priority.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Additional Options */}
-          {composerData.channels.includes('email') && (
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="include-attachments"
-                checked={composerData.includeAttachments}
-                onChange={(e) => setComposerData({ ...composerData, includeAttachments: e.target.checked })}
-                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              <label htmlFor="include-attachments" className="ml-3 text-sm text-gray-700">
-                Include school information attachments (Email only)
-              </label>
+          {/* Form Validation Summary */}
+          {validateForm().length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="flex">
+                <FiAlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Please fix the following issues:
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <ul className="list-disc list-inside space-y-1">
+                      {validateForm().map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Summary */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <FiUsers className="h-5 w-5 text-blue-500 mr-3 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">Invitation Summary</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-blue-800">
-                      <strong>Recipients:</strong> {getRecipientCount()} parents/guardians
-                    </p>
-                    <p className="text-blue-800">
-                      <strong>Channels:</strong> {composerData.channels.length > 0 ? composerData.channels.join(', ') : 'None selected'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-blue-800">
-                      <strong>Priority:</strong> {composerData.priority.charAt(0).toUpperCase() + composerData.priority.slice(1)}
-                    </p>
-                    <p className="text-blue-800">
-                      <strong>Schedule:</strong> {composerData.scheduleType === 'now' ? 'Immediate' : `${composerData.scheduledDate} at ${composerData.scheduledTime}`}
+          {/* Ready to Send Summary */}
+          {validateForm().length === 0 && composerState.selectedChannels.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <div className="flex">
+                <FiCheckCircle className="h-5 w-5 text-green-400 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-green-800">
+                    Ready to send
+                  </h3>
+                  <div className="mt-2 text-sm text-green-700">
+                    <p>
+                      {getRecipientCount()} recipient{getRecipientCount() !== 1 ? 's' : ''} will receive messages via {composerState.selectedChannels.join(', ')}.
+                      {composerState.scheduleType === 'later' && composerState.scheduledDate && composerState.scheduledTime && (
+                        <span> Scheduled for {composerState.scheduledDate} at {composerState.scheduledTime}.</span>
+                      )}
                     </p>
                   </div>
                 </div>
               </div>
-              <FiCheckCircle className="h-5 w-5 text-green-500" />
             </div>
-          </div>
+          )}
         </div>
       </div>
-
-      {/* Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowPreview(false)}></div>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    Multi-Channel Message Preview
-                  </h3>
-                  <button
-                    onClick={() => setShowPreview(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  {composerData.channels.map(channel => {
-                    const channelContent = composerData.content[channel];
-                    if (!channelContent) return null;
-
-                    const getChannelIcon = (channel) => {
-                      switch (channel) {
-                        case 'whatsapp': return <FiMessageSquare className="h-5 w-5 text-green-500" />;
-                        case 'sms': return <FiSmartphone className="h-5 w-5 text-blue-500" />;
-                        case 'email': return <FiMail className="h-5 w-5 text-red-500" />;
-                        default: return null;
-                      }
-                    };
-
-                    return (
-                      <div key={channel} className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                          <div className="flex items-center">
-                            {getChannelIcon(channel)}
-                            <span className="ml-2 text-sm font-medium text-gray-900 capitalize">
-                              {channel} Preview
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4">
-                          {channel === 'email' && composerData.subject && (
-                            <div className="mb-4 pb-3 border-b border-gray-100">
-                              <div className="text-xs text-gray-500 mb-1">Subject:</div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {composerData.subject}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className={`${
-                            channel === 'whatsapp' 
-                              ? 'bg-green-50 border border-green-200 rounded-lg p-3' 
-                              : channel === 'sms'
-                              ? 'bg-blue-50 border border-blue-200 rounded-lg p-3'
-                              : 'bg-white'
-                          }`}>
-                            <pre className="whitespace-pre-wrap text-sm text-gray-900 font-sans">
-                              {channelContent}
-                            </pre>
-                          </div>
-
-                          {channel === 'sms' && (
-                            <div className="mt-2 text-xs text-gray-500">
-                              Character count: {channelContent.length}/160
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
 export default InvitationComposer;
+
