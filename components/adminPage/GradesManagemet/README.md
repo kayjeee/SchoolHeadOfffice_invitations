@@ -86,6 +86,170 @@ components/
 │   │   └── sidebar/
 │   │       └── GradesNavigation.js     # Navigation component for grades section
 ```
+```mermaid
+erDiagram
+    direction TB
+    User {
+        ObjectId _id PK
+        string name
+        string email UK
+        string auth0_id UK
+        array roles
+        float cash_account
+        array payment_history
+        array school_ids
+        datetime created_at
+        datetime updated_at
+    }
+
+    UserSchoolRole {
+        ObjectId _id PK
+        ObjectId user_id FK
+        ObjectId school_id FK
+        string role
+        integer status
+        datetime assigned_at
+        datetime expires_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    School {
+        ObjectId _id PK
+        string user_id
+        string user_email
+        string school_created_by
+        string schoolName
+        string schoolEmail UK
+        string country
+        string city
+        string province
+        string latitude
+        string longitude
+        hash schoolAddress
+        float cash_account
+        array payment_history
+        hash features
+        hash branding
+        datetime created_at
+        datetime updated_at
+    }
+
+    Grade {
+        ObjectId _id PK
+        ObjectId school_id FK
+        ObjectId created_by_id FK
+        string name
+        string description
+        string grade_level
+        integer capacity
+        integer min_age
+        integer max_age
+        integer status
+        hash curriculum_info
+        hash schedule_info
+        float fees
+        datetime academic_year_start
+        datetime academic_year_end
+        datetime created_at
+        datetime updated_at
+    }
+
+    Learner {
+        ObjectId _id PK
+        ObjectId school_id FK
+        ObjectId grade_id FK
+        ObjectId created_by_id FK
+        string first_name
+        string last_name
+        string accession_number UK
+        integer gender
+        integer status
+        string phone
+        string tel_emergency
+        string tel_home
+        string whatsapp
+        string telegram
+        date date_of_birth
+        hash parent_info
+        datetime enrollment_date
+        datetime created_at
+        datetime updated_at
+    }
+
+    LearnerInvitation {
+        ObjectId _id PK
+        ObjectId grade_id FK
+        ObjectId invited_by_id FK
+        ObjectId learner_id FK
+        string learner_email
+        string learner_phone
+        string invitation_token UK
+        integer status
+        hash invitation_data
+        datetime invited_at
+        datetime expires_at
+        datetime accepted_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    TeacherInvitation {
+        ObjectId _id PK
+        ObjectId school_id FK
+        ObjectId invited_by_id FK
+        ObjectId teacher_id FK
+        string teacher_email
+        string invitation_token UK
+        integer status
+        array assigned_grades
+        hash invitation_data
+        datetime invited_at
+        datetime expires_at
+        datetime accepted_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    TeacherGradeAssignment {
+        ObjectId _id PK
+        ObjectId teacher_id FK
+        ObjectId grade_id FK
+        ObjectId school_id FK
+        ObjectId assigned_by_id FK
+        string role_type
+        integer status
+        datetime assigned_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    CommunicationChannel {
+        ObjectId _id PK
+        ObjectId user_id FK
+        string type
+        string provider
+        string destination
+        hash metadata
+        datetime created_at
+        datetime updated_at
+    }
+
+    User ||--o{ UserSchoolRole : "has roles"
+    School ||--o{ UserSchoolRole : "assigned roles"
+    School ||--o{ Grade : "has grades"
+    Grade ||--o{ Learner : "has learners"
+    User ||--o{ LearnerInvitation : "invites learner"
+    User ||--o{ TeacherInvitation : "invites teacher"
+    Grade ||--o{ LearnerInvitation : "learner invited to"
+    School ||--o{ TeacherInvitation : "teacher invited to"
+    TeacherInvitation ||--o{ TeacherGradeAssignment : "assigned after acceptance"
+    LearnerInvitation ||--|| Learner : "joins as learner"
+    TeacherInvitation ||--|| User : "joins as teacher"
+    User ||--o{ CommunicationChannel : "sends messages via"
+
+ 
+```
 
 ## Components Documentation
 
@@ -419,4 +583,6 @@ For support, please open an issue on GitHub or contact our support team.
 - Credit management system
 - Responsive design
 - Accessibility compliance
+
+
 

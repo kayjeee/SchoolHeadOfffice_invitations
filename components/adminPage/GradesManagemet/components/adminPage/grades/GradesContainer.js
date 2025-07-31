@@ -275,7 +275,9 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-sm text-gray-500">
-                            <span className="font-medium">{grade.learnerCount || 0}</span> learners
+                            {/* Instead of grade.learnerCount */}
+                            <span className="font-medium">{grade.learners_count || grade.current_enrollment || 0}</span> learners
+
                           </div>
                           <div className="text-sm text-gray-500">
                             <span className="font-medium">{grade.teacherCount || 0}</span> teachers
