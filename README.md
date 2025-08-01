@@ -64,11 +64,24 @@ Sub-folder auth for dynamic route [...auth].tsx.
 │   │   │                     ├── LearnersFilters.js # Advanced filtering
 │   │   │                ├── BulkUpload.js # Bulk learner upload 
 │   │   │                └── LearnerDetail.js  # Individual learner modal
-│   │                    ├── Invitations/
-│   │   │                     ├── TemplateManager.js # Email template 
-│   │   │                     ├── InvitationComposer.js # send invitations
-│   │   │                     ├── StatusTracker.js # Track invitation delivery 
-│   │   │                     └── CreditSystem.js # Manage invitation credits
+│   │                    
+|   |   |    |    |   |  | Invitations/
+|   |   |   |   |   | |  |    ├── providers/
+│   |   |   |   |   |              ├── index.js
+│   |                              ├── SendGridService.js
+│  |                               ├── TwilioService.js
+│   |                              ├── WinSMSService.js
+|                             ├── TemplateRenderer/
+│   |                              ├── EmailTemplate.js
+│                                  ├── index.js
+│                                  ├── SMSTemplate.js
+│                                  ├── WhatsAppTemplate.js
+|                            ├── ChannelSelector.js
+|                            ├── CreditSystem.js
+|                            ├── InvitationComposer.js
+|                            ├── README.md
+|                            ├── StatusTracker.js
+|                            ├── TemplateManager.js
 │   │                    └── sidebar/
 │   │                         └── GradesNavigation.js  # Navigation component 
 |                    ├── LinkedAccountsSettings.js
