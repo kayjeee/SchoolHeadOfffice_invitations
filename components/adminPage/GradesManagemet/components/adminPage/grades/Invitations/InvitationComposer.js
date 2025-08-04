@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
@@ -622,8 +623,230 @@ const InvitationComposer = ({
           </div>
         </div>
       </div>
+=======
+import React, { useState, useEffect } from 'react';
+import { Mail, Info, Send, AlertCircle, CheckCircle, School, User, Users, GraduationCap, Loader } from 'lucide-react';
+
+const InvitationComposer = ({ 
+  user, 
+  schools = [], 
+  selectedSchool = null, 
+  selectedGrade = null,
+  selectedLearners = [] 
+}) => {
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // Compute current school from props
+  const currentSchool = selectedSchool?.id 
+    ? selectedSchool 
+    : schools.length > 0 
+      ? schools[0] 
+      : null;
+
+  // Determine invitation context
+  const getInvitationContext = () => {
+    if (selectedLearners.length > 0) {
+      return `to ${selectedLearners.length} selected learner${selectedLearners.length > 1 ? 's' : ''}`;
+    } else if (selectedGrade) {
+      return `for ${selectedGrade.name} Grade`;
+    }
+    return `for ${currentSchool?.schoolName || 'your school'}`;
+  };
+
+  const handleSendInvitation = async () => {
+    setError('');
+    setSuccess('');
+    
+    try {
+      setIsSending(true);
+      
+      const invitationData = {
+        schoolId: currentSchool.id,
+        gradeId: selectedGrade?.id,
+        learnerIds: selectedLearners,
+        invitedBy: user?.id || user?.email || 'unknown'
+      };
+
+      console.log('📨 Sending invitation:', invitationData);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // TODO: Replace with actual API call
+      // const response = await axios.post('/api/invitations/bulk', invitationData);
+      
+      setSuccess(`Invitations sent successfully ${getInvitationContext()}!`);
+    } catch (err) {
+      console.error('Failed to send invitations:', err);
+      setError(err.response?.data?.message || 'Failed to send invitations. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Check for critical configuration errors
+  if (!user || !schools?.length) {
+    return (
+      <div className="p-6 rounded-lg shadow-lg bg-red-50 border border-red-200">
+        <div className="flex items-start">
+          <AlertCircle className="text-red-500 mt-1 mr-3 flex-shrink-0" size={20} />
+          <div>
+            <h2 className="text-lg font-semibold text-red-800 mb-2">Configuration Error</h2>
+            <p className="text-red-700 mb-3">
+              Component not properly initialized. Missing required data.
+            </p>
+            <div className="mt-3 text-xs bg-red-100 p-3 rounded border">
+              <p className="font-medium text-red-800 mb-2">Required Props Status:</p>
+              <div className="space-y-1">
+                <div className="flex items-center">
+                  <User size={12} className="mr-1" />
+                  <span>User: {user ? "✓ Provided" : "✗ MISSING"}</span>
+                </div>
+                <div className="flex items-center">
+                  <School size={12} className="mr-1" />
+                  <span>Schools: {schools?.length ? `✓ ${schools.length} schools` : "✗ MISSING"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show warning if no school is available
+  if (!currentSchool) {
+    return (
+      <div className="p-6 rounded-lg shadow-lg bg-yellow-50 border border-yellow-200">
+        <div className="flex items-start">
+          <Info className="text-yellow-500 mt-1 mr-3 flex-shrink-0" size={20} />
+          <div>
+            <h2 className="text-lg font-semibold text-yellow-800 mb-2">School Required</h2>
+            <p className="text-yellow-700 mb-3">
+              Please add or select a school before sending invitations.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 rounded-lg shadow-lg bg-white border border-gray-200">
+      <div className="mb-6 border-b pb-4">
+        <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+          <Mail className="mr-2 text-blue-600" size={20} />
+          Send Invitations
+        </h2>
+        <p className="text-sm text-gray-600 mt-2">
+          Send invitations to parents for selected learners or entire grades
+        </p>
+      </div>
+
+      {/* Context Summary */}
+      <div className="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center">
+              <School className="mr-2 text-blue-600" size={16} />
+              <span className="font-medium text-gray-700">School:</span>
+            </div>
+            <span className="text-gray-900 font-medium">{currentSchool.schoolName}</span>
+          </div>
+          
+          {selectedGrade && (
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center">
+                <GraduationCap className="mr-2 text-blue-600" size={16} />
+                <span className="font-medium text-gray-700">Grade:</span>
+              </div>
+              <span className="text-gray-900 font-medium">{selectedGrade.name}</span>
+            </div>
+          )}
+          
+          {selectedLearners.length > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center">
+                <Users className="mr-2 text-blue-600" size={16} />
+                <span className="font-medium text-gray-700">Learners:</span>
+              </div>
+              <span className="text-gray-900 font-medium">{selectedLearners.length} selected</span>
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center">
+              <User className="mr-2 text-blue-600" size={16} />
+              <span className="font-medium text-gray-700">Sent by:</span>
+            </div>
+            <span className="text-gray-900 font-medium">{user.name || user.email}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Invitation Description */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="font-medium text-gray-800 mb-2 flex items-center">
+          <Info className="mr-2 text-gray-500" size={16} />
+          Invitation Details
+        </h3>
+        <p className="text-sm text-gray-600">
+          You're about to send invitations to parents of {
+            selectedLearners.length > 0 
+              ? `${selectedLearners.length} selected learner${selectedLearners.length > 1 ? 's' : ''}`
+              : selectedGrade
+                ? `all learners in ${selectedGrade.name} Grade`
+                : `all learners in ${currentSchool.schoolName}`
+          }. Parents will receive an email with instructions to create an account.
+        </p>
+      </div>
+
+      {/* Status Messages */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start">
+          <AlertCircle className="mt-0.5 mr-2 flex-shrink-0 text-red-500" size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+      
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-start">
+          <CheckCircle className="mt-0.5 mr-2 flex-shrink-0 text-green-500" size={16} />
+          <span>{success}</span>
+        </div>
+      )}
+
+      {/* Send Button */}
+      <button
+        className="w-full flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+        onClick={handleSendInvitation}
+        disabled={isSending}
+        type="button"
+      >
+        {isSending ? (
+          <>
+            <Loader className="animate-spin mr-2 h-4 w-4 text-white" />
+            Sending Invitations...
+          </>
+        ) : (
+          <>
+            <Send className="mr-2" size={18} />
+            {selectedLearners.length > 0
+              ? `Send to ${selectedLearners.length} Parent${selectedLearners.length > 1 ? 's' : ''}`
+              : selectedGrade
+                ? `Send to ${selectedGrade.name} Parents`
+                : 'Send School Invitations'}
+          </>
+        )}
+      </button>
+>>>>>>> Stashed changes
     </div>
   );
 };
 
+<<<<<<< Updated upstream
 export default InvitationComposer;
+=======
+export default InvitationComposer;
+>>>>>>> Stashed changes

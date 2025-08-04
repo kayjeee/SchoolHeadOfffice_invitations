@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiEdit, FiTrash2, FiUsers, FiMail, FiSettings } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiUsers, FiMail, FiSettings, FiX } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 import axios from 'axios';
 import CreateGradeModal from './GradesCRUD/CreateGradeModal';
@@ -22,6 +22,8 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
+  const [selectedGradeForInvite, setSelectedGradeForInvite] = useState(null);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -133,6 +135,11 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   const handleViewLearners = (grade) => {
     setSelectedGrade(grade);
     setActiveTab('learners');
+  };
+
+  const handleOpenInvitationModal = (grade) => {
+    setSelectedGradeForInvite(grade);
+    setShowInvitationModal(true);
   };
 
   const renderTabContent = () => {
@@ -290,6 +297,13 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
                               View Learners
                             </button>
                             <button
+                              onClick={() => handleOpenInvitationModal(grade)}
+                              className="text-green-600 hover:text-green-900 text-sm font-medium flex items-center"
+                            >
+                              <FiMail className="mr-1 h-4 w-4" />
+                              Send Invitations
+                            </button>
+                            <button
                               onClick={() => handleEditGrade(grade)}
                               className="text-indigo-600 hover:text-indigo-900"
                             >
@@ -343,6 +357,7 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
             <LearnersTable 
               selectedGrade={selectedGrade} 
               onSelectLearner={setSelectedLearner}
+              onOpenInvitationModal={handleOpenInvitationModal}
             />
           </div>
         );
@@ -360,11 +375,14 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <TemplateManager />
-                <InvitationComposer user={user} schools={schools}/>
+                <InvitationComposer    user={user} 
+              schools={schools} 
+              selectedSchool={selectedSchool} 
+              selectedGrade={selectedGradeForInvite}/>
               </div>
               <div className="space-y-6">
-                <StatusTracker  user={user} />
-                <CreditSystem   user={user}/>
+                <StatusTracker user={user} />
+                <CreditSystem user={user}/>
               </div>
             </div>
           </div>
@@ -456,6 +474,29 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
           onClose={() => setSelectedLearner(null)}
           learner={selectedLearner}
         />
+      )}
+
+      {/* Invitation Modal */}
+      {showInvitationModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center pb-3">
+              <h3 className="text-xl font-bold">Send Invitations</h3>
+              <button 
+                onClick={() => setShowInvitationModal(false)} 
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FiX className="h-6 w-6" />
+              </button>
+            </div>
+            <InvitationComposer 
+              user={user} 
+              schools={schools} 
+              selectedSchool={selectedSchool} 
+              selectedGrade={selectedGradeForInvite}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiEdit, FiTrash2, FiEye, FiMail, FiPhone, FiUser, FiCalendar, FiMoreVertical } from 'react-icons/fi';
 import axios from 'axios';
 
-const LearnersTable = ({ selectedGrade, onSelectLearner }) => {
+const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }) => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [selectedLearners, setSelectedLearners] = useState([]);
@@ -89,6 +89,21 @@ const LearnersTable = ({ selectedGrade, onSelectLearner }) => {
       setSelectedLearners([]);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleSendInvitationToLearner = (learner) => {
+    if (onOpenInvitationModal) {
+      onOpenInvitationModal(selectedGrade, [learner]);
+    }
+  };
+
+  const handleBulkInvitation = () => {
+    if (onOpenInvitationModal && selectedLearners.length > 0) {
+      const selectedLearnerObjects = learners.filter(learner => 
+        selectedLearners.includes(learner.id)
+      );
+      onOpenInvitationModal(selectedGrade, selectedLearnerObjects);
     }
   };
 
@@ -180,6 +195,13 @@ const LearnersTable = ({ selectedGrade, onSelectLearner }) => {
               >
                 <FiMail className="mr-1 h-4 w-4" />
                 Email
+              </button>
+              <button 
+                className="inline-flex items-center px-3 py-1 border border-green-300 shadow-sm text-sm leading-4 font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
+                onClick={handleBulkInvitation}
+              >
+                <FiMail className="mr-1 h-4 w-4" />
+                Invite Selected
               </button>
               <button 
                 className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -330,7 +352,6 @@ const LearnersTable = ({ selectedGrade, onSelectLearner }) => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={getStatusBadge(learner.status)}>
                       {learner.status_display || 'N/A'}
-
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -341,6 +362,13 @@ const LearnersTable = ({ selectedGrade, onSelectLearner }) => {
                         title="View Details"
                       >
                         <FiEye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleSendInvitationToLearner(learner)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Send Invitation"
+                      >
+                        <FiMail className="h-4 w-4" />
                       </button>
                       <button
                         className="text-indigo-600 hover:text-indigo-900"
