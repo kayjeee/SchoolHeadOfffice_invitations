@@ -5,7 +5,7 @@ import Tabs from './Tabs';
 import MenuDropdown from './MenuDropdown';
 import AdminDrop from './AdminDrop';
 import MenuReflectionTab from './MenuReflectionTab';
-import { useAppTheme } from '../../../../context/ThemeContext';
+import { useAppTheme, type School } from '../../../../context/ThemeContext'; // Import School type
 
 interface User {
   id?: string;
@@ -17,7 +17,7 @@ interface User {
 interface NavbarProps {
   user?: User | null;
   loading: boolean;
-  schools: School[]; // Using the School type from theme context
+  schools: School[]; // Now using the imported School type
   searchQuery: string;
   userRoles?: string[];
   setSearchQuery: (query: string) => void;
@@ -44,9 +44,7 @@ const Navbar: FC<NavbarProps> = ({
 
   // Get the school logo URL safely
   const getSchoolLogo = () => {
-    // First try the logo from theme context
     if (currentSchool?.logo) return currentSchool.logo;
-    // Fallback to default image
     return '/felixwhitbg.PNG';
   };
 
