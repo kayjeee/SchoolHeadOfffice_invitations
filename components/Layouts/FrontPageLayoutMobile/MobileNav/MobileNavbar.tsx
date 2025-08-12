@@ -8,7 +8,7 @@ import { useAppTheme } from '../../../../context/ThemeContext';
 interface School {
   id: string;
   name: string;       // Changed from schoolName to match FrontPageLayout
-  schoolName?: string; // Optional for backward compatibility
+  schoolName: string; // Optional for backward compatibility
   logo?: string;
   schoolImage?: string;
 }
