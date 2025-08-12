@@ -5,12 +5,12 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 
-// Make schoolName required to match Navbar's expectations
+// components/Layouts/FrontPageLayout.tsx
 interface School {
   id: string;
   _id: string;
   name: string;
-  schoolName: string; // Now required
+  schoolName?: string; // Made optional to match Navbar
   logo?: string;
   schoolImage?: string;
 }
@@ -50,15 +50,15 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Transform schools data to ensure all required fields are present
-  const transformedSchools = schools.map(s => ({
-    _id: s._id || s.id,
-    id: s.id,
-    name: s.name,
-    schoolName: s.schoolName || s.name, // Fallback to name if schoolName missing
-    logo: s.logo,
-    schoolImage: s.schoolImage
-  }));
+// Update the transformation to handle optional schoolName
+const transformedSchools = schools.map(s => ({
+  _id: s._id || s.id,
+  id: s.id,
+  name: s.name,
+  schoolName: s.schoolName, // Now optional
+  logo: s.logo,
+  schoolImage: s.schoolImage
+}));
 
   return (
     <>
