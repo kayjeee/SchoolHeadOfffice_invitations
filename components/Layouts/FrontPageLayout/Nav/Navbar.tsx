@@ -5,8 +5,9 @@ import Tabs from './Tabs';
 import MenuDropdown from './MenuDropdown';
 import AdminDrop from './AdminDrop';
 import MenuReflectionTab from './MenuReflectionTab';
-import { useAppTheme, type School } from '../../../../context/ThemeContext'; // Import School type
+import { useAppTheme } from '../../../../context/ThemeContext';
 
+// Define User interface locally since it's specific to this component
 interface User {
   id?: string;
   name: string;
@@ -14,10 +15,17 @@ interface User {
   image?: string;
 }
 
+// Define School interface locally since it's not exported from ThemeContext
+interface School {
+  _id: string;
+  schoolName: string;
+  logo?: string;
+}
+
 interface NavbarProps {
   user?: User | null;
   loading: boolean;
-  schools: School[]; // Now using the imported School type
+  schools: School[];
   searchQuery: string;
   userRoles?: string[];
   setSearchQuery: (query: string) => void;
