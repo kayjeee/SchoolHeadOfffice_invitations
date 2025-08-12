@@ -15,17 +15,15 @@ interface User {
   image?: string;
 }
 
-// Define School interface locally since it's not exported from ThemeContext
-// Update School interface to match Navbar's expectations
+// components/Layouts/FrontPageLayout/Nav/Navbar.tsx
 interface School {
   id: string;
-  _id: string;       // Add required _id
+  _id: string;
   name: string;
-  schoolName: string; // Add required schoolName
+  schoolName?: string; // Made optional
   logo?: string;
   schoolImage?: string;
 }
-
 interface NavbarProps {
   user?: User | null;
   loading: boolean;
