@@ -4,7 +4,7 @@ import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
-import { School } from './shared/types/School'; // Import shared type
+import { School } from './shared/types/School'; //Import shared type
 // components/Layouts/FrontPageLayout.tsx
 
 
