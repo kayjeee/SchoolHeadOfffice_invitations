@@ -5,11 +5,12 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 
-export interface School {
+// Make schoolName required to match Navbar's expectations
+interface School {
   id: string;
-  _id: string; // For MongoDB compatibility
+  _id: string;
   name: string;
-  schoolName?: string; // For backward compatibility
+  schoolName: string; // Now required
   logo?: string;
   schoolImage?: string;
 }
@@ -49,6 +50,16 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Transform schools data to ensure all required fields are present
+  const transformedSchools = schools.map(s => ({
+    _id: s._id || s.id,
+    id: s.id,
+    name: s.name,
+    schoolName: s.schoolName || s.name, // Fallback to name if schoolName missing
+    logo: s.logo,
+    schoolImage: s.schoolImage
+  }));
+
   return (
     <>
       <Head>
@@ -57,17 +68,17 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
       {isMobile ? (
         <MobileNavbar 
           schoolImage={school?.logo || school?.schoolImage}
-          schools={schools}
+          schools={transformedSchools}
           userRoles={userRoles}
         />
       ) : (
         <Navbar 
-          schools={schools}
+          schools={transformedSchools}
           user={user}
           loading={loading}
           userRoles={userRoles}
-          searchQuery="" // Add required prop
-          setSearchQuery={() => {}} // Add required prop
+          searchQuery=""
+          setSearchQuery={() => {}}
         />
       )}
       <main>{children}</main>
