@@ -4,16 +4,8 @@ import MobileSearchBar from './MobileSearchBar';
 import MobileMenuDropdown from './MobileMenuDropdown';
 import MobileMenuReflectionTabs from './MobileMenuReflectionTabs';
 import { useAppTheme } from '../../../../context/ThemeContext';
+import { School } from '../../shared/types/School'; // Import shared type
 
-// components/Layouts/FrontPageLayoutMobile/MobileNav/MobileNavbar.tsx
-interface School {
-  id: string;
-  _id: string;
-  name: string;
-  schoolName?: string; // Made optional
-  logo?: string;
-  schoolImage?: string;
-}
 
 interface UserRole {
   id: string;

@@ -4,16 +4,9 @@ import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
-
+import { School } from './shared/types/School'; // Import shared type
 // components/Layouts/FrontPageLayout.tsx
-interface School {
-  id: string;
-  _id: string;
-  name: string;
-  schoolName?: string; // Made optional to match Navbar
-  logo?: string;
-  schoolImage?: string;
-}
+
 
 interface User {
   id: string;

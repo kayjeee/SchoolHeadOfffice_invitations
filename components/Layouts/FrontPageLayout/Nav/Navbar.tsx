@@ -7,23 +7,10 @@ import AdminDrop from './AdminDrop';
 import MenuReflectionTab from './MenuReflectionTab';
 import { useAppTheme } from '../../../../context/ThemeContext';
 
-// Define User interface locally since it's specific to this component
-interface User {
-  id?: string;
-  name: string;
-  email: string;
-  image?: string;
-}
+import { School } from '../../shared/types/School'; // Import shared type
 
-// components/Layouts/FrontPageLayout/Nav/Navbar.tsx
-interface School {
-  id: string;
-  _id: string;
-  name: string;
-  schoolName?: string; // Made optional
-  logo?: string;
-  schoolImage?: string;
-}
+
+
 interface NavbarProps {
   user?: User | null;
   loading: boolean;
