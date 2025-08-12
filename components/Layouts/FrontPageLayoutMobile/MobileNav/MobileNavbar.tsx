@@ -71,7 +71,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({
               />
               {currentSchool && (
                 <h1 className="text-lg font-bold text-white hidden sm:block">
-                  {currentSchool.schoolName}
+                  {currentSchool?.schoolName || currentSchool?.name}
                 </h1>
               )}
             </div>
