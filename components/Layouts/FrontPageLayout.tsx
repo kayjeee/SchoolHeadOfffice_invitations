@@ -9,21 +9,20 @@ interface School {
   id: string;
   name: string;
   logo?: string;
-  schoolImage?: string; // Added to match potential usage
+  schoolImage?: string;
 }
 
 interface User {
   id: string;
   name: string;
-  email: string; // Added required email field
-  // other user properties as needed
+  email: string;
 }
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
   school?: School;
   schools?: School[];
-  user?: User | null; // Make user optional or nullable
+  user?: User | null;
   loading?: boolean;
   userRoles?: string[];
 }
@@ -32,7 +31,7 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
   children, 
   school, 
   schools = [], 
-  user = null, // Provide default value
+  user = null, 
   loading = false,
   userRoles = []
 }) => {
@@ -45,7 +44,6 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
 
     window.addEventListener('resize', handleResize);
     handleResize();
-
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -54,19 +52,20 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
-      {isMobile? (
+      {isMobile ? (
         <MobileNavbar 
-          schoolImage={school?.logo || school?.schoolImage} 
+          schoolImage={school?.logo || school?.schoolImage}
           schools={schools}
           userRoles={userRoles}
         />
       ) : (
         <Navbar 
-          schoolImage={school?.logo || school?.schoolImage} 
-          schools={schools} 
-          user={user} 
+          schools={schools}
+          user={user}
           loading={loading}
           userRoles={userRoles}
+          searchQuery="" // Add required prop
+          setSearchQuery={() => {}} // Add required prop
         />
       )}
       <main>{children}</main>
