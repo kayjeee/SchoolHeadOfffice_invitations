@@ -19,7 +19,7 @@ interface User {
 // Update School interface to match Navbar's expectations
 interface School {
   id: string;
-  _id: string;       // Add required _id
+  _id?: string;       // Add required _id
   name: string;
   schoolName: string; // Add required schoolName
   logo?: string;
