@@ -63,7 +63,7 @@ const nasaLog = (severity: string, module: string, message: string, context?: ob
 };
 
 // Define your types
-interface School {
+export interface School {
   _id: string;
   schoolName: string;
   theme?: string;
