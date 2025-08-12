@@ -7,7 +7,7 @@ import Footer from '../footer/Footer';
 
 export interface School {
   id: string;
-  _id?: string; // For MongoDB compatibility
+  _id: string; // For MongoDB compatibility
   name: string;
   schoolName?: string; // For backward compatibility
   logo?: string;
