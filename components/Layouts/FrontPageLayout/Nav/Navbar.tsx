@@ -17,9 +17,10 @@ interface User {
 
 // Define School interface locally since it's not exported from ThemeContext
 interface School {
-  _id: string;
+  _id?: string;
   schoolName: string;
   logo?: string;
+
 }
 
 interface NavbarProps {
