@@ -4,39 +4,39 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 
-// Define props for MobileNavbar
-interface MobileNavbarProps {
+interface School {
+  id: string;
+  schoolName: string;
   schoolImage?: string;
-  // Add other props if MobileNavbar needs them
 }
 
-type LayoutProps = {
-  user?: any;
-  loading?: boolean;
-  children: React.ReactNode;
-  userRoles?: string[];
-};
+interface UserRole {
+  id: string;
+  name: string;
+}
 
-interface School {
-  logo?: string;
+interface User {
+  id: string;
+  name: string;
+  // other user properties
 }
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
   school?: School;
-  schools?: any[];
-  user?: any;
+  schools?: School[];
+  user?: User;
   loading?: boolean;
-  userRoles?: string[];
+  userRoles?: UserRole[];
 }
 
 const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
   children, 
   school, 
-  schools, 
+  schools = [], 
   user, 
   loading = false,
-  userRoles
+  userRoles = []
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -57,10 +57,14 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
         <title>SchoolHeadOffice</title>
       </Head>
       {isMobile ? (
-        <MobileNavbar schoolImage={school?.logo} />
+        <MobileNavbar 
+          schoolImage={school?.schoolImage} 
+          schools={schools}
+          userRoles={userRoles}
+        />
       ) : (
         <Navbar 
-          schoolImage={school?.logo} 
+          schoolImage={school?.schoolImage} 
           schools={schools} 
           user={user} 
           loading={loading}
