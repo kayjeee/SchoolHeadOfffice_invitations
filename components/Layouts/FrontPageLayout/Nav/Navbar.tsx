@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, FC } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Tabs from './Tabs';
@@ -8,29 +8,29 @@ import MenuReflectionTab from './MenuReflectionTab';
 import { useAppTheme } from '../../../../context/ThemeContext';
 
 interface User {
+  id?: string;
   name: string;
   email: string;
-  id?: string;
   image?: string;
 }
 
 interface School {
   id: string;
   name: string;
+  logo?: string;
   schoolImage?: string;
 }
 
 interface NavbarProps {
-  user?: { name: string; email: string };
+  user?: User | null;
   loading: boolean;
-  schools: any[];
+  schools: School[];
   searchQuery: string;
   userRoles?: string[];
   setSearchQuery: (query: string) => void;
-  schoolImage?: string; // Add this line
 }
 
-const Navbar: React.FC<NavbarProps> = ({
+const Navbar: FC<NavbarProps> = ({
   user = null,
   loading = false,
   schools = [],
@@ -84,7 +84,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <Link href="/" passHref>
               <div className="cursor-pointer">
                 <img
-                  src={currentSchool?.schoolImage || '/felixwhitbg.PNG'}
+                  src={currentSchool?.schoolImage || currentSchool?.logo || '/felixwhitbg.PNG'}
                   alt={`${currentSchool?.name || 'School'} Logo`}
                   width={70}
                   height={70}
