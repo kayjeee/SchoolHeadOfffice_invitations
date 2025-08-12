@@ -20,14 +20,14 @@ interface UserRole {
 }
 
 interface MobileNavbarProps {
-  schools: School[];
+  schools?: School[];  // Made optional
   userRoles?: UserRole[];
-  schoolImage?: string; // Added the missing prop
+  schoolImage?: string;
 }
 
 const MobileNavbar: React.FC<MobileNavbarProps> = ({ 
-  schools, 
-  userRoles = [], 
+  schools = [],      // Default empty array
+  userRoles = [],    // Default empty array
   schoolImage 
 }) => {
   const [showReflection, setShowReflection] = useState<boolean>(false);
