@@ -10,7 +10,7 @@ import LearnersFilters from './LearnersManager/LearnersFilters';
 import BulkUpload from './LearnersManager/BulkUpload';
 import LearnerDetail from './LearnersManager/LearnerDetail';
 import TemplateManager from './Invitations/TemplateManager';
-import InvitationComposer from './Invitations/InvitationComposer';
+import InvitationComposer from './Invitations/InvitationComposer/InvitationComposer';
 import StatusTracker from './Invitations/StatusTracker';
 import CreditSystem from './Invitations/CreditSystem';
 

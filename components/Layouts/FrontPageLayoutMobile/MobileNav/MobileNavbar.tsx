@@ -6,12 +6,30 @@ import MobileMenuDropdown from './MobileMenuDropdown';
 import MobileMenuReflectionTabs from './MobileMenuReflectionTabs';
 import { useAppTheme } from '../../../../context/ThemeContext';
 
-interface MobileNavbarProps {
-  schools: any[];
-  userRoles?: string[];
+interface School {
+  id: string;
+  schoolName: string;
+  schoolImage?: string;
+  // Add other school properties as needed
 }
 
-const MobileNavbar: React.FC<MobileNavbarProps> = ({ schools, userRoles = [] }) => {
+interface UserRole {
+  id: string;
+  name: string;
+  // Add other role properties as needed
+}
+
+interface MobileNavbarProps {
+  schools: School[];
+  userRoles?: UserRole[];
+  schoolImage?: string; // Added the missing prop
+}
+
+const MobileNavbar: React.FC<MobileNavbarProps> = ({ 
+  schools, 
+  userRoles = [], 
+  schoolImage 
+}) => {
   const [showReflection, setShowReflection] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
@@ -31,6 +49,9 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ schools, userRoles = [] }) 
     setShowLoginModal(false);
   };
 
+  // Determine which image to use (priority: prop > context > default)
+  const logoImage = schoolImage || currentSchool?.schoolImage || '/shologoredandbluetwo.PNG';
+
   return (
     <>
       <nav 
@@ -39,10 +60,10 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ schools, userRoles = [] }) 
       >
         <div className="max-w-full mx-auto h-20 flex justify-between items-center px-4">
           <Link href="/" passHref>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 cursor-pointer">
               <img
-                src={currentSchool?.schoolImage || '/shologoredandbluetwo.PNG'}
-                alt="logo"
+                src={logoImage}
+                alt="School logo"
                 width={170}
                 height={170}
                 className="md:order-first order-last"
@@ -61,13 +82,19 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ schools, userRoles = [] }) 
             setSearchQuery={setSearchQuery}
           />
 
-          <MobileMenuDropdown toggleReflection={toggleReflection} />
+          <MobileMenuDropdown 
+            toggleReflection={toggleReflection} 
+            userRoles={userRoles}
+          />
         </div>
       </nav>
 
       {showReflection && (
         <div>
-          <MobileMenuReflectionTabs closeModal={toggleReflection} />
+          <MobileMenuReflectionTabs 
+            closeModal={toggleReflection} 
+            userRoles={userRoles}
+          />
         </div>
       )}
     </>

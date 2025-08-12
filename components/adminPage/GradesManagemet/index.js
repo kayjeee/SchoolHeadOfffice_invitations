@@ -14,7 +14,7 @@ export { default as LearnerDetail } from './components/adminPage/grades/Learners
 
 // Invitation system components
 export { default as TemplateManager } from './components/adminPage/grades/Invitations/TemplateManager';
-export { default as InvitationComposer } from './components/adminPage/grades/Invitations/InvitationComposer';
+export { default as InvitationComposer } from './components/adminPage/grades/Invitations/InvitationComposer/InvitationComposer';
 export { default as StatusTracker } from './components/adminPage/grades/Invitations/StatusTracker';
 export { default as CreditSystem } from './components/adminPage/grades/Invitations/CreditSystem';
 

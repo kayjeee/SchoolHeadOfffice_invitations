@@ -4,11 +4,17 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 
+// Define props for MobileNavbar
+interface MobileNavbarProps {
+  schoolImage?: string;
+  // Add other props if MobileNavbar needs them
+}
+
 type LayoutProps = {
   user?: any;
   loading?: boolean;
   children: React.ReactNode;
-  userRoles?: string[]; // Accept userRoles prop
+  userRoles?: string[];
 };
 
 interface School {
@@ -21,7 +27,7 @@ interface FrontPageLayoutProps {
   schools?: any[];
   user?: any;
   loading?: boolean;
-  userRoles?: string[]; // Accept userRoles prop
+  userRoles?: string[];
 }
 
 const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
@@ -30,7 +36,7 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
   schools, 
   user, 
   loading = false,
-  userRoles // Use userRoles prop
+  userRoles
 }) => {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -58,7 +64,7 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
           schools={schools} 
           user={user} 
           loading={loading}
-          userRoles={userRoles} // Pass userRoles to Navbar
+          userRoles={userRoles}
         />
       )}
       <main>{children}</main>
