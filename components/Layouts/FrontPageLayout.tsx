@@ -5,8 +5,7 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 import { School } from './shared/types/School'; //Import shared type
-// components/Layouts/FrontPageLayout.tsx
-
+import { User } from './shared/types/User'; // Import User type
 
 
 interface FrontPageLayoutProps {
