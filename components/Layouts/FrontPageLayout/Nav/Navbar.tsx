@@ -21,12 +21,13 @@ interface School {
 }
 
 interface NavbarProps {
-  user?: User | null;
+  user?: { name: string; email: string };
   loading: boolean;
-  schools: School[];
-  searchQuery?: string;
+  schools: any[];
+  searchQuery: string;
   userRoles?: string[];
-  setSearchQuery?: (query: string) => void;
+  setSearchQuery: (query: string) => void;
+  schoolImage?: string; // Add this line
 }
 
 const Navbar: React.FC<NavbarProps> = ({
