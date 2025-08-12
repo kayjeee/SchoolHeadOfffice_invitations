@@ -8,11 +8,6 @@ import { School } from './shared/types/School'; //Import shared type
 // components/Layouts/FrontPageLayout.tsx
 
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
