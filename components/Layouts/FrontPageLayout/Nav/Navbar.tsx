@@ -16,11 +16,14 @@ interface User {
 }
 
 // Define School interface locally since it's not exported from ThemeContext
+// Update School interface to match Navbar's expectations
 interface School {
-  _id?: string;
-  schoolName: string;
+  id: string;
+  _id: string;       // Add required _id
+  name: string;
+  schoolName: string; // Add required schoolName
   logo?: string;
-
+  schoolImage?: string;
 }
 
 interface NavbarProps {
