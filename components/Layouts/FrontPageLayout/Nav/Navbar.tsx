@@ -21,7 +21,7 @@ interface School {
   id: string;
   _id: string;       // Add required _id
   name: string;
-  schoolName?: string; // Add required schoolName
+  schoolName: string; // Add required schoolName
   logo?: string;
   schoolImage?: string;
 }
