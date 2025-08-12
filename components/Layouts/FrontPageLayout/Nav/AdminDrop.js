@@ -1,20 +1,25 @@
-import { FC } from 'react';
+/**
+ * @typedef {Object} User
+ * @property {string} [id] - The user's ID
+ * @property {string} [name] - The user's name
+ * @property {string} [email] - The user's email
+ */
+
+/**
+ * @typedef {Object} AdminDropProps
+ * @property {User} [user] - The user object
+ * @property {string[]} [userRoles] - Array of user roles
+ */
+
+/**
+ * Admin dropdown component
+ * @param {AdminDropProps} props - Component props
+ * @returns {import('react').ReactNode}
+ */
 import ProfessionalSection from "./Admindropcomponents/ProfessionalSection";
 import SchoolDropdown from './Admindropcomponents/SchoolDropdown';
 
-interface User {
-  id?: string;
-  name?: string;
-  email?: string;
-  // Add other user properties as needed
-}
-
-interface AdminDropProps {
-  user?: User;
-  userRoles?: string[];
-}
-
-const AdminDrop: FC<AdminDropProps> = ({ user = {}, userRoles = [] }) => {
+const AdminDrop = ({ user = {}, userRoles = [] }) => {
   const { name = "User" } = user;
   const isAdmin = Array.isArray(userRoles) && userRoles.includes("Admin");
 
