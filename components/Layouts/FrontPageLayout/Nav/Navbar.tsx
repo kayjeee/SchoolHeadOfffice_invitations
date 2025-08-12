@@ -92,13 +92,13 @@ const Navbar: FC<NavbarProps> = ({
           <div className="flex items-center space-x-6">
             <Link href="/" passHref>
               <div className="cursor-pointer">
-                <img
-                  src={getSchoolLogo()}
-                  alt={`${currentSchool?.schoolName || 'School'} Logo`}
-                  width={70}
-                  height={70}
-                  className="object-contain"
-                />
+             <img
+  src={getSchoolLogo()}
+  alt={`${currentSchool?.schoolName || currentSchool?.name || 'School'} Logo`}
+  width={70}
+  height={70}
+  className="object-contain"
+/>
               </div>
             </Link>
             {currentSchool?.schoolName && (
