@@ -1,8 +1,21 @@
+import { FC } from 'react';
 import ProfessionalSection from "./Admindropcomponents/ProfessionalSection";
 import SchoolDropdown from './Admindropcomponents/SchoolDropdown';
 
-const AdminDrop = ({ user = {}, userRoles = [] }) => {
-  const { name = "User" } = user; // Fallback if `user.name` is undefined
+interface User {
+  id?: string;
+  name?: string;
+  email?: string;
+  // Add other user properties as needed
+}
+
+interface AdminDropProps {
+  user?: User;
+  userRoles?: string[];
+}
+
+const AdminDrop: FC<AdminDropProps> = ({ user = {}, userRoles = [] }) => {
+  const { name = "User" } = user;
   const isAdmin = Array.isArray(userRoles) && userRoles.includes("Admin");
 
   return (
@@ -32,12 +45,11 @@ const AdminDrop = ({ user = {}, userRoles = [] }) => {
 
             {/* Schools Section */}
             <div className="space-y-2">
-            <SchoolDropdown user={user} />
-          </div>
-          
+              <SchoolDropdown user={user} />
+            </div>
 
             {/* Professional Section */}
-            <ProfessionalSection  user={user}  />
+            <ProfessionalSection user={user} />
 
             {/* Community Resources Section */}
             <div>
