@@ -20,7 +20,7 @@ interface UserRole {
 
 interface MobileNavbarProps {
   schools?: School[];
-  userRoles?: UserRole[];
+  userRoles?: string[]; 
   schoolImage?: string;
 }
 
