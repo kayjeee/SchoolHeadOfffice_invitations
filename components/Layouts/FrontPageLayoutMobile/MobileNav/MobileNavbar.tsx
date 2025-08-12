@@ -5,10 +5,12 @@ import MobileMenuDropdown from './MobileMenuDropdown';
 import MobileMenuReflectionTabs from './MobileMenuReflectionTabs';
 import { useAppTheme } from '../../../../context/ThemeContext';
 
+// components/Layouts/FrontPageLayoutMobile/MobileNav/MobileNavbar.tsx
 interface School {
   id: string;
-  name: string;       // Changed from schoolName to match FrontPageLayout
-  schoolName: string; // Optional for backward compatibility
+  _id: string;
+  name: string;
+  schoolName?: string; // Made optional
   logo?: string;
   schoolImage?: string;
 }
