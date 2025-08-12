@@ -1,3 +1,4 @@
+// components/Layouts/FrontPageLayout.tsx
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
@@ -6,35 +7,32 @@ import Footer from '../footer/Footer';
 
 interface School {
   id: string;
-  schoolName: string;
-  schoolImage?: string;
-}
-
-interface UserRole {
-  id: string;
   name: string;
+  logo?: string;
+  schoolImage?: string; // Added to match potential usage
 }
 
 interface User {
   id: string;
   name: string;
-  // other user properties
+  email: string; // Added required email field
+  // other user properties as needed
 }
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
   school?: School;
   schools?: School[];
-  user?: User;
+  user?: User | null; // Make user optional or nullable
   loading?: boolean;
-  userRoles?: UserRole[];
+  userRoles?: string[];
 }
 
 const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
   children, 
   school, 
   schools = [], 
-  user, 
+  user = null, // Provide default value
   loading = false,
   userRoles = []
 }) => {
@@ -56,15 +54,15 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
-      {isMobile ? (
+      {isMobile? (
         <MobileNavbar 
-          schoolImage={school?.schoolImage} 
+          schoolImage={school?.logo || school?.schoolImage} 
           schools={schools}
           userRoles={userRoles}
         />
       ) : (
         <Navbar 
-          schoolImage={school?.schoolImage} 
+          schoolImage={school?.logo || school?.schoolImage} 
           schools={schools} 
           user={user} 
           loading={loading}
