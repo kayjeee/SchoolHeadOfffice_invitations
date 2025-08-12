@@ -5,9 +5,11 @@ import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
 
-interface School {
+export interface School {
   id: string;
+  _id?: string; // For MongoDB compatibility
   name: string;
+  schoolName?: string; // For backward compatibility
   logo?: string;
   schoolImage?: string;
 }
