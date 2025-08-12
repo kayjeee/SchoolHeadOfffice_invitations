@@ -14,17 +14,10 @@ interface User {
   image?: string;
 }
 
-interface School {
-  id: string;
-  name: string;
-  logo?: string;
-  schoolImage?: string;
-}
-
 interface NavbarProps {
   user?: User | null;
   loading: boolean;
-  schools: School[];
+  schools: School[]; // Using the School type from theme context
   searchQuery: string;
   userRoles?: string[];
   setSearchQuery: (query: string) => void;
@@ -48,6 +41,14 @@ const Navbar: FC<NavbarProps> = ({
   const profileModalRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = userRoles.includes('Admin');
+
+  // Get the school logo URL safely
+  const getSchoolLogo = () => {
+    // First try the logo from theme context
+    if (currentSchool?.logo) return currentSchool.logo;
+    // Fallback to default image
+    return '/felixwhitbg.PNG';
+  };
 
   // Handler functions
   const handleLogin = () => router.push('/api/auth/login');
@@ -84,17 +85,17 @@ const Navbar: FC<NavbarProps> = ({
             <Link href="/" passHref>
               <div className="cursor-pointer">
                 <img
-                  src={currentSchool?.schoolImage || currentSchool?.logo || '/felixwhitbg.PNG'}
-                  alt={`${currentSchool?.name || 'School'} Logo`}
+                  src={getSchoolLogo()}
+                  alt={`${currentSchool?.schoolName || 'School'} Logo`}
                   width={70}
                   height={70}
                   className="object-contain"
                 />
               </div>
             </Link>
-            {currentSchool?.name && (
+            {currentSchool?.schoolName && (
               <h1 className="text-xl font-bold text-white">
-                {currentSchool.name}
+                {currentSchool.schoolName}
               </h1>
             )}
           </div>
