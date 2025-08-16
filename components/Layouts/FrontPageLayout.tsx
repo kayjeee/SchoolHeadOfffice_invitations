@@ -3,9 +3,8 @@ import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
-import { School } from './shared/types/School'; //Import shared type
-import { User } from './shared/types/User'; // Import User type
-import { useAppTheme } from '../../context/ThemeContext'; // Import theme context
+import { School } from './shared/types/School';
+import { User } from './shared/types/User';
 import { UserRole } from './shared/types/UserRole';
 
 interface FrontPageLayoutProps {
@@ -17,24 +16,21 @@ interface FrontPageLayoutProps {
   userRoles?: UserRole[];
 }
 
-const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
-  children, 
-  school, 
-  schools = [], 
-  user, 
+const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
+  children,
+  school,
+  schools = [],
+  user,
   loading = false,
   userRoles = []
 }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     handleResize();
-
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -43,21 +39,25 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
+
       {isMobile ? (
-        <MobileNavbar 
-          schoolImage={school?.schoolImage} 
+        <MobileNavbar
+          schoolImage={school?.schoolImage}
           schools={schools}
           userRoles={userRoles}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       ) : (
-        <Navbar 
-          schoolImage={school?.schoolImage} 
-          schools={schools} 
-          user={user} 
+        <Navbar
+          schoolImage={school?.schoolImage}
+          schools={schools}
+          user={user}
           loading={loading}
           userRoles={userRoles}
         />
       )}
+
       <main>{children}</main>
       <Footer />
     </>
