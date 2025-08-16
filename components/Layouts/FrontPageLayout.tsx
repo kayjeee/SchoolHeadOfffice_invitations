@@ -3,23 +3,10 @@ import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
-
-interface School {
-  id: string;
-  schoolName: string;
-  schoolImage?: string;
-}
-
-interface UserRole {
-  id: string;
-  name: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  // other user properties
-}
+import { School } from './shared/types/School'; //Import shared type
+import { User } from './shared/types/User'; // Import User type
+import { useAppTheme } from '../../context/ThemeContext'; // Import theme context
+import { UserRole } from './shared/types/UserRole';
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;

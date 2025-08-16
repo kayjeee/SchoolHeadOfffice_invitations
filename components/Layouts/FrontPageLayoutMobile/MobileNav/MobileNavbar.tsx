@@ -5,18 +5,12 @@ import MobileSearchBar from './MobileSearchBar';
 import MobileMenuDropdown from './MobileMenuDropdown';
 import MobileMenuReflectionTabs from './MobileMenuReflectionTabs';
 import { useAppTheme } from '../../../../context/ThemeContext';
+import { School } from '../../shared/types/School'; // Import shared type
 
-interface School {
-  id: string;
-  schoolName: string;
-  schoolImage?: string;
-  // Add other school properties as needed
-}
 
 interface UserRole {
   id: string;
   name: string;
-  // Add other role properties as needed
 }
 
 interface MobileNavbarProps {
