@@ -1,34 +1,39 @@
-export default function handler(req, res) {
-    if (req.method === 'POST') {
-        const validationString = Object.keys(req.body)
-            .sort()
-            .map((key) => `${key}=${req.body[key]}`)
-            .join('&');
+// pages/api/payfast-ipn.ts
 
-        // Log the notification data for debugging
-        console.log('IPN Data:', req.body);
+import type { NextApiRequest, NextApiResponse } from "next";
 
-        // Verify payment by sending the data back to PayFast
-        fetch('https://www.payfast.co.za/eng/query/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: validationString,
-        })
-            .then((response) => response.text())
-            .then((verification) => {
-                if (verification === 'VALID') {
-                    console.log('Payment is valid.');
-                    res.status(200).send('Payment validated');
-                } else {
-                    console.error('Invalid payment.');
-                    res.status(400).send('Invalid payment');
-                }
-            })
-            .catch((error) => {
-                console.error('Error verifying payment:', error);
-                res.status(500).send('Internal server error');
-            });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  try {
+    // Build PayFast validation string
+    const validationString = Object.keys(req.body)
+      .sort()
+      .map((key) => `${key}=${encodeURIComponent(req.body[key])}`)
+      .join("&");
+
+    console.log("IPN Data:", req.body);
+
+    // Send back to PayFast for validation
+    const response = await fetch("https://www.payfast.co.za/eng/query/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: validationString,
+    });
+
+    const verification = await response.text();
+
+    if (verification.trim() === "VALID") {
+      console.log("✅ Payment is valid");
+      return res.status(200).send("Payment validated");
     } else {
-        res.status(405).json({ error: 'Method not allowed' });
+      console.error("❌ Invalid payment");
+      return res.status(400).send("Invalid payment");
     }
+  } catch (error) {
+    console.error("⚠️ Error verifying payment:", error);
+    return res.status(500).send("Internal server error");
+  }
 }

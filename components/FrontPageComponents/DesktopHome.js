@@ -5,7 +5,7 @@ import SearchBarDesktop from './DesktopComponents/SearchBarDesktop';
 import IntroSection from './DesktopComponents/IntroSection';
 import DesktopNavigationButtons from './DesktopNavigationButtons/DesktopNavigationButtons';
 import Courses from './DesktopCarousel/Courses';
-import ChatModal from './DesktopComponents/ChatModal';
+
 import AppPromo from './DesktopComponents/AppPromo';
 
 const DesktopHome = ({schools}) => {
@@ -35,7 +35,6 @@ const DesktopHome = ({schools}) => {
           Chat with us
         </button>
         <AppPromo />
-        <ChatModal isOpen={chatOpen} onClose={() => setChatOpen(false)} />
       </div>
     </>
   );

@@ -3,23 +3,9 @@ import Head from 'next/head';
 import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
 import Footer from '../footer/Footer';
-
-interface School {
-  id: string;
-  schoolName: string;
-  schoolImage?: string;
-}
-
-interface UserRole {
-  id: string;
-  name: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  // other user properties
-}
+import { School } from './shared/types/School';
+import { User } from './shared/types/User';
+import { UserRole } from './shared/types/UserRole';
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
@@ -30,24 +16,21 @@ interface FrontPageLayoutProps {
   userRoles?: UserRole[];
 }
 
-const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
-  children, 
-  school, 
-  schools = [], 
-  user, 
+const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
+  children,
+  school,
+  schools = [],
+  user,
   loading = false,
   userRoles = []
 }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     handleResize();
-
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -56,21 +39,25 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
+
       {isMobile ? (
-        <MobileNavbar 
-          schoolImage={school?.schoolImage} 
+        <MobileNavbar
+          schoolImage={school?.schoolImage}
           schools={schools}
           userRoles={userRoles}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       ) : (
-        <Navbar 
-          schoolImage={school?.schoolImage} 
-          schools={schools} 
-          user={user} 
+        <Navbar
+          schoolImage={school?.schoolImage}
+          schools={schools}
+          user={user}
           loading={loading}
           userRoles={userRoles}
         />
       )}
+
       <main>{children}</main>
       <Footer />
     </>

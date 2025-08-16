@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import Link from 'next/link';
+import { UserRole } from '../../shared/types/UserRole';
 
 interface MobileMenuDropdownProps {
   toggleReflection: () => void; // Function to toggle reflection in Navbar
+  userRoles?: UserRole[];        // Add this so TypeScript knows about it
 }
 
-const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({ toggleReflection }) => {
+const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({
+  toggleReflection,
+  userRoles = []
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = () => {
     setIsOpen((prev) => !prev);
-    toggleReflection(); // Toggle reflection in Navbar
+    toggleReflection();
   };
 
   return (
@@ -25,7 +30,7 @@ const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({ toggleReflectio
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
-            className="size-6"
+            className="w-6 h-6"
           >
             <path
               fillRule="evenodd"
@@ -39,7 +44,15 @@ const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({ toggleReflectio
       {/* Dropdown Content */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 shadow-lg z-50">
-          {/* Dropdown menu items */}
+          {/* Example menu items */}
+          {userRoles.some(role => role.name === 'Admin') && (
+  <Link href="/admin" passHref>
+    <span className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">
+      Admin Panel
+    </span>
+  </Link>
+)}
+
           <Link href="/option1" passHref>
             <span className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">
               Option 1

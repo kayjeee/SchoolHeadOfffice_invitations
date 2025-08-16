@@ -1,6 +1,18 @@
 import Link from 'next/link';
+import { UserRole } from '../../shared/types/UserRole';
 
-const MobileMenuReflectionTabs = ({ closeModal }) => {
+interface MobileMenuReflectionTabsProps {
+  closeModal: () => void;
+  userRoles?: UserRole[];
+}
+
+const MobileMenuReflectionTabs: React.FC<MobileMenuReflectionTabsProps> = ({
+  closeModal,
+  userRoles = [],
+}) => {
+  // Example: show "Admin Panel" link only if user has Admin role
+  const hasAdminRole = userRoles.some(role => role.name === 'Admin');
+
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
       <div className="relative">
@@ -34,7 +46,7 @@ const MobileMenuReflectionTabs = ({ closeModal }) => {
                 Personal
               </span>
             </Link>
-            <Link href="/admin" passHref>
+            <Link href="/Business" passHref>
               <span className="text-gray-800 cursor-pointer hover:underline">
                 Business
               </span>
@@ -69,6 +81,15 @@ const MobileMenuReflectionTabs = ({ closeModal }) => {
               Privacy Policy
             </span>
           </Link>
+
+          {/* Conditional Admin Panel */}
+          {hasAdminRole && (
+            <Link href="/admin" passHref>
+              <span className="block text-gray-800 cursor-pointer hover:underline py-2 border-b border-gray-300">
+                Admin Panel
+              </span>
+            </Link>
+          )}
         </div>
       </div>
     </div>

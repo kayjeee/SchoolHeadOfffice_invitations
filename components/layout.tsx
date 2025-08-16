@@ -1,5 +1,6 @@
 import Head from "next/head";
-import Header from "./Nav/header";
+import Header from "./Layouts/FrontPageLayout/Nav/header";
+import { useState } from "react";
 
 type LayoutProps = {
   user?: any;
@@ -8,13 +9,23 @@ type LayoutProps = {
 };
 
 const Layout = ({ user, loading = false, children }: LayoutProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [schools, setSchools] = useState<any[]>([]);
+
   return (
     <>
       <Head>
         <title>Next.js with Auth0</title>
       </Head>
 
-      <Header user={user} loading={loading} />
+      <Header
+        user={user}
+        loading={loading}
+        schoolImage="/logo.png"
+        schools={schools}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       <main>
         <div className="container">{children}</div>
