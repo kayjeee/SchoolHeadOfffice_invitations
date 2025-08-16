@@ -1,5 +1,5 @@
 // Call the backend route that talks to the WhatsApp Business API
-export async function sendTestWhatsAppMessage(phoneNumber) {
+export async function sendWhatsAppMessage(phoneNumber) {
   const res = await fetch('/api/send-whatsapp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
