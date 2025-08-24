@@ -1,14 +1,24 @@
 import ProfessionalSection from "./Admindropcomponents/ProfessionalSection";
 import SchoolDropdown from './Admindropcomponents/SchoolDropdown';
+import { UserRole } from '../../shared/types/UserRole';
+import { User } from '../../shared/types/User';
 
-const AdminDrop = ({ user = {}, userRoles = [] }) => {
-  const { name = "User" } = user; // Fallback if `user.name` is undefined
-  const isAdmin = Array.isArray(userRoles) && userRoles.includes("Admin");
+interface AdminDropProps {
+  user?: User;
+  userRoles?: UserRole[];
+}
+
+const AdminDrop: React.FC<AdminDropProps> = ({ user = {}, userRoles = [] }) => {
+  const { name = "User" } = user;
+
+  // Check if user has "Admin" role
+  const isAdmin = Array.isArray(userRoles) && userRoles.some(role => role.name === "Admin");
 
   return (
     <div className="relative">
       {isAdmin ? (
         <div className="absolute left-0 mt-2 w-90 bg-white border border-gray-200 rounded-lg shadow-lg z-50 flex">
+          
           {/* Left Half */}
           <div className="w-1/2 p-4 space-y-8">
             {/* Greeting Section */}
@@ -21,7 +31,7 @@ const AdminDrop = ({ user = {}, userRoles = [] }) => {
               </p>
             </div>
 
-            {/* Search Component */}
+            {/* Search Input */}
             <div className="relative mb-4">
               <input
                 type="text"
@@ -32,12 +42,11 @@ const AdminDrop = ({ user = {}, userRoles = [] }) => {
 
             {/* Schools Section */}
             <div className="space-y-2">
-            <SchoolDropdown user={user} />
-          </div>
-          
+              <SchoolDropdown user={user} />
+            </div>
 
             {/* Professional Section */}
-            <ProfessionalSection  user={user}  />
+            <ProfessionalSection user={user} />
 
             {/* Community Resources Section */}
             <div>
@@ -61,22 +70,12 @@ const AdminDrop = ({ user = {}, userRoles = [] }) => {
 
             {/* Create Options */}
             <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-500" />
-                <span className="text-gray-700">Newsletter</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-500" />
-                <span className="text-gray-700">Event</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-500" />
-                <span className="text-gray-700">Life Event</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <svg className="w-5 h-5 text-gray-500" />
-                <span className="text-gray-700">Resource</span>
-              </div>
+              {["Newsletter", "Event", "Life Event", "Resource"].map((item) => (
+                <div key={item} className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-gray-500" />
+                  <span className="text-gray-700">{item}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

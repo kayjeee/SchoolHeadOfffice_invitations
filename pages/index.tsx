@@ -113,20 +113,20 @@ const Home = ({ schools }) => {
         handleSearchClick={() => setState((prev) => ({ ...prev, dropdownOpen: !dropdownOpen }))}
         handleChatClick={() => setState((prev) => ({ ...prev, chatOpen: !chatOpen }))}
         dropdownOpen={dropdownOpen}
-        dropdownRef={dropdownRef}
+        
         schools={schools}
-        toggleProfile={() => setState((prev) => ({ ...prev, chatOpen: !chatOpen }))}
+     
       />
     </FrontPageLayoutMobileView>
   ) : (
     <FrontPageLayout user={user} schools={schools} userRoles={userRoles}>
       <DesktopHome
-        handleSearchClick={() => setState((prev) => ({ ...prev, dropdownOpen: !dropdownOpen }))}
-        handleChatClick={() => setState((prev) => ({ ...prev, chatOpen: !chatOpen }))}
-        dropdownOpen={dropdownOpen}
-        dropdownRef={dropdownRef}
+
+     
+        
+       
         schools={schools}
-        toggleProfile={() => setState((prev) => ({ ...prev, chatOpen: !chatOpen }))}
+       
       />
     </FrontPageLayout>
   );

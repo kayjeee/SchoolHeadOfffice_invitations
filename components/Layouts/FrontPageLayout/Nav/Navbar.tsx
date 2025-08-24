@@ -6,68 +6,63 @@ import AdminDrop from './AdminDrop';
 import MenuReflectionTab from './MenuReflectionTab';
 import { useRouter } from 'next/router';
 import { useAppTheme } from '../../../../context/ThemeContext';
+import { School } from '../../shared/types/School';
+import { User } from '../../shared/types/User';
+import { UserRole } from '../../shared/types/UserRole';
 
 interface NavbarProps {
-  user?: { name: string; email: string };
+  schoolImage?: string;
+  user?: User;
   loading: boolean;
-  schools: any[];
-  searchQuery: string;
-  userRoles?: string[];
-  setSearchQuery: (query: string) => void;
+  schools?: School[];
+  searchQuery?: string;
+  userRoles?: UserRole[];
+  setSearchQuery?: (query: string) => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
   user,
   loading,
-  schools,
-  searchQuery,
+  schools = [],
+  searchQuery = '',
   userRoles = [],
   setSearchQuery,
+  schoolImage
 }) => {
   const [showReflection, setShowReflection] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const router = useRouter();
-
-  // Access theme context
   const { primaryColor, currentSchool } = useAppTheme();
 
-  const adminDropdownRef = useRef(null);
-  const profileModalRef = useRef(null);
+  const adminDropdownRef = useRef<HTMLDivElement | null>(null);
+  const profileModalRef = useRef<HTMLDivElement | null>(null);
 
-  const isAdmin = userRoles.includes('Admin');
+  const isAdmin = userRoles.some(role => role.name === 'Admin');
 
   const handleLogin = () => router.push('/api/auth/login');
   const handleLogout = () => router.push('/api/auth/logout');
-  const toggleReflection = () => setShowReflection((prev) => !prev);
-  const toggleProfileModal = () => setShowProfileModal((prev) => !prev);
-  const toggleAdminDropdown = () => setShowAdminDropdown((prev) => !prev);
+  const toggleReflection = () => setShowReflection(prev => !prev);
+  const toggleProfileModal = () => setShowProfileModal(prev => !prev);
+  const toggleAdminDropdown = () => setShowAdminDropdown(prev => !prev);
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        adminDropdownRef.current &&
-        !adminDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
         setShowAdminDropdown(false);
       }
-      if (
-        profileModalRef.current &&
-        !profileModalRef.current.contains(event.target as Node)
-      ) {
+      if (profileModalRef.current && !profileModalRef.current.contains(event.target as Node)) {
         setShowProfileModal(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
     <>
-      <nav 
+      <nav
         className="border-b border-gray-200 relative"
         style={{ backgroundColor: primaryColor || 'white' }}
       >
@@ -76,10 +71,10 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center space-x-6">
             <Link href="/" passHref>
               <img
-                src={currentSchool?.schoolImage || '/felixwhitbg.PNG'}
-                alt="logo"
-                width="70"
-                height="70"
+                src={schoolImage || '/ShoLogoUpdate.png'}
+                alt="School Logo"
+                width={70}
+                height={70}
                 className="cursor-pointer"
               />
             </Link>
@@ -89,19 +84,19 @@ const Navbar: React.FC<NavbarProps> = ({
               </h1>
             )}
           </div>
-  
+
           {/* Center Section */}
           <div className="flex flex-1 justify-center">
             <Tabs />
           </div>
-  
+
           {/* Right Section */}
           <div className="flex items-center space-x-16 ml-4">
             {!loading ? (
               user ? (
                 <>
-                {/* Admin Dropdown */}
-                {isAdmin && (
+                  {/* Admin Dropdown */}
+                  {isAdmin && (
                     <div className="relative" ref={adminDropdownRef}>
                       <button
                         onClick={toggleAdminDropdown}
@@ -122,7 +117,7 @@ const Navbar: React.FC<NavbarProps> = ({
                           />
                         </svg>
                       </button>
-                      {showAdminDropdown && <AdminDrop userRoles={userRoles} user={user}/>}
+                      {showAdminDropdown && <AdminDrop userRoles={userRoles} user={user} />}
                     </div>
                   )}
                   {/* Profile Section */}
@@ -148,10 +143,10 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </nav>
-  
+
       {/* Reflection Tab */}
       {showReflection && <MenuReflectionTab />}
-  
+
       {/* Profile Modal */}
       {showProfileModal && (
         <div
@@ -167,13 +162,13 @@ const Navbar: React.FC<NavbarProps> = ({
               <strong>Email:</strong> {user?.email || 'N/A'}
             </p>
             <p>
-              <strong>Roles:</strong> {userRoles?.join(', ') || 'N/A'}
+              <strong>Roles:</strong> {userRoles.map(r => r.name).join(', ') || 'N/A'}
             </p>
             <button
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               onClick={toggleProfileModal}
             >
-              Close 
+              Close
             </button>
           </div>
         </div>
