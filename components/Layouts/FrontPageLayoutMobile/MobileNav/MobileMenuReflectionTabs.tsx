@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { UserRole } from '../../shared/types/UserRole';
+import Link from "next/link";
+import { UserRole } from "../../shared/types/UserRole";
 
 interface MobileMenuReflectionTabsProps {
   closeModal: () => void;
@@ -11,7 +11,8 @@ const MobileMenuReflectionTabs: React.FC<MobileMenuReflectionTabsProps> = ({
   userRoles = [],
 }) => {
   // Example: show "Admin Panel" link only if user has Admin role
-  const hasAdminRole = userRoles.some(role => role.name === 'Admin');
+  const hasAdminRole =
+    Array.isArray(userRoles) && userRoles.some((role) => role === "admin");
 
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto">

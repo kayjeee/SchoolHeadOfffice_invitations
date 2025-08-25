@@ -1,7 +1,7 @@
+import { User } from "../../shared/types/User";
+import { UserRole } from "../../shared/types/UserRole";
 import ProfessionalSection from "./Admindropcomponents/ProfessionalSection";
-import SchoolDropdown from './Admindropcomponents/SchoolDropdown';
-import { UserRole } from '../../shared/types/UserRole';
-import { User } from '../../shared/types/User';
+import SchoolDropdown from "./Admindropcomponents/SchoolDropdown";
 
 interface AdminDropProps {
   user?: User;
@@ -12,13 +12,14 @@ const AdminDrop: React.FC<AdminDropProps> = ({ user = {}, userRoles = [] }) => {
   const { name = "User" } = user;
 
   // Check if user has "Admin" role
-  const isAdmin = Array.isArray(userRoles) && userRoles.some(role => role.name === "Admin");
+  // Check if user has "Admin" role
+  const isAdmin =
+    Array.isArray(userRoles) && userRoles.some((role) => role === "admin");
 
   return (
     <div className="relative">
       {isAdmin ? (
         <div className="absolute left-0 mt-2 w-90 bg-white border border-gray-200 rounded-lg shadow-lg z-50 flex">
-          
           {/* Left Half */}
           <div className="w-1/2 p-4 space-y-8">
             {/* Greeting Section */}
