@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import Tabs from './Tabs';
-import MenuDropdown from './MenuDropdown';
-import AdminDrop from './AdminDrop';
-import MenuReflectionTab from './MenuReflectionTab';
-import { useRouter } from 'next/router';
-import { useAppTheme } from '../../../../context/ThemeContext';
-import { School } from '../../shared/types/School';
-import { User } from '../../shared/types/User';
-import { UserRole } from '../../shared/types/UserRole';
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+import { useAppTheme } from "../../../../context/ThemeContext";
+import { School } from "../../shared/types/School";
+import { User } from "../../shared/types/User";
+import { UserRole } from "../../shared/types/UserRole";
+import AdminDrop from "./AdminDrop";
+import MenuDropdown from "./MenuDropdown";
+import MenuReflectionTab from "./MenuReflectionTab";
+import Tabs from "./Tabs";
 
 interface NavbarProps {
   schoolImage?: string;
@@ -24,10 +24,10 @@ const Navbar: React.FC<NavbarProps> = ({
   user,
   loading,
   schools = [],
-  searchQuery = '',
+  searchQuery = "",
   userRoles = [],
   setSearchQuery,
-  schoolImage
+  schoolImage,
 }) => {
   const [showReflection, setShowReflection] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -38,40 +38,48 @@ const Navbar: React.FC<NavbarProps> = ({
   const adminDropdownRef = useRef<HTMLDivElement | null>(null);
   const profileModalRef = useRef<HTMLDivElement | null>(null);
 
-  const isAdmin = userRoles.some(role => role.name === 'Admin');
+  // Check if user has "Admin" role
+  const isAdmin =
+    Array.isArray(userRoles) && userRoles.some((role) => role === "admin");
 
-  const handleLogin = () => router.push('/api/auth/login');
-  const handleLogout = () => router.push('/api/auth/logout');
-  const toggleReflection = () => setShowReflection(prev => !prev);
-  const toggleProfileModal = () => setShowProfileModal(prev => !prev);
-  const toggleAdminDropdown = () => setShowAdminDropdown(prev => !prev);
+  const handleLogin = () => router.push("/api/auth/login");
+  const handleLogout = () => router.push("/api/auth/logout");
+  const toggleReflection = () => setShowReflection((prev) => !prev);
+  const toggleProfileModal = () => setShowProfileModal((prev) => !prev);
+  const toggleAdminDropdown = () => setShowAdminDropdown((prev) => !prev);
 
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
+      if (
+        adminDropdownRef.current &&
+        !adminDropdownRef.current.contains(event.target as Node)
+      ) {
         setShowAdminDropdown(false);
       }
-      if (profileModalRef.current && !profileModalRef.current.contains(event.target as Node)) {
+      if (
+        profileModalRef.current &&
+        !profileModalRef.current.contains(event.target as Node)
+      ) {
         setShowProfileModal(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <>
       <nav
         className="border-b border-gray-200 relative"
-        style={{ backgroundColor: primaryColor || 'white' }}
+        style={{ backgroundColor: primaryColor || "white" }}
       >
         <div className="max-w-full mx-auto h-20 flex items-center px-4">
           {/* Left Section */}
           <div className="flex items-center space-x-6">
             <Link href="/" passHref>
               <img
-                src={schoolImage || '/ShoLogoUpdate.png'}
+                src={schoolImage || "/ShoLogoUpdate.png"}
                 alt="School Logo"
                 width={70}
                 height={70}
@@ -117,7 +125,9 @@ const Navbar: React.FC<NavbarProps> = ({
                           />
                         </svg>
                       </button>
-                      {showAdminDropdown && <AdminDrop userRoles={userRoles} user={user} />}
+                      {showAdminDropdown && (
+                        <AdminDrop userRoles={userRoles} user={user} />
+                      )}
                     </div>
                   )}
                   {/* Profile Section */}
@@ -125,14 +135,22 @@ const Navbar: React.FC<NavbarProps> = ({
                     className="flex items-center space-x-2 cursor-pointer"
                     onClick={toggleProfileModal}
                   >
-                    <span className="text-white hover:text-gray-200 hover:underline">Profile</span>
+                    <span className="text-white hover:text-gray-200 hover:underline">
+                      Profile
+                    </span>
                   </div>
-                  <button onClick={handleLogout} className="text-white hover:text-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="text-white hover:text-gray-200"
+                  >
                     Logout
                   </button>
                 </>
               ) : (
-                <button onClick={handleLogin} className="text-white hover:text-gray-200">
+                <button
+                  onClick={handleLogin}
+                  className="text-white hover:text-gray-200"
+                >
                   Login
                 </button>
               )
@@ -156,13 +174,14 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-xl font-bold mb-4">User Profile</h2>
             <p>
-              <strong>Name:</strong> {user?.name || 'N/A'}
+              <strong>Name:</strong> {user?.name || "N/A"}
             </p>
             <p>
-              <strong>Email:</strong> {user?.email || 'N/A'}
+              <strong>Email:</strong> {user?.email || "N/A"}
             </p>
             <p>
-              <strong>Roles:</strong> {userRoles.map(r => r.name).join(', ') || 'N/A'}
+              <strong>Roles:</strong>{" "}
+              {userRoles.map((r) => r).join(", ") || "N/A"}
             </p>
             <button
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"

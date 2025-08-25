@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import Link from 'next/link';
-import { UserRole } from '../../shared/types/UserRole';
+import Link from "next/link";
+import { useState } from "react";
+import { UserRole } from "../../shared/types/UserRole";
 
 interface MobileMenuDropdownProps {
   toggleReflection: () => void; // Function to toggle reflection in Navbar
-  userRoles?: UserRole[];        // Add this so TypeScript knows about it
+  userRoles?: UserRole[]; // Add this so TypeScript knows about it
 }
 
 const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({
   toggleReflection,
-  userRoles = []
+  userRoles = [],
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -25,7 +25,7 @@ const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({
         className="text-gray-800 cursor-pointer hover:underline flex items-center"
       >
         {/* Menu Icon */}
-        <span className={`ml-1 transform ${isOpen ? 'rotate-180' : ''}`}>
+        <span className={`ml-1 transform ${isOpen ? "rotate-180" : ""}`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -45,13 +45,14 @@ const MobileMenuDropdown: React.FC<MobileMenuDropdownProps> = ({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 shadow-lg z-50">
           {/* Example menu items */}
-          {userRoles.some(role => role.name === 'Admin') && (
-  <Link href="/admin" passHref>
-    <span className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">
-      Admin Panel
-    </span>
-  </Link>
-)}
+          {Array.isArray(userRoles) &&
+            userRoles.some((role) => role === "admin") && (
+              <Link href="/admin" passHref>
+                <span className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">
+                  Admin Panel
+                </span>
+              </Link>
+            )}
 
           <Link href="/option1" passHref>
             <span className="block px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer">
