@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiEdit, FiTrash2, FiUsers, FiMail, FiSettings, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiUsers, FiMail, FiSettings, FiX, FiAlertCircle } from 'react-icons/fi';
 import { FaGraduationCap } from 'react-icons/fa';
 import axios from 'axios';
 import CreateGradeModal from './GradesCRUD/CreateGradeModal';
@@ -14,7 +14,7 @@ import InvitationComposer from './Invitations/InvitationComposer/InvitationCompo
 import StatusTracker from './Invitations/StatusTracker';
 import CreditSystem from './Invitations/CreditSystem';
 
-const GradesContainer = ({ selectedSchool, user, schools }) => {
+const GradesContainer = ({ selectedSchool, user, schools, grades: propGrades = [] }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [selectedLearner, setSelectedLearner] = useState(null);
@@ -24,40 +24,38 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showInvitationModal, setShowInvitationModal] = useState(false);
   const [selectedGradeForInvite, setSelectedGradeForInvite] = useState(null);
-  const [grades, setGrades] = useState([]);
+  const [grades, setGrades] = useState(propGrades || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load grades when selectedSchool changes
+  // Update local state when prop changes
   useEffect(() => {
-    if (selectedSchool?.id) {
-      fetchGrades();
-    }
+    console.log('GradesContainer - propGrades changed:', propGrades?.length || 0);
+    setGrades(propGrades || []);
+  }, [propGrades]);
+
+  // Debug selectedSchool changes
+  useEffect(() => {
+    console.log('GradesContainer - selectedSchool prop changed:', selectedSchool);
   }, [selectedSchool]);
 
-  const fetchGrades = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await axios.get(
-        `http://localhost:4000/api/v1/schools/${selectedSchool.id}/grades`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      setGrades(response.data.data.grades);
-    } catch (err) {
-      console.error('Error fetching grades:', err);
-      setError('Failed to load grades. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Log component props on mount
+  useEffect(() => {
+    console.log('GradesContainer mounted with props:', {
+      selectedSchool,
+      user,
+      schools,
+      gradesCount: propGrades?.length || 0
+    });
+  }, []);
+
+  // Log grades whenever they change
+  useEffect(() => {
+    console.log('Grades updated:', grades);
+  }, [grades]);
 
   const handleCreateGrade = async (newGrade) => {
+    console.log('Creating new grade:', newGrade);
     try {
       const token = localStorage.getItem('authToken');
       await axios.post(
@@ -72,8 +70,13 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
           }
         }
       );
-      fetchGrades(); // Refresh the list
+      console.log('Grade created successfully');
+      // Note: We can't refresh the list here since we're not fetching locally
+      // The parent component should handle refreshing the grades list
       setShowCreateModal(false);
+      
+      // Show success message and suggest manual refresh
+      alert('Grade created successfully! The grades list will need to be refreshed.');
     } catch (err) {
       console.error('Error creating grade:', err);
       throw err; // Let the modal handle the error
@@ -81,6 +84,7 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   };
 
   const handleUpdateGrade = async (updatedGrade) => {
+    console.log('Updating grade:', selectedGrade.id, 'with data:', updatedGrade);
     try {
       const token = localStorage.getItem('authToken');
       await axios.patch(
@@ -95,8 +99,13 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
           }
         }
       );
-      fetchGrades(); // Refresh the list
+      console.log('Grade updated successfully');
+      // Note: We can't refresh the list here since we're not fetching locally
+      // The parent component should handle refreshing the grades list
       setShowEditModal(false);
+      
+      // Show success message and suggest manual refresh
+      alert('Grade updated successfully! The grades list will need to be refreshed.');
     } catch (err) {
       console.error('Error updating grade:', err);
       throw err; // Let the modal handle the error
@@ -104,6 +113,7 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   };
 
   const handleDeleteGrade = async () => {
+    console.log('Deleting grade:', selectedGrade.id);
     try {
       const token = localStorage.getItem('authToken');
       await axios.delete(
@@ -114,8 +124,13 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
           }
         }
       );
-      fetchGrades(); // Refresh the list
+      console.log('Grade deleted successfully');
+      // Note: We can't refresh the list here since we're not fetching locally
+      // The parent component should handle refreshing the grades list
       setShowDeleteModal(false);
+      
+      // Show success message and suggest manual refresh
+      alert('Grade deleted successfully! The grades list will need to be refreshed.');
     } catch (err) {
       console.error('Error deleting grade:', err);
       throw err; // Let the modal handle the error
@@ -123,26 +138,42 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
   };
 
   const handleEditGrade = (grade) => {
+    console.log('Editing grade:', grade);
     setSelectedGrade(grade);
     setShowEditModal(true);
   };
 
   const handleDeleteGradeClick = (grade) => {
+    console.log('Delete grade clicked:', grade);
     setSelectedGrade(grade);
     setShowDeleteModal(true);
   };
 
   const handleViewLearners = (grade) => {
+    console.log('Viewing learners for grade:', grade);
     setSelectedGrade(grade);
     setActiveTab('learners');
   };
 
   const handleOpenInvitationModal = (grade) => {
+    console.log('Opening invitation modal for grade:', grade);
     setSelectedGradeForInvite(grade);
     setShowInvitationModal(true);
   };
 
+  const handleInvitationSent = (result) => {
+    console.log('Invitation sent successfully:', result);
+    setShowInvitationModal(false);
+  };
+
+  // Log active tab changes
+  useEffect(() => {
+    console.log('Active tab changed to:', activeTab);
+  }, [activeTab]);
+
   const renderTabContent = () => {
+    console.log('Rendering tab content for:', activeTab);
+    
     switch (activeTab) {
       case 'overview':
         return (
@@ -156,28 +187,20 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={!selectedSchool?.id}
               >
                 <FiPlus className="mr-2 h-4 w-4" />
                 Create Grade
               </button>
             </div>
 
-            {loading && (
-              <div className="text-center py-4">
-                <p>Loading grades...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+            {!selectedSchool?.id && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
                 <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
                   <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm text-yellow-700">
+                      Please select a school to view and manage grades.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -211,7 +234,7 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
                       <dl>
                         <dt className="text-sm font-medium text-gray-500 truncate">Total Learners</dt>
                         <dd className="text-lg font-medium text-gray-900">
-                          {grades.reduce((sum, grade) => sum + (grade.learnerCount || 0), 0)}
+                          {grades.reduce((sum, grade) => sum + (grade.learners_count || grade.current_enrollment || 0), 0)}
                         </dd>
                       </dl>
                     </div>
@@ -260,15 +283,24 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
                   Overview of all grades in your school
                 </p>
               </div>
-              {grades.length === 0 && !loading ? (
-                <div className="px-4 py-5 sm:px-6 text-center text-gray-500">
-                  No grades found. Create your first grade to get started.
+              {grades.length === 0 && selectedSchool?.id ? (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <FaGraduationCap className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">No grades found</p>
+                  <p className="text-sm text-gray-500 mb-4">Create your first grade to get started.</p>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
+                  >
+                    <FiPlus className="mr-2 h-4 w-4" />
+                    Create Grade
+                  </button>
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-200">
                   {grades.map((grade) => (
                     <li key={grade.id}>
-                      <div className="px-4 py-4 flex items-center justify-between">
+                      <div className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
                             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -277,41 +309,39 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{grade.name}</div>
-                            <div className="text-sm text-gray-500">{grade.description}</div>
+                            <div className="text-sm text-gray-500">{grade.description || 'No description'}</div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-sm text-gray-500">
-                            {/* Instead of grade.learnerCount */}
                             <span className="font-medium">{grade.learners_count || grade.current_enrollment || 0}</span> learners
-
                           </div>
                           <div className="text-sm text-gray-500">
-                            <span className="font-medium">{grade.teacherCount || 0}</span> teachers
+                            <span className="font-medium">{grade.teachers_count || 0}</span> teachers
                           </div>
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleViewLearners(grade)}
-                              className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                              className="text-blue-600 hover:text-blue-900 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50"
                             >
                               View Learners
                             </button>
                             <button
                               onClick={() => handleOpenInvitationModal(grade)}
-                              className="text-green-600 hover:text-green-900 text-sm font-medium flex items-center"
+                              className="text-green-600 hover:text-green-900 text-sm font-medium flex items-center px-2 py-1 rounded hover:bg-green-50"
                             >
                               <FiMail className="mr-1 h-4 w-4" />
                               Send Invitations
                             </button>
                             <button
                               onClick={() => handleEditGrade(grade)}
-                              className="text-indigo-600 hover:text-indigo-900"
+                              className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
                             >
                               <FiEdit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteGradeClick(grade)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
                             >
                               <FiTrash2 className="h-4 w-4" />
                             </button>
@@ -372,13 +402,40 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
               </div>
             </div>
 
+            {/* Debug Info for Tab View */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+              <p className="font-semibold text-blue-700 mb-2">Tab View Debug:</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div><strong>Selected School:</strong> {selectedSchool ? `${selectedSchool.schoolName} (ID: ${selectedSchool.id})` : 'NULL'}</div>
+                <div><strong>Available Grades:</strong> {grades.length}</div>
+                <div><strong>User:</strong> {user ? user.name || 'Present' : 'None'}</div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-6">
                 <TemplateManager />
-                <InvitationComposer    user={user} 
-              schools={schools} 
-              selectedSchool={selectedSchool} 
-              selectedGrade={selectedGradeForInvite}/>
+                {/* Check if selectedSchool exists before rendering InvitationComposer */}
+                {selectedSchool ? (
+                  <InvitationComposer  
+                    grades={grades}
+                    user={user} 
+                    schools={schools} 
+                    selectedSchool={selectedSchool} 
+                    selectedGrade={selectedGradeForInvite}
+                    onInvitationSent={handleInvitationSent}
+                  />
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <FiAlertCircle className="text-yellow-600 mr-3" size={20} />
+                      <div>
+                        <h3 className="text-yellow-800 font-medium">School Not Selected</h3>
+                        <p className="text-yellow-700 text-sm">Please select a school first to send invitations.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-6">
                 <StatusTracker user={user} />
@@ -408,12 +465,21 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    if (tab.id === 'invitations' && !selectedSchool) {
+                      alert('Please select a school first to access invitations');
+                      return;
+                    }
+                    setActiveTab(tab.id);
+                  }}
                   className={`${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
+                    tab.id === 'invitations' && !selectedSchool ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={tab.id === 'invitations' && !selectedSchool}
                 >
                   <Icon className="mr-2 h-4 w-4" />
                   {tab.name}
@@ -477,23 +543,38 @@ const GradesContainer = ({ selectedSchool, user, schools }) => {
       )}
 
       {/* Invitation Modal */}
-      {showInvitationModal && (
+      {showInvitationModal && selectedSchool && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center pb-3">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-md bg-white max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center pb-3 border-b">
               <h3 className="text-xl font-bold">Send Invitations</h3>
               <button 
                 onClick={() => setShowInvitationModal(false)} 
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
               >
                 <FiX className="h-6 w-6" />
               </button>
             </div>
+            
+            {/* Debug Info */}
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
+              <p className="font-semibold text-gray-700 mb-2">Debug Information:</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div><strong>Selected School:</strong> {selectedSchool ? `${selectedSchool.schoolName} (ID: ${selectedSchool.id})` : 'None'}</div>
+                <div><strong>Available Grades:</strong> {grades.length}</div>
+                <div><strong>Selected Grade:</strong> {selectedGradeForInvite ? `${selectedGradeForInvite.name} (ID: ${selectedGradeForInvite.id})` : 'None'}</div>
+                <div><strong>User:</strong> {user ? user.name || 'Present' : 'None'}</div>
+              </div>
+            </div>
+            
             <InvitationComposer 
               user={user} 
               schools={schools} 
               selectedSchool={selectedSchool} 
               selectedGrade={selectedGradeForInvite}
+              grades={grades}
+              onInvitationSent={handleInvitationSent}
+              onClose={() => setShowInvitationModal(false)}
             />
           </div>
         </div>

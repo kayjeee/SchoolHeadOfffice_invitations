@@ -10,6 +10,7 @@ import {
   FaSchool, FaMoneyBillWave, FaChartLine, FaCog, FaGraduationCap
 } from 'react-icons/fa';
 import Sidebar from './Sidebar';
+import axios from 'axios';
 
 // Import components from grades-management-components package
 import {
@@ -36,55 +37,99 @@ export default function SettingsLayout({ user, schools }) {
   const [activeTab, setActiveTab] = useState('grades-overview');
   const [isExpanded, setIsExpanded] = useState(true);
   const [balance, setBalance] = useState(50.00);
-  const [meals, setMeals] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [selectedAccount, setSelectedAccount] = useState(null);
   const [grades, setGrades] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  useEffect(() => {
-    console.log('BulkUpload user prop:', schools);
-  }, [schools]);
-  
-  // Get school ID from props
+  // Get school ID from props - FIXED: Use the correct property name
   const userId = user?._id;
   const selectedSchool = schools?.length > 0 ? schools[0] : null;
-  const schoolId = selectedSchool?._id;
-  const schoolame = selectedSchool?.schoolName;
+  const schoolId = selectedSchool?.id || selectedSchool?._id; // Handle both id and _id
+  const schoolName = selectedSchool?.schoolName;
 
-  // Function to fetch grades (replace with your actual API call)
+  // Debug logging
+  useEffect(() => {
+    console.log('SettingsLayout - Schools prop:', schools);
+    console.log('SettingsLayout - Selected School:', selectedSchool);
+    console.log('SettingsLayout - School ID:', schoolId);
+  }, [schools, selectedSchool, schoolId]);
+
+  // Log grades whenever they change
+  useEffect(() => {
+    console.log('SettingsLayout - Grades updated:', {
+      count: grades.length,
+      grades: grades.map(g => ({ id: g.id, name: g.name }))
+    });
+  }, [grades]);
+
+  // Function to fetch grades from backend - FIXED: Add more debugging
   const fetchGrades = async () => {
-    if (!schoolId) return;
-    try {
-      const response = await fetch('/api/grades/fetchGradesForSchool', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ schoolId }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch grades');
-      }
-      const data = await response.json();
-      setGrades(data.grades || []);
-    } catch (error) {
-      console.error('Error fetching grades:', error);
+    console.log('fetchGrades called with schoolId:', schoolId);
+    
+    if (!schoolId) {
+      console.log('No school ID available, cannot fetch grades');
       setGrades([]);
+      return;
+    }
+    
+    console.log('SettingsLayout - Fetching grades for school:', schoolId);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      console.log('Using auth token:', token ? 'Token exists' : 'No token found');
+      
+      // FIXED: Use the correct endpoint format and add more debugging
+      const apiUrl = `http://localhost:4000/api/v1/schools/${schoolId}/grades`;
+      console.log('Making API call to:', apiUrl);
+      
+      const response = await axios.get(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000 // Add timeout to prevent hanging requests
+      });
+      
+      console.log('SettingsLayout - Grades API response:', response.data);
+      
+      // FIXED: Handle different response structures
+      const fetchedGrades = response.data.data?.grades || response.data.grades || [];
+      console.log('Fetched grades:', fetchedGrades);
+      
+      setGrades(fetchedGrades);
+      
+      console.log('SettingsLayout - Successfully fetched grades:', fetchedGrades.length);
+    } catch (err) {
+      console.error('SettingsLayout - Error fetching grades:', {
+        error: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: err.config?.url
+      });
+      setError(`Failed to load grades: ${err.message}. Please try again.`);
+      setGrades([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Fetch grades when component mounts or schoolId changes
+  // Fetch grades when component mounts or schoolId changes - FIXED: Add more debugging
   useEffect(() => {
-    fetchGrades();
-  }, [schoolId]);
-
-  const handleAccountSelect = (account) => {
-    setSelectedAccount(account);
-    setActiveTab('account-details');
-  };
+    console.log('useEffect triggered - schoolId:', schoolId, 'selectedSchool:', selectedSchool);
+    
+    if (schoolId) {
+      console.log('SettingsLayout - School changed, fetching grades for school:', schoolId);
+      fetchGrades();
+    } else {
+      console.log('SettingsLayout - No school selected or school has no ID');
+      setGrades([]);
+    }
+  }, [schoolId]); // FIXED: Only depend on schoolId
 
   const renderContent = () => {
+    console.log('SettingsLayout - Rendering tab:', activeTab, 'with grades count:', grades.length);
+    
     switch (activeTab) {
       case 'grades-overview':
         return (
@@ -92,6 +137,7 @@ export default function SettingsLayout({ user, schools }) {
             selectedSchool={selectedSchool}
             user={user}
             schools={schools}
+            grades={grades}
           />
         );
       case 'grades-classes':
@@ -106,6 +152,7 @@ export default function SettingsLayout({ user, schools }) {
                 selectedSchool={selectedSchool}
                 user={user}
                 schools={schools}
+                grades={grades}
               />
             </div>
           </div>
@@ -146,7 +193,11 @@ export default function SettingsLayout({ user, schools }) {
       case 'grades-invitations':
         return (
           <div className="space-y-6">
-            <InvitationManagementTabs />
+            <InvitationManagementTabs 
+              selectedSchool={selectedSchool}
+              grades={grades}
+              user={user}
+            />
           </div>
         );
       default:
@@ -164,14 +215,58 @@ export default function SettingsLayout({ user, schools }) {
         onToggle={() => setIsExpanded((prev) => !prev)}
         balance={balance}
       />
+      
       <div className="flex-1 p-6 overflow-auto">
+        {/* Debug Info */}
+        <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded text-sm">
+          <p className="font-semibold text-gray-700 mb-2">Debug Information:</p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div><strong>School ID:</strong> {schoolId || 'None'}</div>
+            <div><strong>Grades Count:</strong> {grades.length}</div>
+            <div><strong>Selected School:</strong> {selectedSchool ? selectedSchool.schoolName : 'None'}</div>
+            <div><strong>Active Tab:</strong> {activeTab}</div>
+          </div>
+        </div>
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded text-center">
+            <div className="inline-flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <p className="text-blue-600">Loading grades...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+                <button 
+                  onClick={fetchGrades}
+                  className="mt-2 text-sm text-red-800 underline hover:text-red-900"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {renderContent()}
       </div>
     </div>
   );
 }
 
-function InvitationManagementTabs() {
+function InvitationManagementTabs({ selectedSchool, grades, user }) {
   const [activeInvitationTab, setActiveInvitationTab] = useState('composer');
 
   const invitationTabs = [
@@ -181,10 +276,27 @@ function InvitationManagementTabs() {
     { id: 'credits', label: 'Credit System', icon: <FiDollarSign /> },
   ];
 
+  // Debug logging for InvitationManagementTabs
+  useEffect(() => {
+    console.log('InvitationManagementTabs - Props:', {
+      selectedSchool: selectedSchool ? selectedSchool.schoolName : 'None',
+      gradesCount: grades?.length || 0,
+      userExists: !!user
+    });
+  }, [selectedSchool, grades, user]);
+
   const renderInvitationContent = () => {
+    console.log('InvitationManagementTabs - Rendering tab:', activeInvitationTab);
+    
     switch (activeInvitationTab) {
       case 'composer':
-        return <InvitationComposer />;
+        return (
+          <InvitationComposer 
+            selectedSchool={selectedSchool}
+            grades={grades}
+            user={user}
+          />
+        );
       case 'templates':
         return <TemplateManager />;
       case 'status':
@@ -192,7 +304,13 @@ function InvitationManagementTabs() {
       case 'credits':
         return <CreditSystem />;
       default:
-        return <InvitationComposer />;
+        return (
+          <InvitationComposer 
+            selectedSchool={selectedSchool}
+            grades={grades}
+            user={user}
+          />
+        );
     }
   };
 
