@@ -99,6 +99,7 @@ Sub-folder auth for dynamic route [...auth].tsx.
 |                    ├── Transactions.js
 │         ├── common/
 │         ├── context/
+                       ├── schoolContext.tsx
 │         ├── customers/
 │         ├── data/
 │         ├── fileupload/
