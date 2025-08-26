@@ -11,13 +11,13 @@ import MenuReflectionTab from "./MenuReflectionTab";
 import Tabs from "./Tabs";
 
 interface NavbarProps {
-  schoolImage?: string;
   user?: User;
   loading: boolean;
   schools?: School[];
   searchQuery?: string;
   userRoles?: UserRole[];
   setSearchQuery?: (query: string) => void;
+  schoolImage?: string; // ✅ allow passing a schoolImage directly
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -33,14 +33,20 @@ const Navbar: React.FC<NavbarProps> = ({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const router = useRouter();
+
   const { primaryColor, currentSchool } = useAppTheme();
 
   const adminDropdownRef = useRef<HTMLDivElement | null>(null);
   const profileModalRef = useRef<HTMLDivElement | null>(null);
 
-  // Check if user has "Admin" role
+  // Normalize role check (case-insensitive if needed)
   const isAdmin =
-    Array.isArray(userRoles) && userRoles.some((role) => role === "admin");
+    Array.isArray(userRoles) &&
+    userRoles.some((role) =>
+      typeof role === "string"
+        ? role.toLowerCase() === "admin"
+        : (role as any) === "admin"
+    );
 
   const handleLogin = () => router.push("/api/auth/login");
   const handleLogout = () => router.push("/api/auth/logout");
@@ -48,7 +54,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const toggleProfileModal = () => setShowProfileModal((prev) => !prev);
   const toggleAdminDropdown = () => setShowAdminDropdown((prev) => !prev);
 
-  // Close dropdowns on outside click
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -65,7 +71,9 @@ const Navbar: React.FC<NavbarProps> = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   return (
@@ -79,8 +87,12 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center space-x-6">
             <Link href="/" passHref>
               <img
-                src={schoolImage || "/ShoLogoUpdate.png"}
-                alt="School Logo"
+                src={
+                  schoolImage ||
+                  currentSchool?.schoolImage ||
+                  "/felixwhitbg.PNG"
+                }
+                alt="logo"
                 width={70}
                 height={70}
                 className="cursor-pointer"
@@ -103,7 +115,7 @@ const Navbar: React.FC<NavbarProps> = ({
             {!loading ? (
               user ? (
                 <>
-                  {/* Admin Dropdown */}
+                  {/* Admin Dropdown (four dots menu) */}
                   {isAdmin && (
                     <div className="relative" ref={adminDropdownRef}>
                       <button
@@ -180,8 +192,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <strong>Email:</strong> {user?.email || "N/A"}
             </p>
             <p>
-              <strong>Roles:</strong>{" "}
-              {userRoles.map((r) => r).join(", ") || "N/A"}
+              <strong>Roles:</strong> {userRoles?.join(", ") || "N/A"}
             </p>
             <button
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
