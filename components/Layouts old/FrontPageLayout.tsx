@@ -1,12 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
-
-import { AppThemeProvider } from './context/ThemeContext';
-
+import Navbar from './FrontPageLayout/Nav/Navbar';
 import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
-import Navbar from './FrontPageLayout/Nav/Navbar';       // ← adjust path if your Navbar lives elsewhere
-import Footer from '../footer/Footer';       // ← adjust path if your Footer lives elsewhere
-
+import Footer from '../footer/Footer';
 import { School } from './shared/types/School';
 import { User } from './shared/types/User';
 import { UserRole } from './shared/types/UserRole';
@@ -18,7 +14,6 @@ interface FrontPageLayoutProps {
   user?: User;
   loading?: boolean;
   userRoles?: UserRole[];
-  schoolTheme?: string; // New prop for dynamic theming
 }
 
 const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
@@ -27,7 +22,7 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
   schools = [],
   user,
   loading = false,
-  userRoles = [],
+  userRoles = []
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,12 +30,12 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
-    handleResize(); // initialize on mount
+    handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <AppThemeProvider>
+    <>
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
@@ -52,9 +47,6 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
           userRoles={userRoles}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          // user and schoolTheme are optional in your MobileNavbar, omit or add if needed:
-          // user={user}
-          // schoolTheme={school?.theme}
         />
       ) : (
         <Navbar
@@ -63,13 +55,12 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
           user={user}
           loading={loading}
           userRoles={userRoles}
-          schoolTheme={school?.theme}
         />
       )}
 
       <main>{children}</main>
       <Footer />
-    </AppThemeProvider>
+    </>
   );
 };
 

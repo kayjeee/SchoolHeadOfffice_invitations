@@ -41,10 +41,22 @@ SchoolHeadOffice_Invitations/
 │   │   └── sections/                 # Main sections of the admin dashboard
 │   │
 └── layouts/
-    ├── main/                       # Main application layouts (desktop & mobile)
-    │   ├── FrontPageLayout.js      # Desktop layout with theme integration
-    │   └── FrontPageLayoutMobile.js  # Mobile layout with theme integration
-    │
+    ├── /  # Main application layouts (desktop & mobile)
+    ├── ├──layout.js                       
+    │   ├── FrontPageLayout/Nav     # Desktop layout with theme 
+|   |   |   |   |   |   |   |   ├── Navbar .js   
+|   |   |   |   |   |   |   |   ├── Searchbar .js 
+|   |   |   |   |   |   |   |   ├── Admindrop .tsx  
+|   |   |   |   |   |   |   |   AdminDropComponent/ 
+|   |   |   |   |   |   |   |   |   |   |   |   ├── ProfessionalSection .js   
+|   |   |   |   |   |   |   |   |   |   |   |   ├── Schooldropdown .js 
+|   |   ├── FrontPageLayout .js 
+    │   └── FrontPageLayoutMobile/MobileNav  # Mobile layout with theme integration
+    |   |   |   |   |   |   |   |   |     ├── MobileMenuDropdown.js 
+    |   |   |   |   |   |   |   |   |     ├── MobileMenuReflectionTabs.js 
+    |   |   |   |   |   |   |   |   |     ├── MobileSearchBar.js 
+    |   |   |   |   |   |   |   |   |     ├── MobileTabs.js 
+    |   |   |   |   |   |       ├── FrontPageLayoutMobileView.js 
     ├── shared/                     # Components shared between layouts
     │   ├── Nav/                      # Navigation components
     │   ├── ThemeToggle.js            # User theme switcher

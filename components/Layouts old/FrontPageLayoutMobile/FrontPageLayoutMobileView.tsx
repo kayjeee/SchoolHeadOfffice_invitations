@@ -1,12 +1,11 @@
 import { ReactNode, useState } from 'react';
 import MobileNavbar from './MobileNav/MobileNavbar';
-import Navbar from '../FrontPageLayout/Nav/Navbar'; // ✅ corrected import
+import Navbar from './MobileNav/MobileNavbar';
 import Footer from '../../footer/Footer';
 import useWindowSize from '../../hooks/useWindowSize';
 import { School } from '../shared/types/School';
 import { UserRole } from '../shared/types/UserRole';
-import { User } from '../shared/types/User';
-import { AppThemeProvider } from '../context/ThemeContext';
+import { User } from '../shared/types/User'; // Or your custom User type
 
 interface FrontPageLayoutMobileViewProps {
   children: ReactNode;
@@ -28,7 +27,7 @@ const FrontPageLayoutMobileView: React.FC<FrontPageLayoutMobileViewProps> = ({
   const isMobile = size.width <= 768;
 
   return (
-    <AppThemeProvider>
+    <>
       {isMobile ? (
         <MobileNavbar
           schoolImage={school?.logo}
@@ -37,7 +36,6 @@ const FrontPageLayoutMobileView: React.FC<FrontPageLayoutMobileViewProps> = ({
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           userRoles={userRoles}
-          schoolTheme={school?.theme}
         />
       ) : (
         <Navbar
@@ -45,15 +43,14 @@ const FrontPageLayoutMobileView: React.FC<FrontPageLayoutMobileViewProps> = ({
           schools={schools}
           user={user}
           userRoles={userRoles}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          schoolTheme={school?.theme}
+            searchQuery={searchQuery}   // ✅ Add
+  setSearchQuery={setSearchQuery}  // ✅ Ad
         />
       )}
 
       <main className="flex-grow">{children}</main>
       <Footer />
-    </AppThemeProvider>
+    </>
   );
 };
 

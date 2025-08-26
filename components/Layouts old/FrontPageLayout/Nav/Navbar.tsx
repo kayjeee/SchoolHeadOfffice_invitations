@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-import { useAppTheme } from "../../context/ThemeContext";
+import { useAppTheme } from "../../../../context/ThemeContext";
 import { School } from "../../shared/types/School";
 import { User } from "../../shared/types/User";
 import { UserRole } from "../../shared/types/UserRole";
@@ -9,7 +9,6 @@ import AdminDrop from "./AdminDrop";
 import MenuDropdown from "./MenuDropdown";
 import MenuReflectionTab from "./MenuReflectionTab";
 import Tabs from "./Tabs";
-import { generateColorPalette, ColorPalette } from "../../NavbarTheming/colorUtils";
 
 interface NavbarProps {
   user?: User;
@@ -19,7 +18,6 @@ interface NavbarProps {
   userRoles?: UserRole[];
   setSearchQuery?: (query: string) => void;
   schoolImage?: string; // ✅ allow passing a schoolImage directly
-  schoolTheme?: string; // New prop for dynamic theming
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -30,7 +28,6 @@ const Navbar: React.FC<NavbarProps> = ({
   userRoles = [],
   setSearchQuery,
   schoolImage,
-  schoolTheme,
 }) => {
   const [showReflection, setShowReflection] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -38,7 +35,6 @@ const Navbar: React.FC<NavbarProps> = ({
   const router = useRouter();
 
   const { primaryColor, currentSchool } = useAppTheme();
-  const themePalette: ColorPalette | null = schoolTheme ? generateColorPalette(schoolTheme) : null;
 
   const adminDropdownRef = useRef<HTMLDivElement | null>(null);
   const profileModalRef = useRef<HTMLDivElement | null>(null);
@@ -84,7 +80,7 @@ const Navbar: React.FC<NavbarProps> = ({
     <>
       <nav
         className="border-b border-gray-200 relative"
-        style={{ backgroundColor: themePalette?.primary || primaryColor || "white" }}
+        style={{ backgroundColor: primaryColor || "white" }}
       >
         <div className="max-w-full mx-auto h-20 flex items-center px-4">
           {/* Left Section */}
@@ -100,11 +96,10 @@ const Navbar: React.FC<NavbarProps> = ({
                 width={70}
                 height={70}
                 className="cursor-pointer"
-                style={{ filter: themePalette?.logo === '#FFFFFF' ? 'invert(1)' : 'none' }}
               />
             </Link>
             {currentSchool && (
-              <h1 className="text-xl font-bold" style={{ color: themePalette?.logo || 'white' }}>
+              <h1 className="text-xl font-bold text-white">
                 {currentSchool.schoolName}
               </h1>
             )}
@@ -125,8 +120,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     <div className="relative" ref={adminDropdownRef}>
                       <button
                         onClick={toggleAdminDropdown}
-                        className="hover:text-gray-200"
-                        style={{ color: themePalette?.logo || 'white' }}
+                        className="text-white hover:text-gray-200"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -153,15 +147,13 @@ const Navbar: React.FC<NavbarProps> = ({
                     className="flex items-center space-x-2 cursor-pointer"
                     onClick={toggleProfileModal}
                   >
-                    <span className="hover:text-gray-200 hover:underline"
-                      style={{ color: themePalette?.logo || 'white' }}>
+                    <span className="text-white hover:text-gray-200 hover:underline">
                       Profile
                     </span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="hover:text-gray-200"
-                    style={{ color: themePalette?.logo || 'white' }}
+                    className="text-white hover:text-gray-200"
                   >
                     Logout
                   </button>
@@ -169,8 +161,7 @@ const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <button
                   onClick={handleLogin}
-                  className="hover:text-gray-200"
-                  style={{ color: themePalette?.logo || 'white' }}
+                  className="text-white hover:text-gray-200"
                 >
                   Login
                 </button>
