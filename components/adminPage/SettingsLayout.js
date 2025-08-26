@@ -88,7 +88,7 @@ export default function SettingsLayout({ user, schools }) {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        timeout: 10000 // Add timeout to prevent hanging requests
+        timeout: 30000 // Add timeout to prevent hanging requests
       });
       
       console.log('SettingsLayout - Grades API response:', response.data);
