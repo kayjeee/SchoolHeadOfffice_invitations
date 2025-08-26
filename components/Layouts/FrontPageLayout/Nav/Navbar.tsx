@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import Tabs from "./Tabs";
-import MenuDropdown from "./MenuDropdown";
-import AdminDrop from "./AdminDrop";
-import MenuReflectionTab from "./MenuReflectionTab";
+import { useEffect, useRef, useState } from "react";
 import { useAppTheme } from "../../../../context/ThemeContext";
-import { User } from "../../shared/types/User";
 import { School } from "../../shared/types/School";
+import { User } from "../../shared/types/User";
 import { UserRole } from "../../shared/types/UserRole";
+import AdminDrop from "./AdminDrop";
+import MenuDropdown from "./MenuDropdown";
+import MenuReflectionTab from "./MenuReflectionTab";
+import Tabs from "./Tabs";
 
 interface NavbarProps {
   user?: User;
@@ -88,7 +88,9 @@ const Navbar: React.FC<NavbarProps> = ({
             <Link href="/" passHref>
               <img
                 src={
-                  schoolImage || currentSchool?.schoolImage || "/felixwhitbg.PNG"
+                  schoolImage ||
+                  currentSchool?.schoolImage ||
+                  "/felixwhitbg.PNG"
                 }
                 alt="logo"
                 width={70}
