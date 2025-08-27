@@ -5,20 +5,20 @@ import FrontPageLayoutMobileView from '../../components/Layouts/FrontPageLayoutM
 import { useUser } from '@auth0/nextjs-auth0/client';
 import SettingsLayout from '../../components/adminPage/SettingsLayout';
 import LoadingSpinner from '../../components/spinners/LoadingSpinner';
-import CreateSchoolForm from '../../components/Schoolpage/CreateSchoolForm';
+import CreateSchoolForm from '../../components/Schoolpage/CreateSchoolForm/index';
 import ValidateSchoolStep from '../../components/Schoolpage/ValidateSchoolStep';
 import ReviewSchoolStep from '../../components/Schoolpage/ReviewSchoolStep';
-
 
 export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [schools, setSchools] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [step, setStep] = useState(1); // Track current step
+  const [step, setStep] = useState(1);
   const { user } = useUser();
-  const [userRoles, setUserRoles] = useState([]); // Store user roles
+  const [userRoles, setUserRoles] = useState([]);
 
+  // Track window resize for responsive layout
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -26,13 +26,15 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // When user is available, fetch schools and roles
   useEffect(() => {
     if (user) {
       fetchSchools();
-      fetchAndSetUserRoles(); // Fetch and set roles when the user is available
+      fetchAndSetUserRoles();
     }
   }, [user]);
 
+  // Auth0 access token fetcher
   const fetchAccessToken = async () => {
     try {
       const response = await fetch('/api/getAccessToken', {
@@ -48,9 +50,13 @@ export default function Home() {
     }
   };
 
+  // Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
     try {
-      const rolesUrl = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${userId}/roles`;
+      const rolesUrl = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${encodeURIComponent(
+        userId
+      )}/roles`;
+
       const response = await fetch(rolesUrl, {
         method: 'GET',
         headers: {
@@ -58,53 +64,72 @@ export default function Home() {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+
       if (!response.ok) throw new Error('Failed to fetch user roles');
+
       const rolesData = await response.json();
       return rolesData.map((role) => role.name);
     } catch (error) {
       console.error('Error fetching user roles:', error.message);
-      throw error;
+      return [];
     }
   };
 
+  // Get and set roles
   const fetchAndSetUserRoles = async () => {
     try {
       const accessToken = await fetchAccessToken();
       const roles = await fetchUserRoles(accessToken, user.sub);
-      setUserRoles(roles); // Set user roles in state
+      setUserRoles(roles);
     } catch (error) {
       console.error('Error setting user roles:', error.message);
     }
   };
 
+  // Fetch schools for the current user
   const fetchSchools = async () => {
+    if (!user?.sub) return;
+
     setIsLoading(true);
     setMessage('');
     try {
+      const userId = encodeURIComponent(user.sub);
+
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/schools`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        `http://localhost:4000/api/v1/users/${userId}/schools`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
       );
 
       if (response.status === 404) {
-        setSchools([]); // No schools found
+        setSchools([]);
         setMessage('You have not created any school yet. Please create a new school.');
         return;
       }
 
       const data = await response.json();
+
+      // ✅ Adjust here depending on backend shape
       if (response.ok && data.success) {
-        setSchools(data.data.schools || []);
+        // If backend sends { success: true, data: { schools: [...] } }
+        setSchools(data.data?.schools || []);
+      } else if (Array.isArray(data)) {
+        // If backend sends just an array of schools
+        setSchools(data);
       } else {
         setMessage(data.message || 'Error fetching schools.');
       }
     } catch (error) {
+      console.error('Fetch schools error:', error);
       setMessage('Failed to fetch schools. Please try again later.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Step navigation
   const handleNextStep = () => {
     setStep((prevStep) => (prevStep < 4 ? prevStep + 1 : prevStep));
   };
@@ -113,11 +138,12 @@ export default function Home() {
     setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
   };
 
+  // Stepper UI
   const renderStepper = () => (
     <div className="flex flex-col md:flex-row gap-4">
       <div className="w-full md:w-1/4">
         <div className="space-y-4">
-          {["Search", "Create", "Validate", "Complete"].map((title, index) => (
+          {['Search', 'Create', 'Validate', 'Complete'].map((title, index) => (
             <div
               key={title}
               className={`p-4 border rounded-lg flex items-center space-x-2 ${
@@ -160,33 +186,29 @@ export default function Home() {
           </button>
         </div>
       </div>
-      <div className="w-full md:w-3/4">
-        {renderStepContent()}
-      </div>
+      <div className="w-full md:w-3/4">{renderStepContent()}</div>
     </div>
   );
 
+  // Step content
   const renderStepContent = () => {
     if (step === 1) return <AdminSearchPage user={user} />;
-    if (step === 2) return <CreateSchoolForm user={user} />;
+    if (step === 2) return <CreateSchoolForm user={user} onComplete={fetchSchools} />;
     if (step === 3) return <ValidateSchoolStep />;
     if (step === 4) return <ReviewSchoolStep />;
     return null;
   };
 
+  // Main content
   const renderContent = () => {
     if (isLoading) return <LoadingSpinner />;
     if (message && schools.length === 0) {
-      return renderStepper(); // Show stepper if no schools
+      return renderStepper();
     }
     if (schools.length === 0) {
       return <AdminSearchPage user={user} />;
     }
-    return (
-      <div>
-        <SettingsLayout schools={schools} user={user} />
-      </div>
-    );
+    return <SettingsLayout schools={schools} user={user} />;
   };
 
   return isMobile ? (

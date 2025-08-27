@@ -109,6 +109,7 @@ Sub-folder auth for dynamic route [...auth].tsx.
 │         ├── layouts/
 │         ├── redux/
 │         ├── schoolpage/
+          │         |   ├──CreateSchoolForm.js         
 │         ├── spinners/
 ├── documentation/
 ├── interfaces/
