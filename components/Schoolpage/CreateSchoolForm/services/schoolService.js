@@ -155,6 +155,8 @@ const buildSchoolPayload = (formData, user, logoUrl) => ({
   user_id: user?.sub,
   user_email: user?.email,
   school_created_by: user?.email,
+   // 👇 include admins
+  adminUsers: formData.adminUsers || [],
 });
 
 export const createSchool = async (formData, user, logoUrl) => {

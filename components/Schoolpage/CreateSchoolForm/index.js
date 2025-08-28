@@ -58,7 +58,7 @@ const CreateSchoolForm = ({ user }) => {
       setError('Failed to create and provision school. Please try again.');
     } finally {
       setLoading(false);
-       router.reload();
+       // router.reload();
     }
   };
 
