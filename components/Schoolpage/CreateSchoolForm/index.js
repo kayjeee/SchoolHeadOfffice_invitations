@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
+import { useRouter } from "next/router";
 import Step1BasicInfo from './steps/Step1BasicInfo';
 import Step2Address from './steps/Step2Address';
 import Step3Admins from './steps/Step3Admins';
 import Step4Social from './steps/Step4Social';
 import LoadingSpinner from '../../spinners/LoadingSpinner';
-import { createSchool, uploadFileToCloudinary } from './services/schoolService';
+import { provisionNewSchool } from './services/schoolService';
 
 const CreateSchoolForm = ({ user }) => {
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     schoolName: '',
@@ -29,7 +33,7 @@ const CreateSchoolForm = ({ user }) => {
     facebook: '',
     tiktok: '',
     linkedin: '',
-    status: 'active',   // 👈 added here
+    status: 'active', // 👈 default
   });
 
   const updateField = (key, value) =>
@@ -38,38 +42,25 @@ const CreateSchoolForm = ({ user }) => {
   const handleNextStep = () => setStep((prev) => prev + 1);
   const handlePreviousStep = () => setStep((prev) => prev - 1);
 
-  
-const handleFormSubmission = async () => {
-  try {
-    setLoading(true);
-    setError(null);
+  const handleFormSubmission = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(false);
 
-    console.log('📤 Submitting school data:', formData);
+      console.log('📤 Submitting full school provisioning flow:', formData);
+      const school = await provisionNewSchool(formData, user);
 
-    // Upload logo to Cloudinary if exists
-    let logoUrl = '';
-    if (formData.logo) {
-      logoUrl = await uploadFileToCloudinary(formData.logo);
+      console.log('✅ Provisioning complete:', school);
+      setSuccess(true);
+    } catch (err) {
+      console.error('💥 Error during provisioning:', err);
+      setError('Failed to create and provision school. Please try again.');
+    } finally {
+      setLoading(false);
+       router.reload();
     }
-
-    const schoolPayload = {
-      ...formData,
-      logo: logoUrl || formData.logo,
-       status: formData.status || 'active',  // 👈 ensure backend always gets a value
-    };
-
-    // 🔥 Actually call backend
-    const schoolData = await createSchool(schoolPayload);
-
-    console.log('✅ Backend school creation response:', schoolData);
-    alert('School created successfully!');
-  } catch (err) {
-    console.error('💥 Error during form submission:', err);
-    setError('Failed to create school. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -143,6 +134,11 @@ const handleFormSubmission = async () => {
     <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
       <h1 className="text-2xl font-bold mb-4">Create a School</h1>
       {error && <div className="text-red-500 mb-4">{error}</div>}
+      {success && (
+        <div className="text-green-600 mb-4">
+          🎉 School created and you’ve been set as Admin!
+        </div>
+      )}
       {renderStep()}
     </div>
   );
