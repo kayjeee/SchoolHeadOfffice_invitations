@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useAppTheme } from "../../context/ThemeContext";
 import { School } from "../../shared/types/School";
 import { User } from "../../shared/types/User";
@@ -9,7 +9,13 @@ import AdminDrop from "./AdminDrop";
 import MenuDropdown from "./MenuDropdown";
 import MenuReflectionTab from "./MenuReflectionTab";
 import Tabs from "./Tabs";
-import { generateColorPalette, ColorPalette } from "../../NavbarTheming/colorUtils";
+import { 
+  generateColorPalette, 
+  ColorPalette, 
+  getLogoColor,
+  getComplementaryColor,
+  getTriadicColors 
+} from "../../NavbarTheming/colorUtils";
 
 interface NavbarProps {
   user?: User;
@@ -18,8 +24,7 @@ interface NavbarProps {
   searchQuery?: string;
   userRoles?: UserRole[];
   setSearchQuery?: (query: string) => void;
-  schoolImage?: string; // ✅ allow passing a schoolImage directly
-  schoolTheme?: string; // New prop for dynamic theming
+  schoolImage?: string;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -30,27 +35,70 @@ const Navbar: React.FC<NavbarProps> = ({
   userRoles = [],
   setSearchQuery,
   schoolImage,
-  schoolTheme,
 }) => {
   const [showReflection, setShowReflection] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAdminDropdown, setShowAdminDropdown] = useState(false);
   const router = useRouter();
 
-  const { primaryColor, currentSchool } = useAppTheme();
-  const themePalette: ColorPalette | null = schoolTheme ? generateColorPalette(schoolTheme) : null;
+  const { primaryColor, currentSchool, getPrimaryColorValue } = useAppTheme();
+  
+  // Generate complete palette from the primary color value
+  const themePalette: ColorPalette | null = useMemo(() => {
+    const primaryColorValue = getPrimaryColorValue();
+    const palette = generateColorPalette(primaryColorValue);
+    
+    // If palette generation fails, create a basic one with logo color
+    if (!palette) {
+      const logoColor = getLogoColor(primaryColorValue) || '#FFFFFF';
+      return {
+        primary: primaryColorValue,
+        logo: logoColor
+      };
+    }
+    
+    return palette;
+  }, [getPrimaryColorValue]);
+
+  // Generate SVG background color using color wheel principles
+  const svgBackgroundColor = useMemo(() => {
+    const primaryColorValue = getPrimaryColorValue();
+    
+    // Try different color wheel approaches in order of preference
+    const triadicColors = getTriadicColors(primaryColorValue);
+    if (triadicColors && triadicColors.length >= 2) {
+      return triadicColors[1]; // Use the second triadic color
+    }
+    
+    const complementaryColor = getComplementaryColor(primaryColorValue);
+    if (complementaryColor) {
+      return complementaryColor;
+    }
+    
+    // Fallback: lighten the primary color by 20%
+    try {
+      const rgb = parseInt(primaryColorValue.slice(1), 16);
+      const r = Math.min(255, ((rgb >> 16) & 0xff) * 1.2);
+      const g = Math.min(255, ((rgb >> 8) & 0xff) * 1.2);
+      const b = Math.min(255, (rgb & 0xff) * 1.2);
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch {
+      return "#f0f0f0"; // Final fallback
+    }
+  }, [getPrimaryColorValue]);
+
+  // Calculate SVG icon color based on SVG background
+  const svgIconColor = useMemo(() => {
+    return getLogoColor(svgBackgroundColor) || '#000000';
+  }, [svgBackgroundColor]);
 
   const adminDropdownRef = useRef<HTMLDivElement | null>(null);
   const profileModalRef = useRef<HTMLDivElement | null>(null);
 
-  // Normalize role check (case-insensitive if needed)
-  const isAdmin =
-    Array.isArray(userRoles) &&
-    userRoles.some((role) =>
-      typeof role === "string"
-        ? role.toLowerCase() === "admin"
-        : (role as any) === "admin"
-    );
+  // Normalize role check
+  const isAdmin = Array.isArray(userRoles) && userRoles.some((role) =>
+    typeof role === "string" ? role.toLowerCase() === "admin" : (role as any) === "admin"
+  );
 
   const handleLogin = () => router.push("/api/auth/login");
   const handleLogout = () => router.push("/api/auth/logout");
@@ -61,16 +109,10 @@ const Navbar: React.FC<NavbarProps> = ({
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        adminDropdownRef.current &&
-        !adminDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
         setShowAdminDropdown(false);
       }
-      if (
-        profileModalRef.current &&
-        !profileModalRef.current.contains(event.target as Node)
-      ) {
+      if (profileModalRef.current && !profileModalRef.current.contains(event.target as Node)) {
         setShowProfileModal(false);
       }
     };
@@ -84,7 +126,7 @@ const Navbar: React.FC<NavbarProps> = ({
     <>
       <nav
         className="border-b border-gray-200 relative"
-        style={{ backgroundColor: themePalette?.primary || primaryColor || "white" }}
+        style={{ backgroundColor: getPrimaryColorValue() }}
       >
         <div className="max-w-full mx-auto h-20 flex items-center px-4">
           {/* Left Section */}
@@ -100,11 +142,17 @@ const Navbar: React.FC<NavbarProps> = ({
                 width={70}
                 height={70}
                 className="cursor-pointer"
-                style={{ filter: themePalette?.logo === '#FFFFFF' ? 'invert(1)' : 'none' }}
+                style={{ 
+                  filter: themePalette?.logo === '#FFFFFF' ? 
+                    'invert(1) brightness(2)' : 'none' 
+                }}
               />
             </Link>
             {currentSchool && (
-              <h1 className="text-xl font-bold" style={{ color: themePalette?.logo || 'white' }}>
+              <h1 
+                className="text-xl font-bold" 
+                style={{ color: themePalette?.logo || 'white' }}
+              >
                 {currentSchool.schoolName}
               </h1>
             )}
@@ -120,26 +168,29 @@ const Navbar: React.FC<NavbarProps> = ({
             {!loading ? (
               user ? (
                 <>
-                  {/* Admin Dropdown (four dots menu) */}
+                  {/* Admin Dropdown (four dots menu) with color wheel styling */}
                   {isAdmin && (
                     <div className="relative" ref={adminDropdownRef}>
                       <button
                         onClick={toggleAdminDropdown}
-                        className="hover:text-gray-200"
-                        style={{ color: themePalette?.logo || 'white' }}
+                        className="hover:scale-105 transition-all p-2 rounded-lg shadow-sm hover:shadow-md"
+                        style={{ 
+                          backgroundColor: svgBackgroundColor,
+                          border: `2px solid ${themePalette?.tertiary || svgBackgroundColor}`,
+                          color: svgIconColor
+                        }}
+                        aria-label="Admin menu"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
                           viewBox="0 0 24 24"
-                          strokeWidth="1.5"
-                          stroke="currentColor"
+                          fill="currentColor"
                           className="w-6 h-6"
                         >
                           <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                            fillRule="evenodd"
                             d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+                            clipRule="evenodd"
                           />
                         </svg>
                       </button>
@@ -148,19 +199,23 @@ const Navbar: React.FC<NavbarProps> = ({
                       )}
                     </div>
                   )}
+                  
                   {/* Profile Section */}
                   <div
-                    className="flex items-center space-x-2 cursor-pointer"
+                    className="flex items-center space-x-2 cursor-pointer group"
                     onClick={toggleProfileModal}
                   >
-                    <span className="hover:text-gray-200 hover:underline"
-                      style={{ color: themePalette?.logo || 'white' }}>
+                    <span 
+                      className="group-hover:opacity-80 transition-opacity group-hover:underline"
+                      style={{ color: themePalette?.logo || 'white' }}
+                    >
                       Profile
                     </span>
                   </div>
+                  
                   <button
                     onClick={handleLogout}
-                    className="hover:text-gray-200"
+                    className="hover:opacity-80 transition-opacity"
                     style={{ color: themePalette?.logo || 'white' }}
                   >
                     Logout
@@ -169,16 +224,21 @@ const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <button
                   onClick={handleLogin}
-                  className="hover:text-gray-200"
+                  className="hover:opacity-80 transition-opacity"
                   style={{ color: themePalette?.logo || 'white' }}
                 >
                   Login
                 </button>
               )
             ) : (
-              <span className="text-white">Loading...</span>
+              <span style={{ color: themePalette?.logo || 'white' }}>Loading...</span>
             )}
-            <MenuDropdown toggleReflection={toggleReflection} />
+            
+            <MenuDropdown 
+              toggleReflection={toggleReflection} 
+              iconColor={themePalette?.logo || 'white'}
+              backgroundColor={svgBackgroundColor}
+            />
           </div>
         </div>
       </nav>
@@ -204,7 +264,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <strong>Roles:</strong> {userRoles?.join(", ") || "N/A"}
             </p>
             <button
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               onClick={toggleProfileModal}
             >
               Close

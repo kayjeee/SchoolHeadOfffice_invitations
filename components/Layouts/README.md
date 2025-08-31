@@ -168,3 +168,6 @@ The Layout/README.md file should summarize:
 - Import guidelines and examples
 
 This structure provides a solid foundation that can grow and evolve with your project needs while maintaining clear organization and separation between desktop and mobile implementations.
+
+
+"{"mode"=>"green", "value"=>"#20B486"}"
