@@ -132,31 +132,38 @@ const buildSchoolPayload = (formData, user, logoUrl) => ({
   schoolName: formData.schoolName,
   logo: logoUrl || formData.logo || "",
   schoolEmail: formData.schoolEmail,
-
+  
+  // Add theme to the payload
+  theme: formData.theme?.value || formData.theme || "#20B486",
+  themeMode: formData.theme?.mode || "green",
+  
   line1: formData.addressLine1 ?? formData.line1 ?? "",
   line2: formData.addressLine2 ?? formData.line2 ?? "",
-
+  
   country: formData.country,
   province: formData.province,
   city: formData.city,
   postalCode: formData.postalCode,
-  theme: formData.theme,
-
+  
   latitude: formData.location?.lat ?? formData.latitude ?? null,
   longitude: formData.location?.lng ?? formData.longitude ?? null,
-
+  
   website: formData.website,
   facebook: formData.facebook,
   tiktok: formData.tiktok,
   linkedin: formData.linkedin,
-
+  
   status: formData.status || "active",
-
+  
   user_id: user?.sub,
   user_email: user?.email,
   school_created_by: user?.email,
-   // 👇 include admins
+  
+  // Include admins
   adminUsers: formData.adminUsers || [],
+  
+  // Include staff invites from Step 5
+  invites: formData.invites || [],
 });
 
 export const createSchool = async (formData, user, logoUrl) => {

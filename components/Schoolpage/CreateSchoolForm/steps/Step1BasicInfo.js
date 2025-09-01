@@ -22,6 +22,7 @@ const Step1BasicInfo = ({
   onPhoneNumberChange,
   onNext,
   isLoading = false,
+    onThemeChange, // <-- add this
 }) => {
   const [colorMode, customColor, setColorMode] = useColorMode();
   const [errors, setErrors] = useState({});
@@ -55,9 +56,14 @@ const Step1BasicInfo = ({
     }
   };
 
-  const handleColorChange = (mode, value) => {
-    setColorMode(mode, value);
-  };
+// In Step1BasicInfo component, update the handleColorChange function:
+const handleColorChange = (mode, value) => {
+  // This should call the onThemeChange prop if it exists
+  if (onThemeChange) {
+    onThemeChange(mode, value);
+  }
+  setColorMode(mode, value);
+};
 
   return (
     <div className="min-h-screen bg-white text-gray-900">

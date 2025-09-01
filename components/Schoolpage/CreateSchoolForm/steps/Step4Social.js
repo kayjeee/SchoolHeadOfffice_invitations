@@ -8,8 +8,7 @@ const Step4Social = ({
   onTikTokChange,
   onLinkedInChange,
   onPrevious,
-  onSubmit,
-  isLoading = false,
+  onNext,
 }) => {
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -32,11 +31,11 @@ const Step4Social = ({
             {/* Progress */}
             <div className="mb-10">
               <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                <span>Step 4 of 4</span>
-                <span>100% Complete</span>
+                <span>Step 4 of 5</span>
+                <span>80% Complete</span>
               </div>
               <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full w-full bg-blue-500 transition-all duration-500 ease-out" />
+                <div className="h-full w-4/5 bg-blue-500 transition-all duration-500 ease-out" />
               </div>
             </div>
 
@@ -121,14 +120,15 @@ const Step4Social = ({
                 </p>
                 <p className="text-gray-600 text-sm leading-relaxed">
                   It’s perfectly fine if you don’t have a website or social
-                  pages yet. We’d be happy to help you create them — <span className="font-medium text-blue-600">at no cost</span>.
-                  Just reach out at{" "}
+                  pages yet. We’d be happy to help you create them —{' '}
+                  <span className="font-medium text-blue-600">at no cost</span>.
+                  Just reach out at{' '}
                   <a
                     href="mailto:support@yourschoolapp.com"
                     className="text-blue-600 hover:underline font-medium"
                   >
                     support@schoolheadoffice.com
-                  </a>{" "}
+                  </a>{' '}
                   whenever you’re ready. No pressure.
                 </p>
               </div>
@@ -146,15 +146,10 @@ const Step4Social = ({
 
               <button
                 type="button"
-                onClick={onSubmit}
-                disabled={isLoading}
-                className={`px-8 py-3 rounded-lg font-bold text-white transition ${
-                  isLoading
-                    ? 'bg-blue-300 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-500'
-                }`}
+                onClick={onNext}
+                className="px-8 py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-500 transition"
               >
-                {isLoading ? 'Submitting...' : 'Finish & Create School →'}
+                Next Step →
               </button>
             </div>
           </div>
