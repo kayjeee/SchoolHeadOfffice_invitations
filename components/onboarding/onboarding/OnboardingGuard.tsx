@@ -5,7 +5,10 @@ import { STEPS } from "./OnboardingFlow";
 // ----------------------
 // Internal Content Component
 // ----------------------
-const OnboardingContent = ({ schools, onboardingStatus }) => {
+ // ----------------------
+// Internal Content Component
+// ----------------------
+const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- added user
   const {
     currentStep,
     currentStepIndex,
@@ -37,63 +40,61 @@ const OnboardingContent = ({ schools, onboardingStatus }) => {
     updateOnboardingData(data);
   };
 
-  if (currentStep?.component) {
-    const StepComponent = currentStep.component;
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Progress Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-800">School Setup</h1>
-              <div className="text-sm text-gray-500">
-                Step {currentStepIndex + 1} of {STEPS.length}
-              </div>
-            </div>
+  if (!currentStep?.component) return null;
 
-            {/* Progress Bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
-              />
-            </div>
+  const StepComponent = currentStep.component;
 
-            {/* Step Indicators */}
-            <div className="flex justify-between">
-              {STEPS.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`text-center flex-1 ${
-                    index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                    index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <span className="text-xs font-medium">{step.name}</span>
-                </div>
-              ))}
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Progress Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">School Setup</h1>
+            <div className="text-sm text-gray-500">
+              Step {currentStepIndex + 1} of {STEPS.length}
             </div>
           </div>
 
-          {/* Step Content */}
-          <StepComponent
-            school={schools?.[0]}
-            onboardingStatus={onboardingStatus}
-            onNext={handleNext}
-            onBack={handleBack}
-            isLoading={isLoading}
-            onUpdateData={handleUpdateData}
-          />
-        </div>
-      </div>
-    );
-  }
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
+            />
+          </div>
 
-  return null;
+          {/* Step Indicators */}
+          <div className="flex justify-between">
+            {STEPS.map((step, index) => (
+              <div
+                key={step.id}
+                className={`text-center flex-1 ${index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                  index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                }`}>
+                  {index + 1}
+                </div>
+                <span className="text-xs font-medium">{step.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <StepComponent
+          user={user} 
+          school={schools?.[0]}
+          onboardingStatus={onboardingStatus}
+          onNext={handleNext}
+          onBack={handleBack}
+          isLoading={isLoading}
+          onUpdateData={handleUpdateData}
+        />
+      </div>
+    </div>
+  );
 };
 
 // ----------------------
@@ -124,6 +125,7 @@ export const OnboardingGuard = ({
   return (
     <InternalOnboardingFlowProvider>
       <OnboardingContent
+        user={user} 
         schools={schools}
         onboardingStatus={onboardingStatus}
       />

@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import OnboardingLayout from "../layouts/OnboardingLayout";
-import StepLayout from "../layouts/StepLayout";
-import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
 
-const Step3SendInvites: React.FC = () => {
-  const { setStepCompleted } = useOnboardingFlow();
+interface Step3SendInvitesProps {
+  onNext?: () => void;
+  onBack?: () => void;
+  isLoading?: boolean;
+  onUpdateData?: (data: { invites: string[] }) => void;
+}
+
+const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({ onNext, onBack, isLoading, onUpdateData }) => {
   const [emails, setEmails] = useState<string[]>([""]);
 
   const handleEmailChange = (index: number, value: string) => {
@@ -16,37 +19,62 @@ const Step3SendInvites: React.FC = () => {
   const addEmailField = () => setEmails([...emails, ""]);
 
   const handleComplete = () => {
-    console.log("Invites sent to:", emails);
-    setStepCompleted("Step3SendInvites");
+    if (onUpdateData) {
+      onUpdateData({ invites: emails.filter(email => email.trim() !== "") });
+    }
+    if (onNext) {
+      onNext();
+    }
   };
 
   return (
-    <OnboardingLayout title="Send Invites" description="Invite staff to join the school">
-      <StepLayout stepTitle="Step 3: Send Invites" stepDescription="Add email addresses of staff to invite.">
+    <div className="max-w-2xl mx-auto p-6">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">✉️</span>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Send Staff Invites</h2>
+        <p className="text-gray-600">Invite your teachers and staff to join {`your school's`} portal</p>
+      </div>
+
+      {/* Email Input Section */}
+      <div className="space-y-3 mb-8">
         {emails.map((email, idx) => (
           <input
             key={idx}
             type="email"
             value={email}
             onChange={(e) => handleEmailChange(idx, e.target.value)}
-            placeholder={`Email ${idx + 1}`}
-            className="block w-full px-3 py-2 border rounded mb-2"
+            placeholder={`Staff Email ${idx + 1}`}
+            className="block w-full px-4 py-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         ))}
         <button
           onClick={addEmailField}
-          className="px-4 py-2 bg-blue-500 text-white rounded mr-2"
+          className="text-blue-600 text-sm font-medium hover:underline"
         >
-          Add Another Email
+          + Add Another Email
+        </button>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between">
+        <button
+          onClick={onBack}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          ← Back
         </button>
         <button
           onClick={handleComplete}
-          className="px-4 py-2 bg-green-500 text-white rounded"
+          disabled={emails.filter(e => e.trim() !== "").length === 0 || isLoading}
+          className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Complete Step
+          {isLoading ? "Sending..." : "Finish →"}
         </button>
-      </StepLayout>
-    </OnboardingLayout>
+      </div>
+    </div>
   );
 };
 
