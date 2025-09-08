@@ -1,3 +1,4 @@
+// pages/index.js
 import React, { useState, useEffect } from "react";
 import AdminSearchPage from "../../components/adminPage/AdminSearchPage";
 import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
@@ -169,8 +170,12 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">School Registration</h1>
-          <p className="text-gray-600">Follow these steps to register your school</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            School Registration
+          </h1>
+          <p className="text-gray-600">
+            Follow these steps to register your school
+          </p>
         </div>
 
         {/* Progress Bar */}
@@ -181,34 +186,38 @@ export default function Home() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
                     step === index + 1
-                      ? 'bg-blue-600 border-blue-600 text-white'
+                      ? "bg-blue-600 border-blue-600 text-white"
                       : step > index + 1
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'bg-white border-gray-300 text-gray-400'
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-white border-gray-300 text-gray-400"
                   }`}
                 >
-                  {step > index + 1 ? '✓' : index + 1}
+                  {step > index + 1 ? "✓" : index + 1}
                 </div>
                 {index < 3 && (
                   <div
                     className={`w-24 h-1 mx-2 ${
-                      step > index + 1 ? 'bg-green-500' : 'bg-gray-300'
+                      step > index + 1 ? "bg-green-500" : "bg-gray-300"
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          
+
           {/* Step Labels */}
           <div className="flex justify-between px-2">
             {["Search", "Create", "Validate", "Complete"].map((title, index) => (
               <div
                 key={title}
                 className={`text-sm font-medium ${
-                  step === index + 1 ? 'text-blue-600' : step > index + 1 ? 'text-green-600' : 'text-gray-400'
+                  step === index + 1
+                    ? "text-blue-600"
+                    : step > index + 1
+                    ? "text-green-600"
+                    : "text-gray-400"
                 }`}
-                style={{ width: '100px', textAlign: 'center' }}
+                style={{ width: "100px", textAlign: "center" }}
               >
                 {title}
               </div>
@@ -219,7 +228,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           {renderStepContent()}
-          
+
           {/* Navigation */}
           <div className="flex justify-between mt-8 pt-6 border-t">
             <button
@@ -252,7 +261,7 @@ export default function Home() {
     return null;
   };
 
-  // Main content
+  // Main content (merged with onboarding logic)
   const renderContent = () => {
     if (isLoading || isCheckingOnboarding) {
       return (
@@ -262,11 +271,12 @@ export default function Home() {
       );
     }
 
+    // If user has schools but onboarding is not done yet
     if (schools.length > 0 && !isOnboardingComplete) {
       return (
-        <OnboardingGuard 
-          user={user} 
-          schools={schools} 
+        <OnboardingGuard
+          user={user}
+          schools={schools}
           onboardingStatus={onboardingStatus}
           isOnboardingComplete={isOnboardingComplete}
           isCheckingOnboarding={isCheckingOnboarding}
@@ -274,14 +284,14 @@ export default function Home() {
       );
     }
 
+    // New simplified conditions
+    if (isLoading) return <LoadingSpinner />;
     if (message && schools.length === 0) {
       return renderStepper();
     }
-
     if (schools.length === 0) {
       return <AdminSearchPage user={user} />;
     }
-
     return <SettingsLayout schools={schools} user={user} />;
   };
 
@@ -299,9 +309,6 @@ export default function Home() {
     </FrontPageLayout>
   );
 
-  return (
-    <OnboardingFlowProvider>
-      {content}
-    </OnboardingFlowProvider>
-  );
+  return <OnboardingFlowProvider>{content}</OnboardingFlowProvider>;
 }
+s
