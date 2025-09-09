@@ -12,7 +12,14 @@ import {
 } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 
-const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }) => {
+const BulkUpload = ({
+  isOpen,
+  onClose,
+  selectedGrade,
+  onUploadSuccess,
+  schools,
+  refetchOnboardingStatus, // Added prop for refetch
+}) => {
   const [uploadStep, setUploadStep] = useState('upload'); // upload, validate, confirm, complete
   const [uploadedFile, setUploadedFile] = useState(null);
   const [validationResults, setValidationResults] = useState(null);
@@ -303,6 +310,15 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
         }));
         setUploadStep('complete');
         if (onUploadSuccess) onUploadSuccess(result);
+
+        // Refetch onboarding status if function prop is provided
+        if (refetchOnboardingStatus) {
+          try {
+            await refetchOnboardingStatus();
+          } catch (err) {
+            console.error('Failed to refetch onboarding status:', err);
+          }
+        }
       } else {
         setErrorStatus(`Upload failed: ${result.message || 'Unknown error'}`);
         setUploadStep('confirm');
@@ -448,6 +464,7 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
                     </div>
                     <p className="text-xs text-gray-500">Excel (.xlsx, .xls) or CSV files up to 5MB</p>
                   </div>
+
                 </div>
 
                 {errorStatus && (
@@ -470,6 +487,9 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
                     <li>• Supports flexible and common column header variations.</li>
                     <li>• You can upload any number of learners; large files may take longer to process.</li>
                   </ul>
+                  <p className="mt-2 text-sm text-blue-700">
+                    Note: After successful upload, the onboarding progress status will be refreshed automatically.
+                  </p>
                 </div>
               </div>
             )}
@@ -601,7 +621,7 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
                 <p className="mt-2 text-sm text-gray-500">
                   Successfully uploaded <strong>{validationResults.validRows || 0}</strong> learners to{' '}
                   <strong>{selectedGrade?.name || 'the selected grade'}</strong> for{' '}
-                  <strong>{schoolName}</strong>.
+                  <strong>{schoolName}</strong>. Onboarding progress will be updated accordingly.
                 </p>
                 {validationResults.duplicates > 0 && (
                   <p className="mt-1 text-sm text-yellow-600">
@@ -623,6 +643,7 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
                     <li>• Contact information (phone, WhatsApp, Telegram) has been captured for communication.</li>
                     <li>• You can now view and manage the new learners in the Learners table.</li>
                     <li>• Student IDs have been automatically generated for new learners.</li>
+                    <li>• Onboarding status will be refreshed to show step 2 as completed.</li>
                   </ul>
                 </div>
               </div>
