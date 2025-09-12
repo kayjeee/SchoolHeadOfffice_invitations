@@ -2,13 +2,7 @@ import React from "react";
 import { useOnboardingFlow, InternalOnboardingFlowProvider } from "./hooks/useOnboardingFlow";
 import { STEPS } from "./OnboardingFlow";
 
-// ----------------------
-// Internal Content Component
-// ----------------------
- // ----------------------
-// Internal Content Component
-// ----------------------
-const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- added user
+const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   const {
     currentStep,
     currentStepIndex,
@@ -19,26 +13,24 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- adde
     updateOnboardingData
   } = useOnboardingFlow();
 
+  // Resolve a safe user ID
+  const userId = user?._id || user?.id || user?.auth0_id;
+
   const handleNext = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
       goToNextStep();
     } catch (error) {
-      console.error("Error in onboarding step:", error);
+      console.error("Error advancing onboarding step:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBack = () => {
-    goToPreviousStep();
-  };
+  const handleBack = () => goToPreviousStep();
 
-  const handleUpdateData = (data) => {
-    updateOnboardingData(data);
-  };
+  const handleUpdateData = (data) => updateOnboardingData(data);
 
   if (!currentStep?.component) return null;
 
@@ -67,13 +59,8 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- adde
           {/* Step Indicators */}
           <div className="flex justify-between">
             {STEPS.map((step, index) => (
-              <div
-                key={step.id}
-                className={`text-center flex-1 ${index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${
-                  index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'
-                }`}>
+              <div key={step.id} className={`text-center flex-1 ${index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
                   {index + 1}
                 </div>
                 <span className="text-xs font-medium">{step.name}</span>
@@ -84,7 +71,8 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- adde
 
         {/* Step Content */}
         <StepComponent
-          user={user} 
+          user={user}
+          userId={userId}           // Pass safe userId
           school={schools?.[0]}
           onboardingStatus={onboardingStatus}
           onNext={handleNext}
@@ -97,9 +85,6 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => { // <-- adde
   );
 };
 
-// ----------------------
-// Main OnboardingGuard Component
-// ----------------------
 export const OnboardingGuard = ({
   user,
   schools,
@@ -118,14 +103,12 @@ export const OnboardingGuard = ({
     );
   }
 
-  if (isOnboardingComplete) {
-    return null;
-  }
+  if (isOnboardingComplete) return null;
 
   return (
     <InternalOnboardingFlowProvider>
       <OnboardingContent
-        user={user} 
+        user={user}
         schools={schools}
         onboardingStatus={onboardingStatus}
       />
