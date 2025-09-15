@@ -226,7 +226,8 @@ components/
     │   └── Step2UploadLearners.tsx # Example step component
     │   └── Step3SendInvites.tsx    # Example step component
     │   └── StepCompletion.tsx      # Example step component
-    ├── components/                 # Reusable UI components
+    ├── components/              
+    │   ├── bulkupload/ # Reusable UI components
     │   ├── ProgressIndicator.tsx
     │   ├── SkipStepModal.tsx
     │   ├── StatusBadge.tsx
