@@ -1,9 +1,9 @@
 console.log("QRCodeGenerator loaded");
 
 import React, { useState, useRef, useEffect } from "react";
-import { FiDownload, FiCopy, FiQrCode, FiRefreshCw } from "react-icons/fi";
+import { Download, Copy, QrCode, RefreshCw } from "lucide-react";
 import { toPng } from "html-to-image";
-import { prCodeService } from "../services/api";
+import { prCodeService } from "../services/prCodeService";
 
 const QRCodeGenerator = ({ invite }) => {
   const [loadingAction, setLoadingAction] = useState(null); // "download" | "copy" | "regenerate"
@@ -26,7 +26,11 @@ const QRCodeGenerator = ({ invite }) => {
     console.log("[QRCodeGenerator] handleDownload triggered for PR code:", prCode);
 
     try {
-      const dataUrl = await toPng(qrRef.current, { quality: 1, pixelRatio: 2, backgroundColor: "#ffffff" });
+      const dataUrl = await toPng(qrRef.current, { 
+        quality: 1, 
+        pixelRatio: 2, 
+        backgroundColor: "#ffffff" 
+      });
       const link = document.createElement("a");
       link.download = `schoolheadoffice-invite-${prCode}.png`;
       link.href = dataUrl;
@@ -48,7 +52,11 @@ const QRCodeGenerator = ({ invite }) => {
     console.log("[QRCodeGenerator] handleCopy triggered for PR code:", prCode);
 
     try {
-      const dataUrl = await toPng(qrRef.current, { quality: 0.8, pixelRatio: 1, backgroundColor: "#ffffff" });
+      const dataUrl = await toPng(qrRef.current, { 
+        quality: 0.8, 
+        pixelRatio: 1, 
+        backgroundColor: "#ffffff" 
+      });
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
@@ -100,7 +108,7 @@ const QRCodeGenerator = ({ invite }) => {
               <img src={invite.qrCodeData} alt="QR Code" className="w-full h-full" />
             ) : (
               <div className="text-center text-xs text-gray-500">
-                <FiQrCode className="h-16 w-16 text-gray-400 mx-auto mb-1" />
+                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-1" />
                 <p>QR Code Preview</p>
                 <p className="text-[10px]">{prCode}</p>
               </div>
@@ -108,7 +116,9 @@ const QRCodeGenerator = ({ invite }) => {
           </div>
 
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-700">{invite?.schoolId?.name || "School Invitation"}</p>
+            <p className="text-sm font-medium text-gray-700">
+              {invite?.schoolId?.name || "School Invitation"}
+            </p>
             <p className="text-xs text-gray-500">Scan to join</p>
           </div>
         </div>
@@ -119,27 +129,27 @@ const QRCodeGenerator = ({ invite }) => {
         <button
           onClick={handleDownload}
           disabled={loadingAction !== null}
-          className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          <FiDownload className="h-4 w-4 mr-2" />
+          <Download className="h-4 w-4 mr-2" />
           {loadingAction === "download" ? "Generating..." : "Download QR Code"}
         </button>
 
         <button
           onClick={handleCopy}
           disabled={loadingAction !== null}
-          className="w-full flex items-center justify-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center px-4 py-2 bg-gray-100 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          <FiCopy className="h-4 w-4 mr-2" />
+          <Copy className="h-4 w-4 mr-2" />
           {loadingAction === "copy" ? "Copying..." : "Copy QR Code"}
         </button>
 
         <button
           onClick={handleRegenerate}
           disabled={loadingAction !== null}
-          className="w-full flex items-center justify-center px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-700 rounded-md hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-700 rounded-md hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          <FiRefreshCw className="h-4 w-4 mr-2" />
+          <RefreshCw className="h-4 w-4 mr-2" />
           {loadingAction === "regenerate" ? "Regenerating..." : "Regenerate QR Code"}
         </button>
       </div>
@@ -148,17 +158,40 @@ const QRCodeGenerator = ({ invite }) => {
       <div className="mt-4 p-3 bg-gray-50 rounded-md">
         <h4 className="text-sm font-medium text-gray-700 mb-2">QR Code Usage:</h4>
         <ul className="text-xs text-gray-600 space-y-1">
-          <li>• Print for in-person events and orientation</li>
-          <li>• Include in printed materials and brochures</li>
-          <li>• Display on digital screens at school entrance</li>
-          <li>• Share digitally via messaging apps</li>
+          <li className="flex items-start">
+            <span className="inline-block w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+            Print for in-person events and orientation
+          </li>
+          <li className="flex items-start">
+            <span className="inline-block w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+            Include in printed materials and brochures
+          </li>
+          <li className="flex items-start">
+            <span className="inline-block w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+            Display on digital screens at school entrance
+          </li>
+          <li className="flex items-start">
+            <span className="inline-block w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+            Share digitally via messaging apps
+          </li>
         </ul>
       </div>
 
       {/* Short Link */}
       <div className="mt-3 text-xs text-gray-500 text-center">
         <p>Scanning this code will take users to:</p>
-        <p className="truncate text-blue-600">{shortUrl}</p>
+        <p className="truncate text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded mt-1">
+          {shortUrl}
+        </p>
+      </div>
+
+      {/* Additional Features */}
+      <div className="mt-4 pt-3 border-t border-gray-200">
+        <div className="flex justify-between items-center text-xs text-gray-500">
+          <span>Format: PNG</span>
+          <span>Size: 300x300</span>
+          <span>Quality: High</span>
+        </div>
       </div>
     </div>
   );
