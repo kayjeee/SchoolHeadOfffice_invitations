@@ -9,7 +9,11 @@ import {
   ArrowLeft,
   ArrowRight,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  QrCode,
+  Link as LinkIcon,
+  BarChart3,
+  UserPlus
 } from 'lucide-react';
 import MessageEditor from './MessageEditor';
 import SchedulingOptions from './SchedulingOptions';
@@ -17,10 +21,13 @@ import PreviewPanel from './PreviewPanel';
 import SendingControls from './SendingControls';
 import WhatsAppMessageTester from './WhatsAppMessageTester';
 import VideoRecordingStudio from './VideoRecordingStudio';
+import PRCodeGenerator from '../PRCodeGenerator/PRCodeGenerator';
+import QRCodeGenerator from '../PRCodeGenerator/QRCodeGenerator';
+import InviteLinkManager from '../PRCodeGenerator/InviteLinkManager';
 import { invitationService } from '../../../../../services/invitation/invitationService';
 
 /**
- * InvitationComposer component - Fixed version that properly receives and displays grades
+ * Enhanced InvitationComposer with PR Code Integration
  */
 const InvitationComposer = ({
   user = { name: 'John Doe' },
@@ -29,7 +36,7 @@ const InvitationComposer = ({
   selectedGrade: initialSelectedGrade = null,
   grades: propGrades = [],
   onInvitationSent,
-  onClose, // Add onClose prop for modal management
+  onClose,
 }) => {
   const [invitationData, setInvitationData] = useState({
     recipients: [],
@@ -38,6 +45,10 @@ const InvitationComposer = ({
     template: null,
     scheduledDate: null,
     sendImmediately: true,
+    prCode: null,
+    qrCodeData: null,
+    shortUrl: null,
+    deliveryChannels: ['whatsapp'],
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +60,8 @@ const InvitationComposer = ({
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [recordingType, setRecordingType] = useState('messaging');
   const [bulkSendResults, setBulkSendResults] = useState([]);
+  const [generatedInvite, setGeneratedInvite] = useState(null);
+  const [showPRCodeTools, setShowPRCodeTools] = useState(false);
 
   // Debug logging to track props changes
   useEffect(() => {
@@ -88,7 +101,6 @@ const InvitationComposer = ({
       name: grade.name || grade.gradeName || 'Unnamed Grade',
       description: grade.description || grade.gradeDescription || '',
       learnerCount: grade.learners_count || grade.current_enrollment || grade.studentCount || 0,
-      // Include original grade object for reference
       original: grade
     }));
   }, [propGrades]);
@@ -96,14 +108,14 @@ const InvitationComposer = ({
   const steps = [
     { id: 1, name: 'Select Grade', icon: <GraduationCap size={16} />, color: 'blue' },
     { id: 2, name: 'Compose Message', icon: <MessageCircle size={16} />, color: 'green' },
-    { id: 3, name: 'Schedule & Send', icon: <Users size={16} />, color: 'purple' },
-    { id: 4, name: 'Results', icon: <CheckCircle size={16} />, color: 'green' },
+    { id: 3, name: 'PR Code Options', icon: <UserPlus size={16} />, color: 'purple' },
+    { id: 4, name: 'Schedule & Send', icon: <Users size={16} />, color: 'orange' },
+    { id: 5, name: 'Results', icon: <CheckCircle size={16} />, color: 'green' },
   ];
 
   // Set initial selected grade if supplied and advance to step 2
   useEffect(() => {
     if (initialSelectedGrade && processedGrades.length > 0) {
-      // Find the matching grade in processed grades
       const matchingGrade = processedGrades.find(g => g.id === initialSelectedGrade.id);
       if (matchingGrade) {
         setSelectedGrade(matchingGrade);
@@ -140,22 +152,39 @@ const InvitationComposer = ({
     return Object.keys(newErrors).length === 0;
   }, [invitationData, selectedGrade]);
 
+  // Generate PR Code
+  const generatePRCode = useCallback(() => {
+    const schoolInitials = (selectedSchool?.schoolName || selectedSchool?.name || 'SCH')
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 3);
+    
+    const typeCode = 'L'; // L for Learner, could be dynamic based on recipient type
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    return `${schoolInitials}-${typeCode}-${random}`;
+  }, [selectedSchool]);
+
   // Send invitation API call
   const handleSendInvitation = useCallback(async () => {
     if (!validateInvitation()) return;
     
     setIsLoading(true);
     try {
+      const prCode = generatePRCode();
       const result = await invitationService.sendInvitation({
         ...invitationData,
         gradeId: selectedGrade?.id,
         schoolId: selectedSchool?.id,
+        prCode,
+        channels: invitationData.deliveryChannels,
       });
       
-      // Call the parent callback with results
+      setGeneratedInvite(result);
       onInvitationSent?.(result);
       
-      // Show success message or close modal
       if (onClose) {
         onClose();
       }
@@ -165,7 +194,7 @@ const InvitationComposer = ({
     } finally {
       setIsLoading(false);
     }
-  }, [invitationData, selectedGrade, selectedSchool, validateInvitation, onInvitationSent, onClose]);
+  }, [invitationData, selectedGrade, selectedSchool, validateInvitation, onInvitationSent, onClose, generatePRCode]);
 
   // Bulk send API call
   const handleBulkSend = useCallback(async (sendOptions) => {
@@ -173,29 +202,31 @@ const InvitationComposer = ({
 
     setIsSendingBulk(true);
     try {
+      const prCode = generatePRCode();
       const results = await invitationService.bulkSendInvitations({
         ...invitationData,
         gradeId: selectedGrade?.id,
         schoolId: selectedSchool?.id,
+        prCode,
+        channels: invitationData.deliveryChannels,
         ...sendOptions,
       });
       
       setBulkSendResults(results);
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (error) {
       console.error('Error sending bulk invitations:', error);
       setErrors({ general: error.message || 'Failed to send invitations' });
     } finally {
       setIsSendingBulk(false);
     }
-  }, [invitationData, selectedGrade, selectedSchool, validateInvitation]);
+  }, [invitationData, selectedGrade, selectedSchool, validateInvitation, generatePRCode]);
 
   // When a grade is selected
   const handleGradeSelect = useCallback((grade) => {
     console.log('Grade selected:', grade);
     setSelectedGrade(grade);
     setCurrentStep(2);
-    // Clear any previous errors
     setErrors({});
   }, []);
 
@@ -209,13 +240,21 @@ const InvitationComposer = ({
       setErrors({ grade: 'Please select a grade before proceeding' });
       return;
     }
-    setCurrentStep(prev => Math.min(4, prev + 1));
-  }, [currentStep, selectedGrade]);
+    if (currentStep === 2 && (!invitationData.subject || !invitationData.message)) {
+      setErrors({ 
+        subject: !invitationData.subject ? 'Subject is required' : null,
+        message: !invitationData.message ? 'Message is required' : null
+      });
+      return;
+    }
+    setCurrentStep(prev => Math.min(5, prev + 1));
+  }, [currentStep, selectedGrade, invitationData]);
 
   const handleStartOver = useCallback(() => {
     setCurrentStep(1);
     setSelectedGrade(initialSelectedGrade || null);
     setBulkSendResults([]);
+    setGeneratedInvite(null);
     setErrors({});
     setInvitationData({
       recipients: [],
@@ -224,11 +263,31 @@ const InvitationComposer = ({
       template: null,
       scheduledDate: null,
       sendImmediately: true,
+      prCode: null,
+      qrCodeData: null,
+      shortUrl: null,
+      deliveryChannels: ['whatsapp'],
     });
   }, [initialSelectedGrade]);
 
   // Check if we have the minimum required data
   const hasRequiredData = selectedSchool && processedGrades.length > 0;
+
+  // Handle PR code generation
+  const handlePRCodeGeneration = useCallback((inviteData) => {
+    setGeneratedInvite(inviteData);
+    setInvitationData(prev => ({
+      ...prev,
+      prCode: inviteData.prCode,
+      qrCodeData: inviteData.qrCodeData,
+      shortUrl: inviteData.shortUrl
+    }));
+  }, []);
+
+  // Toggle PR code tools visibility
+  const togglePRCodeTools = useCallback(() => {
+    setShowPRCodeTools(prev => !prev);
+  }, []);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -397,6 +456,89 @@ const InvitationComposer = ({
         )}
 
         {currentStep === 3 && selectedGrade && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-blue-800">PR Code Options</h3>
+                <button
+                  onClick={togglePRCodeTools}
+                  className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+                >
+                  <span className="text-sm">
+                    {showPRCodeTools ? 'Hide Tools' : 'Show Tools'}
+                  </span>
+                  <UserPlus size={16} />
+                </button>
+              </div>
+              <p className="text-sm text-blue-700 mt-2">
+                Generate personalized referral codes and QR codes for easy sharing and tracking.
+              </p>
+            </div>
+
+            {showPRCodeTools && (
+              <PRCodeGenerator
+                school={selectedSchool}
+                user={user}
+                onInviteCreated={handlePRCodeGeneration}
+                defaultRecipientType="learner"
+                defaultRecipientName={`${selectedGrade.name} Students`}
+                defaultChannels={invitationData.deliveryChannels}
+              />
+            )}
+
+            {generatedInvite && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <QRCodeGenerator invite={generatedInvite} />
+                <InviteLinkManager invite={generatedInvite} />
+              </div>
+            )}
+
+            {/* Delivery Channel Selection */}
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Delivery Channels</h4>
+              <div className="space-y-2">
+                {['whatsapp', 'sms', 'email'].map((channel) => (
+                  <label key={channel} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={invitationData.deliveryChannels.includes(channel)}
+                      onChange={(e) => {
+                        const updatedChannels = e.target.checked
+                          ? [...invitationData.deliveryChannels, channel]
+                          : invitationData.deliveryChannels.filter(c => c !== channel);
+                        updateInvitationData('deliveryChannels', updatedChannels);
+                      }}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700 capitalize">
+                      {channel} {channel === 'whatsapp' && '(Recommended)'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between pt-4">
+              <button
+                onClick={handlePrevious}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                onClick={handleNext}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <span>Continue to Scheduling</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && selectedGrade && (
           <SchedulingOptions
             selectedGrade={selectedGrade}
             sendImmediately={invitationData.sendImmediately}
@@ -406,10 +548,11 @@ const InvitationComposer = ({
             onBack={handlePrevious}
             onSend={handleBulkSend}
             isSending={isSendingBulk}
+            hasPRCode={!!generatedInvite}
           />
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <PreviewPanel
             results={bulkSendResults}
             invitationData={invitationData}
@@ -417,12 +560,13 @@ const InvitationComposer = ({
             recipientCount={selectedGrade?.learnerCount || 0}
             onBack={handlePrevious}
             onStartOver={handleStartOver}
+            prCode={generatedInvite?.prCode}
           />
         )}
       </div>
 
       {/* Footer Navigation */}
-      {hasRequiredData && (
+      {hasRequiredData && currentStep < 3 && (
         <div className="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
           <button
             onClick={handlePrevious}
@@ -445,13 +589,13 @@ const InvitationComposer = ({
             </span>
           </div>
 
-          {currentStep < 4 ? (
+          {currentStep < 5 ? (
             <button
               onClick={handleNext}
-              disabled={currentStep === 4 || (currentStep === 1 && !selectedGrade)}
+              disabled={currentStep === 5 || (currentStep === 1 && !selectedGrade)}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <span>Next</span>
+              <span>{currentStep === 2 ? 'PR Code Options' : 'Next'}</span>
               <ArrowRight size={16} />
             </button>
           ) : (

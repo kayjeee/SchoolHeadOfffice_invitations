@@ -53,6 +53,12 @@ A modern, comprehensive React application for managing school invitations with *
 or 
 
 Invitations/
+└── services/
+    ├── api.js              # Base API configuration
+    ├── invitationService.js # Invite management
+    ├── prCodeService.js    # PR code operations  
+    ├── templateService.js  # Template management
+    └── analyticsService.js # Analytics and reporting
 ├── providers/
 │   ├── index.js
 │   ├── SendGridService.js
@@ -65,7 +71,12 @@ Invitations/
 │   ├── WhatsAppTemplate.js
 ├── ChannelSelector.js
 ├── CreditSystem.js
-├── InvitationComposer.js
+├── InvitationComposer/
+├── PRCodeGenarator/
+|   ├── PRCodeGenerator (Parent Component)
+│   ├── PRCodeDisplay (Child)
+│   ├── QRCodeGenerator (Child) 
+│   └── InviteLinkManager (Child)
 ├── README.md
 ├── StatusTracker.js
 ├── TemplateManager.js

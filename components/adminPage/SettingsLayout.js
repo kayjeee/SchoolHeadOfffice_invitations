@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
-import {
-  FiUpload, FiDollarSign, FiShoppingCart, FiPlus, FiMinus,
-  FiTrash2, FiEdit, FiMessageSquare, FiBell, FiPieChart,
-  FiCalendar, FiTruck, FiCreditCard, FiSettings, FiLifeBuoy,
-  FiUsers, FiFileText, FiUser
-} from 'react-icons/fi';
-import {
-  FaHamburger, FaPizzaSlice, FaIceCream, FaAppleAlt,
-  FaSchool, FaMoneyBillWave, FaChartLine, FaCog, FaGraduationCap
-} from 'react-icons/fa';
-import Sidebar from './Sidebar';
 import axios from 'axios';
+import { QRCodeCanvas } from 'qrcode.react';
 
-// Import components from grades-management-components package
+// Icons
+import {
+  FiUpload, FiDollarSign, FiMessageSquare, FiBell,
+  FiFileText, FiUsers, FiSettings
+} from 'react-icons/fi';
+import { FaSchool, FaGraduationCap } from 'react-icons/fa';
+
+// Sidebar
+import Sidebar from './Sidebar';
+
+// Grade Management Components
 import {
   GradesContainer,
   LearnersTable,
   BulkUpload,
   TemplateManager,
   InvitationComposer,
-  StatusTracker, 
+  StatusTracker,
   CreditSystem
 } from './GradesManagemet';
 
+// ---------------- Tabs Definition ----------------
 const tabs = {
   grades: [
     { id: 'grades-overview', label: 'Grades Overview', icon: <FaGraduationCap /> },
@@ -30,106 +31,70 @@ const tabs = {
     { id: 'grades-learners', label: 'Learners', icon: <FiUsers /> },
     { id: 'grades-upload-learners', label: 'Upload Learners', icon: <FiUpload /> },
     { id: 'grades-invitations', label: 'Invitations', icon: <FiMessageSquare /> },
+    { id: 'grades-prcode', label: 'PR Code', icon: <FiSettings /> }, // ✅ PR Code tab
   ]
 };
 
+// ---------------- Settings Layout ----------------
 export default function SettingsLayout({ user, schools }) {
   const [activeTab, setActiveTab] = useState('grades-overview');
   const [isExpanded, setIsExpanded] = useState(true);
-  const [balance, setBalance] = useState(50.00);
+  const [balance, setBalance] = useState(50.0);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Get school ID from props - FIXED: Use the correct property name
-  const userId = user?._id;
+
   const selectedSchool = schools?.length > 0 ? schools[0] : null;
-  const schoolId = selectedSchool?.id || selectedSchool?._id; // Handle both id and _id
+  const schoolId = selectedSchool?.id || selectedSchool?._id;
   const schoolName = selectedSchool?.schoolName;
 
-  // Debug logging
+  // Debug
   useEffect(() => {
-    console.log('SettingsLayout - Schools prop:', schools);
     console.log('SettingsLayout - Selected School:', selectedSchool);
     console.log('SettingsLayout - School ID:', schoolId);
-  }, [schools, selectedSchool, schoolId]);
+  }, [selectedSchool, schoolId]);
 
-  // Log grades whenever they change
-  useEffect(() => {
-    console.log('SettingsLayout - Grades updated:', {
-      count: grades.length,
-      grades: grades.map(g => ({ id: g.id, name: g.name }))
-    });
-  }, [grades]);
-
-  // Function to fetch grades from backend - FIXED: Add more debugging
+  // Fetch Grades
   const fetchGrades = async () => {
-    console.log('fetchGrades called with schoolId:', schoolId);
-    
     if (!schoolId) {
-      console.log('No school ID available, cannot fetch grades');
+      console.log('No schoolId provided.');
       setGrades([]);
       return;
     }
-    
-    console.log('SettingsLayout - Fetching grades for school:', schoolId);
-    setLoading(true);
-    setError(null);
-    
+
     try {
+      setLoading(true);
+      setError(null);
+
       const token = localStorage.getItem('authToken');
-      console.log('Using auth token:', token ? 'Token exists' : 'No token found');
-      
-      // FIXED: Use the correct endpoint format and add more debugging
       const apiUrl = `http://localhost:4000/api/v1/schools/${schoolId}/grades`;
-      console.log('Making API call to:', apiUrl);
-      
+
+      console.log('Fetching grades from:', apiUrl);
+
       const response = await axios.get(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        timeout: 30000 // Add timeout to prevent hanging requests
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000,
       });
-      
-      console.log('SettingsLayout - Grades API response:', response.data);
-      
-      // FIXED: Handle different response structures
+
       const fetchedGrades = response.data.data?.grades || response.data.grades || [];
-      console.log('Fetched grades:', fetchedGrades);
-      
       setGrades(fetchedGrades);
-      
-      console.log('SettingsLayout - Successfully fetched grades:', fetchedGrades.length);
+
+      console.log('Fetched grades:', fetchedGrades.length);
     } catch (err) {
-      console.error('SettingsLayout - Error fetching grades:', {
-        error: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: err.config?.url
-      });
-      setError(`Failed to load grades: ${err.message}. Please try again.`);
+      console.error('Error fetching grades:', err);
+      setError(`Failed to load grades: ${err.message}`);
       setGrades([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch grades when component mounts or schoolId changes - FIXED: Add more debugging
   useEffect(() => {
-    console.log('useEffect triggered - schoolId:', schoolId, 'selectedSchool:', selectedSchool);
-    
-    if (schoolId) {
-      console.log('SettingsLayout - School changed, fetching grades for school:', schoolId);
-      fetchGrades();
-    } else {
-      console.log('SettingsLayout - No school selected or school has no ID');
-      setGrades([]);
-    }
-  }, [schoolId]); // FIXED: Only depend on schoolId
+    if (schoolId) fetchGrades();
+  }, [schoolId]);
 
+  // ---------------- Tab Content ----------------
   const renderContent = () => {
-    console.log('SettingsLayout - Rendering tab:', activeTab, 'with grades count:', grades.length);
-    
     switch (activeTab) {
       case 'grades-overview':
         return (
@@ -140,66 +105,76 @@ export default function SettingsLayout({ user, schools }) {
             grades={grades}
           />
         );
+
       case 'grades-classes':
         return (
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Class Management</h2>
-              <p className="text-gray-600 mb-4">
-                Manage class assignments and grade structures for {selectedSchool?.schoolName || 'your school'}.
-              </p>
-              <GradesContainer
-                selectedSchool={selectedSchool}
-                user={user}
-                schools={schools}
-                grades={grades}
-              />
-            </div>
-          </div>
+          <Section title="Class Management" description={`Manage classes for ${schoolName || 'your school'}`}>
+            <GradesContainer selectedSchool={selectedSchool} user={user} schools={schools} grades={grades} />
+          </Section>
         );
+
       case 'grades-learners':
         return (
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Learner Management</h2>
-              <p className="text-gray-600 mb-4">
-                View and manage learner information for {selectedSchool?.schoolName || 'your school'}.
-              </p>
-              <LearnersTable
-                selectedGrade={null}
-                onSelectLearner={(learner) => console.log('Selected learner:', learner)}
-              />
-            </div>
-          </div>
+          <Section title="Learner Management" description={`View and manage learners for ${schoolName || 'your school'}`}>
+            <LearnersTable selectedGrade={null} onSelectLearner={(learner) => console.log('Selected learner:', learner)} />
+          </Section>
         );
+
       case 'grades-upload-learners':
         return (
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Bulk Upload Learners</h2>
-              <p className="text-gray-600 mb-4">
-                Upload multiple learners at once using Excel or CSV files.
-              </p>
-              <BulkUpload
-                isOpen={true}
-                onClose={() => setActiveTab('grades-learners')}
-                selectedGrade={null}
-                user={user}
-                schools={schools}
-              />
-            </div>
-          </div>
+          <Section title="Bulk Upload Learners" description="Upload learners via Excel or CSV">
+            <BulkUpload isOpen={true} onClose={() => setActiveTab('grades-learners')} selectedGrade={null} user={user} schools={schools} />
+          </Section>
         );
+
       case 'grades-invitations':
         return (
-          <div className="space-y-6">
-            <InvitationManagementTabs 
-              selectedSchool={selectedSchool}
-              grades={grades}
-              user={user}
-            />
-          </div>
+          <InvitationManagementTabs selectedSchool={selectedSchool} grades={grades} user={user} />
         );
+
+      case 'grades-prcode':
+  return (
+    <Section
+      title="Invitation PR Code"
+      description={`Share this QR with parents, learners, or guests of ${schoolName || 'your school'}`}
+    >
+      <div className="flex flex-col items-center space-y-4">
+        {schoolId ? (
+          <>
+            {/* QR Code */}
+            <QRCodeCanvas value={`https://your-app.com/invite/${schoolId}`} size={180} />
+
+            {/* Info text */}
+            <p className="text-sm text-gray-500 text-center">
+              Scan to open the invitation link or tap below:
+            </p>
+
+            {/* Live clickable link */}
+            <a
+              href={`https://your-app.com/invite/${schoolId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline break-all text-center"
+            >
+              https://your-app.com/invite/{schoolId}
+            </a>
+
+            {/* Copy button */}
+            <button
+              onClick={() => navigator.clipboard.writeText(`https://your-app.com/invite/${schoolId}`)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Copy Invite Link
+            </button>
+          </>
+        ) : (
+          <p className="text-red-500">No school selected. Please select a school to generate a PR Code.</p>
+        )}
+      </div>
+    </Section>
+  );
+
+
       default:
         return <DefaultTabContent tabId={activeTab} />;
     }
@@ -215,55 +190,70 @@ export default function SettingsLayout({ user, schools }) {
         onToggle={() => setIsExpanded((prev) => !prev)}
         balance={balance}
       />
-      
+
       <div className="flex-1 p-6 overflow-auto">
         {/* Debug Info */}
-        <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded text-sm">
-          <p className="font-semibold text-gray-700 mb-2">Debug Information:</p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div><strong>School ID:</strong> {schoolId || 'None'}</div>
-            <div><strong>Grades Count:</strong> {grades.length}</div>
-            <div><strong>Selected School:</strong> {selectedSchool ? selectedSchool.schoolName : 'None'}</div>
-            <div><strong>Active Tab:</strong> {activeTab}</div>
-          </div>
-        </div>
-        
-        {/* Loading State */}
-        {loading && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded text-center">
-            <div className="inline-flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <p className="text-blue-600">Loading grades...</p>
-            </div>
-          </div>
-        )}
-        
-        {/* Error State */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-                <button 
-                  onClick={fetchGrades}
-                  className="mt-2 text-sm text-red-800 underline hover:text-red-900"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
+        <DebugInfo schoolId={schoolId} grades={grades} selectedSchool={selectedSchool} activeTab={activeTab} />
+
+        {/* States */}
+        {loading && <InfoBanner type="loading" message="Loading grades..." />}
+        {error && <InfoBanner type="error" message={error} onRetry={fetchGrades} />}
+
         {renderContent()}
       </div>
     </div>
   );
+}
+
+// ---------------- Sub Components ----------------
+function Section({ title, description, children }) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 mb-2">{title}</h2>
+        {description && <p className="text-gray-600 mb-4">{description}</p>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DebugInfo({ schoolId, grades, selectedSchool, activeTab }) {
+  return (
+    <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded text-sm">
+      <p className="font-semibold text-gray-700 mb-2">Debug Information:</p>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div><strong>School ID:</strong> {schoolId || 'None'}</div>
+        <div><strong>Grades Count:</strong> {grades.length}</div>
+        <div><strong>Selected School:</strong> {selectedSchool ? selectedSchool.schoolName : 'None'}</div>
+        <div><strong>Active Tab:</strong> {activeTab}</div>
+      </div>
+    </div>
+  );
+}
+
+function InfoBanner({ type, message, onRetry }) {
+  if (type === 'loading') {
+    return (
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded text-center">
+        <div className="inline-flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          <p className="text-blue-600">{message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'error') {
+    return (
+      <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded">
+        <p className="text-sm text-red-700">{message}</p>
+        {onRetry && <button onClick={onRetry} className="mt-2 text-sm text-red-800 underline hover:text-red-900">Try Again</button>}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function InvitationManagementTabs({ selectedSchool, grades, user }) {
@@ -276,41 +266,13 @@ function InvitationManagementTabs({ selectedSchool, grades, user }) {
     { id: 'credits', label: 'Credit System', icon: <FiDollarSign /> },
   ];
 
-  // Debug logging for InvitationManagementTabs
-  useEffect(() => {
-    console.log('InvitationManagementTabs - Props:', {
-      selectedSchool: selectedSchool ? selectedSchool.schoolName : 'None',
-      gradesCount: grades?.length || 0,
-      userExists: !!user
-    });
-  }, [selectedSchool, grades, user]);
-
   const renderInvitationContent = () => {
-    console.log('InvitationManagementTabs - Rendering tab:', activeInvitationTab);
-    
     switch (activeInvitationTab) {
-      case 'composer':
-        return (
-          <InvitationComposer 
-            selectedSchool={selectedSchool}
-            grades={grades}
-            user={user}
-          />
-        );
-      case 'templates':
-        return <TemplateManager />;
-      case 'status':
-        return <StatusTracker />;
-      case 'credits':
-        return <CreditSystem />;
-      default:
-        return (
-          <InvitationComposer 
-            selectedSchool={selectedSchool}
-            grades={grades}
-            user={user}
-          />
-        );
+      case 'composer': return <InvitationComposer selectedSchool={selectedSchool} grades={grades} user={user} />;
+      case 'templates': return <TemplateManager />;
+      case 'status': return <StatusTracker />;
+      case 'credits': return <CreditSystem />;
+      default: return <InvitationComposer selectedSchool={selectedSchool} grades={grades} user={user} />;
     }
   };
 
@@ -334,10 +296,7 @@ function InvitationManagementTabs({ selectedSchool, grades, user }) {
           ))}
         </nav>
       </div>
-
-      <div className="p-6">
-        {renderInvitationContent()}
-      </div>
+      <div className="p-6">{renderInvitationContent()}</div>
     </div>
   );
 }
@@ -351,7 +310,9 @@ function DefaultTabContent({ tabId }) {
       <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
         <FaSchool className="mx-auto text-4xl text-blue-500 mb-4" />
         <h2 className="text-2xl font-bold text-gray-800 mb-2">{tabName}</h2>
-        <p className="text-gray-600">This feature is coming soon. Our team is working hard to implement {tabName} functionality.</p>
+        <p className="text-gray-600">
+          This feature is coming soon. Our team is working hard to implement {tabName}.
+        </p>
       </div>
     </div>
   );
