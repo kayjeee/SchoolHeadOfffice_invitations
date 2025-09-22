@@ -17,11 +17,12 @@ export const useOnboardingFlow = () => {
 // ----------------------
 // Internal Provider
 // ----------------------
-export const InternalOnboardingFlowProvider = ({ children }) => {
+const InternalOnboardingFlowProvider = ({ children }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [onboardingData, setOnboardingData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // ---- Step navigation ----
   const goToNextStep = () => {
     if (currentStepIndex < STEPS.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
@@ -40,10 +41,29 @@ export const InternalOnboardingFlowProvider = ({ children }) => {
     }
   };
 
+  // ---- Data management ----
   const updateOnboardingData = (newData) => {
     setOnboardingData(prev => ({ ...prev, ...newData }));
   };
 
+  const getStepData = (stepId) => onboardingData[stepId] || null;
+
+  const updateStepData = (stepId, data) => {
+    setOnboardingData(prev => ({
+      ...prev,
+      [stepId]: { ...(prev[stepId] || {}), ...data }
+    }));
+  };
+
+  const markStepCompleted = (stepId, payload = {}) => {
+    updateStepData(stepId, { completed: true, ...payload });
+  };
+
+  const skipStep = (stepId, reason = "Skipped by user") => {
+    updateStepData(stepId, { skipped: true, reason });
+  };
+
+  // ---- Context value ----
   const value = {
     currentStep: STEPS[currentStepIndex],
     currentStepIndex,
@@ -54,7 +74,12 @@ export const InternalOnboardingFlowProvider = ({ children }) => {
     onboardingData,
     updateOnboardingData,
     isLoading,
-    setIsLoading
+    setIsLoading,
+    // new helpers
+    getStepData,
+    updateStepData,
+    markStepCompleted,
+    skipStep
   };
 
   return (
@@ -64,4 +89,7 @@ export const InternalOnboardingFlowProvider = ({ children }) => {
   );
 };
 
+// ----------------------
+// Export with alias
+// ----------------------
 export { InternalOnboardingFlowProvider as OnboardingFlowProvider };
