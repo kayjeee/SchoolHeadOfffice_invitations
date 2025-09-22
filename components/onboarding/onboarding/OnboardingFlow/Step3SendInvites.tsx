@@ -6,7 +6,7 @@ import { useStepValidation } from '../hooks/useStepValidation';
 import LoadingSpinner from '../../../spinners/LoadingSpinner';
 import { inviteService } from '../services/inviteService';
 import { learnerService } from '../services/learnerService';
-import { gradeService } from '../services/';
+import { gradeService } from '../services/gradeService';
 import { OnboardingStepProps } from '../../types';
 
 interface InviteFormData {
