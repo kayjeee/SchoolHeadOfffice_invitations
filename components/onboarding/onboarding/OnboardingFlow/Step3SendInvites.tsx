@@ -1,6 +1,6 @@
-// components/onboarding/OnboardingFlow/steps/Step3SendInvites.tsx
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
 import { useOnboardingFlow } from '../hooks/useOnboardingFlow';
 import { useStepValidation } from '../hooks/useStepValidation';
 import LoadingSpinner from '../../../spinners/LoadingSpinner';
@@ -47,13 +47,21 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
 }) => {
   const { markStepCompleted, skipStep, getStepData, updateStepData } = useOnboardingFlow();
   const { validateStep, validationErrors } = useStepValidation('send_invites');
+  
+  // Loading states
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  
+  // Data states
   const [learners, setLearners] = useState<Learner[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [generatedInvites, setGeneratedInvites] = useState<GeneratedInvite[]>([]);
+  
+  // UI states
   const [activeTab, setActiveTab] = useState<'compose' | 'results'>('compose');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>('all');
 
   const {
     register,
@@ -77,49 +85,136 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
   const watchedSendImmediately = watch('sendImmediately');
   const watchedCustomMessage = watch('customMessage');
 
-  // Load learners and grades on component mount
+  // Get school ID from user
+  const schoolId = user?.schools?.[0]?.id;
+
+  // Fetch grades
+  const fetchGrades = async () => {
+    if (!schoolId) {
+      console.log('No schoolId provided.');
+      setGrades([]);
+      return;
+    }
+
+    try {
+      console.log('Fetching grades for school:', schoolId);
+      
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const apiUrl = `http://localhost:4000/api/v1/schools/${schoolId}/grades`;
+      console.log('Fetching grades from:', apiUrl);
+
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000,
+      });
+
+      const fetchedGrades = response.data.data?.grades || response.data.grades || response.data || [];
+      setGrades(Array.isArray(fetchedGrades) ? fetchedGrades : []);
+      
+      console.log('Successfully fetched grades:', fetchedGrades.length);
+    } catch (err: any) {
+      console.error('Error fetching grades:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to load grades';
+      setError(`Failed to load grades: ${errorMessage}`);
+      setGrades([]);
+    }
+  };
+
+  // Fetch learners
+  const fetchLearners = async () => {
+    if (!schoolId) {
+      console.log('No schoolId provided.');
+      setLearners([]);
+      return;
+    }
+
+    try {
+      console.log('Fetching learners for school:', schoolId);
+      
+      // Try using the learnerService first
+      try {
+        const learnersData = await learnerService.getLearnersBySchool(schoolId);
+        setLearners(Array.isArray(learnersData) ? learnersData : []);
+        console.log('Successfully fetched learners via service:', learnersData.length);
+        return;
+      } catch (serviceError) {
+        console.log('Service failed, trying direct API call:', serviceError);
+      }
+
+      // Fallback to direct API call
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const apiUrl = `http://localhost:4000/api/v1/schools/${schoolId}/learners`;
+      console.log('Fetching learners from:', apiUrl);
+
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000,
+      });
+
+      const fetchedLearners = response.data.data?.learners || response.data.learners || response.data || [];
+      setLearners(Array.isArray(fetchedLearners) ? fetchedLearners : []);
+      
+      console.log('Successfully fetched learners via API:', fetchedLearners.length);
+    } catch (err: any) {
+      console.error('Error fetching learners:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to load learners';
+      setError(`Failed to load learners: ${errorMessage}`);
+      setLearners([]);
+    }
+  };
+
+  // Load initial data
   useEffect(() => {
-    loadLearnersAndGrades();
-  }, [user]);
+    const loadInitialData = async () => {
+      if (!schoolId) {
+        setError('No school found for the current user');
+        setIsLoadingData(false);
+        return;
+      }
+
+      setIsLoadingData(true);
+      setError(null);
+
+      try {
+        // Load both grades and learners concurrently
+        await Promise.all([
+          fetchGrades(),
+          fetchLearners()
+        ]);
+      } catch (err) {
+        console.error('Error loading initial data:', err);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadInitialData();
+  }, [schoolId]);
+
+  // Auto-select all learners when learners are loaded
+  useEffect(() => {
+    if (learners.length > 0 && watchedSelectedLearners.length === 0) {
+      const learnerIds = learners.map(learner => learner.id);
+      setValue('selectedLearners', learnerIds);
+    }
+  }, [learners, setValue, watchedSelectedLearners.length]);
 
   // Load existing step data if available
   useEffect(() => {
     const stepData = getStepData('send_invites');
-    if (stepData) {
-      if (stepData.generatedInvites) {
-        setGeneratedInvites(stepData.generatedInvites);
-        setActiveTab('results');
-      }
+    if (stepData && stepData.generatedInvites) {
+      setGeneratedInvites(stepData.generatedInvites);
+      setActiveTab('results');
     }
   }, [getStepData]);
-
-  const loadLearnersAndGrades = async () => {
-    try {
-      setIsLoading(true);
-      const userSchools = user?.schools || [];
-      
-      if (userSchools.length > 0) {
-        const schoolId = userSchools[0].id;
-        
-        // Load learners for the school
-        const learnersData = await learnerService.getLearnersBySchool(schoolId);
-        setLearners(learnersData);
-        
-        // Load grades for the school
-        const gradesData = await gradeService.getGradesBySchool(schoolId);
-        setGrades(gradesData);
-        
-        // Auto-select all learners by default
-        const learnerIds = learnersData.map(learner => learner.id);
-        setValue('selectedLearners', learnerIds);
-      }
-    } catch (err) {
-      console.error('Error loading learners and grades:', err);
-      setError('Failed to load learner data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const generatePRCode = (learner: Learner): string => {
     const schoolCode = user?.schools?.[0]?.code || 'SCH';
@@ -185,7 +280,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
           inviteLink,
           channels: data.channels,
           customMessage: data.customMessage,
-          schoolId: user!.schools[0].id,
+          schoolId: schoolId!,
           createdBy: user!.auth0_id,
           status: data.sendImmediately ? 'pending' : 'scheduled',
           scheduledDate: data.sendImmediately ? null : data.scheduledDate,
@@ -218,28 +313,22 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
       setActiveTab('results');
 
       // Update step data
-      updateStepData('send_invites', {
+      const stepData = {
         invitesSent: successfulInvites.length,
         channelsUsed: data.channels,
         scheduled: !data.sendImmediately,
         generatedInvites: successfulInvites
-      });
+      };
+
+      updateStepData('send_invites', stepData);
 
       // Complete the step
-      await markStepCompleted('send_invites', {
-        invitesSent: successfulInvites.length,
-        channelsUsed: data.channels,
-        scheduled: !data.sendImmediately
-      });
+      await markStepCompleted('send_invites', stepData);
 
       // Call parent completion handler
-      onComplete?.('send_invites', {
-        invitesSent: successfulInvites.length,
-        channelsUsed: data.channels,
-        scheduled: !data.sendImmediately
-      });
+      onComplete?.('send_invites', stepData);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sending invites:', err);
       setError(err instanceof Error ? err.message : 'Failed to send invites');
     } finally {
@@ -253,12 +342,33 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
   };
 
   const selectAllLearners = () => {
-    const allLearnerIds = learners.map(learner => learner.id);
-    setValue('selectedLearners', allLearnerIds);
+    const filteredLearners = getFilteredLearners();
+    const learnerIds = filteredLearners.map(learner => learner.id);
+    setValue('selectedLearners', [...new Set([...watchedSelectedLearners, ...learnerIds])]);
   };
 
   const deselectAllLearners = () => {
-    setValue('selectedLearners', []);
+    const filteredLearners = getFilteredLearners();
+    const filteredIds = filteredLearners.map(learner => learner.id);
+    const remainingSelected = watchedSelectedLearners.filter(id => !filteredIds.includes(id));
+    setValue('selectedLearners', remainingSelected);
+  };
+
+  const getFilteredLearners = () => {
+    if (selectedGradeFilter === 'all') {
+      return learners;
+    }
+    return learners.filter(learner => learner.gradeId === selectedGradeFilter);
+  };
+
+  const getGradeName = (gradeId?: string) => {
+    if (!gradeId) return 'No grade assigned';
+    const grade = grades.find(g => g.id === gradeId);
+    return grade ? grade.name : 'Unknown grade';
+  };
+
+  const getLearnerCountByGrade = (gradeId: string) => {
+    return learners.filter(learner => learner.gradeId === gradeId).length;
   };
 
   // Icon Components
@@ -305,14 +415,23 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
     </svg>
   );
 
-  if (isLoading && learners.length === 0) {
+  const UsersIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  );
+
+  if (isLoadingData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64">
         <LoadingSpinner size="large" />
         <p className="mt-4 text-gray-600">Loading learners and grades...</p>
+        {schoolId && <p className="text-sm text-gray-500">School ID: {schoolId}</p>}
       </div>
     );
   }
+
+  const filteredLearners = getFilteredLearners();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -323,13 +442,61 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
         <p className="text-gray-600 mt-2">
           Invite learners to join your school using PR codes. Choose delivery channels and customize your message.
         </p>
+        {schoolId && (
+          <p className="text-sm text-gray-500 mt-1">
+            School: {user?.schools?.[0]?.name} | {learners.length} learners | {grades.length} grades
+          </p>
+        )}
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-800">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              fetchGrades();
+              fetchLearners();
+            }}
+            className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+          >
+            Try again
+          </button>
         </div>
       )}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <UsersIcon className="w-8 h-8 text-blue-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-blue-900">Total Learners</p>
+              <p className="text-2xl font-bold text-blue-600">{learners.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-green-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <CheckIcon className="w-8 h-8 text-green-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-900">Selected</p>
+              <p className="text-2xl font-bold text-green-600">{watchedSelectedLearners.length}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="flex items-center">
+            <EnvelopeIcon className="w-8 h-8 text-purple-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-purple-900">Grades</p>
+              <p className="text-2xl font-bold text-purple-600">{grades.length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200">
@@ -362,35 +529,96 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
       {/* Compose Tab */}
       {activeTab === 'compose' && (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Grade Filter */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Filter by Grade</h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedGradeFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedGradeFilter === 'all'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                    : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                All Grades ({learners.length})
+              </button>
+              
+              {grades.map((grade) => (
+                <button
+                  key={grade.id}
+                  type="button"
+                  onClick={() => setSelectedGradeFilter(grade.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedGradeFilter === grade.id
+                      ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                      : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                  }`}
+                >
+                  {grade.name} ({getLearnerCountByGrade(grade.id)})
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Learner Selection */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Select Learners</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Select Learners 
+                {selectedGradeFilter !== 'all' && (
+                  <span className="text-sm text-gray-500 ml-2">
+                    (Filtered by: {grades.find(g => g.id === selectedGradeFilter)?.name})
+                  </span>
+                )}
+              </h3>
               <div className="space-x-2">
                 <button
                   type="button"
                   onClick={selectAllLearners}
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  Select All
+                  Select All {selectedGradeFilter !== 'all' ? 'Filtered' : ''}
                 </button>
+                <span className="text-gray-400">|</span>
                 <button
                   type="button"
                   onClick={deselectAllLearners}
                   className="text-sm text-gray-600 hover:text-gray-800"
                 >
-                  Deselect All
+                  Deselect All {selectedGradeFilter !== 'all' ? 'Filtered' : ''}
                 </button>
               </div>
             </div>
             
             <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
-              {learners.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No learners found. Please upload learners first.</p>
+              {filteredLearners.length === 0 ? (
+                <div className="text-center py-8">
+                  <UsersIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    {learners.length === 0 
+                      ? "No learners found. Please upload learners first." 
+                      : "No learners found for the selected grade."
+                    }
+                  </p>
+                  {learners.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        fetchLearners();
+                      }}
+                      className="mt-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                    >
+                      Refresh learners
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {learners.map((learner) => (
-                    <label key={learner.id} className="flex items-start space-x-3 p-2 hover:bg-white rounded">
+                  {filteredLearners.map((learner) => (
+                    <label key={learner.id} className="flex items-start space-x-3 p-3 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-gray-200">
                       <input
                         type="checkbox"
                         {...register('selectedLearners')}
@@ -401,10 +629,25 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                         <p className="text-sm font-medium text-gray-900">
                           {learner.firstName} {learner.lastName}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          {grades.find(g => g.id === learner.gradeId)?.name || 'No grade'}
-                          {learner.email && ` • ${learner.email}`}
-                        </p>
+                        <div className="text-sm text-gray-500 space-y-1">
+                          <p>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              {getGradeName(learner.gradeId)}
+                            </span>
+                          </p>
+                          {learner.email && (
+                            <p className="flex items-center">
+                              <EnvelopeIcon className="w-3 h-3 mr-1" />
+                              {learner.email}
+                            </p>
+                          )}
+                          {learner.phone && (
+                            <p className="flex items-center">
+                              <PhoneIcon className="w-3 h-3 mr-1" />
+                              {learner.phone}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </label>
                   ))}
@@ -421,9 +664,9 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Channels</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { id: 'whatsapp', name: 'WhatsApp', icon: ChatBubbleLeftRightIcon, color: 'text-green-600' },
-                { id: 'sms', name: 'SMS', icon: PhoneIcon, color: 'text-blue-600' },
-                { id: 'email', name: 'Email', icon: EnvelopeIcon, color: 'text-purple-600' }
+                { id: 'whatsapp', name: 'WhatsApp', icon: ChatBubbleLeftRightIcon, color: 'text-green-600', bgColor: 'peer-checked:bg-green-50 peer-checked:border-green-500' },
+                { id: 'sms', name: 'SMS', icon: PhoneIcon, color: 'text-blue-600', bgColor: 'peer-checked:bg-blue-50 peer-checked:border-blue-500' },
+                { id: 'email', name: 'Email', icon: EnvelopeIcon, color: 'text-purple-600', bgColor: 'peer-checked:bg-purple-50 peer-checked:border-purple-500' }
               ].map((channel) => {
                 const IconComponent = channel.icon;
                 return (
@@ -434,7 +677,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                       value={channel.id}
                       className="peer sr-only"
                     />
-                    <div className="flex-1 rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 peer-checked:border-purple-500 peer-checked:bg-purple-50">
+                    <div className={`flex-1 rounded-lg border-2 border-gray-200 p-4 hover:border-gray-300 transition-all ${channel.bgColor}`}>
                       <div className="flex items-center">
                         <IconComponent className={`w-6 h-6 ${channel.color} mr-3`} />
                         <span className="text-sm font-medium text-gray-900">{channel.name}</span>
@@ -455,15 +698,20 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
             <textarea
               {...register('customMessage')}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               placeholder="Customize your invitation message..."
             />
             {validationErrors.customMessage && (
               <p className="text-red-600 text-sm mt-2">{validationErrors.customMessage}</p>
             )}
-            <p className="text-sm text-gray-500 mt-2">
-              {watchedCustomMessage?.length || 0}/500 characters
-            </p>
+            <div className="flex justify-between items-center mt-2">
+              <p className="text-sm text-gray-500">
+                {watchedCustomMessage?.length || 0}/500 characters
+              </p>
+              <div className="text-xs text-gray-400">
+                Available variables: {user?.schools?.[0]?.name && '{school_name}'}, {'{pr_code}'}, {'{learner_name}'}
+              </div>
+            </div>
           </div>
 
           {/* Scheduling Options */}
@@ -499,7 +747,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                     type="datetime-local"
                     {...register('scheduledDate')}
                     min={new Date().toISOString().slice(0, 16)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                   {validationErrors.scheduledDate && (
                     <p className="text-red-600 text-sm mt-2">{validationErrors.scheduledDate}</p>
@@ -510,22 +758,22 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between pt-6">
+          <div className="flex justify-between pt-6 border-t border-gray-200">
             <button
               type="button"
               onClick={handleSkip}
-              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
             >
               Skip This Step
             </button>
 
             <button
               type="submit"
-              disabled={isLoading || learners.length === 0}
-              className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              disabled={isLoading || learners.length === 0 || watchedSelectedLearners.length === 0}
+              className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
             >
               {isLoading && <LoadingSpinner size="small" className="mr-2" />}
-              Send {watchedSelectedLearners?.length || 0} Invites
+              {isLoading ? 'Sending...' : `Send ${watchedSelectedLearners?.length || 0} Invites`}
             </button>
           </div>
         </form>
@@ -546,7 +794,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
           {/* Invite Results Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {generatedInvites.map((invite) => (
-              <div key={invite.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+              <div key={invite.id} className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h4 className="font-medium text-gray-900">{invite.learnerName}</h4>
@@ -555,7 +803,8 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                   <span className={`px-2 py-1 text-xs rounded-full ${
                     invite.status === 'sent' ? 'bg-green-100 text-green-800' :
                     invite.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                    invite.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                    'bg-red-100 text-red-800'
                   }`}>
                     {invite.status}
                   </span>
@@ -574,6 +823,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                       <button
                         onClick={() => copyToClipboard(invite.prCode, invite.prCode)}
                         className="bg-gray-200 px-3 py-2 rounded-r-md hover:bg-gray-300 transition-colors"
+                        title="Copy PR Code"
                       >
                         {copiedCode === invite.prCode ? (
                           <CheckIcon className="w-4 h-4 text-green-600" />
@@ -594,11 +844,12 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                         type="text"
                         value={invite.inviteLink}
                         readOnly
-                        className="flex-1 bg-gray-100 px-3 py-2 rounded-l-md text-sm border-0"
+                        className="flex-1 bg-gray-100 px-3 py-2 rounded-l-md text-sm border-0 text-gray-600"
                       />
                       <button
                         onClick={() => copyToClipboard(invite.inviteLink, `link-${invite.prCode}`)}
                         className="bg-gray-200 px-3 py-2 rounded-r-md hover:bg-gray-300 transition-colors"
+                        title="Copy Invite Link"
                       >
                         {copiedCode === `link-${invite.prCode}` ? (
                           <CheckIcon className="w-4 h-4 text-green-600" />
@@ -614,6 +865,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                     <button
                       onClick={() => downloadQRCode(invite)}
                       className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
+                      title="Download QR Code Data"
                     >
                       <QrCodeIcon className="w-4 h-4 mr-2" />
                       Download QR
@@ -621,6 +873,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                     <button
                       onClick={() => inviteService.resendInvite(invite.id)}
                       className="flex-1 flex items-center justify-center px-3 py-2 border border-purple-600 text-purple-600 rounded-md text-sm hover:bg-purple-50 transition-colors"
+                      title="Resend Invite"
                     >
                       <EnvelopeIcon className="w-4 h-4 mr-2" />
                       Resend
@@ -642,7 +895,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
               >
-                Copy All PR Codes
+                {copiedCode === 'all-codes' ? '✓ Copied!' : 'Copy All PR Codes'}
               </button>
               <button
                 onClick={() => {
@@ -651,7 +904,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors"
               >
-                Copy All Links
+                {copiedCode === 'all-links' ? '✓ Copied!' : 'Copy All Links'}
               </button>
               <button
                 onClick={() => {
@@ -666,7 +919,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
                   const url = window.URL.createObjectURL(blob);
                   const link = document.createElement('a');
                   link.href = url;
-                  link.download = 'invites.csv';
+                  link.download = `invites-${new Date().toISOString().split('T')[0]}.csv`;
                   link.click();
                   window.URL.revokeObjectURL(url);
                 }}
@@ -677,7 +930,7 @@ const Step3SendInvites: React.FC<OnboardingStepProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-4 border-t border-gray-200">
             <button
               onClick={() => onComplete?.('send_invites', { invitesSent: generatedInvites.length })}
               className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"

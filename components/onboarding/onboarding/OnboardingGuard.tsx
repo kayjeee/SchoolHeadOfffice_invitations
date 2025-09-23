@@ -1,5 +1,5 @@
 import React from "react";
-import { useOnboardingFlow, InternalOnboardingFlowProvider } from "./hooks/useOnboardingFlow";
+import { useOnboardingFlow, OnboardingFlowProvider } from "./hooks/useOnboardingFlow";
 import { STEPS } from "./OnboardingFlow";
 
 const OnboardingContent = ({ user, schools, onboardingStatus }) => {
@@ -106,13 +106,13 @@ export const OnboardingGuard = ({
   if (isOnboardingComplete) return null;
 
   return (
-    <InternalOnboardingFlowProvider>
+    <OnboardingFlowProvider>
       <OnboardingContent
         user={user}
         schools={schools}
         onboardingStatus={onboardingStatus}
       />
-    </InternalOnboardingFlowProvider>
+    </OnboardingFlowProvider>
   );
 };
 
