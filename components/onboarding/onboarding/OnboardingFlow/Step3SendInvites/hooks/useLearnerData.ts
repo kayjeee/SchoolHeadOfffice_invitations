@@ -9,17 +9,17 @@ export interface UseLearnerDataReturn {
   selectedLearners: Learner[];
   grades: Grade[];
   selectedGrades: Grade[];
-  
+
   // Loading states
   loading: boolean;
   learnersLoading: boolean;
   gradesLoading: boolean;
-  
+
   // Error states
   error: string | null;
   learnersError: string | null;
   gradesError: string | null;
-  
+
   // Actions
   selectLearner: (learner: Learner) => void;
   deselectLearner: (learnerId: string) => void;
@@ -32,158 +32,119 @@ export interface UseLearnerDataReturn {
   searchLearners: (searchTerm: string) => Promise<void>;
 }
 
-export const useLearnerData = (): UseLearnerDataReturn => {
-  // State
+export const useLearnerData = (schoolId: string): UseLearnerDataReturn => {
+  // States
   const [learners, setLearners] = useState<Learner[]>([]);
   const [selectedLearners, setSelectedLearners] = useState<Learner[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [selectedGrades, setSelectedGrades] = useState<Grade[]>([]);
-  
-  // Loading states
+
   const [learnersLoading, setLearnersLoading] = useState(false);
   const [gradesLoading, setGradesLoading] = useState(false);
-  
-  // Error states
+
   const [learnersError, setLearnersError] = useState<string | null>(null);
   const [gradesError, setGradesError] = useState<string | null>(null);
 
-  // Computed values
   const loading = learnersLoading || gradesLoading;
   const error = learnersError || gradesError;
 
   // Fetch learners
-  const fetchLearners = useCallback(async (filters?: any) => {
-    setLearnersLoading(true);
-    setLearnersError(null);
-    
-    try {
-      const data = await learnerService.getLearners(filters);
-      setLearners(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch learners';
-      setLearnersError(errorMessage);
-      console.error('Error fetching learners:', err);
-    } finally {
-      setLearnersLoading(false);
-    }
-  }, []);
+  const fetchLearners = useCallback(
+    async (filters?: any) => {
+      if (!schoolId) return;
+      setLearnersLoading(true);
+      setLearnersError(null);
+      try {
+        const data = await learnerService.getLearners(schoolId, filters);
+        setLearners(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        setLearnersError(err?.message || 'Failed to fetch learners');
+      } finally {
+        setLearnersLoading(false);
+      }
+    },
+    [schoolId]
+  );
 
   // Fetch grades
   const fetchGrades = useCallback(async () => {
+    if (!schoolId) return;
     setGradesLoading(true);
     setGradesError(null);
-    
     try {
-      const data = await gradeService.getGrades(); // ✅ only fetch grades
-      setGrades(data);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch grades';
-      setGradesError(errorMessage);
-      console.error('Error fetching grades:', err);
+      const data = await gradeService.getGrades(schoolId);
+      setGrades(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setGradesError(err?.message || 'Failed to fetch grades');
     } finally {
       setGradesLoading(false);
     }
-  }, []);
+  }, [schoolId]);
 
-  // Initial data fetch
+  // Initial fetch
   useEffect(() => {
     fetchLearners();
     fetchGrades();
   }, [fetchLearners, fetchGrades]);
 
-  // Learner selection actions
+  // Learner actions
   const selectLearner = useCallback((learner: Learner) => {
-    setSelectedLearners(prev => {
-      if (prev.some(selected => selected.id === learner.id)) {
-        return prev; // Already selected
-      }
-      return [...prev, learner];
-    });
+    setSelectedLearners(prev => (prev.some(l => l.id === learner.id) ? prev : [...prev, learner]));
   }, []);
 
   const deselectLearner = useCallback((learnerId: string) => {
-    setSelectedLearners(prev => prev.filter(learner => learner.id !== learnerId));
+    setSelectedLearners(prev => prev.filter(l => l.id !== learnerId));
   }, []);
 
   const selectAllLearners = useCallback(() => {
-    const filteredLearners = selectedGrades.length > 0
-      ? learners.filter(learner => 
-          selectedGrades.some(grade => grade.id === learner.gradeId)
-        )
+    const filtered = selectedGrades.length
+      ? learners.filter(l => selectedGrades.some(g => g.id === l.gradeId))
       : learners;
-    
-    setSelectedLearners(filteredLearners);
+    setSelectedLearners(filtered);
   }, [learners, selectedGrades]);
 
-  const deselectAllLearners = useCallback(() => {
-    setSelectedLearners([]);
-  }, []);
+  const deselectAllLearners = useCallback(() => setSelectedLearners([]), []);
 
-  // Grade selection actions
+  // Grade actions
   const selectGrade = useCallback((grade: Grade) => {
-    setSelectedGrades(prev => {
-      if (prev.some(selected => selected.id === grade.id)) {
-        return prev; // Already selected
-      }
-      return [...prev, grade];
-    });
+    setSelectedGrades(prev => (prev.some(g => g.id === grade.id) ? prev : [...prev, grade]));
   }, []);
 
   const deselectGrade = useCallback((gradeId: string) => {
-    setSelectedGrades(prev => prev.filter(grade => grade.id !== gradeId));
-    
-    // Also deselect learners from this grade
-    setSelectedLearners(prev => 
-      prev.filter(learner => learner.gradeId !== gradeId)
-    );
+    setSelectedGrades(prev => prev.filter(g => g.id !== gradeId));
+    setSelectedLearners(prev => prev.filter(l => l.gradeId !== gradeId));
   }, []);
 
-  // Refresh actions
-  const refreshLearners = useCallback(async () => {
-    await fetchLearners();
-  }, [fetchLearners]);
-
-  const refreshGrades = useCallback(async () => {
-    await fetchGrades();
-  }, [fetchGrades]);
+  // Refresh functions
+  const refreshLearners = useCallback(async () => fetchLearners(), [fetchLearners]);
+  const refreshGrades = useCallback(async () => fetchGrades(), [fetchGrades]);
 
   // Search learners
-  const searchLearners = useCallback(async (searchTerm: string) => {
-    if (!searchTerm.trim()) {
-      await fetchLearners();
-      return;
-    }
-    await fetchLearners({ searchTerm: searchTerm.trim() });
-  }, [fetchLearners]);
+  const searchLearners = useCallback(
+    async (searchTerm: string) => {
+      await fetchLearners(searchTerm.trim() ? { searchTerm: searchTerm.trim() } : undefined);
+    },
+    [fetchLearners]
+  );
 
-  // Update learners when grade selection changes
+  // Update learners when grades change
   useEffect(() => {
-    if (selectedGrades.length > 0) {
-      const gradeIds = selectedGrades.map(grade => grade.id);
-      fetchLearners({ gradeIds });
-    } else {
-      fetchLearners();
-    }
-  }, [selectedGrades, fetchLearners]);
+    if (!schoolId) return;
+    const gradeIds = selectedGrades.map(g => g.id);
+    fetchLearners(gradeIds.length ? { gradeIds } : undefined);
+  }, [selectedGrades, fetchLearners, schoolId]);
 
   return {
-    // Data
     learners,
     selectedLearners,
     grades,
     selectedGrades,
-    
-    // Loading states
     loading,
     learnersLoading,
     gradesLoading,
-    
-    // Error states
     error,
     learnersError,
     gradesError,
-    
-    // Actions
     selectLearner,
     deselectLearner,
     selectGrade,

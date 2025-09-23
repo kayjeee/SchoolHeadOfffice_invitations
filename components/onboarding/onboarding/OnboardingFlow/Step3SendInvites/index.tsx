@@ -12,20 +12,29 @@ import { useStepValidation } from './hooks/useStepValidation';
 import { StepState } from './types';
 import { gradeService } from './services/gradeService';
 
+interface School {
+  id: string;
+  name: string;
+}
+
 interface Step3SendInvitesProps {
   onNext: () => void;
   onPrevious: () => void;
   onComplete: () => void;
+  school?: School;
 }
 
 export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   onNext,
   onPrevious,
-  onComplete
+  onComplete,
+  school
 }) => {
   const [currentStep, setCurrentStep] = useState<StepState>('learner-selection');
   const [gradeStats, setGradeStats] = useState<Record<string, any>>({});
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  const schoolId = school?.id;
 
   const {
     learners,
@@ -40,7 +49,7 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
     deselectGrade,
     selectAllLearners,
     deselectAllLearners
-  } = useLearnerData();
+  } = useLearnerData(schoolId);
 
   const {
     invites,
@@ -71,11 +80,8 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
     inviteMessage
   });
 
-  /**
-   * Load grade stats when selectedGrades changes
-   */
   useEffect(() => {
-    if (!selectedGrades || selectedGrades.length === 0) {
+    if (!selectedGrades || selectedGrades.length === 0 || !schoolId) {
       setGradeStats({});
       return;
     }
@@ -85,14 +91,14 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         setStatsError(null);
         const stats: Record<string, any> = {};
 
-        for (const gradeId of selectedGrades) {
-          if (!gradeId) continue; // avoid undefined
+        for (const grade of selectedGrades) {
+          if (!grade?.id) continue;
           try {
-            const stat = await gradeService.getGradeStats(gradeId);
-            stats[gradeId] = stat;
+            const stat = await gradeService.getGradeStats(schoolId, grade.id);
+            stats[grade.id] = stat;
           } catch (err: any) {
-            console.warn(`Failed to fetch stats for grade ${gradeId}`, err);
-            stats[gradeId] = { learnerCount: 0, activeCount: 0 };
+            console.warn(`Failed to fetch stats for grade ${grade.id}`, err);
+            stats[grade.id] = { learnerCount: 0, activeCount: 0 };
           }
         }
 
@@ -101,7 +107,7 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         setStatsError(err.message || 'Error loading grade stats');
       }
     })();
-  }, [selectedGrades]);
+  }, [selectedGrades, schoolId]);
 
   const handleStepChange = (step: StepState) => {
     if (isStepValid(step)) {
@@ -138,26 +144,28 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   }
 
   return (
-    <div className="step3-send-invites">
-      <div className="step-header">
-        <h2>Send Invites to Learners</h2>
-        <div className="step-progress">
-          <div className={`step ${currentStep === 'learner-selection' ? 'active' : ''}`}>
+    <div className="step3-send-invites text-black bg-white min-h-screen p-4">
+      {/* Header */}
+      <div className="step-header mb-6">
+        <h2 className="text-2xl font-bold text-black mb-2">Send Invites to Learners</h2>
+        <div className="step-progress flex gap-4 text-black">
+          <div className={`step ${currentStep === 'learner-selection' ? 'font-bold' : ''}`}>
             1. Select Learners
           </div>
-          <div className={`step ${currentStep === 'channel-selection' ? 'active' : ''}`}>
+          <div className={`step ${currentStep === 'channel-selection' ? 'font-bold' : ''}`}>
             2. Choose Channel
           </div>
-          <div className={`step ${currentStep === 'message-composer' ? 'active' : ''}`}>
+          <div className={`step ${currentStep === 'message-composer' ? 'font-bold' : ''}`}>
             3. Compose Message
           </div>
-          <div className={`step ${currentStep === 'results' ? 'active' : ''}`}>
+          <div className={`step ${currentStep === 'results' ? 'font-bold' : ''}`}>
             4. Review Results
           </div>
         </div>
       </div>
 
-      <div className="step-content">
+      {/* Main content */}
+      <div className="step-content text-black">
         {currentStep === 'learner-selection' && (
           <LearnerSelection
             learners={learners}
@@ -214,8 +222,9 @@ export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         )}
       </div>
 
+      {/* Validation errors */}
       {validationErrors.length > 0 && (
-        <div className="validation-errors">
+        <div className="validation-errors mt-4 text-red-600">
           {validationErrors.map((error, index) => (
             <div key={index} className="error-message">
               {error}

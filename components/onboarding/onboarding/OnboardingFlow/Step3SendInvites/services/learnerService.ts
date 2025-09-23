@@ -21,209 +21,126 @@ class LearnerService {
     this.config = config;
   }
 
-  /**
-   * Get all learners with optional filtering
-   */
-  async getLearners(filters?: LearnerFilters): Promise<Learner[]> {
-    try {
-      const queryParams = new URLSearchParams();
+  private getHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
+    };
+  }
 
-      if (filters?.gradeIds?.length) {
-        queryParams.append('gradeIds', filters.gradeIds.join(','));
-      }
-      if (filters?.searchTerm) {
-        queryParams.append('search', filters.searchTerm);
-      }
-      if (filters?.status && filters.status !== 'all') {
-        queryParams.append('status', filters.status);
-      }
-      if (filters?.lastActiveAfter) {
-        queryParams.append('lastActiveAfter', filters.lastActiveAfter.toISOString());
-      }
-      if (filters?.lastActiveBefore) {
-        queryParams.append('lastActiveBefore', filters.lastActiveBefore.toISOString());
-      }
-
-      const url = `${this.config.apiBaseUrl}/learners${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch learners: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Error fetching learners:', error);
-      throw error;
+  private async fetchJSON<T>(url: string, options: RequestInit = {}): Promise<T> {
+    const response = await fetch(url, { ...options, headers: this.getHeaders() });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Request failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
+    return response.json();
   }
 
   /**
-   * Get a specific learner by ID
+   * Get all learners for a school, with optional filtering
    */
-  async getLearner(learnerId: string): Promise<Learner> {
-    try {
-      const response = await fetch(`${this.config.apiBaseUrl}/learners/${learnerId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-      });
+  async getLearners(schoolId: string, filters?: LearnerFilters): Promise<Learner[]> {
+    if (!schoolId) throw new Error("School ID is required.");
+    const queryParams = new URLSearchParams();
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch learner: ${response.statusText}`);
-      }
+    if (filters?.gradeIds?.length) queryParams.append('gradeIds', filters.gradeIds.join(','));
+    if (filters?.searchTerm) queryParams.append('search', filters.searchTerm);
+    if (filters?.status && filters.status !== 'all') queryParams.append('status', filters.status);
+    if (filters?.lastActiveAfter) queryParams.append('lastActiveAfter', filters.lastActiveAfter.toISOString());
+    if (filters?.lastActiveBefore) queryParams.append('lastActiveBefore', filters.lastActiveBefore.toISOString());
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching learner:', error);
-      throw error;
-    }
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners?${queryParams.toString()}`;
+    return this.fetchJSON<Learner[]>(url);
   }
 
   /**
-   * Search learners by name or email
+   * Get a specific learner by ID from a school
    */
-  async searchLearners(searchTerm: string): Promise<Learner[]> {
-    return this.getLearners({ searchTerm });
+  async getLearner(schoolId: string, learnerId: string): Promise<Learner> {
+    if (!schoolId || !learnerId) throw new Error("School ID and Learner ID are required.");
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners/${learnerId}`;
+    return this.fetchJSON<Learner>(url);
   }
 
   /**
-   * Get learners by grade
+   * Search learners by name or email within a school
    */
-  async getLearnersByGrade(gradeId: string): Promise<Learner[]> {
-    return this.getLearners({ gradeIds: [gradeId] });
+  async searchLearners(schoolId: string, searchTerm: string): Promise<Learner[]> {
+    return this.getLearners(schoolId, { searchTerm });
   }
 
   /**
-   * Get learners by multiple grades
+   * Get learners by grade within a school
    */
-  async getLearnersByGrades(gradeIds: string[]): Promise<Learner[]> {
-    return this.getLearners({ gradeIds });
+  async getLearnersByGrade(schoolId: string, gradeId: string): Promise<Learner[]> {
+    return this.getLearners(schoolId, { gradeIds: [gradeId] });
   }
 
   /**
-   * Update learner information
+   * Get learners by multiple grades within a school
    */
-  async updateLearner(learnerId: string, updates: Partial<Learner>): Promise<Learner> {
-    try {
-      const response = await fetch(`${this.config.apiBaseUrl}/learners/${learnerId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update learner: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating learner:', error);
-      throw error;
-    }
+  async getLearnersByGrades(schoolId: string, gradeIds: string[]): Promise<Learner[]> {
+    return this.getLearners(schoolId, { gradeIds });
   }
 
   /**
-   * Get learner statistics
+   * Update learner information in a school
    */
-  async getLearnerStats(): Promise<{
+  async updateLearner(schoolId: string, learnerId: string, updates: Partial<Learner>): Promise<Learner> {
+    if (!schoolId || !learnerId) throw new Error("School ID and Learner ID are required.");
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners/${learnerId}`;
+    return this.fetchJSON<Learner>(url, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
+   * Get learner statistics for a school
+   */
+  async getLearnerStats(schoolId: string): Promise<{
     totalLearners: number;
     activeLearners: number;
     inactiveLearners: number;
     byGrade: Record<string, number>;
   }> {
-    try {
-      const response = await fetch(`${this.config.apiBaseUrl}/learners/stats`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch learner stats: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching learner stats:', error);
-      throw error;
-    }
+    if (!schoolId) throw new Error("School ID is required.");
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners/stats`;
+    return this.fetchJSON<any>(url);
   }
 
   /**
-   * Bulk update learners
+   * Bulk update learners in a school
    */
-  async bulkUpdateLearners(updates: Array<{ id: string; updates: Partial<Learner> }>): Promise<Learner[]> {
-    try {
-      const response = await fetch(`${this.config.apiBaseUrl}/learners/bulk-update`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-        body: JSON.stringify({ updates }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to bulk update learners: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error bulk updating learners:', error);
-      throw error;
-    }
+  async bulkUpdateLearners(schoolId: string, updates: Array<{ id: string; updates: Partial<Learner> }>): Promise<Learner[]> {
+    if (!schoolId) throw new Error("School ID is required.");
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners/bulk-update`;
+    return this.fetchJSON<Learner[]>(url, {
+      method: 'PUT',
+      body: JSON.stringify({ updates }),
+    });
   }
 
   /**
-   * Export learners data
+   * Export learners data from a school
    */
-  async exportLearners(format: 'csv' | 'json' = 'csv', filters?: LearnerFilters): Promise<Blob> {
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('format', format);
+  async exportLearners(schoolId: string, format: 'csv' | 'json' = 'csv', filters?: LearnerFilters): Promise<Blob> {
+    if (!schoolId) throw new Error("School ID is required.");
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', format);
 
-      if (filters?.gradeIds?.length) {
-        queryParams.append('gradeIds', filters.gradeIds.join(','));
-      }
-      if (filters?.searchTerm) {
-        queryParams.append('search', filters.searchTerm);
-      }
-      if (filters?.status && filters.status !== 'all') {
-        queryParams.append('status', filters.status);
-      }
+    if (filters?.gradeIds?.length) queryParams.append('gradeIds', filters.gradeIds.join(','));
+    if (filters?.searchTerm) queryParams.append('search', filters.searchTerm);
+    if (filters?.status && filters.status !== 'all') queryParams.append('status', filters.status);
 
-      const response = await fetch(`${this.config.apiBaseUrl}/learners/export?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          ...(this.config.apiKey && { Authorization: `Bearer ${this.config.apiKey}` }),
-        },
-      });
+    const url = `${this.config.apiBaseUrl}/schools/${schoolId}/learners/export?${queryParams.toString()}`;
+    const response = await fetch(url, { headers: this.getHeaders() });
 
-      if (!response.ok) {
-        throw new Error(`Failed to export learners: ${response.statusText}`);
-      }
-
-      return await response.blob();
-    } catch (error) {
-      console.error('Error exporting learners:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Failed to export learners: ${response.statusText}`);
     }
+    return response.blob();
   }
 }
 
