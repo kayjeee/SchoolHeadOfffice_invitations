@@ -74,7 +74,7 @@ export const useLearnerData = (): UseLearnerDataReturn => {
     setGradesError(null);
     
     try {
-      const data = await gradeService.getGradeStats();
+      const data = await gradeService.getGrades(); // ✅ only fetch grades
       setGrades(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch grades';
@@ -106,7 +106,6 @@ export const useLearnerData = (): UseLearnerDataReturn => {
   }, []);
 
   const selectAllLearners = useCallback(() => {
-    // Filter learners based on selected grades if any
     const filteredLearners = selectedGrades.length > 0
       ? learners.filter(learner => 
           selectedGrades.some(grade => grade.id === learner.gradeId)
@@ -154,7 +153,6 @@ export const useLearnerData = (): UseLearnerDataReturn => {
       await fetchLearners();
       return;
     }
-    
     await fetchLearners({ searchTerm: searchTerm.trim() });
   }, [fetchLearners]);
 
@@ -199,4 +197,3 @@ export const useLearnerData = (): UseLearnerDataReturn => {
 };
 
 export default useLearnerData;
-
