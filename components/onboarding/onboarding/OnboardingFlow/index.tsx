@@ -1,6 +1,6 @@
 import Step1CreateGrades from './Step1CreateGrades';
 import Step2UploadLearners from './Step2UploadLearners';
-import Step3SendInvites from './Step3SendInvites';
+import Step3SendInvites from './Step3SendInvites/index';
 import StepCompletion from './StepCompletion';
 
 // ----------------------
