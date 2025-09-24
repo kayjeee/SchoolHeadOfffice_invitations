@@ -39,10 +39,17 @@ class GradeService {
     return response.json();
   }
 
-  async getGrades(schoolId: string): Promise<Grade[]> {
-    if (!schoolId) throw new Error('School ID is required.');
-    return this.fetchJSON<Grade[]>(`${this.config.apiBaseUrl}/schools/${schoolId}/grades`);
-  }
+ async getGrades(schoolId: string): Promise<Grade[]> {
+  if (!schoolId) throw new Error('School ID is required.');
+
+  const response = await this.fetchJSON<{
+    status: string;
+    data: { grades: Grade[] };
+  }>(`${this.config.apiBaseUrl}/schools/${schoolId}/grades`);
+
+  return response?.data?.grades ?? [];
+}
+
 
   async getActiveGrades(schoolId: string): Promise<Grade[]> {
     if (!schoolId) throw new Error('School ID is required.');
