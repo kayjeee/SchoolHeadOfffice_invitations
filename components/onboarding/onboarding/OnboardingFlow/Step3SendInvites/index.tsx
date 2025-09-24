@@ -1,237 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import { LearnerSelection } from './components/LearnerSelection';
-import { ChannelSelection } from './components/ChannelSelection';
-import { MessageComposer } from './components/MessageComposer';
-import { InviteResults } from './components/InviteResults';
-import { LoadingState } from './components/UI/LoadingState';
-import { ErrorState } from './components/UI/ErrorState';
-import { useLearnerData } from './hooks/useLearnerData';
-import { useInviteManagement } from './hooks/useInviteManagement';
-import { useFormState } from './hooks/useFormState';
-import { useStepValidation } from './hooks/useStepValidation';
-import { StepState } from './types';
-import { gradeService } from './services/gradeService';
-
-interface School {
-  id: string;
-  name: string;
-}
+import React, { useState } from "react";
+import { useStepValidationEmails, StepState } from "../hooks/useStepValidationEmails";
 
 interface Step3SendInvitesProps {
-  onNext: () => void;
-  onPrevious: () => void;
-  onComplete: () => void;
-  school?: School;
+  onNext?: () => void;
+  onBack?: () => void;
+  isLoading?: boolean;
+  onUpdateData?: (data: { invites: string[] }) => void;
 }
 
-export const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
+const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   onNext,
-  onPrevious,
-  onComplete,
-  school
+  onBack,
+  isLoading,
+  onUpdateData,
 }) => {
-  const [currentStep, setCurrentStep] = useState<StepState>('learner-selection');
-  const [gradeStats, setGradeStats] = useState<Record<string, any>>({});
-  const [statsError, setStatsError] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
+  const [emails, setEmails] = useState<string[]>([""]);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [inviteMessage, setInviteMessage] = useState<string>("");
 
-  const schoolId = school?.id;
-
-  const {
-    learners,
-    selectedLearners,
-    grades,
-    selectedGrades,
-    loading: learnersLoading,
-    error: learnersError,
-    selectLearner,
-    deselectLearner,
-    selectGrade,
-    deselectGrade,
-    selectAllLearners,
-    deselectAllLearners
-  } = useLearnerData(schoolId);
-
-  const {
-    invites,
-    sendingInvites,
-    sendInvites,
-    resendInvite,
-    cancelInvite,
-    downloadInviteData,
-    copyInviteLinks
-  } = useInviteManagement();
-
-  const {
+  // -------------------------
+  // Step Validation Hook
+  // -------------------------
+  const { canProceedToNext, validationErrors } = useStepValidationEmails({
+    currentStep,
+    emails,
     selectedChannel,
     inviteMessage,
-    setSelectedChannel,
-    setInviteMessage,
-    resetForm
-  } = useFormState();
-
-  const {
-    isStepValid,
-    canProceedToNext,
-    validationErrors
-  } = useStepValidation({
-    currentStep,
-    selectedLearners,
-    selectedChannel,
-    inviteMessage
   });
 
-  useEffect(() => {
-    if (!selectedGrades || selectedGrades.length === 0 || !schoolId) {
-      setGradeStats({});
-      return;
-    }
-
-    (async () => {
-      try {
-        setStatsError(null);
-        const stats: Record<string, any> = {};
-
-        for (const grade of selectedGrades) {
-          if (!grade?.id) continue;
-          try {
-            const stat = await gradeService.getGradeStats(schoolId, grade.id);
-            stats[grade.id] = stat;
-          } catch (err: any) {
-            console.warn(`Failed to fetch stats for grade ${grade.id}`, err);
-            stats[grade.id] = { learnerCount: 0, activeCount: 0 };
-          }
-        }
-
-        setGradeStats(stats);
-      } catch (err: any) {
-        setStatsError(err.message || 'Error loading grade stats');
-      }
-    })();
-  }, [selectedGrades, schoolId]);
-
-  const handleStepChange = (step: StepState) => {
-    if (isStepValid(step)) {
-      setCurrentStep(step);
-    }
+  // -------------------------
+  // Handlers
+  // -------------------------
+  const handleEmailChange = (index: number, value: string) => {
+    const updated = [...emails];
+    updated[index] = value;
+    setEmails(updated);
   };
 
-  const handleSendInvites = async () => {
+  const addEmailField = () => setEmails([...emails, ""]);
+
+  const goNext = () => {
     if (!canProceedToNext) return;
 
-    try {
-      await sendInvites({
-        learners: selectedLearners,
-        channel: selectedChannel!,
-        message: inviteMessage
-      });
-      setCurrentStep('results');
-    } catch (error) {
-      console.error('Failed to send invites:', error);
+    // Save valid emails when finishing message step
+    if (currentStep === "message-composer" && onUpdateData) {
+      onUpdateData({ invites: emails.filter((e) => e.trim() !== "") });
+    }
+
+    switch (currentStep) {
+      case "grade-selection":
+        setCurrentStep("channel-selection");
+        break;
+      case "channel-selection":
+        setCurrentStep("message-composer");
+        break;
+      case "message-composer":
+        setCurrentStep("results");
+        if (onNext) onNext();
+        break;
+      default:
+        break;
     }
   };
 
-  const handleComplete = () => {
-    resetForm();
-    onComplete();
+  const goBack = () => {
+    switch (currentStep) {
+      case "channel-selection":
+        setCurrentStep("grade-selection");
+        break;
+      case "message-composer":
+        setCurrentStep("channel-selection");
+        break;
+      case "results":
+        setCurrentStep("message-composer");
+        break;
+      default:
+        if (onBack) onBack();
+        break;
+    }
   };
 
-  if (learnersLoading) {
-    return <LoadingState message="Loading learner data..." />;
-  }
-
-  if (learnersError) {
-    return <ErrorState error={learnersError} onRetry={() => window.location.reload()} />;
-  }
+  // -------------------------
+  // Render Steps
+  // -------------------------
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case "grade-selection":
+        return (
+          <div className="space-y-3 mb-8">
+            {emails.map((email, idx) => (
+              <input
+                key={idx}
+                type="email"
+                value={email}
+                onChange={(e) => handleEmailChange(idx, e.target.value)}
+                placeholder={`Staff Email ${idx + 1}`}
+                className="block w-full px-4 py-2 border rounded-md text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            ))}
+            <button
+              type="button"
+              onClick={addEmailField}
+              className="text-blue-600 text-sm font-medium hover:underline"
+            >
+              + Add Another Email
+            </button>
+          </div>
+        );
+      case "channel-selection":
+        return (
+          <div className="space-y-3 mb-8">
+            <label className="block">
+              <span className="text-gray-700 font-medium">Select Channel</span>
+              <select
+                value={selectedChannel ?? ""}
+                onChange={(e) => setSelectedChannel(e.target.value)}
+                className="mt-1 block w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select...</option>
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+              </select>
+            </label>
+          </div>
+        );
+      case "message-composer":
+        return (
+          <div className="space-y-3 mb-8">
+            <label className="block">
+              <span className="text-gray-700 font-medium">Message</span>
+              <textarea
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+                placeholder="Type your invite message..."
+                className="mt-1 block w-full border rounded-md px-3 py-2"
+                rows={5}
+              />
+            </label>
+          </div>
+        );
+      case "results":
+        return (
+          <div className="text-center py-6">
+            <h3 className="text-xl font-semibold mb-2">Invites Sent!</h3>
+            <p className="text-gray-600">
+              Your staff invites have been successfully sent.
+            </p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="step3-send-invites text-black bg-white min-h-screen p-4">
+    <div className="max-w-2xl mx-auto p-6">
       {/* Header */}
-      <div className="step-header mb-6">
-        <h2 className="text-2xl font-bold text-black mb-2">Send Invites to Learners</h2>
-        <div className="step-progress flex gap-4 text-black">
-          <div className={`step ${currentStep === 'learner-selection' ? 'font-bold' : ''}`}>
-            1. Select Learners
-          </div>
-          <div className={`step ${currentStep === 'channel-selection' ? 'font-bold' : ''}`}>
-            2. Choose Channel
-          </div>
-          <div className={`step ${currentStep === 'message-composer' ? 'font-bold' : ''}`}>
-            3. Compose Message
-          </div>
-          <div className={`step ${currentStep === 'results' ? 'font-bold' : ''}`}>
-            4. Review Results
-          </div>
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">✉️</span>
         </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Send Staff Invites</h2>
+        <p className="text-gray-600">
+          Invite your teachers and staff to join {`your school's`} portal
+        </p>
       </div>
 
-      {/* Main content */}
-      <div className="step-content text-black">
-        {currentStep === 'learner-selection' && (
-          <LearnerSelection
-            learners={learners}
-            selectedLearners={selectedLearners}
-            grades={grades}
-            selectedGrades={selectedGrades}
-            onSelectLearner={selectLearner}
-            onDeselectLearner={deselectLearner}
-            onSelectGrade={selectGrade}
-            onDeselectGrade={deselectGrade}
-            onSelectAll={selectAllLearners}
-            onDeselectAll={deselectAllLearners}
-            onNext={() => handleStepChange('channel-selection')}
-            onPrevious={onPrevious}
-            canProceed={selectedLearners.length > 0}
-            gradeStats={gradeStats}
-            statsError={statsError}
-          />
-        )}
+      {/* Step Content */}
+      {renderStepContent()}
 
-        {currentStep === 'channel-selection' && (
-          <ChannelSelection
-            selectedChannel={selectedChannel}
-            onSelectChannel={setSelectedChannel}
-            onNext={() => handleStepChange('message-composer')}
-            onPrevious={() => handleStepChange('learner-selection')}
-            canProceed={!!selectedChannel}
-          />
-        )}
-
-        {currentStep === 'message-composer' && (
-          <MessageComposer
-            message={inviteMessage}
-            onMessageChange={setInviteMessage}
-            selectedLearners={selectedLearners}
-            selectedChannel={selectedChannel!}
-            onSend={handleSendInvites}
-            onPrevious={() => handleStepChange('channel-selection')}
-            sending={sendingInvites}
-            canSend={canProceedToNext}
-          />
-        )}
-
-        {currentStep === 'results' && (
-          <InviteResults
-            invites={invites}
-            onResend={resendInvite}
-            onCancel={cancelInvite}
-            onDownload={downloadInviteData}
-            onCopyLinks={copyInviteLinks}
-            onComplete={handleComplete}
-            onPrevious={() => handleStepChange('message-composer')}
-          />
-        )}
-      </div>
-
-      {/* Validation errors */}
+      {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <div className="validation-errors mt-4 text-red-600">
-          {validationErrors.map((error, index) => (
-            <div key={index} className="error-message">
-              {error}
-            </div>
+        <div className="mb-4 text-red-600 space-y-1">
+          {validationErrors.map((err, idx) => (
+            <div key={idx}>{err}</div>
           ))}
         </div>
       )}
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <button
+          onClick={goBack}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          ← Back
+        </button>
+        <button
+          onClick={goNext}
+          disabled={!canProceedToNext || isLoading}
+          className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isLoading
+            ? "Sending..."
+            : currentStep === "message-composer"
+            ? "Finish →"
+            : "Next →"}
+        </button>
+      </div>
     </div>
   );
 };
