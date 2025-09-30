@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { Learner, InviteChannel, InviteMessage, StepState } from '../types';
-import { validationUtils } from '../utils/validation';
+import { StepState } from '../types';
 
 export interface UseStepValidationProps {
   currentStep: StepState;
-  selectedLearners: Learner[];
-  selectedChannel: InviteChannel | null;
-  inviteMessage: InviteMessage;
+  selectedGrades: string[]; // Changed from selectedLearners to selectedGrades
+  learners: any[]; // Added learners array
+  selectedChannel: string | null; // Simplified from InviteChannel
+  inviteMessage: string; // Simplified from InviteMessage
 }
 
 export interface UseStepValidationReturn {
@@ -18,32 +18,33 @@ export interface UseStepValidationReturn {
 
 export const useStepValidation = ({
   currentStep,
-  selectedLearners,
+  selectedGrades, // Now using selectedGrades instead of selectedLearners
+  learners = [], // Default to empty array to avoid undefined
   selectedChannel,
   inviteMessage
 }: UseStepValidationProps): UseStepValidationReturn => {
   
-  // Validate learner selection step
-  const learnerSelectionErrors = useMemo(() => {
+  // Validate grade selection step (replaced learner selection)
+  const gradeSelectionErrors = useMemo(() => {
     const errors: string[] = [];
     
-    if (selectedLearners.length === 0) {
-      errors.push('Please select at least one learner to invite');
-    }
-    
-    if (selectedLearners.length > 100) {
-      errors.push('Cannot send more than 100 invites at once');
-    }
-    
-    // Check for duplicate emails
-    const emails = selectedLearners.map(l => l.email.toLowerCase());
-    const duplicateEmails = emails.filter((email, index) => emails.indexOf(email) !== index);
-    if (duplicateEmails.length > 0) {
-      errors.push(`Duplicate email addresses found: ${duplicateEmails.join(', ')}`);
+    if (!selectedGrades || selectedGrades.length === 0) {
+      errors.push('Please select at least one grade to invite learners from');
     }
     
     return errors;
-  }, [selectedLearners]);
+  }, [selectedGrades]);
+
+  // Validate learner confirmation step (new step)
+  const learnerConfirmationErrors = useMemo(() => {
+    const errors: string[] = [];
+    
+    if (!learners || learners.length === 0) {
+      errors.push('No learners found in selected grades');
+    }
+    
+    return errors;
+  }, [learners]);
 
   // Validate channel selection step
   const channelSelectionErrors = useMemo(() => {
@@ -65,47 +66,56 @@ export const useStepValidation = ({
       return errors;
     }
     
-    // Validate message content
-    const messageErrors = validationUtils.validateInviteMessage(inviteMessage, selectedChannel);
-    errors.push(...messageErrors);
+    if (!inviteMessage || inviteMessage.trim().length === 0) {
+      errors.push('Message cannot be empty');
+    }
+    
+    if (inviteMessage && inviteMessage.trim().length < 10) {
+      errors.push('Message should be at least 10 characters long');
+    }
     
     return errors;
   }, [inviteMessage, selectedChannel]);
 
-  // Results step is always valid (no validation needed)
+  // Results step is always valid
   const resultsErrors: string[] = [];
 
-  // Combine all step errors
+  // Combine all step errors - updated step names to match your component
   const stepErrors: Record<StepState, string[]> = useMemo(() => ({
-    'learner-selection': learnerSelectionErrors,
+    'grade-selection': gradeSelectionErrors,
+    'learner-confirmation': learnerConfirmationErrors,
     'channel-selection': channelSelectionErrors,
     'message-composer': messageComposerErrors,
     'results': resultsErrors
-  }), [learnerSelectionErrors, channelSelectionErrors, messageComposerErrors, resultsErrors]);
+  }), [gradeSelectionErrors, learnerConfirmationErrors, channelSelectionErrors, messageComposerErrors]);
 
   // Check if a specific step is valid
   const isStepValid = useMemo(() => {
-    return (step: StepState) => stepErrors[step].length === 0;
+    return (step: StepState) => (stepErrors[step] || []).length === 0;
   }, [stepErrors]);
 
-  // Check if current step can proceed to next
+  // Check if current step can proceed to next - updated logic
   const canProceedToNext = useMemo(() => {
     switch (currentStep) {
-      case 'learner-selection':
-        return isStepValid('learner-selection');
+      case 'grade-selection':
+        return isStepValid('grade-selection');
+      
+      case 'learner-confirmation':
+        return isStepValid('grade-selection') && isStepValid('learner-confirmation');
       
       case 'channel-selection':
-        return isStepValid('learner-selection') && isStepValid('channel-selection');
+        return isStepValid('grade-selection') && 
+               isStepValid('learner-confirmation') && 
+               isStepValid('channel-selection');
       
       case 'message-composer':
-        return (
-          isStepValid('learner-selection') && 
-          isStepValid('channel-selection') && 
-          isStepValid('message-composer')
-        );
+        return isStepValid('grade-selection') && 
+               isStepValid('learner-confirmation') && 
+               isStepValid('channel-selection') && 
+               isStepValid('message-composer');
       
       case 'results':
-        return true; // Results step can always proceed (complete)
+        return true;
       
       default:
         return false;
@@ -124,6 +134,3 @@ export const useStepValidation = ({
     stepErrors
   };
 };
-
-export default useStepValidation;
-
