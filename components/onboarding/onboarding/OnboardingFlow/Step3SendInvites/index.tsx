@@ -278,19 +278,20 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             schools={schools} // Pass schools array
           />
         );
-      case "channel-selection":
-        return (
-          <ChannelSelection
-            channels={CHANNELS}
-            selectedChannels={selectedChannels}
-            learners={learners}
-            onChannelSelection={handleChannelSelection}
-            onSelectAllChannels={handleSelectAllChannels}
-            schoolName={schoolName} // Pass school name
-            schools={schools} // Pass schools array
-            school={targetSchool} // Pass the actual school object
-          />
-        );
+     case "channel-selection":
+  return (
+    <ChannelSelection
+      channels={CHANNELS}
+      selectedChannels={selectedChannels}
+      learners={learners}
+      selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))} // NEW: Pass selected grades
+      onChannelSelection={handleChannelSelection}
+      onSelectAllChannels={handleSelectAllChannels}
+      schoolName={schoolName}
+      schools={schools}
+      school={targetSchool}
+    />
+  );
       case "message-composer":
         return (
           <MessageComposer

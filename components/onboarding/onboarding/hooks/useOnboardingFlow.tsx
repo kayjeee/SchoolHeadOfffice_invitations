@@ -17,36 +17,36 @@ export const useOnboardingFlow = () => {
 // ----------------------
 // Internal Provider
 // ----------------------
-const InternalOnboardingFlowProvider = ({ children, schools }) => {
+const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
+  const safeSchools = Array.isArray(schools) ? schools : [];
+
   console.log("🏫 [OnboardingFlowProvider] Provider mounted with schools:", {
-    schools,
-    schoolsCount: schools?.length || 0,
+    rawSchools: schools,
+    safeSchoolsCount: safeSchools.length,
     schoolsType: typeof schools,
     isArray: Array.isArray(schools),
     isNull: schools === null,
-    isUndefined: schools === undefined
+    isUndefined: schools === undefined,
   });
 
-  // Heavy schools logging
-  if (schools && Array.isArray(schools)) {
+  // Detailed school logging
+  if (safeSchools.length > 0) {
     console.log("📊 [OnboardingFlowProvider] SCHOOLS DETAILED ANALYSIS:");
-    schools.forEach((school, index) => {
+    safeSchools.forEach((school, index) => {
       console.log(`🏫 School [${index}]:`, {
-        id: school?.id || school?._id || 'No ID',
-        name: school?.name || 'No name',
+        id: school?.id || school?._id || "No ID",
+        name: school?.name || "No name",
         type: typeof school,
-        keys: school ? Object.keys(school) : 'No school object'
+        keys: school ? Object.keys(school) : "No school object",
       });
     });
-    
-    if (schools.length > 0) {
-      const primarySchool = schools[0];
-      console.log("🎯 [OnboardingFlowProvider] PRIMARY SCHOOL (schools[0]):", {
-        id: primarySchool?.id || primarySchool?._id,
-        name: primarySchool?.name,
-        fullObject: primarySchool
-      });
-    }
+
+    const primarySchool = safeSchools[0];
+    console.log("🎯 [OnboardingFlowProvider] PRIMARY SCHOOL:", {
+      id: primarySchool?.id || primarySchool?._id,
+      name: primarySchool?.name,
+      fullObject: primarySchool,
+    });
   }
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -55,140 +55,95 @@ const InternalOnboardingFlowProvider = ({ children, schools }) => {
 
   // ---- Step navigation ----
   const goToNextStep = () => {
-    console.log("➡️ [OnboardingFlowProvider] goToNextStep called");
-    console.log("🏫 [OnboardingFlowProvider] Current schools context in goToNextStep:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name,
-      primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
+    console.log("➡️ goToNextStep called", {
+      currentStepIndex,
+      schoolsCount: safeSchools.length,
+      primarySchool: safeSchools[0]?.name,
     });
-    
+
     if (currentStepIndex < STEPS.length - 1) {
-      console.log(`📊 [OnboardingFlowProvider] Moving from step ${currentStepIndex} to ${currentStepIndex + 1}`);
-      setCurrentStepIndex(prev => prev + 1);
+      setCurrentStepIndex((prev) => prev + 1);
     } else {
-      console.log("🎉 [OnboardingFlowProvider] Final step reached - onboarding complete!");
+      console.log("🎉 Final step reached - onboarding complete!");
     }
   };
 
   const goToPreviousStep = () => {
-    console.log("⬅️ [OnboardingFlowProvider] goToPreviousStep called");
-    console.log("🏫 [OnboardingFlowProvider] Current schools context in goToPreviousStep:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name,
-      primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
+    console.log("⬅️ goToPreviousStep called", {
+      currentStepIndex,
+      schoolsCount: safeSchools.length,
+      primarySchool: safeSchools[0]?.name,
     });
-    
+
     if (currentStepIndex > 0) {
-      console.log(`📊 [OnboardingFlowProvider] Moving from step ${currentStepIndex} to ${currentStepIndex - 1}`);
-      setCurrentStepIndex(prev => prev - 1);
+      setCurrentStepIndex((prev) => prev - 1);
     }
   };
 
   const goToStep = (stepIndex) => {
-    console.log("🎯 [OnboardingFlowProvider] goToStep called with index:", stepIndex);
-    console.log("🏫 [OnboardingFlowProvider] Current schools context in goToStep:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name,
-      primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
-    });
-    
+    console.log("🎯 goToStep called", { stepIndex, totalSteps: STEPS.length });
+
     if (stepIndex >= 0 && stepIndex < STEPS.length) {
-      console.log(`📊 [OnboardingFlowProvider] Jumping to step ${stepIndex}`);
       setCurrentStepIndex(stepIndex);
     } else {
-      console.warn("⚠️ [OnboardingFlowProvider] Invalid step index:", stepIndex);
+      console.warn("⚠️ Invalid step index:", stepIndex);
     }
   };
 
   // ---- Data management ----
   const updateOnboardingData = (newData) => {
-    console.log("📝 [OnboardingFlowProvider] updateOnboardingData called with:", newData);
-    console.log("🏫 [OnboardingFlowProvider] Schools context during data update:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name
-    });
-    
-    setOnboardingData(prev => {
+    console.log("📝 updateOnboardingData:", newData);
+
+    setOnboardingData((prev) => {
       const updatedData = { ...prev, ...newData };
-      console.log("🔄 [OnboardingFlowProvider] Data updated:", updatedData);
+      console.log("🔄 Updated onboarding data:", updatedData);
       return updatedData;
     });
   };
 
   const getStepData = (stepId) => {
     const data = onboardingData[stepId] || null;
-    console.log("📖 [OnboardingFlowProvider] getStepData called for:", stepId, "result:", data);
-    console.log("🏫 [OnboardingFlowProvider] Schools context during getStepData:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name
-    });
+    console.log("📖 getStepData:", { stepId, data });
     return data;
   };
 
   const updateStepData = (stepId, data) => {
-    console.log("✏️ [OnboardingFlowProvider] updateStepData called for:", stepId, "with:", data);
-    console.log("🏫 [OnboardingFlowProvider] Schools context during updateStepData:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name
-    });
-    
-    setOnboardingData(prev => {
+    console.log("✏️ updateStepData:", { stepId, data });
+
+    setOnboardingData((prev) => {
       const updatedData = {
         ...prev,
-        [stepId]: { 
-          ...(prev[stepId] || {}), 
+        [stepId]: {
+          ...(prev[stepId] || {}),
           ...data,
-          // Include schools context in step data
           schoolsContext: {
-            schoolsCount: schools?.length || 0,
-            primarySchoolId: schools?.[0]?.id || schools?.[0]?._id,
-            primarySchoolName: schools?.[0]?.name,
-            allSchools: schools
-          }
-        }
+            schoolsCount: safeSchools.length,
+            primarySchoolId: safeSchools[0]?.id || safeSchools[0]?._id,
+            primarySchoolName: safeSchools[0]?.name,
+            allSchools: safeSchools,
+          },
+        },
       };
-      console.log("🔄 [OnboardingFlowProvider] Step data updated for", stepId, ":", updatedData[stepId]);
+      console.log("🔄 Step data updated:", updatedData[stepId]);
       return updatedData;
     });
   };
 
   const markStepCompleted = (stepId, payload = {}) => {
-    console.log("✅ [OnboardingFlowProvider] markStepCompleted called for:", stepId, "with payload:", payload);
-    console.log("🏫 [OnboardingFlowProvider] Schools context during markStepCompleted:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name
-    });
-    
-    updateStepData(stepId, { 
-      completed: true, 
+    console.log("✅ markStepCompleted:", { stepId, payload });
+    updateStepData(stepId, {
+      completed: true,
       completedAt: new Date().toISOString(),
-      schoolsContext: {
-        schoolsCount: schools?.length || 0,
-        primarySchoolId: schools?.[0]?.id || schools?.[0]?._id,
-        primarySchoolName: schools?.[0]?.name,
-        allSchools: schools
-      },
-      ...payload 
+      ...payload,
     });
   };
 
   const skipStep = (stepId, reason = "Skipped by user") => {
-    console.log("⏭️ [OnboardingFlowProvider] skipStep called for:", stepId, "reason:", reason);
-    console.log("🏫 [OnboardingFlowProvider] Schools context during skipStep:", {
-      schoolsCount: schools?.length || 0,
-      primarySchool: schools?.[0]?.name
-    });
-    
-    updateStepData(stepId, { 
-      skipped: true, 
+    console.log("⏭️ skipStep:", { stepId, reason });
+    updateStepData(stepId, {
+      skipped: true,
       reason,
       skippedAt: new Date().toISOString(),
-      schoolsContext: {
-        schoolsCount: schools?.length || 0,
-        primarySchoolId: schools?.[0]?.id || schools?.[0]?._id,
-        primarySchoolName: schools?.[0]?.name,
-        allSchools: schools
-      }
     });
   };
 
@@ -201,7 +156,7 @@ const InternalOnboardingFlowProvider = ({ children, schools }) => {
     goToNextStep,
     goToPreviousStep,
     goToStep,
-    
+
     // Data management
     onboardingData,
     updateOnboardingData,
@@ -209,27 +164,25 @@ const InternalOnboardingFlowProvider = ({ children, schools }) => {
     updateStepData,
     markStepCompleted,
     skipStep,
-    
+
     // Loading state
     isLoading,
     setIsLoading,
-    
-    // Schools context - UPDATED: Expose schools array to consumers
-    schools,
-    schoolsCount: schools?.length || 0,
-    primarySchool: schools?.[0],
-    primarySchoolName: schools?.[0]?.name,
-    primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
+
+    // Schools context
+    schools: safeSchools,
+    schoolsCount: safeSchools.length,
+    primarySchool: safeSchools[0],
+    primarySchoolName: safeSchools[0]?.name,
+    primarySchoolId: safeSchools[0]?.id || safeSchools[0]?._id,
   };
 
   console.log("🔄 [OnboardingFlowProvider] Context value updated:", {
     currentStep: value.currentStep?.id,
     currentStepIndex: value.currentStepIndex,
-    hasSchools: !!value.schools,
     schoolsCount: value.schoolsCount,
     primarySchoolName: value.primarySchoolName,
-    primarySchoolId: value.primarySchoolId,
-    onboardingDataKeys: Object.keys(value.onboardingData)
+    onboardingDataKeys: Object.keys(value.onboardingData),
   });
 
   return (
