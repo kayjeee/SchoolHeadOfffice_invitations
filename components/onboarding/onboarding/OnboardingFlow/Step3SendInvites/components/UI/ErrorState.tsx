@@ -1,48 +1,23 @@
 import React from 'react';
-import { Icon } from './Icon';
 
 interface ErrorStateProps {
-  error: string | Error;
+  message?: string;
   onRetry?: () => void;
-  title?: string;
-  showDetails?: boolean;
 }
 
-export const ErrorState: React.FC<ErrorStateProps> = ({ 
-  error, 
-  onRetry,
-  title = 'Something went wrong',
-  showDetails = false
-}) => {
-  const errorMessage = typeof error === 'string' ? error : error.message;
-  const errorStack = typeof error === 'object' && error.stack ? error.stack : null;
-
+export const ErrorState: React.FC<ErrorStateProps> = ({ message = 'An error occurred.', onRetry }) => {
   return (
-    <div className="error-state">
-      <div className="error-icon">
-        <Icon name="alert-circle" size={48} className="error-icon-symbol" />
-      </div>
-      
-      <div className="error-content">
-        <h3 className="error-title">{title}</h3>
-        <p className="error-message">{errorMessage}</p>
-        
-        {showDetails && errorStack && (
-          <details className="error-details">
-            <summary>Technical Details</summary>
-            <pre className="error-stack">{errorStack}</pre>
-          </details>
-        )}
-      </div>
-
-      <div className="error-actions">
+    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2 text-red-700">
+          <span>❌</span>
+          <span>{message}</span>
+        </div>
         {onRetry && (
           <button
-            type="button"
             onClick={onRetry}
-            className="btn btn-primary"
+            className="text-sm text-red-600 hover:text-red-800 underline"
           >
-            <Icon name="refresh-cw" />
             Try Again
           </button>
         )}
@@ -50,6 +25,3 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
     </div>
   );
 };
-
-export default ErrorState;
-

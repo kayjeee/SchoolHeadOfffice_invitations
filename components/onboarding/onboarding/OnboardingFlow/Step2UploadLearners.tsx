@@ -11,6 +11,7 @@ interface Step2UploadLearnersProps {
   onUpdateData?: (data: Record<string, any>) => void;
   school: any;
   user: any;
+  schools?: any[]; // optional, sometimes missing
 }
 
 const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
@@ -20,7 +21,21 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
   onUpdateData,
   school,
   user,
+  schools,
 }) => {
+  console.log("🏫 [Step2UploadLearners] Component mounted");
+
+  // ✅ Safe fallback for schools
+  const safeSchools = schools || (school ? [school] : []);
+
+  console.log("📦 [Step2UploadLearners] Props received:", {
+    user: user ? { id: user._id || user.id, sub: user.sub } : "No user",
+    school,
+    schools,
+    safeSchools,
+    schoolsCount: safeSchools.length,
+  });
+
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [grades, setGrades] = useState<any[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<any | null>(null);
@@ -28,10 +43,11 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
   const [gradeError, setGradeError] = useState<string | null>(null);
   const { updateOnboardingData } = useOnboardingFlow();
 
-  // Fetch grades for the current school
+  // Fetch grades
   useEffect(() => {
     const fetchGrades = async () => {
-      if (!school?.id) {
+      const targetSchoolId = school?.id || school?._id;
+      if (!targetSchoolId) {
         setGradeError("No school selected");
         setIsLoadingGrades(false);
         return;
@@ -39,10 +55,10 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
 
       try {
         setIsLoadingGrades(true);
-        setGradeError(null);
         const token = localStorage.getItem("authToken");
+
         const response = await fetch(
-          `http://localhost:4000/api/v1/schools/${school.id}/grades`,
+          `http://localhost:4000/api/v1/schools/${targetSchoolId}/grades`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -55,11 +71,9 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
           const gradesData = await response.json();
           setGrades(gradesData.data?.grades || []);
         } else {
-          console.error("Failed to fetch grades");
           setGradeError("Failed to load grades. Please try again.");
         }
-      } catch (error) {
-        console.error("Error fetching grades:", error);
+      } catch (error: any) {
         setGradeError("Network error. Please check your connection.");
       } finally {
         setIsLoadingGrades(false);
@@ -69,63 +83,82 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
     fetchGrades();
   }, [school]);
 
-  // Function to refetch onboarding status for current user
+  // Refetch onboarding status
   const fetchOnboardingStatus = async () => {
-    if (!user?._id) {
-      console.warn("Cannot fetch onboarding status: user._id is undefined");
-      return null;
-    }
+    if (!user?._id) return null;
     try {
       const status = await getOnboardingStatus(user._id);
-      if (updateOnboardingData) {
-        updateOnboardingData({ onboardingStatus: status });
-      }
+      updateOnboardingData?.({ onboardingStatus: status });
       return status;
-    } catch (error) {
-      console.error("Failed to fetch onboarding status:", error);
+    } catch (err) {
+      console.error("❌ Failed to fetch onboarding status:", err);
       return null;
     }
   };
 
-  // Handle successful upload and mark onboarding step complete
-  const handleUploadSuccess = (result) => {
-    if (!user?._id) {
-      console.error("User _id is undefined");
-      setIsBulkUploadOpen(false);
+  // Upload success
+  // In Step2UploadLearners.tsx, fix the handleUploadSuccess function:
+
+const handleUploadSuccess = (result) => {
+  console.log("🎉 [Step2UploadLearners] handleUploadSuccess called with result:", result);
+  console.log("🏫 [Step2UploadLearners] School context in upload success:", {
+    schoolId: school?.id || school?._id,
+    schoolName: school?.name,
+    selectedGrade: selectedGrade
+  });
+
+  // FIX: Use the correct user ID - use user.sub (Auth0 ID) instead of user._id
+  const userId = user?.sub || user?.auth0_id || user?._id;
+  
+  if (!userId) {
+    console.error("❌ [Step2UploadLearners] User ID is undefined - cannot complete step");
+    console.log("👤 [Step2UploadLearners] Available user data:", {
+      user: user,
+      sub: user?.sub,
+      auth0_id: user?.auth0_id,
+      _id: user?._id,
+      id: user?.id
+    });
+    setIsBulkUploadOpen(false);
+    if (onNext) {
+      onNext();
+    }
+    return;
+  }
+
+  if (onUpdateData) {
+    console.log("📝 [Step2UploadLearners] Calling onUpdateData with upload results");
+    onUpdateData({
+      learnersUploaded: true,
+      uploadResults: result,
+      uploadedGrade: selectedGrade,
+    });
+  }
+
+  setIsBulkUploadOpen(false);
+
+  console.log("🎯 [Step2UploadLearners] Calling completeStep API with user ID:", userId);
+  completeStep(userId, "upload_learners", {
+    learnersCount: result.inserted || 0,
+    grade: selectedGrade?.name,
+    schoolId: school?.id || school?._id,
+    schoolName: school?.name
+  })
+    .then(() => {
+      console.log("✅ [Step2UploadLearners] Step 2 completed successfully");
       if (onNext) {
+        console.log("➡️ [Step2UploadLearners] Calling onNext");
         onNext();
       }
-      return;
-    }
-
-    if (onUpdateData) {
-      onUpdateData({
-        learnersUploaded: true,
-        uploadResults: result,
-        uploadedGrade: selectedGrade,
-      });
-    }
-
-    setIsBulkUploadOpen(false);
-
-    completeStep(user._id, "upload_learners", {
-      learnersCount: result.inserted || 0,
-      grade: selectedGrade?.name,
-      schoolId: school?.id,
     })
-      .then(() => {
-        console.log("Step 2 completed successfully");
-        if (onNext) {
-          onNext();
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to complete step:", error);
-        if (onNext) {
-          onNext();
-        }
-      });
-  };
+    .catch((error) => {
+      console.error("❌ [Step2UploadLearners] Failed to complete step:", error);
+      if (onNext) {
+        console.log("➡️ [Step2UploadLearners] Calling onNext despite error");
+        onNext();
+      }
+    });
+};
 
   const downloadTemplate = () => {
     const csvContent =
@@ -162,16 +195,13 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="text-center py-12">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">📚</span>
-          </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
             Unable to Load Grades
           </h2>
           <p className="text-gray-600 mb-6">{gradeError}</p>
           <button
             onClick={onBack}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
           >
             ← Go Back
           </button>
@@ -184,19 +214,15 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="text-center py-12">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">📚</span>
-          </div>
           <h2 className="text-xl font-bold text-gray-800 mb-2">
             No Grades Available
           </h2>
           <p className="text-gray-600 mb-6">
-            You need to create grades before uploading learners. Please go back
-            and create at least one grade for your school.
+            You need to create grades before uploading learners.
           </p>
           <button
             onClick={onBack}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             ← Go Back to Create Grades
           </button>
@@ -208,85 +234,46 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-3xl">👥</span>
-        </div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           Upload Learners to Grades
         </h2>
         <p className="text-gray-600">
-          Select a grade and upload learners specifically for that class
+          Select a grade and upload learners for{" "}
+          <span className="font-medium">{school?.name || "your school"}</span>
         </p>
-      </div>
-
-      <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-800 mb-2 flex items-center">
-          <span className="mr-2">ℹ️</span> How it works
-        </h3>
-        <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
-          <li>Select the grade you want to upload learners to</li>
-          <li>Download our template to ensure proper formatting</li>
-          <li>Upload your learner data using the bulk upload tool</li>
-          <li>All uploaded learners will be assigned to the selected grade</li>
-        </ol>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {grades.map((grade) => (
           <div
             key={grade.id}
-            className={`border rounded-lg p-5 cursor-pointer transition-all ${
+            className={`border rounded-lg p-5 cursor-pointer ${
               selectedGrade?.id === grade.id
                 ? "border-blue-500 bg-blue-50 shadow-md"
                 : "border-gray-200 hover:border-blue-300 hover:shadow-sm"
             }`}
             onClick={() => handleGradeSelection(grade)}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-gray-800">{grade.name}</h3>
-                <p className="text-sm text-gray-600">{grade.grade_level}</p>
-                {grade.capacity && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Capacity: {grade.capacity} students
-                  </p>
-                )}
-              </div>
-              <span
-                className={`text-lg ${
-                  selectedGrade?.id === grade.id
-                    ? "text-blue-600"
-                    : "text-gray-400"
-                }`}
-              >
-                →
-              </span>
-            </div>
-            {grade.description && (
-              <p className="text-sm text-gray-500 mt-2">{grade.description}</p>
-            )}
+            <h3 className="font-semibold text-gray-800">{grade.name}</h3>
+            <p className="text-sm text-gray-600">{grade.grade_level}</p>
           </div>
         ))}
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
         <h3 className="font-semibold text-gray-800 mb-2">Need the template?</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          Download our CSV template to ensure your data is formatted correctly
-        </p>
         <button
           onClick={downloadTemplate}
-          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors flex items-center"
+          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
         >
-          <span className="mr-2">⬇️</span>
-          Download CSV Template
+          ⬇️ Download CSV Template
         </button>
       </div>
 
       <div className="flex justify-between mt-8">
         <button
           onClick={onBack}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           disabled={isLoading}
         >
           ← Back
@@ -294,19 +281,19 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         <button
           onClick={onNext}
           disabled={isLoading || !selectedGrade}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
           {isLoading ? "Processing..." : "Continue →"}
         </button>
       </div>
 
-      {/* Bulk Upload Modal */}
+      {/* ✅ Bulk Upload with safeSchools fallback */}
       <BulkUpload
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
         selectedGrade={selectedGrade}
         onUploadSuccess={handleUploadSuccess}
-        schools={school ? [school] : []}
+        schools={safeSchools}
         refetchOnboardingStatus={fetchOnboardingStatus}
         user={user}
       />

@@ -47,54 +47,151 @@ const Step1CreateGrades = ({
   isLoading,
   onUpdateData,
 }) => {
+  console.log("🏫 [Step1CreateGrades] Component mounted");
+  console.log("📦 [Step1CreateGrades] Props received:", {
+    user: user ? { id: user._id || user.id, sub: user.sub } : 'No user',
+    school: school,
+    hasOnNext: typeof onNext === 'function',
+    hasOnBack: typeof onBack === 'function',
+    isLoading: isLoading,
+    hasOnUpdateData: typeof onUpdateData === 'function'
+  });
+
+  // Heavy school prop logging
+  console.log("🔍 [Step1CreateGrades] SCHOOL PROP DEEP ANALYSIS:");
+  console.log("🏫 [Step1CreateGrades] school value:", school);
+  console.log("🏫 [Step1CreateGrades] school type:", typeof school);
+  console.log("🏫 [Step1CreateGrades] school === null:", school === null);
+  console.log("🏫 [Step1CreateGrades] school === undefined:", school === undefined);
+  
+  if (school && typeof school === 'object') {
+    console.log("🎯 [Step1CreateGrades] SCHOOL OBJECT DETAILS:");
+    console.log("🏫 [Step1CreateGrades] school.id:", school.id);
+    console.log("🏫 [Step1CreateGrades] school._id:", school._id);
+    console.log("🏫 [Step1CreateGrades] school.name:", school.name);
+    console.log("🏫 [Step1CreateGrades] school object keys:", Object.keys(school));
+    console.log("🏫 [Step1CreateGrades] full school object:", school);
+  } else {
+    console.warn("⚠️ [Step1CreateGrades] NO SCHOOL OBJECT or invalid school prop");
+  }
+
   const [grades, setGrades] = useState<string[]>([]);
   const [customGrade, setCustomGrade] = useState("");
   const [selectedPreset, setSelectedPreset] = useState("");
 
+  console.log("📊 [Step1CreateGrades] Component state:", {
+    gradesCount: grades.length,
+    grades: grades,
+    customGrade: customGrade,
+    selectedPreset: selectedPreset
+  });
+
   const handlePresetSelection = (option: string) => {
+    console.log("🎯 [Step1CreateGrades] handlePresetSelection called with:", option);
+    console.log("🏫 [Step1CreateGrades] School context in handlePresetSelection:", {
+      schoolName: school?.name,
+      schoolId: school?.id || school?._id
+    });
+    
     const generatedGrades = generateGrades(option);
+    console.log("📚 [Step1CreateGrades] Generated grades:", generatedGrades);
     setGrades(generatedGrades);
     setSelectedPreset(option);
   };
 
   const handleAddCustomGrade = () => {
+    console.log("➕ [Step1CreateGrades] handleAddCustomGrade called");
+    console.log("🏫 [Step1CreateGrades] School context in handleAddCustomGrade:", {
+      schoolName: school?.name,
+      schoolId: school?.id || school?._id
+    });
+    
     if (customGrade.trim() && !grades.includes(customGrade.trim())) {
       const newGrades = [...grades, customGrade.trim()];
+      console.log("✅ [Step1CreateGrades] Adding custom grade:", customGrade.trim());
+      console.log("📚 [Step1CreateGrades] New grades array:", newGrades);
       setGrades(newGrades);
       setCustomGrade("");
       setSelectedPreset("Custom");
+    } else {
+      console.log("❌ [Step1CreateGrades] Custom grade not added - empty or duplicate");
     }
   };
 
   const handleRemoveGrade = (gradeToRemove: string) => {
+    console.log("🗑️ [Step1CreateGrades] handleRemoveGrade called for:", gradeToRemove);
+    console.log("🏫 [Step1CreateGrades] School context in handleRemoveGrade:", {
+      schoolName: school?.name,
+      schoolId: school?.id || school?._id
+    });
+    
     const newGrades = grades.filter((grade) => grade !== gradeToRemove);
+    console.log("📚 [Step1CreateGrades] Grades after removal:", newGrades);
     setGrades(newGrades);
     if (newGrades.length === 0) {
+      console.log("📭 [Step1CreateGrades] All grades removed - clearing preset");
       setSelectedPreset("");
     }
   };
 
   const handleCreateGrades = async () => {
+    console.log("🚀 [Step1CreateGrades] handleCreateGrades called");
+    console.log("🏫 [Step1CreateGrades] FINAL SCHOOL CONTEXT:", {
+      school: school,
+      schoolName: school?.name,
+      schoolId: school?.id || school?._id,
+      hasSchool: !!school
+    });
+    console.log("📚 [Step1CreateGrades] Grades to create:", grades);
+    console.log("👤 [Step1CreateGrades] User sub:", user?.sub);
+
     if (!user?.sub) {
+      console.error("❌ [Step1CreateGrades] No user sub found - cannot proceed");
       alert("User not found. Please log in.");
       return;
     }
 
     try {
-      if (onUpdateData) onUpdateData({ grades });
+      console.log("📝 [Step1CreateGrades] Calling onUpdateData with grades");
+      if (onUpdateData) {
+        onUpdateData({ grades });
+        console.log("✅ [Step1CreateGrades] onUpdateData completed");
+      }
 
       // ✅ Mark this step as completed in Rails
+      console.log("🎯 [Step1CreateGrades] Calling completeStep API");
+      console.log("🏫 [Step1CreateGrades] School ID being sent to API:", school?.id || school?._id);
+      
       await completeStep(user.sub, "create_grades", {
         grades,
-        schoolId: school?.id,
+        schoolId: school?.id || school?._id,
+        schoolName: school?.name
       });
 
-      if (onNext) await onNext({ grades });
+      console.log("✅ [Step1CreateGrades] completeStep API call successful");
+
+      if (onNext) {
+        console.log("➡️ [Step1CreateGrades] Calling onNext with grades data");
+        await onNext({ grades });
+        console.log("🎉 [Step1CreateGrades] onNext completed - moving to next step");
+      }
     } catch (error) {
-      console.error("Failed to save grades:", error);
+      console.error("❌ [Step1CreateGrades] Failed to save grades:", error);
+      console.error("🔍 [Step1CreateGrades] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       alert("Something went wrong saving your grades. Please try again.");
     }
   };
+
+  console.log("🎨 [Step1CreateGrades] Rendering component with:", {
+    schoolName: school?.name || "No school name",
+    gradesCount: grades.length,
+    selectedPreset: selectedPreset,
+    isLoading: isLoading
+  });
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white">
@@ -110,6 +207,11 @@ const Step1CreateGrades = ({
             {school?.name || "your school"}
           </span>
         </p>
+        {/* Debug info - remove in production */}
+        <div className="mt-2 text-xs text-gray-400">
+          School ID: {school?.id || school?._id || 'No ID'} | 
+          School Name: {school?.name || 'No name'}
+        </div>
       </div>
 
       {/* Quick Setup Options */}
@@ -180,6 +282,7 @@ const Step1CreateGrades = ({
               </h4>
               <button
                 onClick={() => {
+                  console.log("🗑️ [Step1CreateGrades] Clear all grades clicked");
                   setGrades([]);
                   setSelectedPreset("");
                 }}

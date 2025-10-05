@@ -13,47 +13,42 @@ export const uploadLearners = async (
   auth0Id: string,
   schoolId: string,
   learners: Learner[]
-): Promise<any | null> => {
+): Promise<any> => { // Remove | null return type
   // ---- Validation ----
   if (!auth0Id) {
-    toast.error('Missing Auth0 ID. Please log in again.');
-    return null;
+    throw new Error('Missing Auth0 ID. Please log in again.');
   }
 
   if (!schoolId) {
-    toast.error('Missing school ID. Please try again.');
-    return null;
+    throw new Error('Missing school ID. Please try again.');
   }
 
   if (!Array.isArray(learners) || learners.length === 0) {
-    toast.error('No learners found. Please upload a valid file before confirming.');
-    return null;
+    throw new Error('No learners found. Please upload a valid file before confirming.');
   }
 
-  // ---- Transform Payload to match backend expectations ----
+  // ---- Transform Payload ----
   const payload = {
     learners: learners.map((learner) => ({
       ...learner,
-      school_id: schoolId, // Match backend field name
-      userAuth0Id: auth0Id, // Match backend field name
+      school_id: schoolId,
+      userAuth0Id: auth0Id,
     })),
-    userAuth0Id: auth0Id, // Also include at root level if backend expects it
-    schoolId: schoolId     // Also include at root level if backend expects it
+    userAuth0Id: auth0Id,
+    schoolId: schoolId
   };
 
   try {
     const response = await fetch('/api/learners/bulk_upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload), // Send the complete payload object
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
       const errorMessage = errorBody.message || `Upload failed: ${response.status} ${response.statusText}`;
-      
-      toast.error(errorMessage);
-      return null;
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -62,6 +57,6 @@ export const uploadLearners = async (
   } catch (error: any) {
     console.error('[uploadLearners] Error:', error);
     toast.error(error.message || 'Unexpected error during learners upload.');
-    return null;
+    throw error; // Re-throw the error
   }
 };

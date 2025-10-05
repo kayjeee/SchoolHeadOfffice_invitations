@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX, FiLoader } from 'react-icons/fi';
+import { FiX } from 'react-icons/fi';
 import { BulkUploadProps } from '../types';
 import { useBulkUpload } from '../hooks/useBulkUpload';
 import { useFileValidation } from '../hooks/useFileValidation';
@@ -15,12 +15,47 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
   onClose,
   selectedGrade,
   onUploadSuccess,
-  schools,
+  schools, // May be undefined
   refetchOnboardingStatus,
   user
 }) => {
+  console.log("🏫 [BulkUploadModal] Component mounted");
+  console.log("📦 [BulkUploadModal] Props received:", {
+    isOpen,
+    selectedGrade,
+    schools,
+    schoolsCount: schools?.length || 0,
+    user
+  });
+
+  /**
+   * 🔒 ENHANCED: Resolve `safeSchools` with multiple fallback options
+   */
+  let safeSchools = schools || [];
+
+  if (safeSchools.length === 0 && selectedGrade?.school) {
+    safeSchools = [selectedGrade.school];
+    console.log("🔄 [BulkUploadModal] Using school from selectedGrade:", selectedGrade.school);
+  }
+
+  if (safeSchools.length === 0 && (selectedGrade?.school_id || selectedGrade?.schoolId)) {
+    safeSchools = [{
+      id: selectedGrade.school_id || selectedGrade.schoolId,
+      name: selectedGrade.school_name || selectedGrade.schoolName || 'School'
+    }];
+    console.log("🔄 [BulkUploadModal] Created school from grade ID:", safeSchools[0]);
+  }
+
+  console.log("✅ [BulkUploadModal] Final safe schools:", {
+    original: schools,
+    safe: safeSchools,
+    count: safeSchools.length
+  });
+
+  // Hooks
   const { errorStatus, validateFile } = useFileValidation();
   const { uploadStep, setUploadStep, isProcessing, startProcessing, stopProcessing } = useUploadProgress();
+
   const {
     uploadedFile,
     validationResults,
@@ -30,10 +65,11 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
     handleConfirmUpload,
     resetUpload,
     getSchoolAndUserInfo
-  } = useBulkUpload(schools, user, selectedGrade, refetchOnboardingStatus, onUploadSuccess);
+  } = useBulkUpload(safeSchools, user, selectedGrade, refetchOnboardingStatus, onUploadSuccess);
 
   const { schoolName, schoolEmail, auth0Id } = getSchoolAndUserInfo();
 
+  // Drag/drop handlers
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -52,29 +88,35 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
 
   const handleFileProcessed = async (file: File) => {
     if (!validateFile(file)) return;
-    
+
     setUploadStep('validate');
     startProcessing();
-    
+
     try {
       await processFile(file);
       setUploadStep('confirm');
     } catch (error: any) {
-      // Error handling would be implemented here
-      console.error('File processing error:', error);
+      console.error('❌ File processing error:', error);
     } finally {
       stopProcessing();
     }
   };
 
   const handleConfirm = async () => {
+    console.log('🔄 handleConfirm triggered');
+    console.log('📊 Validation Results:', validationResults);
+    console.log('🏫 School Info:', { schoolName, schoolEmail, auth0Id });
+    console.log('📚 Selected Grade:', selectedGrade);
+
     startProcessing();
     try {
+      console.log('🚀 Calling handleConfirmUpload...');
       await handleConfirmUpload();
+      console.log('✅ handleConfirmUpload completed successfully');
       setUploadStep('complete');
     } catch (error: any) {
-      // Error handling would be implemented here
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
+      console.error('🔍 Error details:', error.response?.data || error.message);
     } finally {
       stopProcessing();
     }
@@ -100,9 +142,14 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={onClose}
+        ></div>
+
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -112,15 +159,24 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
                   {schoolName && <p>School: {schoolName} ({schoolEmail})</p>}
                   {user?.name && <p>User: {user.name} ({user.email})</p>}
                   {auth0Id && <p className="font-mono text-xs">Auth ID: {auth0Id}</p>}
+                  <p className="font-mono text-xs text-red-500">
+                    Schools Count: {safeSchools.length} | Grade School ID: {selectedGrade?.school_id || selectedGrade?.schoolId || 'None'}
+                  </p>
                 </div>
               </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100" aria-label="Close">
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                aria-label="Close"
+              >
                 <FiX className="h-6 w-6" />
               </button>
             </div>
-            
+
+            {/* Progress steps */}
             <ProgressSteps step={uploadStep} onStepChange={setUploadStep} />
 
+            {/* Steps UI */}
             {uploadStep === 'upload' && (
               <FileUploader
                 onFileProcessed={handleFileProcessed}

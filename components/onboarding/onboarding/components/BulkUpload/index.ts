@@ -1,3 +1,5 @@
+// components/onboarding/components/BulkUpload/index.ts
+
 // Main exports
 export { default as BulkUploadModal } from './components/BulkUploadModal';
 

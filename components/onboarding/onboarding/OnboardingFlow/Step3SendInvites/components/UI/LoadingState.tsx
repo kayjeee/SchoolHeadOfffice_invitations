@@ -1,34 +1,14 @@
 import React from 'react';
-import { Icon } from './Icon';
 
 interface LoadingStateProps {
   message?: string;
-  size?: 'small' | 'medium' | 'large';
 }
 
-export const LoadingState: React.FC<LoadingStateProps> = ({ 
-  message = 'Loading...', 
-  size = 'medium' 
-}) => {
-  const getSizeClass = () => {
-    switch (size) {
-      case 'small': return 'loading-small';
-      case 'large': return 'loading-large';
-      default: return 'loading-medium';
-    }
-  };
-
+export const LoadingState: React.FC<LoadingStateProps> = ({ message = 'Loading...' }) => {
   return (
-    <div className={`loading-state ${getSizeClass()}`}>
-      <div className="loading-spinner">
-        <Icon name="loader" className="spinning" size={size === 'large' ? 32 : size === 'small' ? 16 : 24} />
-      </div>
-      <div className="loading-message">
-        {message}
-      </div>
+    <div className="text-center py-8">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-600">{message}</p>
     </div>
   );
 };
-
-export default LoadingState;
-

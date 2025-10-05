@@ -1,280 +1,140 @@
-import React, { useState } from 'react';
-import { Icon } from '../UI/Icon';
-import { Learner, InviteChannel, InviteMessage } from '../../types';
+import React, { useState, useEffect } from "react";
+import QRCode from "react-qr-code";
 
-interface MessageComposerProps {
-  message: InviteMessage;
-  onMessageChange: (message: InviteMessage) => void;
-  selectedLearners: Learner[];
-  selectedChannel: InviteChannel;
-  onSend: () => void;
-  onPrevious: () => void;
-  sending: boolean;
-  canSend: boolean;
+interface ChannelStatus {
+  channel: string;
+  status: "Pending" | "Sent" | "Delivered" | "Failed";
 }
 
-const MESSAGE_TEMPLATES = {
-  email: {
-    subject: 'You\'re invited to join our learning platform!',
-    body: `Hi {{learnerName}},
-
-You've been invited to join our learning platform. We're excited to have you as part of our learning community!
-
-Click the link below to get started:
-{{inviteLink}}
-
-If you have any questions, feel free to reach out to us.
-
-Best regards,
-The Learning Team`
-  },
-  sms: {
-    body: 'Hi {{learnerName}}! You\'re invited to join our learning platform. Get started: {{inviteLink}}'
-  },
-  'app-notification': {
-    title: 'Learning Platform Invitation',
-    body: 'Hi {{learnerName}}! You\'ve been invited to join our learning platform. Tap to get started.'
-  },
-  'portal-message': {
-    subject: 'Welcome to the Learning Platform',
-    body: `Dear {{learnerName}},
-
-Welcome to our learning platform! We're thrilled to have you join our community of learners.
-
-Your personalized learning journey awaits. Click here to get started:
-{{inviteLink}}
-
-Explore courses, connect with peers, and track your progress all in one place.
-
-Happy learning!`
-  }
-};
+interface MessageComposerProps {
+  inviteMessage: string;
+  setInviteMessage: (message: string) => void;
+  validationErrors: { [key: string]: string };
+  channels: string[]; // ✅ pass selected channels here
+  schoolName: string;
+}
 
 export const MessageComposer: React.FC<MessageComposerProps> = ({
-  message,
-  onMessageChange,
-  selectedLearners,
-  selectedChannel,
-  onSend,
-  onPrevious,
-  sending,
-  canSend
+  inviteMessage,
+  setInviteMessage,
+  validationErrors,
+  channels = [],
+  schoolName,
 }) => {
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewLearner, setPreviewLearner] = useState(selectedLearners[0]);
+  const [channelStatuses, setChannelStatuses] = useState<ChannelStatus[]>([]);
 
-  const template = MESSAGE_TEMPLATES[selectedChannel.id as keyof typeof MESSAGE_TEMPLATES];
-
-  const useTemplate = () => {
-    onMessageChange({
-      ...message,
-      ...template
-    });
-  };
-
-  const handleFieldChange = (field: keyof InviteMessage, value: string) => {
-    onMessageChange({
-      ...message,
-      [field]: value
-    });
-  };
-
-  const renderPreview = () => {
-    if (!previewLearner) return null;
-
-    const replaceVariables = (text: string) => {
-      return text
-        .replace(/\{\{learnerName\}\}/g, previewLearner.name)
-        .replace(/\{\{inviteLink\}\}/g, 'https://platform.example.com/invite/abc123')
-        .replace(/\{\{gradeName\}\}/g, previewLearner.gradeName);
-    };
-
-    return (
-      <div className="message-preview">
-        <div className="preview-header">
-          <h4>Preview for {previewLearner.name}</h4>
-          <select
-            value={previewLearner.id}
-            onChange={(e) => {
-              const learner = selectedLearners.find(l => l.id === e.target.value);
-              if (learner) setPreviewLearner(learner);
-            }}
-            className="learner-selector"
-          >
-            {selectedLearners.map(learner => (
-              <option key={learner.id} value={learner.id}>
-                {learner.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="preview-content">
-          {message.subject && (
-            <div className="preview-field">
-              <strong>Subject:</strong> {replaceVariables(message.subject)}
-            </div>
-          )}
-          {message.title && (
-            <div className="preview-field">
-              <strong>Title:</strong> {replaceVariables(message.title)}
-            </div>
-          )}
-          <div className="preview-field">
-            <strong>Message:</strong>
-            <div className="preview-body">
-              {replaceVariables(message.body).split('\n').map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const getCharacterLimit = () => {
-    switch (selectedChannel.id) {
-      case 'sms': return 160;
-      case 'app-notification': return 200;
-      default: return null;
+  // initialize statuses when channels change
+  useEffect(() => {
+    if (channels.length > 0) {
+      setChannelStatuses(
+        channels.map((ch) => ({ channel: ch, status: "Pending" }))
+      );
     }
+  }, [channels]);
+
+  // simulate sending invites
+  const sendInvites = () => {
+    setChannelStatuses((prev) =>
+      prev.map((ch) => ({ ...ch, status: "Sent" }))
+    );
+
+    // step 2: Delivered with delay
+    setTimeout(() => {
+      setChannelStatuses((prev) =>
+        prev.map((ch) => ({ ...ch, status: "Delivered" }))
+      );
+    }, 2000);
   };
 
-  const characterLimit = getCharacterLimit();
-  const currentLength = message.body.length;
+  // link + QR
+  const schoolLink = `https://www.schoolheadoffice.com/${encodeURIComponent(
+    schoolName
+  )}`;
 
   return (
-    <div className="message-composer">
-      <div className="composer-header">
-        <h3>Compose Invitation Message</h3>
-        <p>Customize your invitation message for {selectedChannel.name}</p>
+    <div className="space-y-4 mb-8">
+      <h3 className="text-lg font-medium text-gray-900">
+        Compose Your Invitation Message
+      </h3>
+
+      {/* Textarea for message */}
+      <textarea
+        className={`w-full p-3 border rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+          validationErrors.inviteMessage ? "border-red-500" : "border-gray-300"
+        }`}
+        rows={6}
+        placeholder="Enter your invitation message here..."
+        value={inviteMessage}
+        onChange={(e) => setInviteMessage(e.target.value)}
+      />
+
+      {validationErrors.inviteMessage && (
+        <p className="text-red-500 text-sm">
+          {validationErrors.inviteMessage}
+        </p>
+      )}
+
+      {/* Preview box with QR code */}
+      <div className="p-4 border rounded-lg bg-gray-50 shadow-sm">
+        <p className="text-sm text-black whitespace-pre-line">
+          {inviteMessage || "Hi! Join our school on SchoolHeadOffice."}
+        </p>
+
+        <div className="flex items-center space-x-4 mt-3">
+          <QRCode value={schoolLink} size={72} />
+          <div>
+            <p className="text-xs text-gray-600">Scan or click:</p>
+            <a
+              href={schoolLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline text-sm break-all"
+            >
+              {schoolLink}
+            </a>
+          </div>
+        </div>
       </div>
 
-      <div className="composer-actions">
-        <button
-          type="button"
-          onClick={useTemplate}
-          className="btn btn-secondary"
-        >
-          <Icon name="file-text" />
-          Use Template
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="btn btn-secondary"
-        >
-          <Icon name="eye" />
-          {showPreview ? 'Hide Preview' : 'Show Preview'}
-        </button>
-      </div>
-
-      <div className="composer-content">
-        <div className="message-form">
-          {(selectedChannel.id === 'email' || selectedChannel.id === 'portal-message') && (
-            <div className="form-field">
-              <label htmlFor="subject">Subject</label>
-              <input
-                id="subject"
-                type="text"
-                value={message.subject || ''}
-                onChange={(e) => handleFieldChange('subject', e.target.value)}
-                placeholder="Enter subject line"
-                className="form-input"
-              />
-            </div>
-          )}
-
-          {selectedChannel.id === 'app-notification' && (
-            <div className="form-field">
-              <label htmlFor="title">Title</label>
-              <input
-                id="title"
-                type="text"
-                value={message.title || ''}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                placeholder="Enter notification title"
-                className="form-input"
-              />
-            </div>
-          )}
-
-          <div className="form-field">
-            <label htmlFor="body">
-              Message
-              {characterLimit && (
-                <span className={`character-count ${currentLength > characterLimit ? 'over-limit' : ''}`}>
-                  {currentLength}/{characterLimit}
+      {/* Tracking Status */}
+      {channelStatuses.length > 0 && (
+        <div className="mt-4 p-4 border rounded-lg bg-white shadow-sm">
+          <h4 className="font-medium text-gray-900 mb-2">Tracking Status</h4>
+          <ul className="divide-y divide-gray-200">
+            {channelStatuses.map((ch) => (
+              <li
+                key={ch.channel}
+                className="flex justify-between items-center py-2"
+              >
+                <span className="font-medium text-gray-800">{ch.channel}</span>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium
+                    ${
+                      ch.status === "Pending"
+                        ? "bg-gray-100 text-gray-700"
+                        : ch.status === "Sent"
+                        ? "bg-blue-100 text-blue-600"
+                        : ch.status === "Delivered"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                >
+                  {ch.status}
                 </span>
-              )}
-            </label>
-            <textarea
-              id="body"
-              value={message.body}
-              onChange={(e) => handleFieldChange('body', e.target.value)}
-              placeholder="Enter your invitation message"
-              className="form-textarea"
-              rows={selectedChannel.id === 'sms' ? 3 : 8}
-            />
-            {characterLimit && currentLength > characterLimit && (
-              <div className="error-message">
-                Message exceeds character limit by {currentLength - characterLimit} characters
-              </div>
-            )}
-          </div>
-
-          <div className="variable-help">
-            <h5>Available Variables:</h5>
-            <div className="variables">
-              <span className="variable">{'{{learnerName}}'}</span>
-              <span className="variable">{'{{inviteLink}}'}</span>
-              <span className="variable">{'{{gradeName}}'}</span>
-            </div>
-          </div>
+              </li>
+            ))}
+          </ul>
         </div>
+      )}
 
-        {showPreview && renderPreview()}
-      </div>
-
-      <div className="send-summary">
-        <div className="summary-info">
-          <Icon name="users" />
-          <span>Sending to {selectedLearners.length} learners via {selectedChannel.name}</span>
-        </div>
-      </div>
-
-      <div className="step-actions">
-        <button
-          type="button"
-          onClick={onPrevious}
-          className="btn btn-secondary"
-          disabled={sending}
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          onClick={onSend}
-          className="btn btn-primary"
-          disabled={!canSend || sending}
-        >
-          {sending ? (
-            <>
-              <Icon name="loader" className="spinning" />
-              Sending Invites...
-            </>
-          ) : (
-            <>
-              <Icon name="send" />
-              Send Invites
-            </>
-          )}
-        </button>
-      </div>
+      {/* Send button */}
+      <button
+        onClick={sendInvites}
+        disabled={!inviteMessage || channels.length === 0}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:opacity-50"
+      >
+        Send Invites
+      </button>
     </div>
   );
 };
-
-export default MessageComposer;
-
