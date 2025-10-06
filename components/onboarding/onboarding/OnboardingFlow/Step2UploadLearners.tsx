@@ -1,8 +1,12 @@
 // components/onboarding/OnboardingFlow/Step2UploadLearners.tsx
 import React, { useState, useEffect } from "react";
+import { useOnboardingFlow } from '../hooks/useOnboardingFlow';
+
 import BulkUpload from "../components/BulkUpload/";
-import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
+
 import { completeStep, getOnboardingStatus } from "../services/onboardingService";
+
+
 
 interface Step2UploadLearnersProps {
   onNext?: () => void;
