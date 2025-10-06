@@ -8,7 +8,7 @@ interface UseAudienceDataProps {
   schoolId: string;
   selectedGrades: Grade[];
   channelId: string;
-  isOpen: boolean; // 👈 Added to control when data loads
+  isOpen: boolean;
 }
 
 interface UseAudienceDataReturn {
@@ -25,7 +25,7 @@ interface UseAudienceDataReturn {
  */
 export const useAudienceData = ({
   schoolId,
-  selectedGrades,
+  selectedGrades = [],
   channelId,
   isOpen,
 }: UseAudienceDataProps): UseAudienceDataReturn => {
@@ -35,17 +35,35 @@ export const useAudienceData = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Don’t run when modal is closed or no school selected
+    console.log('🔄 [useAudienceData] useEffect triggered', {
+      isOpen,
+      schoolId,
+      selectedGrades: selectedGrades,
+      selectedGradesLength: selectedGrades?.length,
+      channelId
+    });
+
+    // Don't run when modal is closed or no school selected
     if (!isOpen || !schoolId) {
-      logger.debug('useAudienceData', 'Modal closed or no schoolId; skipping load', { isOpen, schoolId });
+      logger.debug('useAudienceData', 'Modal closed or no schoolId; skipping load', { 
+        isOpen, 
+        schoolId,
+        selectedGradesCount: selectedGrades?.length || 0
+      });
       return;
     }
 
     const loadAudienceData = async () => {
+      console.log('🚀 [useAudienceData] Starting data load', {
+        schoolId,
+        selectedGradesCount: selectedGrades?.length || 0,
+        channelId
+      });
+
       logger.info('useAudienceData', 'Loading audience data', {
         schoolId,
         channelId,
-        selectedGradesCount: selectedGrades.length,
+        selectedGradesCount: selectedGrades?.length || 0,
       });
 
       setIsLoading(true);
@@ -53,11 +71,18 @@ export const useAudienceData = ({
 
       try {
         // Step 1: Determine which grades to use
-        let gradesToUse = selectedGrades;
+        let gradesToUse = selectedGrades || [];
+
+        console.log('📚 [useAudienceData] Grades to use:', {
+          initialCount: gradesToUse.length,
+          grades: gradesToUse.map(g => ({ id: g.id, name: g.name }))
+        });
 
         if (gradesToUse.length === 0) {
           logger.debug('useAudienceData', 'No pre-selected grades, loading all grades');
+          console.log('🔄 [useAudienceData] Loading all grades from API');
           gradesToUse = await gradeService.getGrades(schoolId);
+          console.log('✅ [useAudienceData] Loaded grades from API:', gradesToUse.length);
         }
 
         setGrades(gradesToUse);
@@ -68,16 +93,29 @@ export const useAudienceData = ({
             gradeCount: gradesToUse.length,
           });
 
+          console.log('👥 [useAudienceData] Loading learners for grades:', gradesToUse.length);
+
           const learnerPromises = gradesToUse.map(async (grade) => {
+            console.log(`📖 [useAudienceData] Loading learners for grade: ${grade.name} (${grade.id})`);
             try {
               const gradeLearners = await learnerService.getLearnersByGrade(grade.id);
+              console.log(`✅ [useAudienceData] Loaded ${gradeLearners.length} learners for grade ${grade.name}`);
+              
               logger.debug('useAudienceData', `Loaded learners for grade ${grade.name}`, {
                 gradeId: grade.id,
                 learnerCount: gradeLearners.length,
               });
-              return gradeLearners;
+
+              // Add gradeId to each learner for tracking
+              const learnersWithGrade = gradeLearners.map(learner => ({
+                ...learner,
+                gradeId: learner.gradeId || grade.id // Ensure gradeId is set
+              }));
+
+              return learnersWithGrade;
             } catch (err) {
               logger.error('useAudienceData', `Failed to load learners for grade ${grade.name}`, err);
+              console.error(`❌ [useAudienceData] Failed to load learners for grade ${grade.name}:`, err);
               return [];
             }
           });
@@ -85,21 +123,32 @@ export const useAudienceData = ({
           const learnersByGrade = await Promise.all(learnerPromises);
           const flattenedLearners = learnersByGrade.flat();
 
+          console.log('🎉 [useAudienceData] All learners loaded:', {
+            totalLearners: flattenedLearners.length,
+            byGrade: learnersByGrade.map((learners, index) => ({
+              grade: gradesToUse[index]?.name,
+              count: learners.length
+            }))
+          });
+
           setLearners(flattenedLearners);
           logger.info('useAudienceData', 'Successfully loaded audience data', {
             totalGrades: gradesToUse.length,
             totalLearners: flattenedLearners.length,
           });
         } else {
+          console.log('ℹ️ [useAudienceData] No grades to load learners from');
           logger.warn('useAudienceData', 'No grades found for this school');
           setLearners([]);
         }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unexpected error while loading audience data';
+        console.error('❌ [useAudienceData] Error loading audience data:', errorMessage);
         logger.error('useAudienceData', 'Error loading audience data', errorMessage);
         setError(errorMessage);
       } finally {
+        console.log('🏁 [useAudienceData] Data loading completed');
         setIsLoading(false);
       }
     };

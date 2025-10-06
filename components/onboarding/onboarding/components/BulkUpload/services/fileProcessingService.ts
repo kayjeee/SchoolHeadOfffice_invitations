@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import {
   FIRST_NAME_HEADERS,
@@ -23,6 +24,32 @@ export interface ProcessedFileResult {
   preview: any[];
   dataToUpload: any[];
 }
+
+// Process phone numbers - handle different data types
+// Defined outside the main function for cleaner code and potential reuse.
+const getPhoneValue = (rawValue: any): string => {
+  if (rawValue === null || rawValue === undefined) return '';
+
+  // Handle numbers, strings, and other types
+  const stringValue = String(rawValue).trim();
+
+  // If it's a number in scientific notation or a very large number, handle it.
+  // Note: BigInt conversion can be risky if the rawValue isn't a clean number/integer string.
+  if (!isNaN(rawValue) && stringValue.includes('e')) {
+    try {
+      // Convert scientific notation to full number string
+      // Rounding is added as a safety measure for floating point numbers from Excel,
+      // assuming phone numbers should be integers.
+      return BigInt(Math.round(rawValue)).toString();
+    } catch (e) {
+      // Fallback to the string representation if BigInt conversion fails
+      console.warn(`BigInt conversion failed for rawValue: ${rawValue}. Falling back to string.`);
+      return stringValue;
+    }
+  }
+
+  return stringValue;
+};
 
 export const processExcelFile = async (
   file: File, 
@@ -57,6 +84,7 @@ export const processExcelFile = async (
 
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+        // Read as array of arrays (row, col)
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
 
         if (jsonData.length === 0) {
@@ -66,7 +94,7 @@ export const processExcelFile = async (
         // Find header row
         let headerRowIndex = -1;
         for (let i = 0; i < jsonData.length; i++) {
-          const row = jsonData[i].map(cell => (cell ? String(cell).trim() : ''));
+          const row = (jsonData[i] as any[]).map(cell => (cell ? String(cell).trim() : ''));
           if (helpers.headerExists(row, FIRST_NAME_HEADERS) && helpers.headerExists(row, LAST_NAME_HEADERS)) {
             headerRowIndex = i;
             break;
@@ -77,8 +105,8 @@ export const processExcelFile = async (
           throw new Error('Could not find valid header row. Please ensure your file contains columns for first name and last name.');
         }
 
-        const headers = jsonData[headerRowIndex].map(h => (h ? String(h).trim() : ''));
-        const rows = jsonData.slice(headerRowIndex + 1);
+        const headers = (jsonData[headerRowIndex] as any[]).map(h => (h ? String(h).trim() : ''));
+        const rows = jsonData.slice(headerRowIndex + 1) as any[][];
 
         // Find column indexes
         const colIndexes = {
@@ -109,8 +137,9 @@ export const processExcelFile = async (
           }
 
           totalRows++;
+          const currentRowNumber = headerRowIndex + 2 + i; // Data starts at row headerRowIndex + 2 (1-indexed)
 
-          const learner = {
+          const learner: any = {
             firstName: colIndexes.firstName !== -1 ? (row[colIndexes.firstName] || '').toString().trim() : '',
             lastName: colIndexes.lastName !== -1 ? (row[colIndexes.lastName] || '').toString().trim() : '',
             gender: colIndexes.gender !== -1 ? (row[colIndexes.gender] || '').toString().trim() : '',
@@ -119,22 +148,31 @@ export const processExcelFile = async (
             gradeId: selectedGrade?.id || null
           };
 
-          // Process phone numbers
-          const cellPhoneRaw = colIndexes.cellPhone !== -1 ? (row[colIndexes.cellPhone] || '').toString().trim() : '';
-          let telHomeRaw = colIndexes.telHome !== -1 ? (row[colIndexes.telHome] || '').toString().trim() : '';
-          let telEmerRaw = colIndexes.telEmergency !== -1 ? (row[colIndexes.telEmergency] || '').toString().trim() : '';
-          const whatsappRaw = colIndexes.whatsapp !== -1 ? (row[colIndexes.whatsapp] || '').toString().trim() : '';
-          const telegramRaw = colIndexes.telegram !== -1 ? (row[colIndexes.telegram] || '').toString().trim() : '';
+          // === START OF UPDATED PHONE NUMBER LOGIC ===
+          const cellPhoneRaw = colIndexes.cellPhone !== -1 ? getPhoneValue(row[colIndexes.cellPhone]) : '';
+          let telHomeRaw = colIndexes.telHome !== -1 ? getPhoneValue(row[colIndexes.telHome]) : '';
+          let telEmerRaw = colIndexes.telEmergency !== -1 ? getPhoneValue(row[colIndexes.telEmergency]) : '';
+          const whatsappRaw = colIndexes.whatsapp !== -1 ? getPhoneValue(row[colIndexes.whatsapp]) : '';
+          const telegramRaw = colIndexes.telegram !== -1 ? getPhoneValue(row[colIndexes.telegram]) : '';
 
           // Clean phone prefixes
           telHomeRaw = helpers.cleanPhonePrefix(telHomeRaw, '\\(H\\)');
           telEmerRaw = helpers.cleanPhonePrefix(telEmerRaw, '\\(E\\)');
 
+          // Use the first available phone number
           learner.phone = cellPhoneRaw || telHomeRaw || telEmerRaw || '';
           learner.telHome = telHomeRaw;
           learner.telEmergency = telEmerRaw;
           learner.whatsapp = whatsappRaw;
           learner.telegram = telegramRaw;
+
+          // Sanitize phone numbers for consistency (must be done *after* assigning raw values)
+          learner.phone = helpers.sanitizePhoneNumber(learner.phone);
+          learner.telHome = helpers.sanitizePhoneNumber(learner.telHome);
+          learner.telEmergency = helpers.sanitizePhoneNumber(learner.telEmergency);
+          learner.whatsapp = helpers.sanitizePhoneNumber(learner.whatsapp);
+          learner.telegram = helpers.sanitizePhoneNumber(learner.telegram);
+          // === END OF UPDATED PHONE NUMBER LOGIC ===
 
           // Validate learner data
           const validation = validateLearnerData(learner);
@@ -142,7 +180,7 @@ export const processExcelFile = async (
           if (validation.errors.length > 0) {
             invalidRows++;
             errors.push({ 
-              row: headerRowIndex + 2 + i, 
+              row: currentRowNumber, 
               messages: validation.errors.join('; ') 
             });
           } else {
@@ -152,8 +190,8 @@ export const processExcelFile = async (
             if (validation.warnings.length > 0) {
               validation.warnings.forEach(warning => {
                 warnings.push({ 
-                  row: headerRowIndex + 2 + i, 
-                  field: 'phone', 
+                  row: currentRowNumber, 
+                  field: 'phone', // Assuming validation warnings mostly pertain to phone fields
                   message: warning 
                 });
               });
@@ -164,11 +202,11 @@ export const processExcelFile = async (
               preview.push({
                 firstName: learner.firstName,
                 lastName: learner.lastName,
-                email: '',
+                email: '', // Placeholder, as email extraction wasn't in the provided code
                 phone: learner.phone,
                 whatsapp: learner.whatsapp,
                 telegram: learner.telegram,
-                parentName: '',
+                parentName: '', // Placeholder
               });
             }
 
@@ -180,7 +218,7 @@ export const processExcelFile = async (
           totalRows,
           validRows,
           invalidRows,
-          duplicates: 0,
+          duplicates: 0, // Duplicates checking is not implemented in this scope
           errors,
           warnings,
           preview,
@@ -196,11 +234,10 @@ export const processExcelFile = async (
       reject(new Error('Failed to read file.'));
     };
 
-    // Always read as ArrayBuffer for Excel files - this is the key fix!
+    // Use ArrayBuffer for all non-CSV files to correctly handle Excel formats
     if (file.type === 'text/csv') {
       reader.readAsText(file);
     } else {
-      // For .xls, .xlsx, and any other Excel formats
       reader.readAsArrayBuffer(file);
     }
   });
