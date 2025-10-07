@@ -6,7 +6,7 @@ import MenuDropdown from './MenuDropdown';
 import AdminDrop from './AdminDrop';
 import MenuReflectionTab from './MenuReflectionTab';
 import { useAppTheme } from '../../../../context/ThemeContext';
-
+import { User } from '../../../../interfaces';
 import { School } from '../../shared/types/School'; // Import shared type
 
 
