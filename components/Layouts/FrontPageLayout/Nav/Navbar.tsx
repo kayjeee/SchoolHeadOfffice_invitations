@@ -25,6 +25,7 @@ interface NavbarProps {
   userRoles?: UserRole[];
   setSearchQuery?: (query: string) => void;
   schoolImage?: string;
+    schoolTheme?: string; // ✅ Add this line
 }
 
 const Navbar: React.FC<NavbarProps> = ({

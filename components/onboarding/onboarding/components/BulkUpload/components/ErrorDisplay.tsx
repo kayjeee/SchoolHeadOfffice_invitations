@@ -1,5 +1,4 @@
 import React from 'react';
-import { FiAlertTriangle, FiInfo } from 'react-icons/fi';
 import { ValidationError, ValidationWarning } from '../types';
 
 interface ErrorDisplayProps {
@@ -8,6 +7,38 @@ interface ErrorDisplayProps {
   title?: string;
   maxHeight?: string;
 }
+
+const AlertTriangleIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg 
+    className={className}
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
+    />
+  </svg>
+);
+
+const InfoIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg 
+    className={className}
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+    />
+  </svg>
+);
 
 export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   errors,
@@ -24,7 +55,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       {errors.length > 0 && (
         <div>
           <h4 className="text-sm font-medium text-red-800 mb-2 flex items-center">
-            <FiAlertTriangle className="mr-1 h-4 w-4" />
+            <AlertTriangleIcon className="mr-1 h-4 w-4" />
             Errors ({errors.length})
           </h4>
           <div 
@@ -45,7 +76,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       {warnings.length > 0 && (
         <div>
           <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
-            <FiInfo className="mr-1 h-4 w-4" />
+            <InfoIcon className="mr-1 h-4 w-4" />
             Warnings ({warnings.length})
           </h4>
           <div 
@@ -66,7 +97,6 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   );
 };
 
-// Additional specialized error display components
 interface SimpleErrorDisplayProps {
   message: string;
   type?: 'error' | 'warning' | 'info';
@@ -93,7 +123,7 @@ export const SimpleErrorDisplay: React.FC<SimpleErrorDisplayProps> = ({
 
   return (
     <div className={`p-3 border rounded-md text-sm flex items-center ${getStyles()} ${className}`}>
-      <FiAlertTriangle className="mr-2 h-4 w-4 flex-shrink-0" />
+      <AlertTriangleIcon className="mr-2 h-4 w-4 flex-shrink-0" />
       {message}
     </div>
   );
@@ -113,7 +143,7 @@ export const UploadErrorDisplay: React.FC<UploadErrorDisplayProps> = ({
   return (
     <div className="bg-red-50 border border-red-200 rounded-md p-4">
       <div className="flex items-start">
-        <FiAlertTriangle className="h-5 w-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
+        <AlertTriangleIcon className="h-5 w-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <h4 className="text-sm font-medium text-red-800">Upload Failed</h4>
           <p className="mt-1 text-sm text-red-700">{error}</p>

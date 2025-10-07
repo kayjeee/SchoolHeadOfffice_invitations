@@ -34,9 +34,10 @@ export const DataPreview: React.FC<DataPreviewProps> = ({ preview }) => {
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="px-3 py-2 text-sm text-gray-500 text-center">
-                  No valid learners found to preview.
-                </td>
+               <td colSpan={5} className="px-3 py-2 text-sm text-gray-500 text-center">
+  No valid learners found to preview.
+</td>
+
               </tr>
             )}
           </tbody>

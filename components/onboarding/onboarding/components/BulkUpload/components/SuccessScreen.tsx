@@ -1,6 +1,21 @@
 import React from 'react';
-import { FiCheck } from 'react-icons/fi';
 import { ValidationResults as ValidationResultsType } from '../types';
+
+const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg 
+    className={className}
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M5 13l4 4L19 7" 
+    />
+  </svg>
+);
 
 interface SuccessScreenProps {
   results: ValidationResultsType;
@@ -12,7 +27,7 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({ results, onClose }
     <div className="text-center py-10">
       <div className="flex items-center justify-center">
         <div className="bg-green-100 p-4 rounded-full">
-          <FiCheck className="h-12 w-12 text-green-600" />
+          <CheckIcon className="h-12 w-12 text-green-600" />
         </div>
       </div>
       <h3 className="mt-4 text-2xl font-bold text-gray-900">Upload Complete!</h3>

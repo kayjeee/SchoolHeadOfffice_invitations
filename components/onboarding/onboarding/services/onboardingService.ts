@@ -101,3 +101,12 @@ export async function bulkUploadLearners(data: any) {
   
   return response.json();
 }
+export const onboardingService = {
+  getOnboardingStatus,
+  completeStep,
+  skipStep,
+  resetOnboarding,
+  updateOnboardingStatus,
+  fetchSchoolGrades,
+  bulkUploadLearners
+};

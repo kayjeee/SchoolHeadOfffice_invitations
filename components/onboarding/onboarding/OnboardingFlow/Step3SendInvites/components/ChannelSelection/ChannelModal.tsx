@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { logger } from './utils/logger';
 import { ChannelModalProps } from './types/channel';
 import { Modal } from './ui/Modal';
@@ -6,6 +6,11 @@ import { QrCodeWithCopy } from './QrCodeWithCopy';
 import { CopyButton } from './ui/CopyButton';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 import { useAudienceData } from './hooks/useAudienceData';
+
+// NEW WHATSAPP IMPORTS
+import { WhatsAppTesterSection } from './WhatsAppTesterSection';
+import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
+import WhatsAppBusinessService from './services/WhatsappBusinessService';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
   channel,
@@ -30,11 +35,24 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
 
   // Load audience data when modal opens
   const { grades, learners, isLoading, error, totalLearners } = useAudienceData({
-    schoolId, 
+    schoolId,
     selectedGrades,
     channelId: channel.id,
     isOpen
   });
+
+  // =======================================================
+  // 🔥 ENHANCED WHATSAPP STATES
+  // =======================================================
+  const [activeTab, setActiveTab] = useState<'test' | 'schedule' | 'contacts'>('contacts');
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
+  const [validationErrors, setValidationErrors] = useState<any>({});
+  // =======================================================
 
   const handleSelectChannel = () => {
     logger.info('ChannelModal', 'Channel selected', {
@@ -68,7 +86,7 @@ Click here to join: ${schoolLink}`;
   // Get learners count by grade for detailed breakdown
   const getLearnersCountByGrade = () => {
     const countByGrade: { [gradeId: string]: { grade: any; count: number } } = {};
-    
+
     learners.forEach(learner => {
       const gradeId = learner.gradeId;
       if (gradeId) {
@@ -81,7 +99,7 @@ Click here to join: ${schoolLink}`;
         }
       }
     });
-    
+
     return Object.values(countByGrade);
   };
 
@@ -90,25 +108,25 @@ Click here to join: ${schoolLink}`;
   // Enhanced WhatsApp number detection
   const getWhatsAppNumbers = (learner: any) => {
     const phoneFields = [
-      learner.phone,                    // Primary phone
-      learner.whatsapp,                 // WhatsApp specific field
-      learner.contact?.phone,           // Contact phone
-      learner.contact?.whatsapp,        // Contact WhatsApp
-      learner.contact?.tel_home,        // Home telephone
-      learner.contact?.tel_emergency,   // Emergency telephone
-      learner.contact?.telegram         // Telegram (sometimes used for WhatsApp)
+      learner.phone,
+      learner.whatsapp,
+      learner.contact?.phone,
+      learner.contact?.whatsapp,
+      learner.contact?.tel_home,
+      learner.contact?.tel_emergency,
+      learner.contact?.telegram
     ];
 
     // Filter out empty, null, undefined values and landline numbers
     const validNumbers = phoneFields.filter(phone => {
       if (!phone || typeof phone !== 'string') return false;
-      
+
       const cleanPhone = phone.trim();
       if (cleanPhone === '') return false;
-      
+
       // Exclude landline numbers (starting with 011)
       if (cleanPhone.startsWith('011')) return false;
-      
+
       // Basic phone number validation (at least 7 digits)
       const digitCount = (cleanPhone.match(/\d/g) || []).length;
       return digitCount >= 7;
@@ -126,7 +144,7 @@ Click here to join: ${schoolLink}`;
   // Get the best WhatsApp number for a learner (prioritize WhatsApp-specific fields)
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);
-    
+
     // Priority order for number selection
     const priorityFields = [
       learner.whatsapp,
@@ -154,6 +172,15 @@ Click here to join: ${schoolLink}`;
     return numbers[0] || 'No number';
   };
 
+  // Get recipient numbers for bulk send
+  const getRecipientNumbers = () => {
+    return learnersWithWhatsApp.map(learner => ({
+      phone: getBestWhatsAppNumber(learner),
+      name: learner.name,
+      grade: grades.find(g => g.id === learner.gradeId)?.name || 'Unknown'
+    }));
+  };
+
   // WhatsApp-specific: Copy WhatsApp numbers to clipboard
   const handleCopyWhatsAppNumbers = async () => {
     const whatsappNumbers = learnersWithWhatsApp
@@ -162,7 +189,7 @@ Click here to join: ${schoolLink}`;
         return `${learner.name}: ${bestNumber}`;
       })
       .join('\n');
-    
+
     await navigator.clipboard.writeText(whatsappNumbers);
     logger.debug('ChannelModal', 'WhatsApp numbers copied', {
       count: learnersWithWhatsApp.length
@@ -174,11 +201,378 @@ Click here to join: ${schoolLink}`;
     const phoneNumbers = learnersWithWhatsApp
       .map(learner => getBestWhatsAppNumber(learner))
       .join('\n');
-    
+
     await navigator.clipboard.writeText(phoneNumbers);
     logger.debug('ChannelModal', 'Phone numbers copied', {
       count: learnersWithWhatsApp.length
     });
+  };
+
+  // =======================================================
+  // 🔥 ENHANCED WHATSAPP HANDLERS
+  // =======================================================
+
+  const selectedGrade = selectedGrades.length === 1 ? selectedGrades[0] : null;
+  const gradeName = selectedGrade?.name || 'your selected grades';
+
+  // Generate default message
+  const defaultMessage = `🏫 ${schoolName} Parent Portal Invitation
+
+Dear Parent,
+
+You're invited to join our secure parent communication portal for ${gradeName}.
+
+✅ Get real-time updates about your child's progress
+✅ Receive important announcements instantly  
+✅ Connect with teachers directly
+✅ Access school resources and calendar
+
+Join now: ${schoolLink}
+
+Best wishes,
+${schoolName} Admin Team`;
+
+  const messageContent = customMessage || defaultMessage;
+
+  // Test message validation
+  const validateTestInputs = () => {
+    const errors: any = {};
+    const cleanedPhoneNumber = testPhoneNumber.replace(/\s+/g, '');
+
+    if (!cleanedPhoneNumber.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^\+?[1-9]\d{1,14}$/.test(cleanedPhoneNumber)) {
+      errors.phone = 'Please enter a valid phone number (E.164 format or similar, e.g., +27821234567)';
+    }
+
+    if (!messageContent.trim()) {
+      errors.message = 'Message content is required';
+    } else if (messageContent.length > 4096) {
+      errors.message = 'Message is too long (max 4096 characters)';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle test message sending (single number)
+  const handleSendTest = async () => {
+    if (!validateTestInputs()) return;
+
+    setIsSendingTest(true);
+    setTestResult(null);
+
+    try {
+      WhatsAppBusinessService.validateMessageTemplate(messageContent);
+      
+      const result = await WhatsAppBusinessService.sendTestMessage({
+        to: testPhoneNumber.replace(/\s+/g, ''),
+        message: messageContent,
+        gradeId: selectedGrade?.id,
+        schoolName: schoolName
+      });
+
+      setTestResult({
+        success: true,
+        messageId: result.messageId,
+        message: 'Test message sent successfully! Check your WhatsApp.'
+      });
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        error: error.message || 'An unknown error occurred.',
+        message: 'Failed to send test message. Please try again.'
+      });
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
+  // Handle bulk message sending (all learners)
+  const handleSendBulk = async () => {
+    if (!messageContent.trim()) {
+      setTestResult({
+        success: false,
+        message: 'Message content is required for bulk send'
+      });
+      return;
+    }
+
+    if (learnersWithWhatsApp.length === 0) {
+      setTestResult({
+        success: false,
+        message: 'No WhatsApp numbers available for bulk send'
+      });
+      return;
+    }
+
+    setIsSendingBulk(true);
+    setTestResult(null);
+
+    try {
+      WhatsAppBusinessService.validateMessageTemplate(messageContent);
+      
+      const recipientNumbers = getRecipientNumbers();
+      
+      const result = await WhatsAppBusinessService.sendBulkMessages({
+        gradeIds: selectedGrades.map(g => g.id),
+        message: messageContent,
+        schoolName: schoolName,
+        recipientNumbers: recipientNumbers.map(r => r.phone)
+      });
+
+      setTestResult({
+        success: true,
+        message: `Bulk messages sent successfully!`,
+        bulkResult: {
+          sentCount: result.sentCount,
+          failedCount: result.failedCount,
+          totalCount: recipientNumbers.length
+        }
+      });
+
+      // Log bulk send results
+      logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
+        sentCount: result.sentCount,
+        failedCount: result.failedCount,
+        totalRecipients: recipientNumbers.length,
+        gradeIds: selectedGrades.map(g => g.id)
+      });
+
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        error: error.message || 'An unknown error occurred.',
+        message: 'Failed to send bulk messages. Please try again.'
+      });
+    } finally {
+      setIsSendingBulk(false);
+    }
+  };
+
+  // Enhanced schedule handler
+  const handleScheduleMessage = async (scheduleData: ScheduleData) => {
+    setIsScheduling(true);
+
+    try {
+      const recipientNumbers = getRecipientNumbers();
+      
+      const result = await WhatsAppBusinessService.scheduleBulkMessage({
+        gradeIds: selectedGrades.map(g => g.id),
+        message: scheduleData.message,
+        scheduledAt: scheduleData.scheduledAt,
+        timezone: scheduleData.timezone,
+        recipientNumbers: recipientNumbers.map(r => r.phone)
+      });
+
+      console.log('Message scheduled:', result);
+      alert(`Message scheduled successfully for ${new Date(scheduleData.scheduledAt).toLocaleString()} to ${recipientNumbers.length} recipients`);
+
+    } catch (error: any) {
+      console.error('Failed to schedule message:', error);
+      alert(`Failed to schedule message: ${error.message}`);
+    } finally {
+      setIsScheduling(false);
+    }
+  };
+
+  // =======================================================
+  // 🔥 ENHANCED WHATSAPP TAB CONTENT RENDERERS
+  // =======================================================
+
+  // Original WhatsApp Contacts Table and Warning
+  const renderWhatsAppContactsTab = () => (
+    <>
+      {/* WhatsApp-specific: Learner Details Section */}
+      {learnersWithWhatsApp.length > 0 && !isLoading ? (
+        <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+          <h4 className="font-semibold text-green-900 mb-3 flex items-center">
+            💚 WhatsApp Contacts ({learnersWithWhatsApp.length})
+          </h4>
+
+          {/* WhatsApp Action Buttons */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={handleCopyWhatsAppNumbers}
+              className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center"
+            >
+              📋 Copy Names & Numbers
+            </button>
+            <button
+              onClick={handleCopyPhoneNumbersOnly}
+              className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center justify-center"
+            >
+              📞 Copy Numbers Only
+            </button>
+          </div>
+
+          {/* Learners List with WhatsApp Numbers */}
+          <div className="max-h-60 overflow-y-auto border border-green-200 rounded-lg bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-green-100 sticky top-0">
+                <tr>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
+                    Learner Name
+                  </th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
+                    WhatsApp Number
+                  </th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
+                    Grade
+                  </th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
+                    Source
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {learnersWithWhatsApp.map((learner, index) => {
+                  const grade = grades.find(g => g.id === learner.gradeId);
+                  const bestNumber = getBestWhatsAppNumber(learner);
+
+                  // Determine the source of the number for display
+                  const getNumberSource = (learner: any, number: string): string => {
+                    const sources = [
+                      { field: learner.whatsapp, name: 'whatsapp' },
+                      { field: learner.contact?.whatsapp, name: 'contact.whatsapp' },
+                      { field: learner.phone, name: 'phone' },
+                      { field: learner.contact?.phone, name: 'contact.phone' },
+                      { field: learner.contact?.telegram, name: 'contact.telegram' },
+                      { field: learner.contact?.tel_emergency, name: 'contact.tel_emergency' },
+                      { field: learner.contact?.tel_home, name: 'contact.tel_home' }
+                    ];
+
+                    const source = sources.find(s => s.field === number);
+                    return source?.name || 'unknown';
+                  };
+
+                  const numberSource = getNumberSource(learner, bestNumber);
+
+                  return (
+                    <tr
+                      key={learner.id}
+                      className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}
+                    >
+                      <td className="p-2 border-b border-green-100 text-gray-700">
+                        {learner.name}
+                      </td>
+                      <td className="p-2 border-b border-green-100 font-mono text-green-700">
+                        {bestNumber}
+                      </td>
+                      <td className="p-2 border-b border-green-100 text-gray-600">
+                        {grade?.name || 'Unknown'}
+                      </td>
+                      <td className="p-2 border-b border-green-100 text-xs text-gray-500">
+                        {numberSource}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-3 text-xs text-green-700">
+            <p><strong>💡 Pro Tip:</strong> Use "Copy Numbers Only" for bulk WhatsApp messaging</p>
+            <p className="mt-1"><strong>🔍 Note:</strong> Landline numbers (011...) are automatically excluded</p>
+          </div>
+        </div>
+      ) : (
+        /* WhatsApp-specific: No Numbers Warning */
+        learnersWithWhatsApp.length === 0 && !isLoading && totalLearners > 0 && (
+          <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+            <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
+              ⚠️ No WhatsApp Numbers Found
+            </h4>
+            <p className="text-sm text-yellow-700">
+              {totalLearners} learners are selected but no valid WhatsApp numbers were found.
+              We checked: phone, whatsapp, contact.phone, contact.whatsapp, contact.tel_home, contact.tel_emergency, and contact.telegram fields.
+            </p>
+            <p className="text-sm text-yellow-600 mt-2">
+              Landline numbers (starting with 011) are automatically excluded.
+            </p>
+          </div>
+        )
+      )}
+    </>
+  );
+
+  // Main WhatsApp Tab Renderer
+  const renderWhatsAppContent = () => {
+    if (channel.id !== 'whatsapp') return null;
+
+    return (
+      <div className="mt-6 border-t pt-6">
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'contacts'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            disabled={isLoading}
+          >
+            👥 Contacts ({isLoading ? '...' : learnersWithWhatsApp.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('test')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'test'
+                ? 'border-green-500 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🧪 Test Message
+          </button>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'schedule'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            disabled={isLoading || learnersWithWhatsApp.length === 0}
+            title={learnersWithWhatsApp.length === 0 ? "No WhatsApp contacts found to schedule a message" : "Schedule bulk message"}
+          >
+            📅 Schedule
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'contacts' && renderWhatsAppContactsTab()}
+
+        {activeTab === 'test' && (
+          <WhatsAppTesterSection
+            testPhoneNumber={testPhoneNumber}
+            onPhoneNumberChange={setTestPhoneNumber}
+            messageContent={messageContent}
+            onMessageChange={setCustomMessage}
+            onSendTest={handleSendTest}
+            onSendBulk={handleSendBulk}
+            isSending={isSendingTest}
+            isSendingBulk={isSendingBulk}
+            testResult={testResult}
+            validationErrors={validationErrors}
+            schoolName={schoolName}
+            selectedGrade={selectedGrade}
+            totalRecipients={learnersWithWhatsApp.length}
+            canSendBulk={learnersWithWhatsApp.length > 0}
+          />
+        )}
+
+        {activeTab === 'schedule' && (
+          <WhatsAppScheduler
+            onSchedule={handleScheduleMessage}
+            isScheduling={isScheduling}
+            messageContent={messageContent}
+            totalRecipients={learnersWithWhatsApp.length}
+          />
+        )}
+      </div>
+    );
   };
 
   // Debug: Log phone number sources for troubleshooting
@@ -239,7 +633,7 @@ Click here to join: ${schoolLink}`;
               <LoadingSpinner size="sm" text="Loading..." className="ml-2" />
             )}
           </h4>
-          
+
           {error ? (
             <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
               ❌ Error loading audience data: {error}
@@ -283,15 +677,15 @@ Click here to join: ${schoolLink}`;
                     {totalLearners} learner{totalLearners !== 1 ? 's' : ''}
                   </span>
                 </div>
-                
+
                 {/* WhatsApp-specific: Show WhatsApp availability */}
                 {channel.id === 'whatsapp' && (
                   <div className="mt-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-sm font-medium text-green-800">📱 WhatsApp Available:</span>
                       <span className={`text-sm px-2 py-1 rounded ${
-                        learnersWithWhatsApp.length > 0 
-                          ? 'bg-green-100 text-green-800' 
+                        learnersWithWhatsApp.length > 0
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {learnersWithWhatsApp.length} learner{learnersWithWhatsApp.length !== 1 ? 's' : ''}
@@ -304,7 +698,7 @@ Click here to join: ${schoolLink}`;
                     )}
                   </div>
                 )}
-                
+
                 {/* Learners by Grade Breakdown */}
                 {learnersByGrade.length > 0 ? (
                   <div className="mt-3 space-y-2">
@@ -334,118 +728,8 @@ Click here to join: ${schoolLink}`;
           )}
         </div>
 
-        {/* WhatsApp-specific: Learner Details Section */}
-        {channel.id === 'whatsapp' && learnersWithWhatsApp.length > 0 && !isLoading && (
-          <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-            <h4 className="font-semibold text-green-900 mb-3 flex items-center">
-              💚 WhatsApp Contacts ({learnersWithWhatsApp.length})
-            </h4>
-            
-            {/* WhatsApp Action Buttons */}
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={handleCopyWhatsAppNumbers}
-                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center"
-              >
-                📋 Copy Names & Numbers
-              </button>
-              <button
-                onClick={handleCopyPhoneNumbersOnly}
-                className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm flex items-center justify-center"
-              >
-                📞 Copy Numbers Only
-              </button>
-            </div>
-
-            {/* Learners List with WhatsApp Numbers */}
-            <div className="max-h-60 overflow-y-auto border border-green-200 rounded-lg bg-white">
-              <table className="w-full text-sm">
-                <thead className="bg-green-100 sticky top-0">
-                  <tr>
-                    <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                      Learner Name
-                    </th>
-                    <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                      WhatsApp Number
-                    </th>
-                    <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                      Grade
-                    </th>
-                    <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                      Source
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {learnersWithWhatsApp.map((learner, index) => {
-                    const grade = grades.find(g => g.id === learner.gradeId);
-                    const bestNumber = getBestWhatsAppNumber(learner);
-                    
-                    // Determine the source of the number for display
-                    const getNumberSource = (learner: any, number: string): string => {
-                      const sources = [
-                        { field: learner.whatsapp, name: 'whatsapp' },
-                        { field: learner.contact?.whatsapp, name: 'contact.whatsapp' },
-                        { field: learner.phone, name: 'phone' },
-                        { field: learner.contact?.phone, name: 'contact.phone' },
-                        { field: learner.contact?.telegram, name: 'contact.telegram' },
-                        { field: learner.contact?.tel_emergency, name: 'contact.tel_emergency' },
-                        { field: learner.contact?.tel_home, name: 'contact.tel_home' }
-                      ];
-
-                      const source = sources.find(s => s.field === number);
-                      return source?.name || 'unknown';
-                    };
-
-                    const numberSource = getNumberSource(learner, bestNumber);
-
-                    return (
-                      <tr 
-                        key={learner.id} 
-                        className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}
-                      >
-                        <td className="p-2 border-b border-green-100 text-gray-700">
-                          {learner.name}
-                        </td>
-                        <td className="p-2 border-b border-green-100 font-mono text-green-700">
-                          {bestNumber}
-                        </td>
-                        <td className="p-2 border-b border-green-100 text-gray-600">
-                          {grade?.name || 'Unknown'}
-                        </td>
-                        <td className="p-2 border-b border-green-100 text-xs text-gray-500">
-                          {numberSource}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="mt-3 text-xs text-green-700">
-              <p><strong>💡 Pro Tip:</strong> Use "Copy Numbers Only" for bulk WhatsApp messaging</p>
-              <p className="mt-1"><strong>🔍 Note:</strong> Landline numbers (011...) are automatically excluded</p>
-            </div>
-          </div>
-        )}
-
-        {/* WhatsApp-specific: No Numbers Warning */}
-        {channel.id === 'whatsapp' && learnersWithWhatsApp.length === 0 && !isLoading && totalLearners > 0 && (
-          <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-            <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
-              ⚠️ No WhatsApp Numbers Found
-            </h4>
-            <p className="text-sm text-yellow-700">
-              {totalLearners} learners are selected but no valid WhatsApp numbers were found. 
-              We checked: phone, whatsapp, contact.phone, contact.whatsapp, contact.tel_home, contact.tel_emergency, and contact.telegram fields.
-            </p>
-            <p className="text-sm text-yellow-600 mt-2">
-              Landline numbers (starting with 011) are automatically excluded.
-            </p>
-          </div>
-        )}
+        {/* Enhanced WhatsApp Content with Bulk Send */}
+        {renderWhatsAppContent()}
 
         {/* School Information */}
         <div className="bg-gray-50 rounded-lg p-4">
@@ -460,8 +744,8 @@ Click here to join: ${schoolLink}`;
         {/* QR Code and Link */}
         <div className="border rounded-lg p-4">
           <h4 className="font-medium text-gray-900 mb-3">🔗 Share Invitation</h4>
-          <QrCodeWithCopy 
-            link={schoolLink} 
+          <QrCodeWithCopy
+            link={schoolLink}
             size={120}
             showLink={true}
           />
@@ -477,8 +761,8 @@ Click here to join: ${schoolLink}`;
               {invitationMessage}
             </p>
           </div>
-          <CopyButton 
-            text={invitationMessage} 
+          <CopyButton
+            text={invitationMessage}
             variant="outline"
             size="md"
             className="w-full justify-center"

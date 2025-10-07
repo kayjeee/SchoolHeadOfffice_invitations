@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
 import { CopyButton } from './ui/CopyButton';
 import { logger } from './utils/logger';
+import type { Grade, Learner } from '../../types'; 
+// If Channel type is needed, ensure it's exported from '../../types' or define it here:
+export interface Channel {
+  id: string;
+  name: string;
+}
 
 interface InvitationComposerProps {
   schoolName: string;

@@ -4,7 +4,10 @@ export interface Learner {
   email: string;
   phone?: string;
   gradeId?: string;
+  whatsapp?: string;   // Add this
+  contact?: string;    // Add if used elsewhere
 }
+
 
 export interface Grade {
   id: string;
@@ -33,6 +36,7 @@ export interface ChannelSelectionProps {
   selectedChannels: string[];
   learners: Learner[];
   selectedGrades: Grade[]; // NEW: Add selected grades
+  selectedLearners?: Learner[]; // Added property
   schoolName: string;
   schools: School[];
   school: School;

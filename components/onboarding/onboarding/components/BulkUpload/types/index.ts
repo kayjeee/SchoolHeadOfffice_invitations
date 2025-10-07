@@ -1,4 +1,5 @@
 export interface School {
+  id?: string;           // <--- add this
   schoolName?: string;
   schoolEmail?: string;
   userEmail?: string;
@@ -15,9 +16,25 @@ export interface User {
   name?: string;
 }
 
+export interface Learner {
+  id?: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  gradeId?: string;
+  schoolId?: string;
+  [key: string]: any; // for extra dynamic fields
+}
+
+
 export interface Grade {
   id: string | null;
   name: string;
+  school?: School;
+  school_id?: string;
+  schoolId?: string;
+  school_name?: string;
+  schoolName?: string;
 }
 
 export interface ValidationError {

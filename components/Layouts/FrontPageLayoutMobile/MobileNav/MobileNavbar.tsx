@@ -38,7 +38,12 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({
     <>
       <nav
         className="border-b border-gray-200"
-        style={{ backgroundColor: themePalette?.primary || primaryColor || 'white' }}
+   style={{
+  backgroundColor:
+    String(themePalette?.primary || primaryColor || 'white'),
+}}
+
+
       >
         <div className="max-w-full mx-auto h-20 flex justify-between items-center px-4">
           <Link href="/" passHref>

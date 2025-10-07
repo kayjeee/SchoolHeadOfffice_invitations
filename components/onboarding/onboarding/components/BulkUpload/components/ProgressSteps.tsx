@@ -1,6 +1,21 @@
 import React from 'react';
-import { FiCheck } from 'react-icons/fi';
 import { UploadStepProps } from '../types';
+
+const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg 
+    className={className}
+    fill="none" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      strokeWidth={2} 
+      d="M5 13l4 4L19 7" 
+    />
+  </svg>
+);
 
 export const ProgressSteps: React.FC<UploadStepProps> = ({ step, onStepChange }) => {
   const steps = ['upload', 'validate', 'confirm', 'complete'];
@@ -21,7 +36,7 @@ export const ProgressSteps: React.FC<UploadStepProps> = ({ step, onStepChange })
                 }`}
               >
                 {index < steps.indexOf(step) ? (
-                  <FiCheck className="w-4 h-4" />
+                  <CheckIcon className="w-4 h-4" />
                 ) : (
                   <span className="text-sm font-medium">{index + 1}</span>
                 )}

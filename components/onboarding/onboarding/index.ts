@@ -1,5 +1,5 @@
 // components/onboarding/index.ts
-export { default as OnboardingFlow } from "./OnboardingFlow";
+
 export { default as OnboardingGuard } from "./OnboardingGuard";
 
 export * from "./hooks/useOnboardingFlow";

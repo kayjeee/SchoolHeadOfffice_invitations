@@ -5,6 +5,7 @@ export interface Grade {
   level?: number;
   isActive?: boolean;
   learnerCount?: number;
+  
 }
 
 export interface Learner {

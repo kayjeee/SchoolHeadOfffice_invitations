@@ -1,5 +1,4 @@
 import React from 'react';
-import { FiX } from 'react-icons/fi';
 import { BulkUploadProps } from '../types';
 import { useBulkUpload } from '../hooks/useBulkUpload';
 import { useFileValidation } from '../hooks/useFileValidation';
@@ -15,7 +14,7 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
   onClose,
   selectedGrade,
   onUploadSuccess,
-  schools, // May be undefined
+  schools,
   refetchOnboardingStatus,
   user
 }) => {
@@ -28,9 +27,6 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
     user
   });
 
-  /**
-   * 🔒 ENHANCED: Resolve `safeSchools` with multiple fallback options
-   */
   let safeSchools = schools || [];
 
   if (safeSchools.length === 0 && selectedGrade?.school) {
@@ -46,13 +42,12 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
     console.log("🔄 [BulkUploadModal] Created school from grade ID:", safeSchools[0]);
   }
 
-  console.log("✅ [BulkUploadModal] Final safe schools:", {
+  console.log("✅ [BulkUploadModal] School resolution complete:", {
     original: schools,
     safe: safeSchools,
     count: safeSchools.length
   });
 
-  // Hooks
   const { errorStatus, validateFile } = useFileValidation();
   const { uploadStep, setUploadStep, isProcessing, startProcessing, stopProcessing } = useUploadProgress();
 
@@ -69,7 +64,6 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
 
   const { schoolName, schoolEmail, auth0Id } = getSchoolAndUserInfo();
 
-  // Drag/drop handlers
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -149,7 +143,6 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -169,14 +162,24 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
                 aria-label="Close"
               >
-                <FiX className="h-6 w-6" />
+                <svg 
+                  className="h-6 w-6" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                </svg>
               </button>
             </div>
 
-            {/* Progress steps */}
             <ProgressSteps step={uploadStep} onStepChange={setUploadStep} />
 
-            {/* Steps UI */}
             {uploadStep === 'upload' && (
               <FileUploader
                 onFileProcessed={handleFileProcessed}

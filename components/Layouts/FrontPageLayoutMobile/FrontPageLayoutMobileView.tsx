@@ -48,6 +48,7 @@ const FrontPageLayoutMobileView: React.FC<FrontPageLayoutMobileViewProps> = ({
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           schoolTheme={school?.theme}
+            loading={false} // ✅ add this line
         />
       )}
 

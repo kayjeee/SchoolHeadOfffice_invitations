@@ -9,7 +9,14 @@ interface ChannelCardProps {
   schoolLink: string;
   onChannelSelection: (channelId: string) => void;
   onChannelClick: (channel: Channel) => void;
-  audienceCount?: number; // NEW: Add audience count
+  audienceCount?: number;
+}
+
+// Fixed QrCodeWithCopy props
+interface QrCodeWithCopyProps {
+  link: string;
+  showLink?: boolean;
+  size?: number;
 }
 
 export const ChannelCard: React.FC<ChannelCardProps> = ({
@@ -20,6 +27,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
   onChannelClick,
   audienceCount = 0
 }) => {
+
   const handleCardClick = () => {
     logger.debug('ChannelCard', 'Channel card clicked', { 
       channelId: channel.id, 
@@ -53,6 +61,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
       onClick={handleCardClick}
     >
       <div className="flex items-start space-x-3">
+        {/* Icon */}
         <div className="flex-shrink-0">
           <div
             className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
@@ -64,12 +73,14 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
             {channel.icon}
           </div>
         </div>
+
         <div className="flex-1 min-w-0">
+          {/* Checkbox & Name */}
           <label className="flex items-center cursor-pointer">
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={() => {}} // Handled by onClick
+              onChange={() => {}}
               onClick={handleCheckboxClick}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded"
             />
@@ -78,9 +89,10 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
             </span>
           </label>
 
+          {/* Description */}
           <p className="mt-1 text-sm text-black">{channel.description}</p>
 
-          {/* Audience Info */}
+          {/* Audience count */}
           {audienceCount > 0 && (
             <div className="mt-2">
               <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
@@ -109,7 +121,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
             </button>
           </div>
 
-          {/* Preview QR Code */}
+          {/* QR Code Preview */}
           <div className="mt-4">
             <QrCodeWithCopy link={schoolLink} size={50} showLink={false} />
           </div>
