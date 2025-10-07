@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { StepState, Grade, Learner } from "../../types";
+import { StepState } from "./types";
+import {  Grade, Learner } from "./types"; // NEW: Adjusted import path
 import { useStepValidation } from "./hooks/useStepValidation";
 import { useLearnerData } from "./hooks/useLearnerData";
 import { LearnerSelection } from "./components/LearnerSelection";
@@ -116,7 +117,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
     expandedGrades,
     setExpandedGrades,
     fetchGrades,
-  } = useLearnerData(schoolId, selectedGrades);
+  } = useLearnerData(schoolId);
 
   const { canProceedToNext, validationErrors } = useStepValidation({
     currentStep,
@@ -274,8 +275,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             onSelectAllGrades={handleSelectAllGrades}
             onToggleGradeExpansion={toggleGradeExpansion}
             onReloadGrades={handleReloadGrades}
-            schoolName={schoolName} // Pass school name
-            schools={schools} // Pass schools array
+            
           />
         );
      case "channel-selection":
@@ -298,8 +298,8 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             inviteMessage={inviteMessage}
             setInviteMessage={setInviteMessage}
             validationErrors={validationErrors}
+            channels={selectedChannels} // Pass selected channels
             schoolName={schoolName} // Pass school name
-            schools={schools} // Pass schools array
           />
         );
       case "results":
@@ -308,7 +308,6 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             selectedChannels={selectedChannels} 
             learners={learners} 
             inviteMessage={inviteMessage}
-            schoolName={schoolName} // Pass school name
             schools={schools} // Pass schools array
             school={targetSchool} // Pass the actual school object
           />

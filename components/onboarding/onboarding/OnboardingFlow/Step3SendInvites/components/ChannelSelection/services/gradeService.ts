@@ -1,4 +1,4 @@
-import { Grade } from '../types/channel';
+import { Grade } from '../../../types';
 
 export const gradeService = {
   getGrades: async (schoolId: string): Promise<Grade[]> => {

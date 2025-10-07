@@ -88,7 +88,7 @@ Click here to join: ${schoolLink}`;
     const countByGrade: { [gradeId: string]: { grade: any; count: number } } = {};
 
     learners.forEach(learner => {
-      const gradeId = learner.gradeId;
+      const gradeId = learner.grade_id;
       if (gradeId) {
         const grade = grades.find(g => g.id === gradeId);
         if (grade) {
@@ -176,8 +176,8 @@ Click here to join: ${schoolLink}`;
   const getRecipientNumbers = () => {
     return learnersWithWhatsApp.map(learner => ({
       phone: getBestWhatsAppNumber(learner),
-      name: learner.name,
-      grade: grades.find(g => g.id === learner.gradeId)?.name || 'Unknown'
+      name: learner.full_name,
+      grade: grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'
     }));
   };
 
@@ -186,7 +186,7 @@ Click here to join: ${schoolLink}`;
     const whatsappNumbers = learnersWithWhatsApp
       .map(learner => {
         const bestNumber = getBestWhatsAppNumber(learner);
-        return `${learner.name}: ${bestNumber}`;
+        return `${learner.full_name}: ${bestNumber}`;
       })
       .join('\n');
 
@@ -427,7 +427,7 @@ ${schoolName} Admin Team`;
               </thead>
               <tbody>
                 {learnersWithWhatsApp.map((learner, index) => {
-                  const grade = grades.find(g => g.id === learner.gradeId);
+                  const grade = grades.find(g => g.id === learner.grade_id);
                   const bestNumber = getBestWhatsAppNumber(learner);
 
                   // Determine the source of the number for display
@@ -454,7 +454,7 @@ ${schoolName} Admin Team`;
                       className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}
                     >
                       <td className="p-2 border-b border-green-100 text-gray-700">
-                        {learner.name}
+                        {learner.full_name}
                       </td>
                       <td className="p-2 border-b border-green-100 font-mono text-green-700">
                         {bestNumber}
@@ -582,9 +582,9 @@ ${schoolName} Admin Team`;
         totalLearners: learners.length,
         withWhatsApp: learnersWithWhatsApp.length,
         sampleNumbers: learners.slice(0, 3).map(learner => ({
-          name: learner.name,
+          name: learner.full_name,
           phone: learner.phone,
-          whatsapp: learner.whatsapp,
+          // whatsapp: learner.whatsapp, // Removed because 'whatsapp' does not exist on type 'Learner'
           contact: learner.contact,
           bestNumber: getBestWhatsAppNumber(learner),
           allNumbers: getWhatsAppNumbers(learner)

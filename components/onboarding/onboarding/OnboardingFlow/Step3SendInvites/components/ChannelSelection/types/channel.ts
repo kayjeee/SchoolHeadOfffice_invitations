@@ -1,19 +1,4 @@
-export interface Learner {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  gradeId?: string;
-  whatsapp?: string;   // Add this
-  contact?: string;    // Add if used elsewhere
-}
-
-
-export interface Grade {
-  id: string;
-  name: string;
-  description?: string;
-}
+import type { Learner, Grade } from '../../../types'; // Ensure correct import path
 
 export interface Channel {
   id: string;

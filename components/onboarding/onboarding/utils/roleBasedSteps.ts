@@ -1,5 +1,5 @@
-import { OnboardingStep } from "../types";
-import  { Step1CreateGrades } from "../OnboardingFlow/Step1CreateGrades";
+import { OnboardingStep, OnboardingRole } from "../types";
+import Step1CreateGrades from "../OnboardingFlow/Step1CreateGrades";
 import Step2UploadLearners from "../OnboardingFlow/Step2UploadLearners";
 import Step3SendInvites from "../OnboardingFlow/Step3SendInvites";
 import StepCompletion from "../OnboardingFlow/StepCompletion";
@@ -11,6 +11,6 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   { id: "StepCompletion", name: "Completion", component: StepCompletion, roles: ["admin", "teacher", "student"] },
 ];
 
-export const getRoleBasedSteps = (role: string): OnboardingStep[] => {
+export const getRoleBasedSteps = (role: OnboardingRole): OnboardingStep[] => {
   return ONBOARDING_STEPS.filter(step => step.roles.includes(role));
 };

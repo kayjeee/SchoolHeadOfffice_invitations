@@ -1,5 +1,5 @@
 
-import { OnboardingStep, OnboardingStatus } from "../types";
+import { OnboardingStep, OnboardingStatus, OnboardingRole } from "../types";
 
 export const stepProgressService = {
   getNextStep(

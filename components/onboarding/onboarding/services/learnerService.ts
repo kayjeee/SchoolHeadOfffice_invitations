@@ -1,5 +1,6 @@
 // components/onboarding/services/learnerService.ts
-import { Learner, CreateLearnerData, BulkUploadResult } from '../types';
+import { CreateLearnerData, BulkUploadResult } from '../types';
+import { Learner } from './../OnboardingFlow/Step3SendInvites/types';
 
 const API_BASE_URL = 'http://localhost:4000/api/v1';
 
@@ -9,7 +10,7 @@ const API_BASE_URL = 'http://localhost:4000/api/v1';
 class LearnerService {
   private baseUrl = `${API_BASE_URL}/learners`;
 
-  /**
+  /*
    * Helper method for making API calls
    */
   private async apiCall(endpoint: string, options: RequestInit = {}) {

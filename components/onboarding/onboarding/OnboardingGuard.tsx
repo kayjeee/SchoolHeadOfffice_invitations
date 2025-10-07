@@ -250,7 +250,7 @@ export const OnboardingGuard = ({
   console.log("🏫 [OnboardingGuard] Schools being passed to OnboardingContent:", schools);
 
   return (
-      <OnboardingFlowProvider school={schools?.[0]}>
+      <OnboardingFlowProvider schools={schools}>
       <OnboardingContent
         user={user}
         schools={schools}

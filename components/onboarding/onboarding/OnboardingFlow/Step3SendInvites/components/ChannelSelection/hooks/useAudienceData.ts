@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Grade, Learner } from '../types/channel';
+import { Grade, Learner } from '../../../types';
 import { gradeService } from '../services/gradeService';
 import { learnerService } from '../services/learnerService';
 import { logger } from '../utils/logger';
@@ -106,10 +106,10 @@ export const useAudienceData = ({
                 learnerCount: gradeLearners.length,
               });
 
-              // Add gradeId to each learner for tracking
+              // Add grade_id to each learner for tracking
               const learnersWithGrade = gradeLearners.map(learner => ({
                 ...learner,
-                gradeId: learner.gradeId || grade.id // Ensure gradeId is set
+                grade_id: learner.grade_id || grade.id // Ensure grade_id is set
               }));
 
               return learnersWithGrade;

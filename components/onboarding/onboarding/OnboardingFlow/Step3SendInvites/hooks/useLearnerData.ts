@@ -3,64 +3,67 @@ import { learnerService } from "../services/learnerService";
 import { gradeService } from "../services/gradeService";
 import { Grade, Learner } from "../types";
 
-export const useLearnerData = (schoolId: string, selectedGrades: string[]) => {
+/**
+ * Hook: useLearnerData
+ * Handles fetching grades & learners for a specific school,
+ * with full grade/learner selection and refresh support.
+ */
+export const useLearnerData = (schoolId?: string) => {
+  // ---------- STATE ----------
   const [grades, setGrades] = useState<Grade[]>([]);
   const [learners, setLearners] = useState<Learner[]>([]);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
-  const [isLoadingLearners, setIsLoadingLearners] = useState<boolean>(false);
-  const [isLoadingGrades, setIsLoadingGrades] = useState<boolean>(false);
+  const [isLoadingGrades, setIsLoadingGrades] = useState(false);
+  const [isLoadingLearners, setIsLoadingLearners] = useState(false);
   const [gradesError, setGradesError] = useState<string | null>(null);
   const [learnersError, setLearnersError] = useState<string | null>(null);
 
-  // Use ref to store grades to avoid dependency issues
+  // Ref to hold latest grades for mapping purposes
   const gradesRef = useRef<Grade[]>([]);
-  
-  // Update ref when grades change
   useEffect(() => {
     gradesRef.current = grades;
   }, [grades]);
 
-  // Fetch grades for the school
+  // ---------- FETCH GRADES ----------
   const fetchGrades = useCallback(async () => {
-    console.log("🔍 Fetching grades for school:", schoolId);
-
     if (!schoolId) {
-      console.log("❌ No schoolId available from school object");
-      setGradesError("No school information available");
+      console.warn("❌ Missing schoolId: cannot fetch grades");
+      setGradesError("Missing school information");
       return;
     }
 
+    console.log("📚 Fetching grades for school:", schoolId);
     setIsLoadingGrades(true);
     setGradesError(null);
 
     try {
       const gradesData = await gradeService.getGrades(schoolId);
-      console.log("✅ Grades API response:", gradesData);
+      console.log("✅ Grades fetched:", gradesData);
 
-      const transformedGrades = gradesData.map((grade: any) => ({
-        id: grade.id,
-        name: grade.name,
-        description: grade.description,
-        level: parseInt(grade.grade_level?.match(/\d+/)?.[0] || "0"),
-        learnerCount: grade.stats?.learners_count || 0,
-        isActive: grade.status_text === "active",
+      const formattedGrades: Grade[] = gradesData.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        level: parseInt(g.grade_level?.match(/\d+/)?.[0] || "0"),
+        learnerCount: g.stats?.learners_count || 0,
+        isActive: g.status_text === "active",
       }));
 
-      setGrades(transformedGrades);
+      setGrades(formattedGrades);
     } catch (error) {
-      console.error("Error fetching grades:", error);
-      setGradesError("Failed to load grades. Please try again.");
+      console.error("❌ Error fetching grades:", error);
+      setGradesError("Failed to load grades.");
       setGrades([]);
     } finally {
       setIsLoadingGrades(false);
     }
   }, [schoolId]);
 
-  // Global learner loading function
+  // ---------- FETCH LEARNERS ----------
   const fetchLearnersForGrades = useCallback(async (gradeIds: string[]) => {
-    if (gradeIds.length === 0) {
+    if (!schoolId || gradeIds.length === 0) {
       setLearners([]);
-      setLearnersError(null);
       return;
     }
 
@@ -68,73 +71,107 @@ export const useLearnerData = (schoolId: string, selectedGrades: string[]) => {
     setLearnersError(null);
 
     try {
-      const results: Learner[] = [];
-      console.log("🔍 Starting to fetch learners for grades:", gradeIds);
+      const allLearners: Learner[] = [];
+      console.log("👩🏽‍🎓 Fetching learners for grade IDs:", gradeIds);
 
       for (const gradeId of gradeIds) {
-        console.log(`📋 Fetching learners for grade: ${gradeId}`);
-        
         try {
           const learnersData = await learnerService.getLearnersByGrade(gradeId);
-          console.log(`👥 Learners found for grade ${gradeId}:`, learnersData.length);
+          console.log(`📋 Grade ${gradeId} learners:`, learnersData.length);
 
-          const mapped = learnersData.map((l: any) => ({
-            ...l,
-            first_name: l.first_name || "",
-            last_name: l.last_name || "",
-            full_name: l.full_name || `${l.first_name || ""} ${l.last_name || ""}`.trim() || "Unnamed Learner",
-            gender: l.gender_text || "Unknown",
-            status: l.status_text || "Unknown",
-            grade_id: gradeId,
-            grade_name: gradesRef.current.find((g) => g.id === gradeId)?.name || "Unknown Grade",
-            phone: l.contact?.phone || l.phone || "",
-            email: l.email || "",
-          }));
+         const mapped = learnersData.map((l: any) => ({
+  id: l.id,
+  first_name: l.first_name || "",
+  last_name: l.last_name || "",
+  full_name: l.full_name || `${l.first_name || ""} ${l.last_name || ""}`.trim() || "Unnamed Learner",
+  gender: l.gender_text || "Unknown",
+  gender_text: l.gender_text || "Unknown",
+  accession_number: l.accession_number || "",
+  status: l.status_text || "Unknown",
+  status_text: l.status_text || "Unknown",
+  grade_id: gradeId,
+  grade_name: gradesRef.current.find((g) => g.id === gradeId)?.name || "Unknown Grade",
+  school_id: l.school_id || schoolId,
+  school_name: l.school_name || "Unknown School",
+  email: l.email || "",
+  phone: l.contact?.phone || l.phone || "",
+  created_at: l.created_at || "",
+  updated_at: l.updated_at || "",
+  contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
+}));
 
-          results.push(...mapped);
-        } catch (gradeError) {
-          console.error(`❌ Error fetching learners for grade ${gradeId}:`, gradeError);
+
+          allLearners.push(...mapped);
+        } catch (error) {
+          console.error(`❌ Failed to fetch learners for grade ${gradeId}:`, error);
         }
       }
 
-      console.log(`🎯 TOTAL LEARNERS FOUND:`, results.length);
-      setLearners(results);
-    } catch (err) {
-      console.error("❌ Error in fetch learners process:", err);
+      console.log("🎯 Total learners fetched:", allLearners.length);
+      setLearners(allLearners);
+    } catch (error) {
+      console.error("❌ Error fetching learners:", error);
       setLearnersError("Failed to fetch learners.");
       setLearners([]);
     } finally {
       setIsLoadingLearners(false);
     }
-  }, []); // Empty dependencies since we use gradesRef
+  }, [schoolId]);
 
-  // Fetch grades on schoolId change
+  // ---------- GRADE SELECTION HANDLERS ----------
+  const handleGradeSelection = useCallback((gradeId: string) => {
+    setSelectedGrades((prev) =>
+      prev.includes(gradeId)
+        ? prev.filter((id) => id !== gradeId)
+        : [...prev, gradeId]
+    );
+  }, []);
+
+  const handleSelectAllGrades = useCallback(() => {
+    setSelectedGrades((prev) =>
+      prev.length === grades.length ? [] : grades.map((g) => g.id)
+    );
+  }, [grades]);
+
+  const handleReloadGrades = useCallback(() => {
+    fetchGrades();
+  }, [fetchGrades]);
+
+  // ---------- EFFECTS ----------
   useEffect(() => {
     if (schoolId) {
       fetchGrades();
     }
-  }, [schoolId]); // Only depend on schoolId
+  }, [schoolId, fetchGrades]);
 
-  // Fetch learners when selected grades change
   useEffect(() => {
     if (selectedGrades.length > 0) {
       fetchLearnersForGrades(selectedGrades);
     } else {
       setLearners([]);
-      setLearnersError(null);
     }
-  }, [selectedGrades]); // Only depend on selectedGrades
+  }, [selectedGrades, fetchLearnersForGrades]);
 
+  // ---------- RETURN ----------
   return {
+    // Data
     grades,
     learners,
+    selectedGrades,
+
+    // UI states
     isLoadingGrades,
     isLoadingLearners,
     gradesError,
     learnersError,
     expandedGrades,
+
+    // Actions
     setExpandedGrades,
     fetchGrades,
     fetchLearnersForGrades,
+    handleGradeSelection,
+    handleSelectAllGrades,
+    handleReloadGrades,
   };
 };

@@ -1,6 +1,9 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
-async function apiFetch(url, options = {}) {
+async function apiFetch(
+  url: string,
+  options: { headers?: Record<string, string>; [key: string]: any } = {}
+) {
   console.log("🌐 API Request:", { url, options });
 
   try {

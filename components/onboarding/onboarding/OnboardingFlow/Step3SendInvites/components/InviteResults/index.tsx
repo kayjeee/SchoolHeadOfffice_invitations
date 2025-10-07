@@ -5,6 +5,8 @@ interface InviteResultsProps {
   selectedChannels: string[];
   learners: Learner[];
   inviteMessage: string;
+    schools?: any[];  // optional
+  school?: any;     // optional
 }
 
 export const InviteResults: React.FC<InviteResultsProps> = ({
