@@ -605,3 +605,4 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 };
 
 export const useAppTheme = (): ThemeContextType => useContext(ThemeContext);
+

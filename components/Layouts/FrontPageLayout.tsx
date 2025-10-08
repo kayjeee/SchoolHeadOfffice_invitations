@@ -39,6 +39,16 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+// Update the transformation to handle optional schoolName
+const transformedSchools = schools.map(s => ({
+  _id: s._id || s.id,
+  id: s.id,
+  name: s.name,
+  schoolName: s.schoolName, // Now optional
+  logo: s.logo,
+  schoolImage: s.schoolImage
+}));
+
   return (
     <AppThemeProvider>
       <Head>
@@ -74,3 +84,4 @@ const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
 };
 
 export default FrontPageLayout;
+
