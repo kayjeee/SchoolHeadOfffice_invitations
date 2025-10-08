@@ -1,39 +1,41 @@
-// components/Layouts/FrontPageLayout.tsx
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
-import Navbar from './FrontPageLayout/Nav/Navbar';
-import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
-import Footer from '../footer/Footer';
-import { School } from './shared/types/School'; //Import shared type
-import { User } from './shared/types/User'; // Import User type
 
+import { AppThemeProvider } from './context/ThemeContext';
+
+import MobileNavbar from './FrontPageLayoutMobile/MobileNav/MobileNavbar';
+import Navbar from './FrontPageLayout/Nav/Navbar';       // ← adjust path if your Navbar lives elsewhere
+import Footer from '../footer/Footer';       // ← adjust path if your Footer lives elsewhere
+
+import { School } from './shared/types/School';
+import { User } from './shared/types/User';
+import { UserRole } from './shared/types/UserRole';
 
 interface FrontPageLayoutProps {
   children: React.ReactNode;
   school?: School;
   schools?: School[];
-  user?: User | null;
+  user?: User;
   loading?: boolean;
-  userRoles?: string[];
+  userRoles?: UserRole[];
+  schoolTheme?: string; // New prop for dynamic theming
 }
 
-const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({ 
-  children, 
-  school, 
-  schools = [], 
-  user = null, 
+const FrontPageLayout: React.FC<FrontPageLayoutProps> = ({
+  children,
+  school,
+  schools = [],
+  user,
   loading = false,
-  userRoles = []
+  userRoles = [],
 }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
-    handleResize();
+    handleResize(); // initialize on mount
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -48,30 +50,38 @@ const transformedSchools = schools.map(s => ({
 }));
 
   return (
-    <>
+    <AppThemeProvider>
       <Head>
         <title>SchoolHeadOffice</title>
       </Head>
+
       {isMobile ? (
-        <MobileNavbar 
-          schoolImage={school?.logo || school?.schoolImage}
-          schools={transformedSchools}
+        <MobileNavbar
+          schoolImage={school?.schoolImage}
+          schools={schools}
           userRoles={userRoles}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          // user and schoolTheme are optional in your MobileNavbar, omit or add if needed:
+          // user={user}
+          // schoolTheme={school?.theme}
         />
       ) : (
-        <Navbar 
-          schools={transformedSchools}
+        <Navbar
+          schoolImage={school?.schoolImage}
+          schools={schools}
           user={user}
           loading={loading}
           userRoles={userRoles}
-          searchQuery=""
-          setSearchQuery={() => {}}
+          schoolTheme={school?.theme}
         />
       )}
+
       <main>{children}</main>
       <Footer />
-    </>
+    </AppThemeProvider>
   );
 };
 
 export default FrontPageLayout;
+

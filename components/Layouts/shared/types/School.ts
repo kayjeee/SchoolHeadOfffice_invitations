@@ -5,5 +5,6 @@ export interface School {
   name: string;
   schoolName: string; // Make  o this required
   logo?: string;
-  schoolImage?: string;
+  schoolImage: string;
+  theme?: string; // Optional theme color for the school
 }

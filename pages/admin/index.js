@@ -1,195 +1,189 @@
-import React, { useState, useEffect } from 'react';
-import AdminSearchPage from '../../components/adminPage/AdminSearchPage';
-import FrontPageLayout from '../../components/Layouts/FrontPageLayout';
-import FrontPageLayoutMobileView from '../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView';
-import { useUser } from '@auth0/nextjs-auth0/client';
-import SettingsLayout from '../../components/adminPage/SettingsLayout';
-import LoadingSpinner from '../../components/spinners/LoadingSpinner';
-import CreateSchoolForm from '../../components/Schoolpage/CreateSchoolForm';
-import ValidateSchoolStep from '../../components/Schoolpage/ValidateSchoolStep';
-import ReviewSchoolStep from '../../components/Schoolpage/ReviewSchoolStep';
-
+// pages/index.js
+import React, { useState, useEffect } from "react";
+import AdminSearchPage from "../../components/adminPage/AdminSearchPage";
+import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
+import FrontPageLayoutMobileView from "../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
+import { useUser } from "@auth0/nextjs-auth0/client";
+import SettingsLayout from "../../components/adminPage/SettingsLayout";
+import LoadingSpinner from "../../components/spinners/LoadingSpinner";
+import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm/index";
+import ValidateSchoolStep from "../../components/Schoolpage/ValidateSchoolStep";
+import ReviewSchoolStep from "../../components/Schoolpage/ReviewSchoolStep";
+import { OnboardingGuard, OnboardingFlowProvider } from "../../components/onboarding/onboarding";
 
 export default function Home() {
+  const { user } = useUser();
   const [isMobile, setIsMobile] = useState(false);
   const [schools, setSchools] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [step, setStep] = useState(1); // Track current step
-  const { user } = useUser();
-  const [userRoles, setUserRoles] = useState([]); // Store user roles
+  const [userRoles, setUserRoles] = useState([]);
+  const [message, setMessage] = useState("");
+  const [step, setStep] = useState(1);
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [onboardingStatus, setOnboardingStatus] = useState(null);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+
+  // Track window resize
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Fetch user data when available
   useEffect(() => {
-    if (user) {
-      fetchSchools();
-      fetchAndSetUserRoles(); // Fetch and set roles when the user is available
-    }
+    if (!user) return;
+    fetchSchools();
+    fetchAndSetUserRoles();
+    checkOnboardingStatus();
   }, [user]);
 
+  // Fetch Auth0 access token
   const fetchAccessToken = async () => {
-    try {
-      const response = await fetch('/api/getAccessToken', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to fetch access token');
-      const { accessToken } = await response.json();
-      return accessToken;
-    } catch (error) {
-      console.error('Error fetching access token:', error.message);
-      throw error;
-    }
+    const response = await fetch("/api/getAccessToken", { method: "POST", headers: { "Content-Type": "application/json" } });
+    if (!response.ok) throw new Error("Failed to fetch access token");
+    const { accessToken } = await response.json();
+    return accessToken;
   };
 
+  // Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    try {
-      const rolesUrl = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${userId}/roles`;
-      const response = await fetch(rolesUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch user roles');
-      const rolesData = await response.json();
-      return rolesData.map((role) => role.name);
-    } catch (error) {
-      console.error('Error fetching user roles:', error.message);
-      throw error;
-    }
+    const url = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`;
+    const res = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) throw new Error("Failed to fetch user roles");
+    const roles = await res.json();
+    return roles.map(r => r.name);
   };
 
   const fetchAndSetUserRoles = async () => {
     try {
-      const accessToken = await fetchAccessToken();
-      const roles = await fetchUserRoles(accessToken, user.sub);
-      setUserRoles(roles); // Set user roles in state
-    } catch (error) {
-      console.error('Error setting user roles:', error.message);
+      const token = await fetchAccessToken();
+      const roles = await fetchUserRoles(token, user.sub);
+      setUserRoles(roles);
+    } catch (err) {
+      console.error(err);
+      setUserRoles([]);
     }
   };
 
+  // Fetch schools
   const fetchSchools = async () => {
+    if (!user?.sub) return;
     setIsLoading(true);
-    setMessage('');
+    setMessage("");
     try {
-      const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/schools`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-      );
-
-      if (response.status === 404) {
-        setSchools([]); // No schools found
-        setMessage('You have not created any school yet. Please create a new school.');
+      const res = await fetch(`http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
+      if (res.status === 404) {
+        setSchools([]);
+        setMessage("You have not created any school yet. Please create a new school.");
         return;
       }
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setSchools(data.data.schools || []);
-      } else {
-        setMessage(data.message || 'Error fetching schools.');
-      }
-    } catch (error) {
-      setMessage('Failed to fetch schools. Please try again later.');
+      const data = await res.json();
+      setSchools(data.data?.schools || []);
+    } catch (err) {
+      console.error(err);
+      setMessage("Failed to fetch schools. Please try again later.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleNextStep = () => {
-    setStep((prevStep) => (prevStep < 4 ? prevStep + 1 : prevStep));
+  // Check onboarding status
+  const checkOnboardingStatus = async () => {
+    setIsCheckingOnboarding(true);
+    try {
+      const res = await fetch(`http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
+      const data = await res.json();
+      setOnboardingStatus(data);
+      const complete =
+        data.data?.admin_onboarding_completed &&
+        data.data?.parent_onboarding_completed &&
+        data.data?.guest_onboarding_completed;
+      setIsOnboardingComplete(complete);
+    } catch (err) {
+      console.error(err);
+      setIsOnboardingComplete(false);
+    } finally {
+      setIsCheckingOnboarding(false);
+    }
   };
 
-  const handlePreviousStep = () => {
-    setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
-  };
-
+  // Stepper UI
   const renderStepper = () => (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div className="w-full md:w-1/4">
-        <div className="space-y-4">
-          {["Search", "Create", "Validate", "Complete"].map((title, index) => (
-            <div
-              key={title}
-              className={`p-4 border rounded-lg flex items-center space-x-2 ${
-                step === index + 1 ? 'bg-blue-100 border-blue-500' : 'bg-white'
-              }`}
-            >
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">School Registration</h1>
+          <p className="text-gray-600">Follow these steps to register your school</p>
+        </div>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            {["Search", "Create", "Validate", "Complete"].map((title, i) => (
+              <div key={title} className="flex items-center">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                    step === i + 1 ? "bg-blue-600 border-blue-600 text-white" : step > i + 1 ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-300 text-gray-400"
+                  }`}
+                >
+                  {step > i + 1 ? "✓" : i + 1}
+                </div>
+                {i < 3 && <div className={`w-24 h-1 mx-2 ${step > i + 1 ? "bg-green-500" : "bg-gray-300"}`} />}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between px-2">
+            {["Search", "Create", "Validate", "Complete"].map((title, i) => (
               <div
-                className={`w-8 h-8 flex items-center justify-center rounded-full text-white ${
-                  step === index + 1 ? 'bg-blue-500' : 'bg-gray-300'
-                }`}
+                key={title}
+                className={`text-sm font-medium ${step === i + 1 ? "text-blue-600" : step > i + 1 ? "text-green-600" : "text-gray-400"}`}
+                style={{ width: "100px", textAlign: "center" }}
               >
-                {index + 1}
+                {title}
               </div>
-              <div>
-                <h3 className="font-medium text-lg">{title}</h3>
-                <p className="text-sm text-gray-500">
-                  {index === 0 && 'Search for a school'}
-                  {index === 1 && 'Enter school details'}
-                  {index === 2 && 'Validate school information'}
-                  {index === 3 && 'Review and finish'}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <div className="flex justify-between mt-4">
-          <button
-            className="px-4 py-2 border rounded-md text-gray-600 disabled:opacity-50"
-            disabled={step === 1}
-            onClick={handlePreviousStep}
-          >
-            Back
-          </button>
-          <button
-            className="px-4 py-2 bg-blue-500 text-white rounded-md disabled:opacity-50"
-            disabled={step === 4}
-            onClick={handleNextStep}
-          >
-            Next
-          </button>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {step === 1 && <AdminSearchPage user={user} />}
+          {step === 2 && <CreateSchoolForm user={user} onComplete={fetchSchools} />}
+          {step === 3 && <ValidateSchoolStep />}
+          {step === 4 && <ReviewSchoolStep />}
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            <button
+              disabled={step === 1}
+              onClick={() => setStep(step - 1)}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              disabled={step === 4}
+              onClick={() => setStep(step + 1)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="w-full md:w-3/4">
-        {renderStepContent()}
       </div>
     </div>
   );
 
-  const renderStepContent = () => {
-    if (step === 1) return <AdminSearchPage user={user} />;
-    if (step === 2) return <CreateSchoolForm user={user} />;
-    if (step === 3) return <ValidateSchoolStep />;
-    if (step === 4) return <ReviewSchoolStep />;
-    return null;
-  };
-
+  // Main render logic
   const renderContent = () => {
-    if (isLoading) return <LoadingSpinner />;
-    if (message && schools.length === 0) {
-      return renderStepper(); // Show stepper if no schools
-    }
-    if (schools.length === 0) {
-      return <AdminSearchPage user={user} />;
-    }
-    return (
-      <div>
-        <SettingsLayout schools={schools} user={user} />
-      </div>
-    );
+    if (isLoading || isCheckingOnboarding) return <LoadingSpinner />;
+
+    if (schools.length === 0) return message ? renderStepper() : <AdminSearchPage user={user} />;
+
+    if (!isOnboardingComplete)
+      return <OnboardingGuard user={user} schools={schools} onboardingStatus={onboardingStatus} isOnboardingComplete={isOnboardingComplete} isCheckingOnboarding={isCheckingOnboarding} />;
+
+    return <SettingsLayout schools={schools} user={user} />;
   };
 
-  return isMobile ? (
+  const content = isMobile ? (
     <FrontPageLayoutMobileView user={user} schools={schools} userRoles={userRoles}>
       {renderContent()}
     </FrontPageLayoutMobileView>
@@ -198,4 +192,6 @@ export default function Home() {
       {renderContent()}
     </FrontPageLayout>
   );
+
+  return <OnboardingFlowProvider>{content}</OnboardingFlowProvider>;
 }

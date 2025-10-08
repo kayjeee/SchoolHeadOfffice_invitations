@@ -370,36 +370,37 @@ const CreateSchoolForm = ({ onSchoolCreated, onClose, handleSchoolCreated, searc
         throw new Error('Error submitting form data');
       }
 
-      const schoolData = await schoolResponse.json();
-      console.log('✅ School created successfully');
-      console.log('🏫 Full school response:', schoolData);
+  const schoolData = await schoolResponse.json();
+console.log('✅ School created successfully');
+console.log('🏫 Full school response:', schoolData);
 
-      // Extract school ID with detailed logging
-      const schoolId = schoolData.school?._id;
-      console.log('🔍 Extracting school ID...');
-      console.log('📊 School data structure:', {
-        hasSchool: !!schoolData.school,
-        hasId: !!schoolData.school?._id,
-        schoolId: schoolId
-      });
+// Extract school ID with detailed logging
+const schoolId = schoolData.data?.school?._id;  // Changed this line
+console.log('🔍 Extracting school ID...');
+console.log('📊 School data structure:', {
+  hasData: !!schoolData.data,
+  hasSchool: !!schoolData.data?.school,
+  hasId: !!schoolData.data?.school?._id,
+  schoolId: schoolId
+});
 
-      if (!schoolId) {
-        console.error('❌ School ID extraction failed');
-        console.error('🔍 School data:', schoolData);
-        throw new Error("School ID not found in response");
-      }
+if (!schoolId) {
+  console.error('❌ School ID extraction failed');
+  console.error('🔍 School data:', schoolData);
+  throw new Error("School ID not found in response");
+}
 
-      // Double-check school data structure
-      if (!schoolData || !schoolData.school || !schoolData.school._id) {
-        console.error('❌ Invalid school data structure');
-        console.error('📊 Data structure check:', {
-          hasSchoolData: !!schoolData,
-          hasSchoolProperty: !!schoolData?.school,
-          hasIdProperty: !!schoolData?.school?._id
-        });
-        throw new Error("School ID not found in response");
-      }
-
+// Also update the double-check structure validation:
+if (!schoolData || !schoolData.data || !schoolData.data.school || !schoolData.data.school._id) {
+  console.error('❌ Invalid school data structure');
+  console.error('📊 Data structure check:', {
+    hasSchoolData: !!schoolData,
+    hasDataProperty: !!schoolData?.data,
+    hasSchoolProperty: !!schoolData?.data?.school,
+    hasIdProperty: !!schoolData?.data?.school?._id
+  });
+  throw new Error("School ID not found in response");
+}
       console.log('✅ School ID extracted successfully:', schoolId);
 
       // ==================== AUTH0 ROLE ASSIGNMENT ====================

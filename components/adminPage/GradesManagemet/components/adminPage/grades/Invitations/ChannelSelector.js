@@ -1,11 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { FiMail, FiMessageSquare, FiSmartphone, FiCheckCircle, FiDollarSign, FiTrendingUp, FiUsers, FiZap, FiClock, FiStar, FiShield, FiGlobe, FiHeart } from 'react-icons/fi';
+import { 
+  FiMail, 
+  FiMessageSquare, 
+  FiSmartphone, 
+  FiCheckCircle, 
+  FiDollarSign, 
+  FiTrendingUp, 
+  FiUsers, 
+  FiZap, 
+  FiClock, 
+  FiStar, 
+  FiShield, 
+  FiGlobe, 
+  FiHeart,
+  FiLink,
+  FiQrCode,
+  FiUserPlus,
+  FiBarChart2
+} from 'react-icons/fi';
 
 /**
- * Enhanced ChannelSelector Component
+ * Enhanced ChannelSelector Component with PR Code Integration
  * 
  * Professional channel selection with WhatsApp prioritization, real-time cost analysis,
- * and compelling value propositions designed for maximum conversion.
+ * PR code generation options, and compelling value propositions.
  */
 const ChannelSelector = ({ 
   selectedChannels = [], 
@@ -14,10 +32,16 @@ const ChannelSelector = ({
   selectedSchool = {},
   costAnalysis = {},
   pricing = {},
-  recipientCount = 0
+  recipientCount = 0,
+  onPRCodeGenerate, // New prop for PR code generation
+  prCodeData = null, // New prop for PR code data
+  showPRCodeOptions = false, // New prop to show PR code options
+  onTogglePRCodeOptions // New prop to toggle PR code options
 }) => {
   const [hoveredChannel, setHoveredChannel] = useState(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [prCodeEnabled, setPRCodeEnabled] = useState(false);
+  const [selectedPRCodeType, setSelectedPRCodeType] = useState('automatic');
   
   const channels = [
     { 
@@ -26,7 +50,7 @@ const ChannelSelector = ({
       icon: FiMessageSquare, 
       recommended: true,
       priority: 1,
-      description: '🚀 Instant delivery • 98% open rate • 100% FREE messaging',
+      description: '🚀 Instant delivery • 98% open rate • 100% FREE messaging • PR Code Support',
       tagline: 'The Smart Choice',
       valueProps: [
         'Zero cost per message - save up to R500+ monthly',
@@ -34,18 +58,21 @@ const ChannelSelector = ({
         'Rich media support - images, documents, voice notes',
         'Two-way conversations - parents can reply instantly',
         'Read receipts - know when messages are seen',
-        'No character limits - unlimited message length'
+        'No character limits - unlimited message length',
+        'Built-in PR code and QR code generation'
       ],
-      features: ['Free Forever', 'Instant Delivery', 'Rich Media', 'Two-way Chat'],
+      features: ['Free Forever', 'Instant Delivery', 'Rich Media', 'PR Codes', 'Two-way Chat'],
       color: 'green',
       cost: 0,
       engagement: 98,
       deliveryTime: 'Instant',
       reliability: 99.9,
-      badge: 'FREE',
+      badge: 'FREE + PR Codes',
       badgeColor: 'green',
       gradient: 'from-green-400 to-green-600',
-      savings: 'Save R8.50 per 100 messages vs SMS'
+      savings: 'Save R8.50 per 100 messages vs SMS',
+      supportsPRCodes: true,
+      prCodeFeatures: ['Auto-generated codes', 'QR code support', 'Trackable links', 'Analytics']
     },
     { 
       id: 'sms', 
@@ -53,7 +80,7 @@ const ChannelSelector = ({
       icon: FiSmartphone, 
       recommended: false,
       priority: 2,
-      description: '📱 Universal reach • 94% open rate • Premium delivery',
+      description: '📱 Universal reach • 94% open rate • Premium delivery • Basic PR Support',
       tagline: 'Universal Compatibility',
       valueProps: [
         'Works on every mobile phone - no smartphone required',
@@ -61,9 +88,10 @@ const ChannelSelector = ({
         'Professional appearance and formatting',
         'Immediate notification sound alerts',
         'Works in all network conditions',
-        'Trusted by parents worldwide'
+        'Trusted by parents worldwide',
+        'Basic referral code support'
       ],
-      features: ['Universal Access', 'No Internet Required', 'Instant Alerts', 'Professional'],
+      features: ['Universal Access', 'No Internet Required', 'Instant Alerts', 'Basic PR Codes'],
       color: 'blue',
       cost: pricing.sms?.standard || 0.085,
       engagement: 94,
@@ -72,7 +100,9 @@ const ChannelSelector = ({
       badge: `R${(pricing.sms?.standard || 0.085).toFixed(3)} per msg`,
       badgeColor: 'blue',
       gradient: 'from-blue-400 to-blue-600',
-      savings: null
+      savings: null,
+      supportsPRCodes: true,
+      prCodeFeatures: ['Text-based codes', 'Manual tracking', 'Basic analytics']
     },
     { 
       id: 'email', 
@@ -80,7 +110,7 @@ const ChannelSelector = ({
       icon: FiMail, 
       recommended: false,
       priority: 3,
-      description: '✉️ Rich content • 85% open rate • Professional branding',
+      description: '✉️ Rich content • 85% open rate • Professional branding • Full PR Suite',
       tagline: 'Detailed Communication',
       valueProps: [
         'Detailed messaging with rich formatting',
@@ -88,9 +118,10 @@ const ChannelSelector = ({
         'Professional email templates and branding',
         'Easy forwarding and archiving',
         'Desktop and mobile accessible',
-        'Spam filter protection built-in'
+        'Spam filter protection built-in',
+        'Complete PR code management system'
       ],
-      features: ['Rich Content', 'Attachments', 'Professional', 'Archivable'],
+      features: ['Rich Content', 'Attachments', 'Professional', 'Full PR Suite', 'Archivable'],
       color: 'purple',
       cost: pricing.email?.standard || 0.045,
       engagement: 85,
@@ -99,7 +130,9 @@ const ChannelSelector = ({
       badge: `R${(pricing.email?.standard || 0.045).toFixed(3)} per msg`,
       badgeColor: 'purple',
       gradient: 'from-purple-400 to-purple-600',
-      savings: null
+      savings: null,
+      supportsPRCodes: true,
+      prCodeFeatures: ['Custom codes', 'QR codes', 'Advanced analytics', 'Bulk management']
     }
   ];
 
@@ -148,6 +181,31 @@ const ChannelSelector = ({
     }
   };
 
+  const handlePRCodeToggle = () => {
+    const newPRCodeEnabled = !prCodeEnabled;
+    setPRCodeEnabled(newPRCodeEnabled);
+    
+    // If enabling PR codes and WhatsApp isn't selected, auto-select it
+    if (newPRCodeEnabled && !selectedChannels.includes('whatsapp')) {
+      handleChannelToggle('whatsapp');
+    }
+    
+    // Notify parent component about PR code state change
+    if (typeof onTogglePRCodeOptions === 'function') {
+      onTogglePRCodeOptions(newPRCodeEnabled);
+    }
+  };
+
+  const handlePRCodeGeneration = () => {
+    if (typeof onPRCodeGenerate === 'function') {
+      onPRCodeGenerate({
+        type: selectedPRCodeType,
+        channels: selectedChannels,
+        recipientCount
+      });
+    }
+  };
+
   const getChannelCardStyle = (channel) => {
     const isSelected = selectedChannels.includes(channel.id);
     const isHovered = hoveredChannel === channel.id;
@@ -172,6 +230,12 @@ const ChannelSelector = ({
     return colors[channel.badgeColor] || colors.blue;
   };
 
+  // Check if any selected channel supports PR codes
+  const hasPRCodeSupport = selectedChannels.some(channelId => {
+    const channel = channels.find(c => c.id === channelId);
+    return channel?.supportsPRCodes;
+  });
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
@@ -187,7 +251,7 @@ const ChannelSelector = ({
               )}
             </h2>
             <p className="text-blue-100 text-lg">
-              Choose your delivery methods for maximum reach and cost efficiency
+              Choose your delivery methods with PR code integration for maximum reach and tracking
             </p>
           </div>
           
@@ -204,25 +268,110 @@ const ChannelSelector = ({
                   💰 Saving R{totalSavings.toFixed(2)}
                 </div>
               )}
+              {prCodeEnabled && (
+                <div className="text-yellow-300 text-sm font-bold mt-1 flex items-center">
+                  <FiLink className="mr-1" /> PR Codes Enabled
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* WhatsApp Priority Banner */}
+      {/* PR Code Options Toggle */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="bg-indigo-100 p-3 rounded-2xl">
+              <FiLink className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-indigo-800">Personal Referral (PR) Codes</h3>
+              <p className="text-indigo-700 text-sm">
+                Generate unique tracking codes for each recipient with analytics and QR support
+              </p>
+            </div>
+          </div>
+          
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={prCodeEnabled}
+              onChange={handlePRCodeToggle}
+              className="sr-only peer"
+            />
+            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-900">
+              {prCodeEnabled ? 'Enabled' : 'Disabled'}
+            </span>
+          </label>
+        </div>
+
+        {prCodeEnabled && (
+          <div className="mt-4 p-4 bg-white rounded-xl border border-indigo-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  PR Code Type
+                </label>
+                <select
+                  value={selectedPRCodeType}
+                  onChange={(e) => setSelectedPRCodeType(e.target.value)}
+                  className="block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="automatic">Automatic Generation</option>
+                  <option value="custom">Custom Codes</option>
+                  <option value="bulk">Bulk Import</option>
+                  <option value="sequential">Sequential Numbering</option>
+                </select>
+              </div>
+              
+              <div className="flex items-end">
+                <button
+                  onClick={handlePRCodeGeneration}
+                  className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  Generate PR Codes
+                </button>
+              </div>
+            </div>
+            
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600">
+              <div className="flex items-center">
+                <FiCheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                <span>Trackable analytics</span>
+              </div>
+              <div className="flex items-center">
+                <FiCheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                <span>QR code support</span>
+              </div>
+              <div className="flex items-center">
+                <FiCheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                <span>Conversion tracking</span>
+              </div>
+              <div className="flex items-center">
+                <FiCheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                <span>Multi-channel sync</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* WhatsApp Priority Banner with PR Code Emphasis */}
       {!selectedChannels.includes('whatsapp') && (
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 shadow-2xl border-2 border-green-400">
           <div className="flex items-center justify-between text-white">
             <div>
               <h3 className="text-xl font-bold mb-2 flex items-center">
-                💡 Maximize Your Impact with WhatsApp
+                💡 Maximize Your Impact with WhatsApp + PR Codes
                 <FiStar className="ml-2 text-yellow-300" />
               </h3>
-              <p className="text-green-100 mb-4">Join 98% of schools that choose WhatsApp for the highest engagement</p>
+              <p className="text-green-100 mb-4">Get FREE messaging with advanced PR code tracking and 98% engagement</p>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center">
                   <FiCheckCircle className="mr-2" />
-                  Completely FREE messaging
+                  FREE messaging + PR codes
                 </div>
                 <div className="flex items-center">
                   <FiCheckCircle className="mr-2" />
@@ -230,11 +379,11 @@ const ChannelSelector = ({
                 </div>
                 <div className="flex items-center">
                   <FiCheckCircle className="mr-2" />
-                  Instant delivery
+                  QR code generation
                 </div>
                 <div className="flex items-center">
                   <FiCheckCircle className="mr-2" />
-                  Rich media support
+                  Advanced analytics
                 </div>
               </div>
             </div>
@@ -273,6 +422,13 @@ const ChannelSelector = ({
               {channel.id === 'whatsapp' && (
                 <div className="absolute -top-2 -left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-bounce">
                   #1 CHOICE
+                </div>
+              )}
+
+              {/* PR Code Badge */}
+              {channel.supportsPRCodes && (
+                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                  <FiLink className="inline mr-1 h-3 w-3" /> PR
                 </div>
               )}
 
@@ -338,6 +494,23 @@ const ChannelSelector = ({
                   ))}
                 </div>
 
+                {/* PR Code Features (if supported) */}
+                {channel.supportsPRCodes && (isSelected || hoveredChannel === channel.id) && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                    <h5 className="text-xs font-bold text-indigo-800 mb-2 flex items-center">
+                      <FiLink className="mr-1 h-3 w-3" /> PR Code Features:
+                    </h5>
+                    <div className="space-y-1">
+                      {channel.prCodeFeatures.slice(0, 2).map((feature, index) => (
+                        <div key={index} className="flex items-start text-xs text-indigo-700">
+                          <FiCheckCircle className="mr-1 h-3 w-3 text-indigo-500 flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Cost Information */}
                 {isSelected && (
                   <div className="space-y-3">
@@ -390,6 +563,42 @@ const ChannelSelector = ({
         })}
       </div>
 
+      {/* PR Code Success Message */}
+      {prCodeEnabled && hasPRCodeSupport && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                <FiBarChart2 className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-bold text-green-800">
+                🎯 PR Codes Enabled! Track invitations with precision
+              </h3>
+              <div className="mt-2 grid grid-cols-2 gap-4 text-sm text-green-700">
+                <div className="flex items-center">
+                  <FiCheckCircle className="mr-2 h-4 w-4" />
+                  <span>Individual tracking codes</span>
+                </div>
+                <div className="flex items-center">
+                  <FiQrCode className="mr-2 h-4 w-4" />
+                  <span>QR code generation</span>
+                </div>
+                <div className="flex items-center">
+                  <FiUserPlus className="mr-2 h-4 w-4" />
+                  <span>Conversion analytics</span>
+                </div>
+                <div className="flex items-center">
+                  <FiTrendingUp className="mr-2 h-4 w-4" />
+                  <span>Performance insights</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Selection Feedback */}
       {selectedChannels.length === 0 && (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-6">
@@ -404,13 +613,13 @@ const ChannelSelector = ({
                 Select at least one channel to continue
               </h3>
               <p className="mt-2 text-amber-700">
-                💡 <strong>Pro tip:</strong> WhatsApp delivers the highest engagement at zero cost - it's the smart choice for schools!
+                💡 <strong>Pro tip:</strong> WhatsApp delivers the highest engagement at zero cost with PR code support!
               </p>
               <button
                 onClick={() => handleChannelToggle('whatsapp')}
                 className="mt-3 bg-green-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-600 transition-colors"
               >
-                Choose WhatsApp (FREE)
+                Choose WhatsApp (FREE + PR Codes)
               </button>
             </div>
           </div>
@@ -440,6 +649,12 @@ const ChannelSelector = ({
                 <div className="mt-2 flex items-center text-green-700">
                   <FiCheckCircle className="mr-2 h-4 w-4" />
                   <span className="font-medium">Smart! You've included WhatsApp for maximum engagement</span>
+                </div>
+              )}
+              {prCodeEnabled && (
+                <div className="mt-2 flex items-center text-indigo-700">
+                  <FiCheckCircle className="mr-2 h-4 w-4" />
+                  <span className="font-medium">PR codes will sync across all selected channels</span>
                 </div>
               )}
             </div>
@@ -474,8 +689,8 @@ const ChannelSelector = ({
                   <span>Instant delivery</span>
                 </div>
                 <div className="flex items-center">
-                  <FiUsers className="mr-2 h-4 w-4" />
-                  <span>Preferred by 98% of parents</span>
+                  <FiLink className="mr-2 h-4 w-4" />
+                  <span>PR code support included</span>
                 </div>
               </div>
               <p className="mt-3 text-green-600 font-medium">
@@ -514,6 +729,7 @@ const ChannelSelector = ({
                   <th className="text-center py-3 px-4 font-bold text-gray-900">Per Message</th>
                   <th className="text-center py-3 px-4 font-bold text-gray-900">Total Cost</th>
                   <th className="text-center py-3 px-4 font-bold text-gray-900">Engagement</th>
+                  <th className="text-center py-3 px-4 font-bold text-gray-900">PR Support</th>
                   <th className="text-center py-3 px-4 font-bold text-gray-900">Status</th>
                 </tr>
               </thead>
@@ -552,6 +768,17 @@ const ChannelSelector = ({
                         </span>
                       </td>
                       <td className="text-center py-4 px-4">
+                        {channel.supportsPRCodes ? (
+                          <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">
+                            ✓ Available
+                          </span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                            ✗ Not Available
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-center py-4 px-4">
                         {isSelected ? (
                           <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold">
                             ✓ Selected
@@ -574,7 +801,7 @@ const ChannelSelector = ({
           
           {/* Summary */}
           <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600">R{totalCost.toFixed(2)}</div>
                 <div className="text-sm text-gray-600">Total Selected Cost</div>
@@ -594,6 +821,12 @@ const ChannelSelector = ({
                 </div>
                 <div className="text-sm text-gray-600">Avg. Engagement</div>
               </div>
+              <div>
+                <div className="text-2xl font-bold text-indigo-600">
+                  {prCodeEnabled ? '✓ Enabled' : '✗ Disabled'}
+                </div>
+                <div className="text-sm text-gray-600">PR Codes</div>
+              </div>
             </div>
           </div>
         </div>
@@ -603,7 +836,7 @@ const ChannelSelector = ({
       {!selectedChannels.includes('whatsapp') && selectedChannels.length > 0 && (
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-center text-white">
           <h3 className="text-xl font-bold mb-2">💡 Want to save even more?</h3>
-          <p className="mb-4">Add WhatsApp to your selection and get FREE messaging with 98% engagement!</p>
+          <p className="mb-4">Add WhatsApp to your selection and get FREE messaging with PR code tracking!</p>
           <button
             onClick={() => handleChannelToggle('whatsapp')}
             className="bg-white text-green-600 px-8 py-3 rounded-xl font-bold text-lg hover:bg-green-50 transform hover:scale-105 transition-all shadow-lg"
