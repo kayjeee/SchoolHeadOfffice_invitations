@@ -1,11 +1,11 @@
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-      const url = 'https://dev-t0o26rre86m7t8lo.us.auth0.com/oauth/token';
+      const url = 'https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/oauth/token';
   
       const body = {
         client_id: process.env.AUTH0_CLIENT_ID,
         client_secret: process.env.AUTH0_CLIENT_SECRET,
-        audience: 'https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/',
+        audience: 'https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/',
         grant_type: 'client_credentials',
       };
   
