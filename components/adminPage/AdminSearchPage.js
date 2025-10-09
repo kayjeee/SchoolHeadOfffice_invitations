@@ -22,7 +22,7 @@ const SchoolSearchPage = ({ user }) => {
 
     try {
       const response = await fetch(
-        `http://localhost:4000/api/v1/schools/search?query=${encodeURIComponent(searchTerm)}`,
+        `https://sho-backend-v2.onrender.com/api/v1/schools/search?query=${encodeURIComponent(searchTerm)}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },

@@ -16,7 +16,7 @@ const QRCodeGenerator = ({ invite }) => {
 
   // Normalize invite props
   const prCode = invite?.pr_code || invite?.prCode;
-  const shortUrl = invite?.shortUrl || `https://yourdomain.com/invite/${prCode}`;
+  const shortUrl = invite?.shortUrl || `https://www.schoolheadoffice.com//invite/${prCode}`;
 
   /** Download QR Code as PNG */
   const handleDownload = async () => {

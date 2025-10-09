@@ -67,7 +67,7 @@ export default function SettingsLayout({ user, schools }) {
       setError(null);
 
       const token = localStorage.getItem('authToken');
-      const apiUrl = `http://localhost:4000/api/v1/schools/${schoolId}/grades`;
+      const apiUrl = `https://sho-backend-v2.onrender.com/api/v1/schools/${schoolId}/grades`;
 
       console.log('Fetching grades from:', apiUrl);
 
@@ -142,7 +142,7 @@ export default function SettingsLayout({ user, schools }) {
         {schoolId ? (
           <>
             {/* QR Code */}
-            <QRCodeCanvas value={`https://your-app.com/invite/${schoolId}`} size={180} />
+            <QRCodeCanvas value={`https://www.schoolheadoffice.com/invite/${schoolId}`} size={180} />
 
             {/* Info text */}
             <p className="text-sm text-gray-500 text-center">
@@ -151,7 +151,7 @@ export default function SettingsLayout({ user, schools }) {
 
             {/* Live clickable link */}
             <a
-              href={`https://your-app.com/invite/${schoolId}`}
+              href={`https://www.schoolheadoffice.com//invite/${schoolId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline break-all text-center"
@@ -161,7 +161,7 @@ export default function SettingsLayout({ user, schools }) {
 
             {/* Copy button */}
             <button
-              onClick={() => navigator.clipboard.writeText(`https://your-app.com/invite/${schoolId}`)}
+              onClick={() => navigator.clipboard.writeText(`https://www.schoolheadoffice.com/invite/${schoolId}`)}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Copy Invite Link
