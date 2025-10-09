@@ -45,7 +45,7 @@ You're invited to join our secure parent communication portal for ${selectedGrad
 ✅ Connect with teachers directly
 ✅ Access school resources and calendar
 
-Join now: https://portal.${schoolName.toLowerCase().replace(/\s+/g, '')}.com/join
+Join now: https://www.schoolheadoffice.com/.${schoolName.toLowerCase().replace(/\s+/g, '')}.com/join
 
 For support, WhatsApp us at this number or email support@${schoolName.toLowerCase().replace(/\s+/g, '')}.com
 
