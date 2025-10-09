@@ -286,7 +286,7 @@ const BulkUpload = ({ isOpen, onClose, selectedGrade, onUploadSuccess, schools }
     setErrorStatus('');
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/learners/bulk_upload', {
+      const response = await fetch('https://sho-backend-v2.onrender.com/api/v1/learners/bulk_upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: validationResults.dataToUpload }),
