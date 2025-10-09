@@ -17,10 +17,10 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
     const fetchLearners = async () => {
       try {
         setLoading(true);
-        let url = 'http://localhost:4000/api/v1/learners';
+        let url = 'https://sho-backend-v2.onrender.com/api/v1/learners';
         
         if (selectedGrade) {
-          url = `http://localhost:4000/api/v1/grades/${selectedGrade.id}/learners`;
+          url = `https://sho-backend-v2.onrender.com/api/v1/grades/${selectedGrade.id}/learners`;
         }
 
         const response = await axios.get(url, {

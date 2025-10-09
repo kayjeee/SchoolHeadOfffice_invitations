@@ -74,7 +74,7 @@ export default function Home() {
     setIsLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
+      const res = await fetch(`https://sho-backend-v2.onrender.com/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
       if (res.status === 404) {
         setSchools([]);
         setMessage("You have not created any school yet. Please create a new school.");
@@ -94,7 +94,7 @@ export default function Home() {
   const checkOnboardingStatus = async () => {
     setIsCheckingOnboarding(true);
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
+      const res = await fetch(`https://sho-backend-v2.onrender.com/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
       const data = await res.json();
       setOnboardingStatus(data);
       const complete =

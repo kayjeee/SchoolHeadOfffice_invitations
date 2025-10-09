@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000/api/v1';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://sho-backend-v2.onrender.com/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({
