@@ -8,7 +8,7 @@ import LoadingSpinner from "../components/spinners/LoadingSpinner";
 import clientPromise from "../lib/mongodb";
 
 const Home = ({ schools }) => {
-  const { user, isLoading } = useUser();
+  const { user, isLoading: authLoading } = useUser();
   const dropdownRef = useRef(null);
 
   const [state, setState] = useState({
@@ -18,9 +18,10 @@ const Home = ({ schools }) => {
     userData: null,
     userRoles: [],
     error: null,
+    isProcessing: true, // 🔹 controls "Loading..." state
   });
 
-  // ✅ Helper to fetch access token
+  // ✅ Helper: get Management API access token
   const getAccessTokenFromAPI = async () => {
     const response = await fetch("/api/getAccessToken", {
       method: "POST",
@@ -31,48 +32,51 @@ const Home = ({ schools }) => {
     return accessToken;
   };
 
-  // ✅ Step 1: Check and save user in backend if needed
-  const checkAndSaveUser = async (token) => {
-    try {
-      const userId = encodeURIComponent(user.sub);
-      const checkUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/${userId}`;
-      const postUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/`;
+  // ✅ Step 1: Check and Save User
+  const checkAndSaveUser = async (token, authUser) => {
+    const userId = encodeURIComponent(authUser.sub);
+    const checkUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/${userId}`;
+    const postUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/`;
 
-      const response = await fetch(checkUserUrl, {
-        headers: { Authorization: `Bearer ${token}` },
+    console.log("[checkAndSaveUser] Checking user:", userId);
+
+    const response = await fetch(checkUserUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 404) {
+      console.log("[checkAndSaveUser] User not found, creating...");
+      const userPayload = {
+        auth0_id: authUser.sub,
+        name: authUser.name,
+        email: authUser.email,
+        roles: ["default_role"],
+      };
+
+      const createResponse = await fetch(postUserUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(userPayload),
       });
 
-      if (response.status === 404) {
-        // User does not exist — create one
-        const userPayload = {
-          auth0_id: user.sub,
-          name: user.name,
-          email: user.email,
-          roles: ["default_role"],
-        };
+      if (!createResponse.ok)
+        throw new Error("Failed to create user in backend");
 
-        const createResponse = await fetch(postUserUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(userPayload),
-        });
-
-        if (!createResponse.ok) throw new Error("Failed to create user");
-        const createdUser = await createResponse.json();
-        return createdUser;
-      } else if (response.ok) {
-        // User exists — fetch user data
-        const existingUser = await response.json();
-        return existingUser;
-      } else {
-        throw new Error("Failed to fetch user data");
-      }
-    } catch (error) {
-      throw new Error(error.message || "Error checking/saving user");
+      const createdUser = await createResponse.json();
+      console.log("[checkAndSaveUser] User created:", createdUser);
+      return createdUser;
     }
+
+    if (response.ok) {
+      const existingUser = await response.json();
+      console.log("[checkAndSaveUser] User exists:", existingUser);
+      return existingUser;
+    }
+
+    throw new Error("Failed to fetch or create user");
   };
 
   // ✅ Step 2: Fetch user roles from Auth0
@@ -85,35 +89,54 @@ const Home = ({ schools }) => {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+
     if (!response.ok) throw new Error("Failed to fetch user roles");
     const rolesData = await response.json();
+    console.log("[fetchUserRoles] Roles fetched:", rolesData);
     return rolesData.map((role) => role.name);
   };
 
-  // ✅ Main effect — runs once user is loaded
+  // ✅ Step 3: Initialization flow
   useEffect(() => {
-    if (!user) return;
-
     const initializeUser = async () => {
+      if (authLoading) return; // Wait until Auth0 finishes
+      if (!user) {
+        console.log("[initializeUser] No Auth0 user yet.");
+        setState((prev) => ({ ...prev, isProcessing: false }));
+        return;
+      }
+
+      console.log("[initializeUser] Auth0 user ready:", user);
+
       try {
         const token = await getAccessTokenFromAPI();
+        console.log("[initializeUser] Got access token.");
 
-        // Step 1: Ensure user exists in backend
-        const userRecord = await checkAndSaveUser(token);
-        setState((prev) => ({ ...prev, userData: userRecord }));
-
-        // Step 2: Fetch roles after user is saved
+        // Step 1: Check or create user in backend
+        const userRecord = await checkAndSaveUser(token, user);
+        // Step 2: Fetch roles from Auth0
         const roles = await fetchUserRoles(token, encodeURIComponent(user.sub));
-        setState((prev) => ({ ...prev, userRoles: roles }));
+
+        setState((prev) => ({
+          ...prev,
+          userData: userRecord,
+          userRoles: roles,
+          isProcessing: false,
+        }));
       } catch (err) {
-        setState((prev) => ({ ...prev, error: err.message }));
+        console.error("[initializeUser] Error:", err);
+        setState((prev) => ({
+          ...prev,
+          error: err.message,
+          isProcessing: false,
+        }));
       }
     };
 
     initializeUser();
-  }, [user]);
+  }, [user, authLoading]);
 
-  // ✅ Detect screen size for responsive layout
+  // ✅ Handle screen resize for mobile/desktop detection
   useEffect(() => {
     const handleResize = () => {
       setState((prev) => ({ ...prev, isMobile: window.innerWidth < 768 }));
@@ -123,12 +146,14 @@ const Home = ({ schools }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const { isMobile, chatOpen, dropdownOpen, error, userRoles, userData } = state;
+  const { isMobile, chatOpen, dropdownOpen, error, userRoles, isProcessing } =
+    state;
 
-  if (isLoading) return <LoadingSpinner />;
-  if (!user) return <div>Loading...</div>;
+  // ✅ Show loading spinner while processing user setup
+  if (authLoading || isProcessing) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
+  // ✅ Render final layouts
   return isMobile ? (
     <FrontPageLayoutMobileView user={user} schools={schools} userRoles={userRoles}>
       <MobileHome
@@ -149,6 +174,7 @@ const Home = ({ schools }) => {
   );
 };
 
+// ✅ Server-side props for school data
 export async function getServerSideProps() {
   try {
     const client = await clientPromise;

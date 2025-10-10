@@ -15,7 +15,7 @@ const DEFAULT_SECONDARY = "white";
 
 // Add your Rails API base URL here
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://sho-backend-v2.onrender.com";
 
 /**
  * Enhanced NASA-style logger with high visibility terminal output
