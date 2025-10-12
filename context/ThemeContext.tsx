@@ -19,7 +19,7 @@ const API_BASE_URL =
 
 /**
  * Enhanced NASA-style logger with high visibility terminal output
- * Includes both structured JSON logging and human-readable console output
+ * Includes both structured JSON logging and human-readable console output  yes
  */
 const nasaLog = (
   severity: string,
