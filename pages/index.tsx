@@ -35,8 +35,8 @@ const Home = ({ schools }) => {
   // ✅ Step 1: Check and Save User
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
-    const checkUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/${userId}`;
-    const postUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/`;
+    const checkUserUrl = `https://421e6967b77a.ngrok-free.app/api/v1/users/${userId}`;
+    const postUserUrl = `https://421e6967b77a.ngrok-free.app/api/v1/users/`;
 
     console.log("[checkAndSaveUser] Checking user:", userId);
 
