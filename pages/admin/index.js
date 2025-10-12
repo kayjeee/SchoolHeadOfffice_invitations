@@ -50,7 +50,7 @@ export default function Home() {
 
   // Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    const url = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`;
+    const url = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`;
     const res = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) throw new Error("Failed to fetch user roles");
     const roles = await res.json();
