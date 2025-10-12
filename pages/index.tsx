@@ -32,7 +32,7 @@ const Home = ({ schools }) => {
     return accessToken;
   };
 
-  // ✅ Step 1: Check and Save User
+  // ✅ Step 1: Check and Save User should work
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
     const checkUserUrl = `https://421e6967b77a.ngrok-free.app/api/v1/users/${userId}`;
@@ -194,3 +194,4 @@ export async function getServerSideProps() {
 }
 
 export default Home;
+
