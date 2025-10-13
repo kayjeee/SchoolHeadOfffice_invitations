@@ -1,7 +1,7 @@
 // components/Schoolpage/CreateSchoolForm/services/schoolService.js
 
 // --- Config ---
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://sho-backend-v2.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://3ddf3987485e.ngrok-free.app";
 const AUTH0_DOMAIN =
   process.env.NEXT_PUBLIC_AUTH0_DOMAIN || "dev-t0o26rre86m7t8lo.us.auth0.com";
 
