@@ -33,7 +33,7 @@ const Home = ({ schools }) => {
   }, []);
 
   const fetchUserRoles = async (accessToken, userId) => {
-    const rolesUrl = `https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${userId}/roles`;
+    const rolesUrl = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${userId}/roles`;
     const response = await fetch(rolesUrl, {
       method: 'GET',
       headers: {
@@ -63,11 +63,14 @@ const Home = ({ schools }) => {
         const roles = await fetchUserRoles(accessToken, userId);
         setState((prev) => ({ ...prev, userRoles: roles }));
 
-        const checkUserUrl = `http://localhost:4000/api/v1/users/${userId}`;
-        const postUserUrl = `http://localhost:4000/api/v1/users/`;
+        const checkUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/${userId}`;
+        const postUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/`;
 
         const userResponse = await fetch(checkUserUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${accessToken}`,
+        "ngrok-skip-browser-warning": "true"
+       },
+          
         });
 
         if (userResponse.status === 404) {

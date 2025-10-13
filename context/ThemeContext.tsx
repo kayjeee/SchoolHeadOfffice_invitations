@@ -15,7 +15,7 @@ const DEFAULT_SECONDARY = "white";
 
 // Add your Rails API base URL here
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://3ddf3987485e.ngrok-free.app";
 
 /**
  * Enhanced NASA-style logger with high visibility terminal output

@@ -28,12 +28,13 @@ const ProfileCard = () => {
   const checkAndSaveUser = async (token) => {
     try {
       const userId = encodeURIComponent(user.sub); // Auth0's unique user ID
-      const checkUserUrl = `http://localhost:4000/api/v1/users/${userId}`;
-      const postUserUrl = `http://localhost:4000/api/v1/users/`;
+      const checkUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/${userId}`;
+      const postUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/`;
       // Check if user exists
       const response = await fetch(checkUserUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
+    "ngrok-skip-browser-warning": "true"
         },
       });
   
