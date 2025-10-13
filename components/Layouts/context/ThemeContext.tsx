@@ -136,7 +136,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     const processedColor = processColorInput(color);
     setPrimaryColorState(processedColor);
     
-    // Store the original input format for persistence
+    // Store the original input format for persistence here
     try {
       const storageValue = typeof color === 'object' ? JSON.stringify(color) : color;
       localStorage.setItem('primaryColor', storageValue);
