@@ -33,7 +33,7 @@ interface AppThemeContextType {
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
 
 // Add your Rails API base URL here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://sho-backend-v2.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://3ddf3987485e.ngrok-free.app';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
 const DEFAULT_PRIMARY = 'gold';
@@ -136,7 +136,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     const processedColor = processColorInput(color);
     setPrimaryColorState(processedColor);
     
-    // Store the original input format for persistence
+    // Store the original input format for persistence here
     try {
       const storageValue = typeof color === 'object' ? JSON.stringify(color) : color;
       localStorage.setItem('primaryColor', storageValue);
