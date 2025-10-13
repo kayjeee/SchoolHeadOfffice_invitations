@@ -62,7 +62,7 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         const token = localStorage.getItem("authToken");
 
         const response = await fetch(
-          `http://localhost:4000/api/v1/schools/${targetSchoolId}/grades`,
+          `https://3ddf3987485e.ngrok-free.app/api/v1/schools/${targetSchoolId}/grades`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
