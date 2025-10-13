@@ -41,7 +41,8 @@ const Home = ({ schools }) => {
     console.log("[checkAndSaveUser] Checking user:", userId);
 
     const response = await fetch(checkUserUrl, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`,
+    "ngrok-skip-browser-warning": "true" },
     });
 
     if (response.status === 404) {
@@ -58,6 +59,7 @@ const Home = ({ schools }) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify(userPayload),
       });
