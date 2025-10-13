@@ -406,14 +406,13 @@ if (!schoolData || !schoolData.data || !schoolData.data.school || !schoolData.da
       // ==================== AUTH0 ROLE ASSIGNMENT ====================
       console.log('👑 Assigning Admin role in Auth0...');
       
-      const userId = encodeURIComponent(user.sub);
-      console.log('👤 Encoded user ID:', userId);
-      console.log('🔑 Auth0 user sub:', user.sub);
+      const userId = user.sub;
+      console.log('👤 User ID:', userId);
 
       const accessToken = await getAccessToken();
       console.log('🔐 Access token retrieved for role assignment');
 
-      const roleUpdateResponse = await fetch(`https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${userId}/roles`, {
+      const roleUpdateResponse = await fetch(`https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -59,9 +59,9 @@ export default function PricingPage() {
         if (!response.ok) throw new Error('Failed to fetch access token');
 
         const { accessToken } = await response.json();
-        const userId = encodeURIComponent(user.sub);
+        const userId = user.sub;
 
-        const roles = await fetchUserRoles(accessToken, userId);
+        const roles = await fetchUserRoles(accessToken, encodeURIComponent(userId));
         setState((prev) => ({ ...prev, userRoles: roles }));
 
         const checkUserUrl = `http://localhost:4000/api/v1/users/${userId}`;

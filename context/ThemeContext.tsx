@@ -15,11 +15,11 @@ const DEFAULT_SECONDARY = "white";
 
 // Add your Rails API base URL here
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://3ddf3987485e.ngrok-free.app";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://421e6967b77a.ngrok-free.app";
 
 /**
  * Enhanced NASA-style logger with high visibility terminal output
- * Includes both structured JSON logging and human-readable console output
+ * Includes both structured JSON logging and human-readable console output  yes
  */
 const nasaLog = (
   severity: string,
@@ -605,3 +605,4 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 };
 
 export const useAppTheme = (): ThemeContextType => useContext(ThemeContext);
+

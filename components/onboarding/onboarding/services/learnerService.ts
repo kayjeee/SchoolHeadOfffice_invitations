@@ -2,7 +2,7 @@
 import { CreateLearnerData, BulkUploadResult } from '../types';
 import { Learner } from './../OnboardingFlow/Step3SendInvites/types';
 
-const API_BASE_URL = 'http://localhost:4000/api/v1';
+const API_BASE_URL = 'https://sho-backend-v2.onrender.com/api/v1';
 
 /**
  * Service for handling learner-related operations
