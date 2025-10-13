@@ -21,7 +21,7 @@ export default function ProfessionalSection({ user }) {
 
       try {
         const response = await fetch(
-          `https://sho-backend-v2.onrender.com/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
+          `https://3ddf3b87485e.ngrok-free.app/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) throw new Error("Failed to fetch approved schools");
