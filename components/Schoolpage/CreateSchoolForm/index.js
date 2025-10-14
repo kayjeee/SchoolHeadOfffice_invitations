@@ -6,11 +6,9 @@ import Step3Admins from './steps/Step3Admins';
 import Step4Social from './steps/Step4Social';
 import LoadingSpinner from '../../spinners/LoadingSpinner';
 import { provisionNewSchool } from './services/schoolService';
-import { ColorThemeProvider, useColorTheme } from "./context/ThemeContext";
 
-const CreateSchoolFormContent = ({ user }) => {
+const CreateSchoolForm = ({ user }) => {
   const router = useRouter();
-  const { primaryColor } = useColorTheme();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -35,7 +33,7 @@ const CreateSchoolFormContent = ({ user }) => {
     facebook: '',
     tiktok: '',
     linkedin: '',
-    status: 'active',
+    status: 'active', // 👈 default
   });
 
   const updateField = (key, value) =>
@@ -60,6 +58,7 @@ const CreateSchoolFormContent = ({ user }) => {
       setError('Failed to create and provision school. Please try again.');
     } finally {
       setLoading(false);
+       // router.reload();
     }
   };
 
@@ -133,67 +132,15 @@ const CreateSchoolFormContent = ({ user }) => {
 
   return (
     <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
-      <h1 
-        className="text-2xl font-bold mb-4"
-        style={{ color: formData.theme.value }}
-      >
-        Create a School
-      </h1>
-      
-      {/* Step indicator */}
-      <div className="flex items-center justify-center mb-6">
-        {[1, 2, 3, 4].map((stepNum) => (
-          <React.Fragment key={stepNum}>
-            <div
-              className="flex items-center justify-center w-8 h-8 rounded-full font-semibold"
-              style={{
-                backgroundColor: step >= stepNum ? formData.theme.value : '#e5e7eb',
-                color: step >= stepNum ? '#ffffff' : '#6b7280',
-              }}
-            >
-              {stepNum}
-            </div>
-            {stepNum < 4 && (
-              <div
-                className="w-12 h-1 mx-2"
-                style={{
-                  backgroundColor: step > stepNum ? formData.theme.value : '#e5e7eb',
-                }}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      
+      <h1 className="text-2xl font-bold mb-4">Create a School</h1>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
       {success && (
-        <div 
-          className="px-4 py-3 rounded mb-4"
-          style={{
-            backgroundColor: `${formData.theme.value}20`,
-            border: `1px solid ${formData.theme.value}`,
-            color: formData.theme.value,
-          }}
-        >
-          🎉 School created and you've been set as Admin!
+        <div className="text-green-600 mb-4">
+          🎉 School created and you’ve been set as Admin!
         </div>
       )}
-      
       {renderStep()}
     </div>
-  );
-};
-
-const CreateSchoolForm = ({ user }) => {
-  return (
-    <ColorThemeProvider>
-      <CreateSchoolFormContent user={user} />
-    </ColorThemeProvider>
   );
 };
 

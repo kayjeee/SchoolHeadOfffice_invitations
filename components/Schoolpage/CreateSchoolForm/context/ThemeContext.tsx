@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useMemo } from 'react';
-import { School } from '../shared/types/School';
+import { School } from '../../../onboarding/onboarding/shared/types/School';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
 // Color type definitions
