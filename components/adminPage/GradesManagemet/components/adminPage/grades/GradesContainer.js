@@ -59,7 +59,7 @@ const GradesContainer = ({ selectedSchool, user, schools, grades: propGrades = [
     try {
       const token = localStorage.getItem('authToken');
       await axios.post(
-        `http://localhost:4000/api/v1/schools/${selectedSchool.id}/grades`,
+        `https://3ddf3987485e.ngrok-free.app/api/v1/schools/${selectedSchool.id}/grades`,
         {
           grade: newGrade
         },
@@ -88,7 +88,7 @@ const GradesContainer = ({ selectedSchool, user, schools, grades: propGrades = [
     try {
       const token = localStorage.getItem('authToken');
       await axios.patch(
-        `http://localhost:4000/api/v1/grades/${selectedGrade.id}`,
+        `https://3ddf3987485e.ngrok-free.app/api/v1/grades/${selectedGrade.id}`,
         {
           grade: updatedGrade
         },
@@ -117,7 +117,7 @@ const GradesContainer = ({ selectedSchool, user, schools, grades: propGrades = [
     try {
       const token = localStorage.getItem('authToken');
       await axios.delete(
-        `http://localhost:4000/api/v1/grades/${selectedGrade.id}`,
+        `https://3ddf3987485e.ngrok-free.app/api/v1/grades/${selectedGrade.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

@@ -14,7 +14,7 @@ const SchoolDropdown = ({ user }) => {
 
       try {
         const response = await fetch(
-          `http://localhost:4000/api/v1/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
+          `https://3ddf3987485e.ngrok-free.app/api/v1/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) {

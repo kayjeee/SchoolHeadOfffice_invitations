@@ -21,7 +21,7 @@ export default function ProfessionalSection({ user }) {
 
       try {
         const response = await fetch(
-          `http://localhost:4000/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
+          `https://3ddf3b87485e.ngrok-free.app/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) throw new Error("Failed to fetch approved schools");

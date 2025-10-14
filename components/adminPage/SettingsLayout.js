@@ -67,7 +67,7 @@ export default function SettingsLayout({ user, schools }) {
       setError(null);
 
       const token = localStorage.getItem('authToken');
-      const apiUrl = `https://sho-backend-v2.onrender.com/api/v1/schools/${schoolId}/grades`;
+      const apiUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/schools/${schoolId}/grades`;
 
       console.log('Fetching grades from:', apiUrl);
 

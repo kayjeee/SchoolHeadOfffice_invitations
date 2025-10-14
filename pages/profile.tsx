@@ -34,6 +34,7 @@ const ProfileCard = () => {
       const response = await fetch(checkUserUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
+    "ngrok-skip-browser-warning": "true"
         },
       });
   

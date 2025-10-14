@@ -357,7 +357,7 @@ const CreateSchoolForm = ({ onSchoolCreated, onClose, handleSchoolCreated, searc
 
       console.log('📦 School payload:', schoolPayload);
 
-      const schoolResponse = await fetch('http://localhost:4000/api/v1/schools', {
+      const schoolResponse = await fetch('https://3ddf3987485e.ngrok-free.app/api/v1/schools', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(schoolPayload),
@@ -412,7 +412,7 @@ if (!schoolData || !schoolData.data || !schoolData.data.school || !schoolData.da
       const accessToken = await getAccessToken();
       console.log('🔐 Access token retrieved for role assignment');
 
-      const roleUpdateResponse = await fetch(`https://dev-t0o26rre86m7t8lo.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`, {
+      const roleUpdateResponse = await fetch(`https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -435,7 +435,7 @@ if (!schoolData || !schoolData.data || !schoolData.data.school || !schoolData.da
       // ==================== BACKEND ROLE SYNCHRONIZATION ====================
       console.log('🔄 Synchronizing role in backend...');
 
-      const backendResponse = await fetch(`http://localhost:4000/api/v1/users/${userId}/update_roles`, {
+      const backendResponse = await fetch(`https://3ddf3987485e.ngrok-free.app/api/v1/users/${userId}/update_roles`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roles: ['Admin'] }),
@@ -455,7 +455,7 @@ if (!schoolData || !schoolData.data || !schoolData.data.school || !schoolData.da
       // ==================== USER COLLECTION UPDATE ====================
       console.log('➕ Adding school to user\'s schools array...');
 
-      const addSchoolResponse = await fetch(`http://localhost:4000/api/v1/users/${userId}/add_school`, {
+      const addSchoolResponse = await fetch(`https://3ddf3987485e.ngrok-free.app/api/v1/users/${userId}/add_school`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schoolId }), // or { school: schoolId } based on your backend

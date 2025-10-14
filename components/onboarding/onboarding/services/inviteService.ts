@@ -1,7 +1,7 @@
 // components/onboarding/services/inviteService.ts
 import { Invite, CreateInviteData } from '../types';
 
-const API_BASE_URL = 'https://sho-backend-v2.onrender.com/api/v1';
+const API_BASE_URL = 'https://3ddf3987485e.ngrok-free.app/api/v1';
 
 /**
  * Service for handling invitation-related operations
