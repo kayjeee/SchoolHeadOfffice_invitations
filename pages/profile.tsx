@@ -27,10 +27,9 @@ const ProfileCard = () => {
 
   const checkAndSaveUser = async (token) => {
     try {
-      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID
-          const checkUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/${userId}`;
-    const postUserUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/users/`;
-
+      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID vdfdf
+      const checkUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/${userId}`;
+      const postUserUrl = `https://sho-backend-v2.onrender.com/api/v1/users/`;
       // Check if user exists
       const response = await fetch(checkUserUrl, {
         headers: {
