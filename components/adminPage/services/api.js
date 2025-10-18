@@ -1,5 +1,5 @@
 // src/services/api.js
-const API_BASE = 'http://localhost:4000/api/v1';
+const API_BASE = 'http://shobackendv2-production.up.railway.app/api/v1';
 
 export const fetchFromAPI = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE}/${endpoint}`, {

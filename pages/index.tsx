@@ -35,8 +35,8 @@ const Home = ({ schools }) => {
   // ✅ Step 1: Check and Save User should work
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
-    const checkUserUrl = `https://sho-backend-v2.fly.dev/api/v1/users/${userId}`;
-    const postUserUrl = `https://sho-backend-v2.fly.dev/api/v1/users/`;
+    const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
+    const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
 
     console.log("[checkAndSaveUser] Checking user:", userId);
 
