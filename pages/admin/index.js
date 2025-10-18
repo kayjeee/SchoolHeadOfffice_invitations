@@ -50,7 +50,7 @@ export default function Home() {
 
   // Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    const url = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${encodeURIComponent(userId)}/roles`;
+    const url = `https://sho-backend-v2.fly.dev/api/v2/users/${encodeURIComponent(userId)}/roles`;
     const res = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) throw new Error("Failed to fetch user roles");
     const roles = await res.json();
@@ -74,7 +74,7 @@ export default function Home() {
     setIsLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`https://3ddf3987485e.ngrok-free.app/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
+      const res = await fetch(`https://sho-backend-v2.fly.dev/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
       if (res.status === 404) {
         setSchools([]);
         setMessage("You have not created any school yet. Please create a new school.");
@@ -94,7 +94,7 @@ export default function Home() {
   const checkOnboardingStatus = async () => {
     setIsCheckingOnboarding(true);
     try {
-      const res = await fetch(`https://3ddf3987485e.ngrok-free.app/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
+      const res = await fetch(`https://sho-backend-v2.fly.dev/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
       const data = await res.json();
       setOnboardingStatus(data);
       const complete =
