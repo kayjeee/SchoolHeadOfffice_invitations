@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://3ddf3987485e.ngrok-free.app/api/v1';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({
