@@ -6,6 +6,8 @@ import Step3Admins from './steps/Step3Admins';
 import Step4Social from './steps/Step4Social';
 import LoadingSpinner from '../../spinners/LoadingSpinner';
 import { provisionNewSchool } from './services/schoolService';
+import { AppThemeProvider } from './context/ThemeContext';
+import StyleProvider from './providers/StyleProvider';
 
 const CreateSchoolForm = ({ user }) => {
   const router = useRouter();
@@ -131,16 +133,20 @@ const CreateSchoolForm = ({ user }) => {
   }
 
   return (
-    <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
-      <h1 className="text-2xl font-bold mb-4">Create a School</h1>
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-      {success && (
-        <div className="text-green-600 mb-4">
-          🎉 School created and you’ve been set as Admin!
+    <AppThemeProvider>
+      <StyleProvider>
+        <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
+          <h1 className="text-2xl font-bold mb-4">Create a School</h1>
+          {error && <div className="text-red-500 mb-4">{error}</div>}
+          {success && (
+            <div className="text-green-600 mb-4">
+              🎉 School created and you’ve been set as Admin!
+            </div>
+          )}
+          {renderStep()}
         </div>
-      )}
-      {renderStep()}
-    </div>
+      </StyleProvider>
+    </AppThemeProvider>
   );
 };
 

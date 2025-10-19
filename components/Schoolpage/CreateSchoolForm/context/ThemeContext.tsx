@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useMemo } from 'react';
-import { School } from '../../../onboarding/onboarding/shared/types/School';
+import { School } from '../shared/types/School';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { ColorPalette, generateColorPalette } from '../utils/colorUtils';
 
 // Color type definitions
 interface ColorObject {
@@ -18,6 +19,7 @@ interface ProcessedColor {
 
 interface AppThemeContextType {
   primaryColor: ProcessedColor;
+  colorPalette: ColorPalette | null;
   currentSchool: School | null;
   schools: School[];
   setPrimaryColor: (color: ColorInput) => void;
@@ -125,17 +127,19 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
 
   // Enhanced setPrimaryColor function that accepts both formats
   const setPrimaryColor = useCallback((color: ColorInput) => {
-    nasaLog('INFO', MODULE_TAG, 'Setting primary color', { 
+    nasaLog('INFO', MODULE_TAG, 'Setting primary color', {
       input: color,
-      type: typeof color 
+      type: typeof color
     });
-    
+
     const processedColor = processColorInput(color);
     setPrimaryColorState(processedColor);
-    
+    setColorPalette(generateColorPalette(processedColor.value));
+
     // Store the original input format for persistence here
     try {
       const storageValue = typeof color === 'object' ? JSON.stringify(color) : color;
@@ -359,6 +363,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const value = useMemo(() => ({
     primaryColor: primaryColorState,
+    colorPalette,
     currentSchool,
     schools,
     setPrimaryColor,
@@ -370,6 +375,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     getPrimaryColorMode,
   }), [
     primaryColorState,
+    colorPalette,
     currentSchool,
     schools,
     setPrimaryColor,

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import FormComponent from '../../../FormComponent';
-import FileUpload from '../../../FileUpload';
 import useColorMode from '../hooks/useColorMode';
 import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import Button from '../components/themed/Button';
+import Input from '../components/themed/Input';
+import { useAppTheme } from '../context/ThemeContext';
 
 const THEME_PRESETS = [
   { mode: 'blue', value: '#1E40AF', name: 'Sky Blue' },
@@ -23,6 +24,7 @@ const Step1BasicInfo = ({
   onNext,
   isLoading = false,
 }) => {
+  const { setPrimaryColor } = useAppTheme();
   const [colorMode, customColor, setColorMode] = useColorMode();
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
@@ -57,6 +59,7 @@ const Step1BasicInfo = ({
 
   const handleColorChange = (mode, value) => {
     setColorMode(mode, value);
+    setPrimaryColor({ mode, value });
   };
 
   return (
@@ -109,7 +112,7 @@ const Step1BasicInfo = ({
                       School Name *
                     </label>
                     <div className="relative">
-                      <input
+                      <Input
                         type="text"
                         value={schoolName}
                         onChange={onSchoolNameChange}
@@ -143,7 +146,7 @@ const Step1BasicInfo = ({
                       School Email *
                     </label>
                     <div className="relative">
-                      <input
+                      <Input
                         type="email"
                         value={schoolEmail}
                         onChange={onSchoolEmailChange}
@@ -177,7 +180,7 @@ const Step1BasicInfo = ({
                       Phone Number
                     </label>
                     <div className="relative">
-                      <input
+                      <Input
                         type="tel"
                         value={phoneNumber}
                         onChange={onPhoneNumberChange}
@@ -298,21 +301,12 @@ const Step1BasicInfo = ({
                 <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6">
                   <p className="text-gray-900 font-medium mb-4">Live Preview</p>
                   <div className="flex items-center gap-4">
-                    <button
+                    <Button
                       type="button"
-                      className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 shadow-lg"
-                      style={{ backgroundColor: previewBg }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = previewHover;
-                        e.currentTarget.style.boxShadow = `0 10px 30px ${previewBg}40`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = previewBg;
-                        e.currentTarget.style.boxShadow = `0 4px 20px ${previewBg}20`;
-                      }}
+                      className="px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
                     >
                       Primary Button
-                    </button>
+                    </Button>
 
                     <div className="flex items-center gap-2">
                       <div
@@ -328,15 +322,14 @@ const Step1BasicInfo = ({
 
             {/* Continue Button */}
             <div className="pt-8 border-t border-gray-200">
-              <button
+              <Button
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
                 className={`
-                  group relative w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-700
-                  text-white font-bold text-lg rounded-xl transition-all duration-300
-                  hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25
-                  focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed
+                  group relative w-full py-4 px-8
+                  font-bold text-lg rounded-xl transition-all duration-300
+                  focus:outline-none focus:ring-0
                   transform hover:scale-[1.02] active:scale-[0.98]
                   ${isLoading ? 'cursor-wait' : 'hover:-translate-y-1'}
                 `}
@@ -354,7 +347,7 @@ const Step1BasicInfo = ({
                     <span className="text-xl group-hover:translate-x-1 transition-transform duration-200">→</span>
                   </div>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
