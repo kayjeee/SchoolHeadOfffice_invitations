@@ -1,6 +1,5 @@
 // pages/index.js
 import React, { useState, useEffect } from "react";
-import AdminSearchPage from "../../components/adminPage/AdminSearchPage";
 import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
 import FrontPageLayoutMobileView from "../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
 import { useUser } from "@auth0/nextjs-auth0/client";
@@ -42,7 +41,10 @@ export default function Home() {
 
   // Fetch Auth0 access token
   const fetchAccessToken = async () => {
-    const response = await fetch("/api/getAccessToken", { method: "POST", headers: { "Content-Type": "application/json" } });
+    const response = await fetch("/api/getAccessToken", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
     if (!response.ok) throw new Error("Failed to fetch access token");
     const { accessToken } = await response.json();
     return accessToken;
@@ -50,11 +52,19 @@ export default function Home() {
 
   // Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    const url = `https://shobackendv2-production.up.railway.app/api/v2/users/${encodeURIComponent(userId)}/roles`;
-    const res = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` } });
+    const url = `https://shobackendv2-production.up.railway.app/api/v2/users/${encodeURIComponent(
+      userId
+    )}/roles`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
     if (!res.ok) throw new Error("Failed to fetch user roles");
     const roles = await res.json();
-    return roles.map(r => r.name);
+    return roles.map((r) => r.name);
   };
 
   const fetchAndSetUserRoles = async () => {
@@ -74,10 +84,16 @@ export default function Home() {
     setIsLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(user.sub)}/schools`);
+      const res = await fetch(
+        `https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(
+          user.sub
+        )}/schools`
+      );
       if (res.status === 404) {
         setSchools([]);
-        setMessage("You have not created any school yet. Please create a new school.");
+        setMessage(
+          "You have not created any school yet. Please create a new school."
+        );
         return;
       }
       const data = await res.json();
@@ -94,7 +110,11 @@ export default function Home() {
   const checkOnboardingStatus = async () => {
     setIsCheckingOnboarding(true);
     try {
-      const res = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`);
+      const res = await fetch(
+        `https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(
+          user.sub
+        )}/onboarding_status`
+      );
       const data = await res.json();
       setOnboardingStatus(data);
       const complete =
@@ -115,29 +135,51 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">School Registration</h1>
-          <p className="text-gray-600">Follow these steps to register your school</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            School Registration
+          </h1>
+          <p className="text-gray-600">
+            Follow these steps to register your school
+          </p>
         </div>
+
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            {["Search", "Create", "Validate", "Complete"].map((title, i) => (
+            {["Create", "Validate", "Complete"].map((title, i) => (
               <div key={title} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    step === i + 1 ? "bg-blue-600 border-blue-600 text-white" : step > i + 1 ? "bg-green-500 border-green-500 text-white" : "bg-white border-gray-300 text-gray-400"
+                    step === i + 1
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : step > i + 1
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-white border-gray-300 text-gray-400"
                   }`}
                 >
                   {step > i + 1 ? "✓" : i + 1}
                 </div>
-                {i < 3 && <div className={`w-24 h-1 mx-2 ${step > i + 1 ? "bg-green-500" : "bg-gray-300"}`} />}
+                {i < 2 && (
+                  <div
+                    className={`w-24 h-1 mx-2 ${
+                      step > i + 1 ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
+                )}
               </div>
             ))}
           </div>
+
           <div className="flex justify-between px-2">
-            {["Search", "Create", "Validate", "Complete"].map((title, i) => (
+            {["Create", "Validate", "Complete"].map((title, i) => (
               <div
                 key={title}
-                className={`text-sm font-medium ${step === i + 1 ? "text-blue-600" : step > i + 1 ? "text-green-600" : "text-gray-400"}`}
+                className={`text-sm font-medium ${
+                  step === i + 1
+                    ? "text-blue-600"
+                    : step > i + 1
+                    ? "text-green-600"
+                    : "text-gray-400"
+                }`}
                 style={{ width: "100px", textAlign: "center" }}
               >
                 {title}
@@ -145,11 +187,14 @@ export default function Home() {
             ))}
           </div>
         </div>
+
         <div className="bg-white rounded-lg shadow-lg p-6">
-          {step === 1 && <AdminSearchPage user={user} />}
-          {step === 2 && <CreateSchoolForm user={user} onComplete={fetchSchools} />}
-          {step === 3 && <ValidateSchoolStep />}
-          {step === 4 && <ReviewSchoolStep />}
+          {step === 1 && (
+            <CreateSchoolForm user={user} onComplete={fetchSchools} />
+          )}
+          {step === 2 && <ValidateSchoolStep />}
+          {step === 3 && <ReviewSchoolStep />}
+
           <div className="flex justify-between mt-8 pt-6 border-t">
             <button
               disabled={step === 1}
@@ -159,7 +204,7 @@ export default function Home() {
               Previous
             </button>
             <button
-              disabled={step === 4}
+              disabled={step === 3}
               onClick={() => setStep(step + 1)}
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -175,16 +220,31 @@ export default function Home() {
   const renderContent = () => {
     if (isLoading || isCheckingOnboarding) return <LoadingSpinner />;
 
-    if (schools.length === 0) return message ? renderStepper() : <AdminSearchPage user={user} />;
+    if (schools.length === 0)
+      return message ? renderStepper() : (
+        <CreateSchoolForm user={user} onComplete={fetchSchools} />
+      );
 
     if (!isOnboardingComplete)
-      return <OnboardingGuard user={user} schools={schools} onboardingStatus={onboardingStatus} isOnboardingComplete={isOnboardingComplete} isCheckingOnboarding={isCheckingOnboarding} />;
+      return (
+        <OnboardingGuard
+          user={user}
+          schools={schools}
+          onboardingStatus={onboardingStatus}
+          isOnboardingComplete={isOnboardingComplete}
+          isCheckingOnboarding={isCheckingOnboarding}
+        />
+      );
 
     return <SettingsLayout schools={schools} user={user} />;
   };
 
   const content = isMobile ? (
-    <FrontPageLayoutMobileView user={user} schools={schools} userRoles={userRoles}>
+    <FrontPageLayoutMobileView
+      user={user}
+      schools={schools}
+      userRoles={userRoles}
+    >
       {renderContent()}
     </FrontPageLayoutMobileView>
   ) : (

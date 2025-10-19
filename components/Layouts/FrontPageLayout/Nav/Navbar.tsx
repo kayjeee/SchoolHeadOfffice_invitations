@@ -51,7 +51,7 @@ const Navbar: React.FC<NavbarProps> = ({
     
     // If palette generation fails, create a basic one with logo color
     if (!palette) {
-      const logoColor = getLogoColor(primaryColorValue) || '#FFFFFF';
+      const logoColor = getLogoColor(primaryColorValue) || '#7361c4ff';
       return {
         primary: primaryColorValue,
         logo: logoColor
@@ -90,7 +90,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
   // Calculate SVG icon color based on SVG background
   const svgIconColor = useMemo(() => {
-    return getLogoColor(svgBackgroundColor) || '#000000';
+    return getLogoColor(svgBackgroundColor) || '#f7f0f0ef';
   }, [svgBackgroundColor]);
 
   const adminDropdownRef = useRef<HTMLDivElement | null>(null);
