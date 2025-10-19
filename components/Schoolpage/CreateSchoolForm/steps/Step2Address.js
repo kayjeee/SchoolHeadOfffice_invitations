@@ -1,9 +1,7 @@
 // components/schoolpage/CreateSchoolForm/steps/Step2Address.js
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import GoogleMapReact from 'google-map-react';
 import Marker from '../../../Marker';
-import useColorMode from '../hooks/useColorMode';
-import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
 
 const COUNTRIES = [
   'South Africa',
@@ -29,8 +27,8 @@ const Step2Address = ({
   onNext,
   onPrevious,
   isLoading = false,
+  themePalette,
 }) => {
-  const [colorMode, customColor] = useColorMode();
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
 
@@ -43,14 +41,6 @@ const Step2Address = ({
     (formData.addressLine2 ?? formData.schoolAddressLine2) || '';
   const selectedLocation =
     formData.location ?? formData.selectedLocation ?? null;
-
-  const { previewBg, previewHover } = useMemo(
-    () => ({
-      previewBg: getBackgroundColor(colorMode, customColor),
-      previewHover: getHoverColor(colorMode, customColor),
-    }),
-    [colorMode, customColor]
-  );
 
   /** Validation */
   const validateForm = useCallback(() => {
@@ -272,7 +262,11 @@ const Step2Address = ({
               <button
                 type="button"
                 onClick={onPrevious}
-                className="group relative py-3 px-6 text-gray-700 font-bold rounded-xl transition-all duration-300 border border-gray-300 hover:border-gray-400 hover:shadow-md hover:bg-gray-100"
+                className="group relative py-3 px-6 text-gray-700 font-bold rounded-xl transition-all duration-300 border "
+                style={{
+                  borderColor: themePalette.secondary,
+                  color: themePalette.secondary,
+                }}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-xl group-hover:-translate-x-1 transition-transform duration-200">
@@ -286,13 +280,17 @@ const Step2Address = ({
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
-                className={`group relative py-4 px-8 text-white font-bold text-lg rounded-xl transition-all duration-300
+                className={`group relative py-4 px-8 font-bold text-lg rounded-xl transition-all duration-300
                   ${
                     isLoading
-                      ? 'cursor-wait bg-blue-400'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25 transform hover:scale-[1.02] active:scale-[0.98]'
+                      ? 'cursor-wait'
+                      : 'hover:shadow-2xl hover:shadow-blue-500/25 transform hover:scale-[1.02] active:scale-[0.98]'
                   }
                   focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                style={{
+                  backgroundColor: themePalette.primary,
+                  color: themePalette.logo,
+                }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
                 {isLoading ? (

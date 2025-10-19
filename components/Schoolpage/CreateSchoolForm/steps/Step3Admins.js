@@ -1,6 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import useColorMode from '../hooks/useColorMode';
-import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import React, { useState } from 'react';
 
 const Step3Admins = ({
   formData = {},
@@ -8,21 +6,13 @@ const Step3Admins = ({
   onNext,
   onPrevious,
   isLoading = false,
+  themePalette,
 }) => {
-  const [colorMode, customColor] = useColorMode();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
   const [adminUsers, setAdminUsers] = useState(formData.adminUsers || []);
-
-  const { previewBg, previewHover } = useMemo(
-    () => ({
-      previewBg: getBackgroundColor(colorMode, customColor),
-      previewHover: getHoverColor(colorMode, customColor),
-    }),
-    [colorMode, customColor]
-  );
 
   const validateAdminInput = () => {
     const newErrors = {};
@@ -182,9 +172,12 @@ const Step3Admins = ({
                   disabled={!name.trim() || !email.trim()}
                   className={`px-6 py-3 rounded-lg font-semibold transition-all ${
                     name.trim() && email.trim()
-                      ? 'bg-blue-600 text-white hover:bg-blue-500'
+                      ? 'text-white'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
+                  style={{
+                    backgroundColor: name.trim() && email.trim() ? themePalette.primary : '',
+                  }}
                 >
                   Add Administrator
                 </button>
@@ -259,7 +252,11 @@ const Step3Admins = ({
               <button
                 type="button"
                 onClick={onPrevious}
-                className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+                className="px-6 py-3 font-semibold rounded-lg transition"
+                style={{
+                  backgroundColor: themePalette.secondary,
+                  color: themePalette.logo,
+                }}
               >
                 ← Previous Step
               </button>
@@ -270,9 +267,13 @@ const Step3Admins = ({
                 disabled={isLoading}
                 className={`px-8 py-3 rounded-lg font-bold text-white transition ${
                   isLoading
-                    ? 'bg-blue-300 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-500'
+                    ? 'cursor-wait'
+                    : ''
                 }`}
+                style={{
+                  backgroundColor: themePalette.primary,
+                  color: themePalette.logo,
+                }}
               >
                 {isLoading ? 'Processing...' : 'Continue to Social Links →'}
               </button>
