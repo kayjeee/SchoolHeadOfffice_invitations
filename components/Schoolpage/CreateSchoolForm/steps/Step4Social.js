@@ -10,6 +10,7 @@ const Step4Social = ({
   onPrevious,
   onSubmit,
   isLoading = false,
+  themePalette,
 }) => {
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -139,7 +140,11 @@ const Step4Social = ({
               <button
                 type="button"
                 onClick={onPrevious}
-                className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+                className="px-6 py-3 font-semibold rounded-lg transition"
+                style={{
+                  backgroundColor: themePalette.secondary,
+                  color: themePalette.logo,
+                }}
               >
                 ← Previous Step
               </button>
@@ -150,9 +155,13 @@ const Step4Social = ({
                 disabled={isLoading}
                 className={`px-8 py-3 rounded-lg font-bold text-white transition ${
                   isLoading
-                    ? 'bg-blue-300 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-500'
+                    ? 'cursor-wait'
+                    : ''
                 }`}
+                style={{
+                  backgroundColor: themePalette.primary,
+                  color: themePalette.logo,
+                }}
               >
                 {isLoading ? 'Submitting...' : 'Finish & Create School →'}
               </button>

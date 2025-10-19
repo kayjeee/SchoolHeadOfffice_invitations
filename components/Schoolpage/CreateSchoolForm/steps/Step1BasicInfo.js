@@ -1,8 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import FormComponent from '../../../FormComponent';
-import FileUpload from '../../../FileUpload';
-import useColorMode from '../hooks/useColorMode';
-import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import React, { useState } from 'react';
 
 const THEME_PRESETS = [
   { mode: 'blue', value: '#1E40AF', name: 'Sky Blue' },
@@ -20,17 +16,13 @@ const Step1BasicInfo = ({
   onSchoolNameChange,
   onSchoolEmailChange,
   onPhoneNumberChange,
+  onThemeChange,
   onNext,
   isLoading = false,
+  themePalette,
 }) => {
-  const [colorMode, customColor, setColorMode] = useColorMode();
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
-
-  const { previewBg, previewHover } = useMemo(() => ({
-    previewBg: getBackgroundColor(colorMode, customColor),
-    previewHover: getHoverColor(colorMode, customColor),
-  }), [colorMode, customColor]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -53,10 +45,6 @@ const Step1BasicInfo = ({
     if (validateForm()) {
       onNext();
     }
-  };
-
-  const handleColorChange = (mode, value) => {
-    setColorMode(mode, value);
   };
 
   return (
@@ -205,9 +193,9 @@ const Step1BasicInfo = ({
     School Branding
   </h2>
   <p className="text-gray-600 text-lg mb-6">
-    Upload your official school logo 
-    A clear, high-res image makes your School Brand stand out. No logo yet? 
-    That’s okay—you can skip this step and add one later. Need help? 
+    Upload your official school logo
+    A clear, high-res image makes your School Brand stand out. No logo yet?
+    That’s okay—you can skip this step and add one later. Need help?
     Email our agency at freeLogo@SchoolHeadOffice.com , Our partners can create a stunning logo for you, free. Just get in touch!
   </p>
   <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-8 hover:border-gray-300 transition-all duration-300">
@@ -221,7 +209,7 @@ const Step1BasicInfo = ({
           onFileChange(file); // ✅ Pass only the raw File
         }
       }}
-      className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 
+      className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
                  file:rounded-full file:border-0 file:text-sm file:font-semibold
                  file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
     />
@@ -248,18 +236,18 @@ const Step1BasicInfo = ({
                     <button
                       key={theme.mode}
                       type="button"
-                      onClick={() => handleColorChange(theme.mode, theme.value)}
+                      onClick={() => onThemeChange(theme.value)}
                       className={`
                         group relative p-6 rounded-xl border-2 transition-all duration-300
                         hover:scale-105 hover:shadow-2xl focus:outline-none focus:scale-105
-                        ${colorMode === theme.mode
+                        ${themePalette.primary === theme.value
                           ? 'border-blue-600 shadow-xl scale-105'
                           : 'border-gray-300 hover:border-blue-300'
                         }
                       `}
                       style={{
                         background: `linear-gradient(135deg, ${theme.value}11, ${theme.value}05)`,
-                        borderColor: colorMode === theme.mode ? theme.value : undefined
+                        borderColor: themePalette.primary === theme.value ? theme.value : undefined
                       }}
                     >
                       <div
@@ -269,7 +257,7 @@ const Step1BasicInfo = ({
                       <p className="text-sm font-medium text-gray-800 group-hover:text-gray-700">
                         {theme.name}
                       </p>
-                      {colorMode === theme.mode && (
+                      {themePalette.primary === theme.value && (
                         <div className="absolute top-2 right-2">
                           <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
                             <span className="text-white text-xs">✓</span>
@@ -284,43 +272,13 @@ const Step1BasicInfo = ({
                 <div className="flex items-center gap-4 p-4 bg-gray-100/50 rounded-xl border border-gray-200">
                   <input
                     type="color"
-                    value={customColor}
-                    onChange={(e) => handleColorChange('custom', e.target.value)}
+                    value={themePalette.primary}
+                    onChange={(e) => onThemeChange(e.target.value)}
                     className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300 hover:border-blue-400 transition-colors"
                   />
                   <div>
                     <p className="text-gray-900 font-medium">Custom Color</p>
                     <p className="text-gray-600 text-sm">Choose your own brand color</p>
-                  </div>
-                </div>
-
-                {/* Live Preview */}
-                <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6">
-                  <p className="text-gray-900 font-medium mb-4">Live Preview</p>
-                  <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 shadow-lg"
-                      style={{ backgroundColor: previewBg }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = previewHover;
-                        e.currentTarget.style.boxShadow = `0 10px 30px ${previewBg}40`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = previewBg;
-                        e.currentTarget.style.boxShadow = `0 4px 20px ${previewBg}20`;
-                      }}
-                    >
-                      Primary Button
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-4 h-4 rounded-full border border-gray-400"
-                        style={{ backgroundColor: previewBg }}
-                      />
-                      <span className="text-gray-600 text-sm">Brand Color</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -333,15 +291,19 @@ const Step1BasicInfo = ({
                 onClick={handleNext}
                 disabled={isLoading}
                 className={`
-                  group relative w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-700
+                  group relative w-full py-4 px-8
                   text-white font-bold text-lg rounded-xl transition-all duration-300
-                  hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25
+                  hover:shadow-2xl
                   focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed
                   transform hover:scale-[1.02] active:scale-[0.98]
                   ${isLoading ? 'cursor-wait' : 'hover:-translate-y-1'}
                 `}
+                style={{
+                  backgroundColor: themePalette.primary,
+                  color: themePalette.logo,
+                  boxShadow: `0 10px 30px ${themePalette.primary}40`,
+                }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
 
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">

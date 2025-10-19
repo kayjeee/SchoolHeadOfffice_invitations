@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from "next/router";
+import { useAppTheme } from '../../../context/ThemeContext';
+import { generateColorPalette, getLogoColor } from '../../Layouts/NavbarTheming/colorUtils';
 import Step1BasicInfo from './steps/Step1BasicInfo';
 import Step2Address from './steps/Step2Address';
 import Step3Admins from './steps/Step3Admins';
@@ -9,6 +11,19 @@ import { provisionNewSchool } from './services/schoolService';
 
 const CreateSchoolForm = ({ user }) => {
   const router = useRouter();
+  const { primaryColor, getPrimaryColorValue, setPrimaryColor } = useAppTheme();
+
+  const themePalette = useMemo(() => {
+    const primary = getPrimaryColorValue();
+    const palette = generateColorPalette(primary);
+    if (!palette) {
+      return {
+        primary,
+        logo: getLogoColor(primary) || '#FFFFFF',
+      };
+    }
+    return palette;
+  }, [getPrimaryColorValue]);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -19,7 +34,6 @@ const CreateSchoolForm = ({ user }) => {
     schoolName: '',
     schoolEmail: '',
     phone: '',
-    theme: { mode: 'green', value: '#20B486' },
     logo: null,
     addressLine1: '',
     addressLine2: '',
@@ -70,15 +84,13 @@ const CreateSchoolForm = ({ user }) => {
             schoolName={formData.schoolName}
             schoolEmail={formData.schoolEmail}
             phone={formData.phone}
-            theme={formData.theme}
             onFileChange={(file) => updateField('logo', file)}
             onSchoolNameChange={(e) => updateField('schoolName', e.target.value)}
             onSchoolEmailChange={(e) => updateField('schoolEmail', e.target.value)}
             onPhoneChange={(e) => updateField('phone', e.target.value)}
-            onThemeChange={(mode, value) =>
-              updateField('theme', { mode, value })
-            }
+            onThemeChange={(color) => setPrimaryColor(color)}
             onNext={handleNextStep}
+            themePalette={themePalette}
           />
         );
       case 2:
@@ -94,6 +106,7 @@ const CreateSchoolForm = ({ user }) => {
             onMapClick={(coords) => updateField('location', coords)}
             onNext={handleNextStep}
             onPrevious={handlePreviousStep}
+            themePalette={themePalette}
           />
         );
       case 3:
@@ -103,6 +116,7 @@ const CreateSchoolForm = ({ user }) => {
             onAdminUsersChange={(admins) => updateField('adminUsers', admins)}
             onNext={handleNextStep}
             onPrevious={handlePreviousStep}
+            themePalette={themePalette}
           />
         );
       case 4:
@@ -115,6 +129,7 @@ const CreateSchoolForm = ({ user }) => {
             onLinkedInChange={(e) => updateField('linkedin', e.target.value)}
             onPrevious={handlePreviousStep}
             onSubmit={handleFormSubmission}
+            themePalette={themePalette}
           />
         );
       default:
@@ -131,7 +146,13 @@ const CreateSchoolForm = ({ user }) => {
   }
 
   return (
-    <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
+    <div
+      className="container mx-auto mt-8 p-4 border rounded-md"
+      style={{
+        backgroundColor: themePalette.primary,
+        color: themePalette.logo,
+      }}
+    >
       <h1 className="text-2xl font-bold mb-4">Create a School</h1>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       {success && (
