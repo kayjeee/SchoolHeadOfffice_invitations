@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shobackendv2-production.up.railway.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shobackendv2-production.up.railway.app/api/v1";
 
 async function apiFetch(
   url: string,
@@ -79,11 +79,11 @@ export async function fetchSchoolGrades(schoolId: string) {
       'Content-Type': 'application/json'
     }
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to fetch grades');
   }
-  
+
   return response.json();
 }
 
@@ -97,11 +97,11 @@ export async function bulkUploadLearners(data: any) {
     },
     body: JSON.stringify({ data })
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to upload learners');
   }
-  
+
   return response.json();
 }
 export const onboardingService = {
