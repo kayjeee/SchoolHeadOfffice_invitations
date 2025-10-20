@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import useColorMode from '../hooks/useColorMode';
 import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import Button from '../components/themed/Button';
+import Input from '../components/themed/Input';
 
 const Step3Admins = ({
   formData = {},
@@ -136,7 +138,7 @@ const Step3Admins = ({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Full Name *
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -158,7 +160,7 @@ const Step3Admins = ({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address *
                     </label>
-                    <input
+                    <Input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -176,18 +178,14 @@ const Step3Admins = ({
                   </div>
                 </div>
 
-                <button
+                <Button
                   type="button"
                   onClick={addAdmin}
                   disabled={!name.trim() || !email.trim()}
-                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                    name.trim() && email.trim()
-                      ? 'bg-blue-600 text-white hover:bg-blue-500'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all`}
                 >
                   Add Administrator
-                </button>
+                </Button>
               </div>
 
               {/* Admin List */}
@@ -256,26 +254,23 @@ const Step3Admins = ({
 
             {/* Navigation */}
             <div className="pt-8 border-t border-gray-200 flex justify-between items-center">
-              <button
+              <Button
                 type="button"
                 onClick={onPrevious}
-                className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+                variant="secondary"
+                className="px-6 py-3 font-semibold rounded-lg transition"
               >
                 ← Previous Step
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={onNext}
                 disabled={isLoading}
-                className={`px-8 py-3 rounded-lg font-bold text-white transition ${
-                  isLoading
-                    ? 'bg-blue-300 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-500'
-                }`}
+                className={`px-8 py-3 rounded-lg font-bold transition`}
               >
                 {isLoading ? 'Processing...' : 'Continue to Social Links →'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

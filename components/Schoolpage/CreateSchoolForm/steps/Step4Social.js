@@ -1,5 +1,7 @@
 import React from 'react';
 import { HeartHandshake } from 'lucide-react';
+import Button from '../components/themed/Button';
+import Input from '../components/themed/Input';
 
 const Step4Social = ({
   formData = {},
@@ -57,7 +59,7 @@ const Step4Social = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Official Website
                   </label>
-                  <input
+                  <Input
                     type="url"
                     value={formData.website || ''}
                     onChange={onWebsiteChange}
@@ -71,7 +73,7 @@ const Step4Social = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Facebook Page
                   </label>
-                  <input
+                  <Input
                     type="url"
                     value={formData.facebook || ''}
                     onChange={onFacebookChange}
@@ -85,7 +87,7 @@ const Step4Social = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     TikTok
                   </label>
-                  <input
+                  <Input
                     type="url"
                     value={formData.tiktok || ''}
                     onChange={onTikTokChange}
@@ -99,7 +101,7 @@ const Step4Social = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     LinkedIn
                   </label>
-                  <input
+                  <Input
                     type="url"
                     value={formData.linkedin || ''}
                     onChange={onLinkedInChange}
@@ -136,26 +138,23 @@ const Step4Social = ({
 
             {/* Navigation */}
             <div className="pt-8 border-t border-gray-200 flex justify-between items-center">
-              <button
+              <Button
                 type="button"
                 onClick={onPrevious}
-                className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+                variant="secondary"
+                className="px-6 py-3 font-semibold rounded-lg transition"
               >
                 ← Previous Step
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={onSubmit}
                 disabled={isLoading}
-                className={`px-8 py-3 rounded-lg font-bold text-white transition ${
-                  isLoading
-                    ? 'bg-blue-300 cursor-wait'
-                    : 'bg-blue-600 hover:bg-blue-500'
-                }`}
+                className={`px-8 py-3 rounded-lg font-bold transition`}
               >
                 {isLoading ? 'Submitting...' : 'Finish & Create School →'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

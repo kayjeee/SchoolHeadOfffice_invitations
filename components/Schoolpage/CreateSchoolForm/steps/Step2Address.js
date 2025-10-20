@@ -2,8 +2,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import GoogleMapReact from 'google-map-react';
 import Marker from '../../../Marker';
-import useColorMode from '../hooks/useColorMode';
-import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import Button from '../components/themed/Button';
+import Input from '../components/themed/Input';
+import Select from '../components/themed/Select';
 
 const COUNTRIES = [
   'South Africa',
@@ -269,10 +270,11 @@ const Step2Address = ({
 
             {/* Navigation Buttons */}
             <div className="pt-8 border-t border-gray-200 flex justify-between items-center">
-              <button
+              <Button
                 type="button"
                 onClick={onPrevious}
-                className="group relative py-3 px-6 text-gray-700 font-bold rounded-xl transition-all duration-300 border border-gray-300 hover:border-gray-400 hover:shadow-md hover:bg-gray-100"
+                variant="secondary"
+                className="group relative py-3 px-6 font-bold rounded-xl transition-all duration-300"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-xl group-hover:-translate-x-1 transition-transform duration-200">
@@ -280,19 +282,19 @@ const Step2Address = ({
                   </span>
                   <span>Previous Step</span>
                 </div>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
-                className={`group relative py-4 px-8 text-white font-bold text-lg rounded-xl transition-all duration-300
+                className={`group relative py-4 px-8 font-bold text-lg rounded-xl transition-all duration-300
                   ${
                     isLoading
-                      ? 'cursor-wait bg-blue-400'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25 transform hover:scale-[1.02] active:scale-[0.98]'
+                      ? 'cursor-wait'
+                      : 'transform hover:scale-[1.02] active:scale-[0.98]'
                   }
-                  focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  focus:outline-none focus:ring-0`}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
                 {isLoading ? (
@@ -308,7 +310,7 @@ const Step2Address = ({
                     </span>
                   </div>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -347,7 +349,7 @@ const Field = ({
       {label}
     </label>
     <div className="relative">
-      <input
+      <Input
         type="text"
         id={id}
         className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
@@ -392,7 +394,7 @@ const SelectField = ({
       {label}
     </label>
     <div className="relative">
-      <select
+      <Select
         id={id}
         value={value}
         onChange={onChange}
@@ -413,7 +415,7 @@ const SelectField = ({
             {opt}
           </option>
         ))}
-      </select>
+      </Select>
       {focusedField === id && (
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg opacity-20 blur-sm -z-10" />
       )}
