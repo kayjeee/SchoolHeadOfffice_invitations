@@ -35,10 +35,10 @@ interface AppThemeContextType {
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
 
 // Add your Rails API base URL here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://3ddf3987485e.ngrok-free.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
-const DEFAULT_PRIMARY = 'gold';
+const DEFAULT_PRIMARY = 'white';
 
 // Predefined color mappings for simple color names
 const COLOR_MAPPINGS: Record<string, string> = {
