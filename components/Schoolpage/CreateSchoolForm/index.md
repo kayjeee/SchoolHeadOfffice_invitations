@@ -257,7 +257,7 @@ With the custom hook in place, the main CreateSchoolForm component can now be si
 
 Rename your original CreateSchoolForm.js file to index.js.
 
-Import useSchoolForm and the step components.
+Import useSchoolForm and the step components.ok
 
 Inside the component, call useSchoolForm to get all the necessary state and handlers.
 
