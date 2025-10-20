@@ -1,7 +1,7 @@
 // components/onboarding/services/inviteService.ts
 import { Invite, CreateInviteData } from '../types';
 
-const API_BASE_URL = 'https://3ddf3987485e.ngrok-free.app/api/v1';
+const API_BASE_URL = 'https://shobackendv2-production.up.railway.app';
 
 /**
  * Service for handling invitation-related operations
