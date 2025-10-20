@@ -51,7 +51,7 @@ const Navbar: React.FC<NavbarProps> = ({
     
     // If palette generation fails, create a basic one with logo color
     if (!palette) {
-      const logoColor = getLogoColor(primaryColorValue) || '#FFFFFF';
+      const logoColor = getLogoColor(primaryColorValue) || '#190961ff';
       return {
         primary: primaryColorValue,
         logo: logoColor

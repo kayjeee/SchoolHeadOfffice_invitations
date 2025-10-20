@@ -10,7 +10,7 @@ export const gradeService = {
     }
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/schools/${schoolId}/grades`);
+      const response = await fetch(`https://shobackendv2-production.up.railway.app//api/v1/schools/${schoolId}/grades`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
       const data = await response.json();
