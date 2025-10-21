@@ -1,46 +1,48 @@
 import React from "react";
 import { useOnboardingFlow, OnboardingFlowProvider } from "./hooks/useOnboardingFlow";
 import { STEPS } from "./OnboardingFlow";
+import { useAppTheme } from "../../Layouts/context/ThemeContext";
+import { 
+  generateColorPalette, 
+  getComplementaryColor,
+  getTriadicColors,
+  getLogoColor 
+} from "./NavbarTheming/colorUtils";
 
 const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   console.log("🔵 [OnboardingContent] Component rendered");
-  console.log("📦 [OnboardingContent] Props received:", {
-    user: user ? { id: user._id || user.id, email: user.email } : 'No user',
-    schools: schools,
-    schoolsCount: schools?.length || 0,
-    onboardingStatus: onboardingStatus
-  });
 
-  // Heavy logging for school data
-  if (schools && schools.length > 0) {
-    console.log("🏫 [OnboardingContent] SCHOOLS ANALYSIS:");
-    schools.forEach((school, index) => {
-      console.log(`🏫 School [${index}]:`, {
-        id: school?.id || school?._id || 'No ID',
-        name: school?.name || 'No name',
-        type: typeof school,
-        keys: school ? Object.keys(school) : 'No school object',
-        fullObject: school
-      });
-    });
+  // Use your existing theme context
+  const { primaryColor, currentSchool, getPrimaryColorValue } = useAppTheme();
+  
+  // Generate color palette using your existing system
+  const themePalette = React.useMemo(() => {
+    const primaryColorValue = getPrimaryColorValue();
+    const palette = generateColorPalette(primaryColorValue);
     
-    const primarySchool = schools[0];
-    console.log("🎯 [OnboardingContent] PRIMARY SCHOOL (schools[0]):", {
-      id: primarySchool?.id || primarySchool?._id || 'No ID',
-      name: primarySchool?.name || 'No name',
-      email: primarySchool?.email,
-      phone: primarySchool?.phone,
-      address: primarySchool?.address,
-      isObject: typeof primarySchool === 'object',
-      isNull: primarySchool === null,
-      isUndefined: primarySchool === undefined
-    });
-  } else {
-    console.warn("⚠️ [OnboardingContent] NO SCHOOLS PROVIDED or empty array");
-    console.log("📊 [OnboardingContent] schools value:", schools);
-    console.log("📊 [OnboardingContent] schools type:", typeof schools);
-    console.log("📊 [OnboardingContent] schools length:", schools?.length);
-  }
+    // Fallback to basic palette if generation fails
+    if (!palette) {
+      const logoColor = getLogoColor(primaryColorValue) || '#190961ff';
+      return {
+        primary: primaryColorValue,
+        logo: logoColor,
+        progress: primaryColorValue, // Use primary for progress
+        secondary: getComplementaryColor(primaryColorValue) || '#3B82F6' // Fallback to blue
+      };
+    }
+    
+    // Enhance palette with progress-specific colors
+    return {
+      ...palette,
+      progress: palette.primary,
+      secondary: palette.secondary || getComplementaryColor(primaryColorValue) || '#3B82F6'
+    };
+  }, [getPrimaryColorValue]);
+
+  // Calculate text colors based on background
+  const getTextColor = (backgroundColor) => {
+    return getLogoColor(backgroundColor) || '#000000';
+  };
 
   const {
     currentStep,
@@ -52,129 +54,161 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
     updateOnboardingData
   } = useOnboardingFlow();
 
-  console.log("🔄 [OnboardingContent] useOnboardingFlow hook returned:", {
-    currentStep: currentStep?.id,
-    currentStepIndex,
-    isLoading,
-    hasUpdateOnboardingData: typeof updateOnboardingData === 'function'
-  });
-
   // Resolve a safe user ID
   const userId = user?._id || user?.id || user?.auth0_id;
-  console.log("👤 [OnboardingContent] User ID resolved:", userId);
 
   const handleNext = async () => {
     console.log("➡️ [OnboardingContent] handleNext triggered");
-    console.log("⏳ [OnboardingContent] Setting loading to true");
     setIsLoading(true);
     
     try {
-      console.log("⏰ [OnboardingContent] Simulating async operation (500ms)");
       await new Promise(resolve => setTimeout(resolve, 500));
-      console.log("✅ [OnboardingContent] Async operation completed, calling goToNextStep");
       goToNextStep();
-      console.log("🎉 [OnboardingContent] Successfully advanced to next step");
     } catch (error) {
       console.error("❌ [OnboardingContent] Error advancing onboarding step:", error);
-      console.error("🔍 [OnboardingContent] Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
     } finally {
-      console.log("🏁 [OnboardingContent] Finally block - setting loading to false");
       setIsLoading(false);
-      console.log("📊 [OnboardingContent] Current loading state after update: false");
     }
   };
 
   const handleBack = () => {
     console.log("⬅️ [OnboardingContent] handleBack triggered");
-    console.log("📊 [OnboardingContent] Current step before back:", currentStepIndex);
     goToPreviousStep();
-    console.log("📊 [OnboardingContent] Current step after back:", currentStepIndex - 1);
   };
 
   const handleUpdateData = (data) => {
     console.log("📝 [OnboardingContent] handleUpdateData called with:", data);
-    console.log("🏫 [OnboardingContent] Current school context during update:", {
-      primarySchool: schools?.[0],
-      primarySchoolName: schools?.[0]?.name,
-      primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
-    });
     updateOnboardingData(data);
-    console.log("✅ [OnboardingContent] updateOnboardingData completed");
   };
-
-  console.log("🔍 [OnboardingContent] Checking currentStep:", {
-    hasCurrentStep: !!currentStep,
-    currentStepId: currentStep?.id,
-    hasComponent: !!currentStep?.component,
-    component: currentStep?.component
-  });
 
   if (!currentStep?.component) {
     console.warn("⚠️ [OnboardingContent] No currentStep.component - returning null");
-    console.log("📊 [OnboardingContent] currentStep value:", currentStep);
     return null;
   }
 
   const StepComponent = currentStep.component;
-  console.log("🎭 [OnboardingContent] StepComponent to render:", StepComponent.name || 'Anonymous component');
-
-  console.log("🏫 [OnboardingContent] FINAL SCHOOL DATA BEING PASSED TO STEP COMPONENT:", {
-    school: schools?.[0],
-    schoolName: schools?.[0]?.name || 'NO SCHOOL NAME',
-    schoolId: schools?.[0]?.id || schools?.[0]?._id || 'NO SCHOOL ID',
-    allSchools: schools,
-    schoolsCount: schools?.length || 0
-  });
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-white py-8"> {/* ✅ Changed to white background */}
       <div className="max-w-4xl mx-auto px-4">
         {/* Progress Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">School Setup</h1>
-            <div className="text-sm text-gray-500">
+            <h1 
+              className="text-2xl font-bold text-gray-800" // ✅ Added text color
+            >
+              School Setup
+            </h1>
+            <div className="text-sm text-gray-600"> {/* ✅ Added text color */}
               Step {currentStepIndex + 1} of {STEPS.length}
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+          {/* Progress Bar - Using Color Wheel Principles */}
+          <div 
+            className="w-full rounded-full h-2 mb-4 bg-gray-200" // ✅ Changed to gray background
+          >
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ 
+                backgroundColor: themePalette.progress,
+                width: `${((currentStepIndex + 1) / STEPS.length) * 100}%`,
+                boxShadow: `0 0 10px ${themePalette.progress}40` // Glow effect
+              }}
             />
           </div>
 
-          {/* Step Indicators */}
+          {/* Step Indicators - Using Triadic Colors */}
           <div className="flex justify-between">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className={`text-center flex-1 ${index <= currentStepIndex ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 ${index <= currentStepIndex ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-                  {index + 1}
+            {STEPS.map((step, index) => {
+              // Use different colors from your color wheel for each step
+              let stepColor;
+              if (index <= currentStepIndex) {
+                // Completed steps use primary color
+                stepColor = themePalette.primary;
+              } else if (index === currentStepIndex + 1) {
+                // Next step uses secondary color
+                stepColor = themePalette.secondary || '#3B82F6';
+              } else {
+                // Future steps use gray
+                stepColor = '#D1D5DB'; // gray-300
+              }
+
+              const textColor = index <= currentStepIndex ? 
+                getTextColor(stepColor) : 
+                '#9CA3AF'; // gray-400 for future steps
+              
+              return (
+                <div 
+                  key={step.id} 
+                  className="text-center flex-1"
+                  style={{ color: textColor }}
+                >
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 transition-all duration-300"
+                    style={{ 
+                      backgroundColor: stepColor,
+                      color: textColor,
+                      border: `2px solid ${stepColor}`,
+                      boxShadow: index <= currentStepIndex ? `0 0 8px ${stepColor}60` : 'none'
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                  <span className="text-xs font-medium">{step.name}</span>
                 </div>
-                <span className="text-xs font-medium">{step.name}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Step Content */}
-        <StepComponent
-          user={user}
-          userId={userId}
-          schools={schools} // ADD THIS LINE - pass the schools array
-          school={schools?.[0]}
-          onboardingStatus={onboardingStatus}
-          onNext={handleNext}
-          onBack={handleBack}
-          isLoading={isLoading}
-          onUpdateData={handleUpdateData}
-        />
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200"> {/* ✅ Simplified styling */}
+          <StepComponent
+            user={user}
+            userId={userId}
+            schools={schools}
+            school={schools?.[0]}
+            onboardingStatus={onboardingStatus}
+            onNext={handleNext}
+            onBack={handleBack}
+            isLoading={isLoading}
+            onUpdateData={handleUpdateData}
+            themePalette={themePalette} // Pass palette to step components
+          />
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between mt-6">
+          <button
+            onClick={handleBack}
+            disabled={currentStepIndex === 0 || isLoading}
+            className="px-6 py-3 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 text-gray-700 hover:bg-gray-50" // ✅ Simplified styling
+          >
+            Back
+          </button>
+          
+          <button
+            onClick={handleNext}
+            disabled={isLoading}
+            className="px-6 py-3 rounded-lg font-medium text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+            style={{
+              backgroundColor: themePalette.progress,
+              boxShadow: `0 2px 4px ${themePalette.progress}40`
+            }}
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <div 
+                  className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
+                ></div>
+                Loading...
+              </div>
+            ) : (
+              currentStepIndex === STEPS.length - 1 ? 'Complete Setup' : 'Next Step'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -188,69 +222,27 @@ export const OnboardingGuard = ({
   isCheckingOnboarding
 }) => {
   console.log("🚀 [OnboardingGuard] Component mounted");
-  console.log("📋 [OnboardingGuard] Props received:", {
-    user: user ? { id: user._id || user.id, email: user.email } : 'No user',
-    schools: schools,
-    schoolsCount: schools?.length || 0,
-    isOnboardingComplete,
-    isCheckingOnboarding
-  });
 
-  // Heavy school prop logging
-  console.log("🏫 [OnboardingGuard] SCHOOL PROP DEEP ANALYSIS:");
-  console.log("🔍 [OnboardingGuard] schools type:", typeof schools);
-  console.log("🔍 [OnboardingGuard] schools value:", schools);
-  console.log("🔍 [OnboardingGuard] schools === null:", schools === null);
-  console.log("🔍 [OnboardingGuard] schools === undefined:", schools === undefined);
-  console.log("🔍 [OnboardingGuard] Array.isArray(schools):", Array.isArray(schools));
-  
-  if (schools && Array.isArray(schools)) {
-    console.log("📊 [OnboardingGuard] schools array length:", schools.length);
-    schools.forEach((school, index) => {
-      console.log(`🏫 [OnboardingGuard] School at index ${index}:`, {
-        id: school?.id || school?._id || 'NO ID FOUND',
-        name: school?.name || 'NO NAME FOUND',
-        fullObject: school,
-        isNull: school === null,
-        isUndefined: school === undefined,
-        isObject: typeof school === 'object',
-        objectKeys: school ? Object.keys(school) : 'No keys'
-      });
-    });
-  } else {
-    console.warn("⚠️ [OnboardingGuard] schools is not an array or is empty");
-  }
+  // Use theme context for consistent styling
+  const { primaryColor, getPrimaryColorValue } = useAppTheme();
 
   if (isCheckingOnboarding) {
-    console.log("⏳ [OnboardingGuard] Rendering loading state - isCheckingOnboarding:", true);
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-white"> {/* ✅ White background */}
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking onboarding status...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div> {/* ✅ Standard blue spinner */}
+          <p className="text-gray-600">Checking onboarding status...</p> {/* ✅ Standard text color */}
         </div>
       </div>
     );
   }
 
-  console.log("✅ [OnboardingGuard] Onboarding check complete");
-  console.log("📊 [OnboardingGuard] isOnboardingComplete:", isOnboardingComplete);
-
   if (isOnboardingComplete) {
-    console.log("🎉 [OnboardingGuard] Onboarding COMPLETE - returning null (main app will render)");
-    console.log("🏫 [OnboardingGuard] Final school state before exiting:", {
-      primarySchool: schools?.[0],
-      primarySchoolName: schools?.[0]?.name,
-      primarySchoolId: schools?.[0]?.id || schools?.[0]?._id
-    });
     return null;
   }
 
-  console.log("🚧 [OnboardingGuard] Onboarding INCOMPLETE - rendering onboarding flow");
-  console.log("🏫 [OnboardingGuard] Schools being passed to OnboardingContent:", schools);
-
   return (
-      <OnboardingFlowProvider schools={schools}>
+    <OnboardingFlowProvider schools={schools}>
       <OnboardingContent
         user={user}
         schools={schools}

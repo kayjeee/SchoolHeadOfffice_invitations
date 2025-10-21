@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shobackendv2-production.up.railway.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shobackendv2-production.up.railway.app/api/v1";
 
 async function apiFetch(
   url: string,
