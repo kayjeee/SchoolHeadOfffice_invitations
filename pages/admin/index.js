@@ -3,12 +3,14 @@ import React, { useState, useEffect } from "react";
 import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
 import FrontPageLayoutMobileView from "../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { AppThemeProvider } from '../../components/Layouts/context/ThemeContext'; // ✅ Fixed import path
+
 import SettingsLayout from "../../components/adminPage/SettingsLayout";
 import LoadingSpinner from "../../components/spinners/LoadingSpinner";
 import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm/index";
 import ValidateSchoolStep from "../../components/Schoolpage/ValidateSchoolStep";
 import ReviewSchoolStep from "../../components/Schoolpage/ReviewSchoolStep";
-import { OnboardingGuard, OnboardingFlowProvider } from "../../components/onboarding/onboarding";
+import { OnboardingGuard } from "../../components/onboarding/onboarding";
 
 export default function Home() {
   const { user } = useUser();
@@ -216,6 +218,19 @@ export default function Home() {
     </div>
   );
 
+  // Wrapper component for onboarding with theme provider
+  const OnboardingWithTheme = () => (
+    <AppThemeProvider>
+      <OnboardingGuard
+        user={user}
+        schools={schools}
+        onboardingStatus={onboardingStatus}
+        isOnboardingComplete={isOnboardingComplete}
+        isCheckingOnboarding={isCheckingOnboarding}
+      />
+    </AppThemeProvider>
+  );
+
   // Main render logic
   const renderContent = () => {
     if (isLoading || isCheckingOnboarding) return <LoadingSpinner />;
@@ -226,15 +241,7 @@ export default function Home() {
       );
 
     if (!isOnboardingComplete)
-      return (
-        <OnboardingGuard
-          user={user}
-          schools={schools}
-          onboardingStatus={onboardingStatus}
-          isOnboardingComplete={isOnboardingComplete}
-          isCheckingOnboarding={isCheckingOnboarding}
-        />
-      );
+      return <OnboardingWithTheme />;
 
     return <SettingsLayout schools={schools} user={user} />;
   };
@@ -253,5 +260,5 @@ export default function Home() {
     </FrontPageLayout>
   );
 
-  return <OnboardingFlowProvider>{content}</OnboardingFlowProvider>;
+  return content;
 }

@@ -6,8 +6,6 @@ import Step3Admins from './steps/Step3Admins';
 import Step4Social from './steps/Step4Social';
 import LoadingSpinner from '../../spinners/LoadingSpinner';
 import { provisionNewSchool } from './services/schoolService';
-import { AppThemeProvider } from './context/ThemeContext';
-import StyleProvider from './providers/StyleProvider';
 
 const CreateSchoolForm = ({ user }) => {
   const router = useRouter();
@@ -17,11 +15,13 @@ const CreateSchoolForm = ({ user }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
+  // 1️⃣ Updated formData initial state
   const [formData, setFormData] = useState({
     schoolName: '',
     schoolEmail: '',
     phone: '',
-    theme: { mode: 'green', value: '#20B486' },
+    // ✅ Initialize theme properly
+    theme: { mode: 'white', value: '#b8ebdbff' }, 
     logo: null,
     addressLine1: '',
     addressLine2: '',
@@ -45,24 +45,25 @@ const CreateSchoolForm = ({ user }) => {
   const handlePreviousStep = () => setStep((prev) => prev - 1);
 
   const handleFormSubmission = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
+  try {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
 
-      console.log('📤 Submitting full school provisioning flow:', formData);
-      const school = await provisionNewSchool(formData, user);
+    console.log('📤 Submitting full school provisioning flow:', formData);
+    console.log('🎨 Theme being sent to backend:', formData.theme); // Debug log
+    
+    const school = await provisionNewSchool(formData, user);
 
-      console.log('✅ Provisioning complete:', school);
-      setSuccess(true);
-    } catch (err) {
-      console.error('💥 Error during provisioning:', err);
-      setError('Failed to create and provision school. Please try again.');
-    } finally {
-      setLoading(false);
-        router.reload();
-    }
-  };
+    console.log('✅ Provisioning complete:', school);
+    setSuccess(true);
+  } catch (err) {
+    console.error('💥 Error during provisioning:', err);
+    setError('Failed to create and provision school. Please try again.');
+  } finally {
+    router.reload();
+  }
+};
 
   const renderStep = () => {
     switch (step) {
@@ -77,8 +78,13 @@ const CreateSchoolForm = ({ user }) => {
             onSchoolNameChange={(e) => updateField('schoolName', e.target.value)}
             onSchoolEmailChange={(e) => updateField('schoolEmail', e.target.value)}
             onPhoneChange={(e) => updateField('phone', e.target.value)}
+            // 2️⃣ Ensure the theme picker calls onThemeChange(mode, value)
+            // Then, update the handler to store the correct structure
             onThemeChange={(mode, value) =>
-              updateField('theme', { mode, value })
+              setFormData((prev) => ({
+                ...prev,
+                theme: { mode, value }, // ✅ updates correctly on selection
+              }))
             }
             onNext={handleNextStep}
           />
@@ -133,20 +139,16 @@ const CreateSchoolForm = ({ user }) => {
   }
 
   return (
-    <AppThemeProvider>
-      <StyleProvider>
-        <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
-          <h1 className="text-2xl font-bold mb-4">Create a School</h1>
-          {error && <div className="text-red-500 mb-4">{error}</div>}
-          {success && (
-            <div className="text-green-600 mb-4">
-              🎉 School created and you’ve been set as Admin!
-            </div>
-          )}
-          {renderStep()}
+    <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
+      <h1 className="text-2xl font-bold mb-4">Create a School</h1>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {success && (
+        <div className="text-green-600 mb-4">
+          🎉 School created and you’ve been set as Admin!
         </div>
-      </StyleProvider>
-    </AppThemeProvider>
+      )}
+      {renderStep()}
+    </div>
   );
 };
 
