@@ -140,7 +140,7 @@ const buildSchoolPayload = (formData, user, logoUrl) => ({
   province: formData.province,
   city: formData.city,
   postalCode: formData.postalCode,
-  theme: formData.theme,
+  theme: formData.theme || { mode: 'white', value: '#c7f8e9ff' }, // ✅ keep object structure
 
   latitude: formData.location?.lat ?? formData.latitude ?? null,
   longitude: formData.location?.lng ?? formData.longitude ?? null,

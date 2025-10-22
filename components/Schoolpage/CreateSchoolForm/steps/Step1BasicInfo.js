@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import FormComponent from '../../../FormComponent';
+import FileUpload from '../../../FileUpload';
 import useColorMode from '../hooks/useColorMode';
 import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
-import Button from '../components/themed/Button';
-import Input from '../components/themed/Input';
-import { useAppTheme } from '../context/ThemeContext';
 
 const THEME_PRESETS = [
   { mode: 'blue', value: '#1E40AF', name: 'Sky Blue' },
@@ -17,22 +16,33 @@ const Step1BasicInfo = ({
   schoolName = '',
   schoolEmail = '',
   phoneNumber = '',
+  theme, // theme prop from parent
   onFileChange,
   onSchoolNameChange,
   onSchoolEmailChange,
   onPhoneNumberChange,
+  onThemeChange,
   onNext,
   isLoading = false,
 }) => {
-  const { setPrimaryColor } = useAppTheme();
   const [colorMode, customColor, setColorMode] = useColorMode();
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
 
-  const { previewBg, previewHover } = useMemo(() => ({
-    previewBg: getBackgroundColor(colorMode, customColor),
-    previewHover: getHoverColor(colorMode, customColor),
-  }), [colorMode, customColor]);
+  // ✅ FIX: Initialize color mode from parent theme prop
+  useEffect(() => {
+    if (theme && theme.mode && theme.value) {
+      setColorMode(theme.mode, theme.value);
+    }
+  }, [theme, setColorMode]);
+
+  const { previewBg, previewHover } = useMemo(
+    () => ({
+      previewBg: getBackgroundColor(colorMode, customColor),
+      previewHover: getHoverColor(colorMode, customColor),
+    }),
+    [colorMode, customColor]
+  );
 
   const validateForm = () => {
     const newErrors = {};
@@ -59,7 +69,11 @@ const Step1BasicInfo = ({
 
   const handleColorChange = (mode, value) => {
     setColorMode(mode, value);
-    setPrimaryColor({ mode, value });
+
+    // ✅ Send theme data back to parent
+    if (onThemeChange) {
+      onThemeChange(mode, value);
+    }
   };
 
   return (
@@ -84,7 +98,6 @@ const Step1BasicInfo = ({
         {/* Main Form Container */}
         <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl shadow-2xl border border-gray-200">
           <div className="p-8 md:p-12">
-
             {/* Progress Indicator */}
             <div className="mb-10">
               <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
@@ -96,144 +109,122 @@ const Step1BasicInfo = ({
               </div>
             </div>
 
-            {/* School Information & Logo Section */}
+            {/* School Info + Branding */}
             <div className="mb-10 flex flex-col md:flex-row gap-8">
-              <div className="md:w-2/3"> {/* School Information takes 2/3 width on medium screens */}
+              {/* School Info */}
+              <div className="md:w-2/3">
                 <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center">
                   <div className="w-2 h-8 bg-blue-600 rounded-full mr-4" />
                   School Information
                 </h2>
                 <p className="text-gray-600 text-lg mb-6">
-                  Provide your school's essential contact details below. This information will be used to set up your SchoolStream account and for important communications.
+                  Provide your school's essential contact details below.
                 </p>
+
                 <div className="space-y-6">
+                  {/* School Name */}
                   <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       School Name *
                     </label>
                     <div className="relative">
-                      <Input
+                      <input
                         type="text"
                         value={schoolName}
                         onChange={onSchoolNameChange}
                         onFocus={() => setFocusedField('schoolName')}
                         onBlur={() => setFocusedField(null)}
-                        className={`
-                          w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
+                        placeholder="Enter your school name"
+                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
                           transition-all duration-300 focus:outline-none focus:ring-0
                           ${errors.schoolName
                             ? 'border-red-500 focus:border-red-400'
-                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
-                          }
-                          ${focusedField === 'schoolName' ? 'transform scale-[1.02]' : ''}
-                        `}
-                        placeholder="Enter your school name"
+                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'}
+                          ${focusedField === 'schoolName' ? 'transform scale-[1.02]' : ''}`}
                       />
-                      {focusedField === 'schoolName' && (
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg opacity-20 blur-sm -z-10" />
-                      )}
                     </div>
                     {errors.schoolName && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center">
-                        <span className="w-4 h-4 mr-2">⚠️</span>
-                        {errors.schoolName}
-                      </p>
+                      <p className="text-red-600 text-sm mt-2">{errors.schoolName}</p>
                     )}
                   </div>
 
+                  {/* School Email */}
                   <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       School Email *
                     </label>
                     <div className="relative">
-                      <Input
+                      <input
                         type="email"
                         value={schoolEmail}
                         onChange={onSchoolEmailChange}
                         onFocus={() => setFocusedField('schoolEmail')}
                         onBlur={() => setFocusedField(null)}
-                        className={`
-                          w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
+                        placeholder="contact@yourschool.edu"
+                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
                           transition-all duration-300 focus:outline-none focus:ring-0
                           ${errors.schoolEmail
                             ? 'border-red-500 focus:border-red-400'
-                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'
-                          }
-                          ${focusedField === 'schoolEmail' ? 'transform scale-[1.02]' : ''}
-                        `}
-                        placeholder="contact@yourschool.edu"
+                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'}
+                          ${focusedField === 'schoolEmail' ? 'transform scale-[1.02]' : ''}`}
                       />
-                      {focusedField === 'schoolEmail' && (
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg opacity-20 blur-sm -z-10" />
-                      )}
                     </div>
                     {errors.schoolEmail && (
-                      <p className="text-red-600 text-sm mt-2 flex items-center">
-                        <span className="w-4 h-4 mr-2">⚠️</span>
-                        {errors.schoolEmail}
-                      </p>
+                      <p className="text-red-600 text-sm mt-2">{errors.schoolEmail}</p>
                     )}
                   </div>
 
+                  {/* Phone */}
                   <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone Number
                     </label>
-                    <div className="relative">
-                      <Input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={onPhoneNumberChange}
-                        onFocus={() => setFocusedField('phoneNumber')}
-                        onBlur={() => setFocusedField(null)}
-                        className={`
-                          w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500
-                          transition-all duration-300 focus:outline-none focus:ring-0 focus:border-blue-500 hover:border-gray-400
-                          ${focusedField === 'phoneNumber' ? 'transform scale-[1.02]' : ''}
-                        `}
-                        placeholder="+1 (555) 123-4567"
-                      />
-                      {focusedField === 'phoneNumber' && (
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg opacity-20 blur-sm -z-10" />
-                      )}
-                    </div>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={onPhoneNumberChange}
+                      onFocus={() => setFocusedField('phoneNumber')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="+1 (555) 123-4567"
+                      className={`w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-gray-900
+                        placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0
+                        focus:border-blue-500 hover:border-gray-400
+                        ${focusedField === 'phoneNumber' ? 'transform scale-[1.02]' : ''}`}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Logo Upload takes 1/3 width on medium screens */}
-<div className="md:w-1/3">
-  <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center">
-    <div className="w-2 h-8 bg-blue-600 rounded-full mr-4" />
-    School Branding
-  </h2>
-  <p className="text-gray-600 text-lg mb-6">
-    Upload your official school logo 
-    A clear, high-res image makes your School Brand stand out. No logo yet? 
-    That’s okay—you can skip this step and add one later. Need help? 
-    Email our agency at freeLogo@SchoolHeadOffice.com , Our partners can create a stunning logo for you, free. Just get in touch!
-  </p>
-  <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-8 hover:border-gray-300 transition-all duration-300">
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => {
-        const file = e.target.files?.[0];
-        console.log('📁 Selected file:', file);
-        if (file) {
-          onFileChange(file); // ✅ Pass only the raw File
-        }
-      }}
-      className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 
-                 file:rounded-full file:border-0 file:text-sm file:font-semibold
-                 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-    />
-  </div>
-</div>
-
+              {/* Logo Upload */}
+              <div className="md:w-1/3">
+                <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center">
+                  <div className="w-2 h-8 bg-blue-600 rounded-full mr-4" />
+                  School Branding
+                </h2>
+                <p className="text-gray-600 text-lg mb-6">
+                  Upload your official school logo. Need one? Email{' '}
+                  <span className="font-semibold text-blue-600">
+                    freeLogo@SchoolHeadOffice.com
+                  </span>
+                  .
+                </p>
+                <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-8 hover:border-gray-300 transition-all duration-300">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) onFileChange(file);
+                    }}
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 
+                      file:rounded-full file:border-0 file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Theme Selection */}
+            {/* Theme Section */}
             <div className="mb-10">
               <h2 className="text-3xl font-bold mb-8 text-gray-900 flex items-center">
                 <div className="w-2 h-8 bg-blue-600 rounded-full mr-4" />
@@ -241,38 +232,32 @@ const Step1BasicInfo = ({
               </h2>
 
               <div className="space-y-6">
-                <p className="text-gray-600 text-lg">
-                  Select a theme that matches your school's personality
-                </p>
-
-                {/* Theme Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                  {THEME_PRESETS.map((theme) => (
+                  {THEME_PRESETS.map((preset) => (
                     <button
-                      key={theme.mode}
+                      key={preset.mode}
                       type="button"
-                      onClick={() => handleColorChange(theme.mode, theme.value)}
-                      className={`
-                        group relative p-6 rounded-xl border-2 transition-all duration-300
+                      onClick={() => handleColorChange(preset.mode, preset.value)}
+                      className={`group relative p-6 rounded-xl border-2 transition-all duration-300
                         hover:scale-105 hover:shadow-2xl focus:outline-none focus:scale-105
-                        ${colorMode === theme.mode
-                          ? 'border-blue-600 shadow-xl scale-105'
-                          : 'border-gray-300 hover:border-blue-300'
-                        }
-                      `}
+                        ${
+                          colorMode === preset.mode
+                            ? 'border-blue-600 shadow-xl scale-105'
+                            : 'border-gray-300 hover:border-blue-300'
+                        }`}
                       style={{
-                        background: `linear-gradient(135deg, ${theme.value}11, ${theme.value}05)`,
-                        borderColor: colorMode === theme.mode ? theme.value : undefined
+                        background: `linear-gradient(135deg, ${preset.value}11, ${preset.value}05)`,
+                        borderColor: colorMode === preset.mode ? preset.value : undefined,
                       }}
                     >
                       <div
                         className="w-12 h-12 rounded-full mx-auto mb-3 shadow-lg"
-                        style={{ backgroundColor: theme.value }}
+                        style={{ backgroundColor: preset.value }}
                       />
                       <p className="text-sm font-medium text-gray-800 group-hover:text-gray-700">
-                        {theme.name}
+                        {preset.name}
                       </p>
-                      {colorMode === theme.mode && (
+                      {colorMode === preset.mode && (
                         <div className="absolute top-2 right-2">
                           <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
                             <span className="text-white text-xs">✓</span>
@@ -301,13 +286,21 @@ const Step1BasicInfo = ({
                 <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6">
                   <p className="text-gray-900 font-medium mb-4">Live Preview</p>
                   <div className="flex items-center gap-4">
-                    <Button
+                    <button
                       type="button"
-                      className="px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
+                      className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 transform hover:scale-105 shadow-lg"
+                      style={{ backgroundColor: previewBg }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = previewHover;
+                        e.currentTarget.style.boxShadow = `0 10px 30px ${previewBg}40`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = previewBg;
+                        e.currentTarget.style.boxShadow = `0 4px 20px ${previewBg}20`;
+                      }}
                     >
                       Primary Button
-                    </Button>
-
+                    </button>
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full border border-gray-400"
@@ -322,20 +315,17 @@ const Step1BasicInfo = ({
 
             {/* Continue Button */}
             <div className="pt-8 border-t border-gray-200">
-              <Button
+              <button
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
-                className={`
-                  group relative w-full py-4 px-8
-                  font-bold text-lg rounded-xl transition-all duration-300
-                  focus:outline-none focus:ring-0
+                className={`group relative w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-700
+                  text-white font-bold text-lg rounded-xl transition-all duration-300
+                  hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25
+                  focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
                   transform hover:scale-[1.02] active:scale-[0.98]
-                  ${isLoading ? 'cursor-wait' : 'hover:-translate-y-1'}
-                `}
+                  ${isLoading ? 'cursor-wait' : 'hover:-translate-y-1'}`}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -344,10 +334,12 @@ const Step1BasicInfo = ({
                 ) : (
                   <div className="flex items-center justify-center gap-3">
                     <span>Continue to Next Step</span>
-                    <span className="text-xl group-hover:translate-x-1 transition-transform duration-200">→</span>
+                    <span className="text-xl group-hover:translate-x-1 transition-transform duration-200">
+                      →
+                    </span>
                   </div>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

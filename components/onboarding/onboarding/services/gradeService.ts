@@ -7,7 +7,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shobackendv2-produc
  * Service for handling grade-related operations
  */
 class GradeService {
-  private baseUrl = `${API_BASE_URL}/grades`;
+  private baseUrl = `${API_BASE}/grades`;
 
   /**
    * Helper method for making API calls

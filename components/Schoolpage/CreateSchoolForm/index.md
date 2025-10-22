@@ -1,231 +1,26 @@
-Great! Let's continue the refactoring process. Now that we've separated the API calls and validation logic into their own files, the next crucial step is to create our custom hook. This hook will be the central brain of the form, managing all the state and business logic.
+import React from 'react';
+import { useRouter } from 'next/router';
+import useSchoolForm from './hooks/useSchoolForm';
+import Step1BasicInfo from './steps/Step1BasicInfo';
+import Step2AddressInfo from './steps/Step2AddressInfo';
+import Step3AdminUsers from './steps/Step3AdminUsers';
 
-Step 3: Create useSchoolForm.js
-This custom hook will replace most of the logic currently inside CreateSchoolForm.js. It will handle all useState declarations, the step navigation, and the main handleFormSubmission function, which will now use the service and utility files we just created.
+console.log('📋 CreateSchoolForm component loaded');
 
-Create the file at components/schoolpage/CreateSchoolForm/hooks/useSchoolForm.js.
-
-Move all the state declarations (useState) from the original CreateSchoolForm component into this new hook.
-
-Import the functions from schoolService.js and validators.js.
-
-Move the navigation logic (handleNextStep, handlePreviousStep) and the main submission handler (handleAuthenticationAndFormSubmission) into the hook.
-
-Update the submission handler to call the functions from schoolService.js instead of having the fetch calls directly inside the component.
-
-The hook should return an object containing all the state variables and handler functions that the index.js container will need.
-
-components/schoolpage/CreateSchoolForm/hooks/useSchoolForm.js
-
-JavaScript
-
-import { useState, useEffect } from 'react';
-import {
-  getAccessToken,
-  uploadFileToCloudinary,
-  createSchool,
-  assignAuth0Role,
-  syncBackendRole,
-  addSchoolToUser,
-} from '../services/schoolService';
-import { validateStep1, validateStep2 } from '../utils/validators';
-
-console.log('🧠 useSchoolForm.js hook loaded');
-
-const useSchoolForm = (user) => {
-  // ==================== STATE DECLARATIONS ====================
-  const [file, setFile] = useState(null);
-  const [schoolName, setSchoolName] = useState('');
-  const [schoolEmail, setSchoolEmail] = useState('');
-  const [theme, setTheme] = useState('#20B486');
-
-  const [schoolAddressLine1, setSchoolAddressLine1] = useState('');
-  const [schoolAddressLine2, setSchoolAddressLine2] = useState('');
-  const [country, setCountry] = useState('');
-  const [province, setProvince] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
-
-  const [adminUser1Name, setAdminUser1Name] = useState('');
-  const [adminUser1Email, setAdminUser1Email] = useState('');
-  const [adminUser2Name, setAdminUser2Name] = useState('');
-  const [adminUser2Email, setAdminUser2Email] = useState('');
-
-  const [website, setWebsite] = useState('');
-  const [facebook, setFacebook] = useState('');
-  const [tiktok, setTikTok] = useState('');
-  const [linkedin, setLinkedIn] = useState('');
-
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState(null);
-
-  // Combine all form data into a single object for easier access and validation
-  const formData = {
-    schoolName,
-    schoolEmail,
-    file,
-    theme,
-    schoolAddressLine1,
-    schoolAddressLine2,
-    country,
-    province,
-    city,
-    postalCode,
-    selectedLocation,
-    latitude,
-    longitude,
-    adminUser1Name,
-    adminUser1Email,
-    adminUser2Name,
-    adminUser2Email,
-    website,
-    facebook,
-    tiktok,
-    linkedin,
-  };
-
-  // ==================== EFFECT HOOKS ====================
-
-  // Effect to get the user's current location on mount
-  useEffect(() => {
-    console.log('🌍 Geolocation effect triggered');
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          console.log('✅ Geolocation retrieved:', coords);
-          setCurrentLocation(coords);
-          setLatitude(position.coords.latitude);
-          setLongitude(position.coords.longitude);
-        },
-        (err) => {
-          console.error('❌ Geolocation error:', err.message);
-          console.log('📍 Falling back to default location');
-          setError('Geolocation not available. Please select your location on the map.');
-        }
-      );
-    } else {
-      console.warn('⚠️ Geolocation is not supported by this browser');
-      setError('Geolocation is not supported by your browser.');
-    }
-  }, []);
-
-  // ==================== HANDLERS & LOGIC ====================
-
-  const handleNextStep = () => {
-    console.log(`➡️ Attempting to move from step ${step} to step ${step + 1}`);
-    setError(null);
-
-    // Validation for each step
-    let isValid = true;
-    switch (step) {
-      case 1:
-        isValid = validateStep1(formData);
-        break;
-      case 2:
-        isValid = validateStep2(formData);
-        break;
-      // Add validation for other steps if needed
-      default:
-        break;
-    }
-
-    if (!isValid) {
-      alert('Please fill in all required fields to proceed.');
-      return;
-    }
-
-    const nextStep = step + 1;
-    console.log(`✅ Moving to step ${nextStep}`);
-    setStep(nextStep);
-  };
-
-  const handlePreviousStep = () => {
-    const prevStep = step - 1;
-    console.log(`⬅️ Moving from step ${step} to step ${prevStep}`);
-    setStep(prevStep);
-    setError(null);
-  };
-
-  const handleFormSubmission = async () => {
-    console.log('🚀 Starting form submission process...');
-    setLoading(true);
-    setError(null);
-
-    try {
-      // 1. Upload file to Cloudinary
-      const cloudinaryImageUrl = await uploadFileToCloudinary(file);
-
-      // 2. Create school record in the backend
-      const schoolPayload = {
-        schoolName,
-        logo: cloudinaryImageUrl,
-        schoolEmail,
-        line1: schoolAddressLine1,
-        line2: schoolAddressLine2,
-        country,
-        province,
-        city,
-        postalCode,
-        theme,
-        latitude,
-        longitude,
-        website,
-        facebook,
-        tiktok,
-        linkedin,
-        user_id: user?.sub,
-        user_email: user?.email,
-        school_created_by: user?.email,
-      };
-      const schoolCreationResponse = await createSchool(schoolPayload);
-      const schoolId = schoolCreationResponse.schoolId;
-
-      // 3. Get Auth0 Management API access token
-      const accessToken = await getAccessToken();
-      const userId = user?.sub;
-
-      // 4. Assign Admin role in Auth0
-      await assignAuth0Role(userId, accessToken, ['rol_a6KrxwaZ1CguNPXS']);
-
-      // 5. Synchronize role in backend
-      await syncBackendRole(userId, ['Admin']);
-
-      // 6. Add the new school to the user's schools array
-      await addSchoolToUser(userId, schoolId);
-
-      console.log('🎉 Form submission completed successfully!');
-      alert('School created and roles assigned successfully!');
-      window.location.reload(); // Or redirect to the new school's page
-
-    } catch (err) {
-      console.error('💥 Error during form submission:', err);
-      setError(err.message || 'An unexpected error occurred. Please try again.');
-      alert(err.message || 'An unexpected error occurred. Please try again.');
-    } finally {
-      console.log('🔄 Setting loading state to false');
-      setLoading(false);
-    }
-  };
-
-  // Return all state and handlers needed by the component
-  return {
+const CreateSchoolForm = ({ user }) => {
+  const router = useRouter();
+  
+  // Use custom hook to manage all form state and logic
+  const {
     step,
     loading,
     error,
     formData,
+    currentLocation,
     setFile,
     setSchoolName,
     setSchoolEmail,
+    setPhone,
     setTheme,
     setSchoolAddressLine1,
     setSchoolAddressLine2,
@@ -233,7 +28,6 @@ const useSchoolForm = (user) => {
     setProvince,
     setCity,
     setPostalCode,
-    setCurrentLocation,
     setSelectedLocation,
     setLatitude,
     setLongitude,
@@ -248,23 +42,187 @@ const useSchoolForm = (user) => {
     handleNextStep,
     handlePreviousStep,
     handleFormSubmission,
+  } = useSchoolForm(user);
+
+  console.log('🎨 Current theme state:', formData.theme);
+  console.log('📍 Current step:', step);
+
+  // Handler for theme changes from Step1
+  const handleThemeChange = (mode, value) => {
+    console.log('🎨 Theme changed:', { mode, value });
+    setTheme({ mode, value });
   };
+
+  // Handler for file changes
+  const handleFileChange = (file) => {
+    console.log('📁 File selected:', file?.name);
+    setFile(file);
+  };
+
+  // Handler for location changes
+  const handleLocationChange = (location) => {
+    console.log('📍 Location changed:', location);
+    setSelectedLocation(location);
+    if (location?.lat && location?.lng) {
+      setLatitude(location.lat);
+      setLongitude(location.lng);
+    }
+  };
+
+  // Render the appropriate step component
+  const renderStep = () => {
+    console.log(`🔄 Rendering step ${step}`);
+
+    switch (step) {
+      case 1:
+        return (
+          <Step1BasicInfo
+            schoolName={formData.schoolName}
+            schoolEmail={formData.schoolEmail}
+            phone={formData.phone}
+            theme={formData.theme}
+            onFileChange={handleFileChange}
+            onSchoolNameChange={(e) => setSchoolName(e.target.value)}
+            onSchoolEmailChange={(e) => setSchoolEmail(e.target.value)}
+            onPhoneChange={(e) => setPhone(e.target.value)}
+            onThemeChange={handleThemeChange}
+            onNext={handleNextStep}
+            isLoading={loading}
+          />
+        );
+
+      case 2:
+        return (
+          <Step2AddressInfo
+            addressLine1={formData.schoolAddressLine1}
+            addressLine2={formData.schoolAddressLine2}
+            country={formData.country}
+            province={formData.province}
+            city={formData.city}
+            postalCode={formData.postalCode}
+            currentLocation={currentLocation}
+            selectedLocation={formData.selectedLocation}
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            onAddressLine1Change={(e) => setSchoolAddressLine1(e.target.value)}
+            onAddressLine2Change={(e) => setSchoolAddressLine2(e.target.value)}
+            onCountryChange={(e) => setCountry(e.target.value)}
+            onProvinceChange={(e) => setProvince(e.target.value)}
+            onCityChange={(e) => setCity(e.target.value)}
+            onPostalCodeChange={(e) => setPostalCode(e.target.value)}
+            onLocationChange={handleLocationChange}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
+            isLoading={loading}
+          />
+        );
+
+      case 3:
+        return (
+          <Step3AdminUsers
+            adminUser1Name={formData.adminUser1Name}
+            adminUser1Email={formData.adminUser1Email}
+            adminUser2Name={formData.adminUser2Name}
+            adminUser2Email={formData.adminUser2Email}
+            website={formData.website}
+            facebook={formData.facebook}
+            tiktok={formData.tiktok}
+            linkedin={formData.linkedin}
+            onAdminUser1NameChange={(e) => setAdminUser1Name(e.target.value)}
+            onAdminUser1EmailChange={(e) => setAdminUser1Email(e.target.value)}
+            onAdminUser2NameChange={(e) => setAdminUser2Name(e.target.value)}
+            onAdminUser2EmailChange={(e) => setAdminUser2Email(e.target.value)}
+            onWebsiteChange={(e) => setWebsite(e.target.value)}
+            onFacebookChange={(e) => setFacebook(e.target.value)}
+            onTikTokChange={(e) => setTikTok(e.target.value)}
+            onLinkedInChange={(e) => setLinkedIn(e.target.value)}
+            onSubmit={handleFormSubmission}
+            onPrevious={handlePreviousStep}
+            isLoading={loading}
+          />
+        );
+
+      default:
+        console.warn('⚠️ Unknown step:', step);
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Invalid Step
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Something went wrong. Please refresh the page.
+            </p>
+            <button
+              onClick={() => router.reload()}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        );
+    }
+  };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-red-50 border-2 border-red-200 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-4xl">❌</span>
+          </div>
+          <h2 className="text-2xl font-bold text-red-900 mb-4">
+            Error Occurred
+          </h2>
+          <p className="text-red-700 mb-6">
+            {error}
+          </p>
+          <button
+            onClick={() => router.reload()}
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Main render
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Debug info (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 bg-black/80 text-white text-xs p-3 rounded-lg z-50 max-w-xs">
+          <div className="font-bold mb-1">Debug Info:</div>
+          <div>Step: {step}/3</div>
+          <div>Loading: {loading ? 'Yes' : 'No'}</div>
+          <div>Theme: {formData.theme?.mode || 'N/A'}</div>
+          <div>School: {formData.schoolName || 'Not set'}</div>
+        </div>
+      )}
+
+      {/* Main form container */}
+      <div className="w-full">
+        {renderStep()}
+      </div>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Creating Your School...
+            </h3>
+            <p className="text-gray-600">
+              Please wait while we set everything up for you.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
-export default useSchoolForm;
-Step 4: Refactor the Main Stepper Container (index.js)
-With the custom hook in place, the main CreateSchoolForm component can now be simplified significantly. It will no longer manage any state or API calls directly. Its only job is to get the state and handlers from the useSchoolForm hook and render the appropriate step component.
-
-Rename your original CreateSchoolForm.js file to index.js.
-
-Import useSchoolForm and the step components.ok
-
-Inside the component, call useSchoolForm to get all the necessary state and handlers.
-
-Use a switch statement or a series of conditional renderings to display the correct step component based on the step value from the hook.
-
-Pass the relevant state variables and handlers as props to each step component.
-
-This approach makes the main component extremely clean and easy to follow.
-
-components/schoolpage/CreateSchoolForm/index.js
+export default CreateSchoolForm;
