@@ -137,11 +137,11 @@ const Navbar: React.FC<NavbarProps> = ({
                 src={
                   schoolImage ||
                   currentSchool?.schoolImage ||
-                  "/felixwhitbg.PNG"
+                  "/shologoupdate.png"
                 }
                 alt="logo"
-                width={70}
-                height={70}
+                width={90}
+                height={90}
                 className="cursor-pointer"
                 style={{ 
                   filter: themePalette?.logo === '#FFFFFF' ? 
