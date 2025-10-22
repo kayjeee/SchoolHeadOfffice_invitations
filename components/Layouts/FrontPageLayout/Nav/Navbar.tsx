@@ -137,7 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 src={
                   schoolImage ||
                   currentSchool?.schoolImage ||
-                  "/shologoupdate.png"
+                  "/ShoLogoUpdate.png"
                 }
                 alt="logo"
                 width={90}
@@ -278,3 +278,4 @@ const Navbar: React.FC<NavbarProps> = ({
 };
 
 export default Navbar;
+
