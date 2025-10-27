@@ -44,6 +44,7 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
   const getWordCount = (): number => {
     return getMessageContent().split(/\s+/).filter(Boolean).length;
   };
+
   const getCharacterCount = (): number => {
     return getMessageContent().length;
   };

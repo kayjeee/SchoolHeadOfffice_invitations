@@ -25,7 +25,7 @@ interface NavbarProps {
   userRoles?: UserRole[];
   setSearchQuery?: (query: string) => void;
   schoolImage?: string;
-    schoolTheme?: string; // ✅ Add this line
+  schoolTheme?: string; // ✅ Add this line
 }
 
 const Navbar: React.FC<NavbarProps> = ({
@@ -137,10 +137,10 @@ const Navbar: React.FC<NavbarProps> = ({
                 src={
                   schoolImage ||
                   currentSchool?.schoolImage ||
-                  "/shologoupdate.png"
+                  "/ShoLogoUpdate.png"
                 }
                 alt="logo"
-                width={90}
+                width={70}
                 height={90}
                 className="cursor-pointer"
                 style={{ 
@@ -152,7 +152,11 @@ const Navbar: React.FC<NavbarProps> = ({
             {currentSchool && (
               <h1 
                 className="text-xl font-bold" 
-                style={{ color: themePalette?.logo || 'white' }}
+                style={{ 
+                  color: themePalette?.logo || 'white',
+                  fontFamily: "'Poppins', sans-serif",
+                  fontWeight: 700
+                }}
               >
                 {currentSchool.schoolName}
               </h1>

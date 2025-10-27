@@ -1,31 +1,31 @@
 // pages/index.js
 import React, { useState, useEffect } from "react";
+import { useUser } from "@auth0/nextjs-auth0/client";
+
 import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
 import FrontPageLayoutMobileView from "../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
-import { useUser } from "@auth0/nextjs-auth0/client";
-import { AppThemeProvider } from '../../components/Layouts/context/ThemeContext'; // ✅ Fixed import path
-
 import SettingsLayout from "../../components/adminPage/SettingsLayout";
 import LoadingSpinner from "../../components/spinners/LoadingSpinner";
-import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm/index";
+import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm";
 import ValidateSchoolStep from "../../components/Schoolpage/ValidateSchoolStep";
 import ReviewSchoolStep from "../../components/Schoolpage/ReviewSchoolStep";
 import { OnboardingGuard } from "../../components/onboarding/onboarding";
+import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext"; // ✅ consistent import
 
 export default function Home() {
   const { user } = useUser();
+
   const [isMobile, setIsMobile] = useState(false);
   const [schools, setSchools] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
   const [message, setMessage] = useState("");
   const [step, setStep] = useState(1);
-
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [onboardingStatus, setOnboardingStatus] = useState(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
-  // Track window resize
+  // 🧩 Detect mobile screen
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
@@ -33,35 +33,34 @@ export default function Home() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Fetch user data when available
+  // 🧠 Fetch initial data when user logs in
   useEffect(() => {
-    if (!user) return;
+    if (!user?.sub) return;
     fetchSchools();
     fetchAndSetUserRoles();
     checkOnboardingStatus();
   }, [user]);
 
-  // Fetch Auth0 access token
+  // 🔐 Fetch Auth0 Access Token
   const fetchAccessToken = async () => {
-    const response = await fetch("/api/getAccessToken", {
+    const res = await fetch("/api/getAccessToken", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
-    if (!response.ok) throw new Error("Failed to fetch access token");
-    const { accessToken } = await response.json();
+    if (!res.ok) throw new Error("Failed to fetch access token");
+    const { accessToken } = await res.json();
     return accessToken;
   };
 
-  // Fetch roles from Auth0
+  // 👥 Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
     const url = `https://shobackendv2-production.up.railway.app/api/v2/users/${encodeURIComponent(
       userId
     )}/roles`;
     const res = await fetch(url, {
-      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
     });
     if (!res.ok) throw new Error("Failed to fetch user roles");
@@ -70,17 +69,18 @@ export default function Home() {
   };
 
   const fetchAndSetUserRoles = async () => {
-    try {
-      const token = await fetchAccessToken();
-      const roles = await fetchUserRoles(token, user.sub);
-      setUserRoles(roles);
-    } catch (err) {
-      console.error(err);
-      setUserRoles([]);
-    }
-  };
+  try {
+    const res = await fetch(`/api/getUserRoles?userId=${encodeURIComponent(user.sub)}`);
+    const data = await res.json();
+    setUserRoles(data.roles.map((r) => r.name));
+  } catch (err) {
+    console.error("❌ Error fetching roles:", err);
+    setUserRoles([]);
+  }
+};
 
-  // Fetch schools
+
+  // 🏫 Fetch user schools
   const fetchSchools = async () => {
     if (!user?.sub) return;
     setIsLoading(true);
@@ -91,25 +91,41 @@ export default function Home() {
           user.sub
         )}/schools`
       );
+
       if (res.status === 404) {
         setSchools([]);
-        setMessage(
-          "You have not created any school yet. Please create a new school."
-        );
+        setMessage("You have not created any school yet. Please create a new school.");
         return;
       }
+
       const data = await res.json();
-      setSchools(data.data?.schools || []);
+      // ✅ Normalize data to include logo, _id, etc.
+      const mapped = (data.data?.schools || []).map((s) => ({
+        id: s._id,
+        _id: s._id,
+        schoolName: s.schoolName,
+        schoolEmail: s.schoolEmail,
+        city: s.city,
+        country: s.country,
+        province: s.province,
+        logo: s.logo,
+        userEmail: s.user_email || s.userEmail || "",
+        line1: s.line1 || "",
+        line2: s.line2 || "",
+        postalCode: s.postalCode || "",
+      }));
+      setSchools(mapped);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error fetching schools:", err);
       setMessage("Failed to fetch schools. Please try again later.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check onboarding status
+  // 🧭 Check onboarding status
   const checkOnboardingStatus = async () => {
+    if (!user?.sub) return;
     setIsCheckingOnboarding(true);
     try {
       const res = await fetch(
@@ -119,32 +135,31 @@ export default function Home() {
       );
       const data = await res.json();
       setOnboardingStatus(data);
+
       const complete =
         data.data?.admin_onboarding_completed &&
         data.data?.parent_onboarding_completed &&
         data.data?.guest_onboarding_completed;
-      setIsOnboardingComplete(complete);
+
+      setIsOnboardingComplete(Boolean(complete));
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error checking onboarding:", err);
       setIsOnboardingComplete(false);
     } finally {
       setIsCheckingOnboarding(false);
     }
   };
 
-  // Stepper UI
+  // 🪜 School Registration Stepper
   const renderStepper = () => (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            School Registration
-          </h1>
-          <p className="text-gray-600">
-            Follow these steps to register your school
-          </p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">School Registration</h1>
+          <p className="text-gray-600">Follow these steps to register your school</p>
         </div>
 
+        {/* Step Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             {["Create", "Validate", "Complete"].map((title, i) => (
@@ -190,10 +205,9 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Step Content */}
         <div className="bg-white rounded-lg shadow-lg p-6">
-          {step === 1 && (
-            <CreateSchoolForm user={user} onComplete={fetchSchools} />
-          )}
+          {step === 1 && <CreateSchoolForm user={user} onComplete={fetchSchools} />}
           {step === 2 && <ValidateSchoolStep />}
           {step === 3 && <ReviewSchoolStep />}
 
@@ -201,14 +215,14 @@ export default function Home() {
             <button
               disabled={step === 1}
               onClick={() => setStep(step - 1)}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
             >
               Previous
             </button>
             <button
               disabled={step === 3}
               onClick={() => setStep(step + 1)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition"
             >
               Next
             </button>
@@ -218,7 +232,7 @@ export default function Home() {
     </div>
   );
 
-  // Wrapper component for onboarding with theme provider
+  // 🎨 Onboarding with theme provider
   const OnboardingWithTheme = () => (
     <AppThemeProvider>
       <OnboardingGuard
@@ -231,27 +245,23 @@ export default function Home() {
     </AppThemeProvider>
   );
 
-  // Main render logic
+  // 🧭 Main rendering logic
   const renderContent = () => {
     if (isLoading || isCheckingOnboarding) return <LoadingSpinner />;
 
-    if (schools.length === 0)
-      return message ? renderStepper() : (
-        <CreateSchoolForm user={user} onComplete={fetchSchools} />
-      );
+    if (!schools.length)
+      return message
+        ? renderStepper()
+        : <CreateSchoolForm user={user} onComplete={fetchSchools} />;
 
-    if (!isOnboardingComplete)
-      return <OnboardingWithTheme />;
+    if (!isOnboardingComplete) return <OnboardingWithTheme />;
 
     return <SettingsLayout schools={schools} user={user} />;
   };
 
+  // 🧱 Layout per screen size
   const content = isMobile ? (
-    <FrontPageLayoutMobileView
-      user={user}
-      schools={schools}
-      userRoles={userRoles}
-    >
+    <FrontPageLayoutMobileView user={user} schools={schools} userRoles={userRoles}>
       {renderContent()}
     </FrontPageLayoutMobileView>
   ) : (

@@ -2,47 +2,70 @@ import React from "react";
 import { useOnboardingFlow, OnboardingFlowProvider } from "./hooks/useOnboardingFlow";
 import { STEPS } from "./OnboardingFlow";
 import { useAppTheme } from "../../Layouts/context/ThemeContext";
-import { 
-  generateColorPalette, 
+import {
+  generateColorPalette,
   getComplementaryColor,
   getTriadicColors,
-  getLogoColor 
+  getLogoColor
 } from "./NavbarTheming/colorUtils";
 
 const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   console.log("🔵 [OnboardingContent] Component rendered");
-
-  // Use your existing theme context
-  const { primaryColor, currentSchool, getPrimaryColorValue } = useAppTheme();
+  console.log("🔵 [OnboardingContent] Full schools data:", JSON.stringify(schools, null, 2));
   
-  // Generate color palette using your existing system
+  const { primaryColor, currentSchool, getPrimaryColorValue } = useAppTheme();
+
+  // ✅ Safe school data extraction
+// ✅ Normalize school data to ensure consistent shape
+const schoolRaw = schools?.[0] || {};
+const school = {
+  _id: schoolRaw._id || schoolRaw.id,
+  schoolName: schoolRaw.schoolName,
+  schoolEmail: schoolRaw.schoolEmail,
+  city: schoolRaw.city,
+  country: schoolRaw.country,
+  province: schoolRaw.province,
+  userEmail: schoolRaw.userEmail,
+  logo: schoolRaw.logo || schoolRaw.logoUrl || null,
+  ...schoolRaw
+};
+
+console.log("🏫 [OnboardingContent] Extracted school object:", school);
+console.log("🏫 [OnboardingContent] School name:", school?.schoolName);
+console.log("🏫 [OnboardingContent] School ID:", school?._id);
+
+// ✅ Verify logo URL with detailed logging
+const logoUrl = school?.logo;
+
+  
+  // Track logo load state
+  const [logoLoaded, setLogoLoaded] = React.useState(false);
+  const [logoError, setLogoError] = React.useState(false);
+
+  // ✅ Generate theme palette
   const themePalette = React.useMemo(() => {
     const primaryColorValue = getPrimaryColorValue();
     const palette = generateColorPalette(primaryColorValue);
-    
-    // Fallback to basic palette if generation fails
+
     if (!palette) {
-      const logoColor = getLogoColor(primaryColorValue) || '#190961ff';
+      const logoColor = getLogoColor(primaryColorValue) || "#190961ff";
       return {
         primary: primaryColorValue,
         logo: logoColor,
-        progress: primaryColorValue, // Use primary for progress
-        secondary: getComplementaryColor(primaryColorValue) || '#3B82F6' // Fallback to blue
+        progress: primaryColorValue,
+        secondary: getComplementaryColor(primaryColorValue) || "#3B82F6"
       };
     }
-    
-    // Enhance palette with progress-specific colors
+
     return {
       ...palette,
       progress: palette.primary,
-      secondary: palette.secondary || getComplementaryColor(primaryColorValue) || '#3B82F6'
+      secondary: palette.secondary || getComplementaryColor(primaryColorValue) || "#3B82F6"
     };
   }, [getPrimaryColorValue]);
 
-  // Calculate text colors based on background
-  const getTextColor = (backgroundColor) => {
-    return getLogoColor(backgroundColor) || '#000000';
-  };
+  const getTextColor = (backgroundColor) =>
+    getLogoColor(backgroundColor) || "#000000";
 
   const {
     currentStep,
@@ -54,15 +77,13 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
     updateOnboardingData
   } = useOnboardingFlow();
 
-  // Resolve a safe user ID
   const userId = user?._id || user?.id || user?.auth0_id;
 
   const handleNext = async () => {
     console.log("➡️ [OnboardingContent] handleNext triggered");
     setIsLoading(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       goToNextStep();
     } catch (error) {
       console.error("❌ [OnboardingContent] Error advancing onboarding step:", error);
@@ -81,6 +102,19 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
     updateOnboardingData(data);
   };
 
+  const handleLogoLoad = () => {
+    console.log("✅ [OnboardingContent] Logo loaded successfully:", logoUrl);
+    setLogoLoaded(true);
+    setLogoError(false);
+  };
+
+  const handleLogoError = (e) => {
+    console.error("🚫 [OnboardingContent] Logo failed to load:", logoUrl);
+    console.error("🚫 [OnboardingContent] Error event:", e);
+    setLogoError(true);
+    setLogoLoaded(false);
+  };
+
   if (!currentStep?.component) {
     console.warn("⚠️ [OnboardingContent] No currentStep.component - returning null");
     return null;
@@ -89,123 +123,156 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   const StepComponent = currentStep.component;
 
   return (
-    <div className="min-h-screen bg-white py-8"> {/* ✅ Changed to white background */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Progress Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h1 
-              className="text-2xl font-bold text-gray-800" // ✅ Added text color
-            >
-              School Setup
-            </h1>
-            <div className="text-sm text-gray-600"> {/* ✅ Added text color */}
-              Step {currentStepIndex + 1} of {STEPS.length}
+        {/* ✅ Enhanced Header with Professional Logo Display */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            {/* Professional Logo Container */}
+            <div className="relative w-20 h-20 rounded-xl bg-white shadow-lg ring-4 ring-gray-100 overflow-hidden flex items-center justify-center transition-all duration-300 hover:shadow-xl hover:ring-gray-200">
+              {logoUrl && !logoError ? (
+                <>
+                  <img
+                    src={logoUrl}
+                    alt={`${school?.schoolName || "School"} logo`}
+                    className="w-full h-full object-contain p-2"
+                    onLoad={handleLogoLoad}
+                    onError={handleLogoError}
+                    style={{ display: logoError ? 'none' : 'block' }}
+                  />
+                  {!logoLoaded && !logoError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="text-4xl" title="Logo not available">🏫</span>
+              )}
+            </div>
+
+            {/* School Info */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">School Setup</h1>
+              <p className="text-sm text-gray-600 font-medium">
+                {school?.schoolName || "Unnamed School"}
+              </p>
+              {logoUrl && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {logoLoaded && "✓ Logo loaded"}
+                  {logoError && "⚠ Logo unavailable"}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Progress Bar - Using Color Wheel Principles */}
-          <div 
-            className="w-full rounded-full h-2 mb-4 bg-gray-200" // ✅ Changed to gray background
-          >
-            <div
-              className="h-2 rounded-full transition-all duration-300"
-              style={{ 
-                backgroundColor: themePalette.progress,
-                width: `${((currentStepIndex + 1) / STEPS.length) * 100}%`,
-                boxShadow: `0 0 10px ${themePalette.progress}40` // Glow effect
-              }}
-            />
-          </div>
-
-          {/* Step Indicators - Using Triadic Colors */}
-          <div className="flex justify-between">
-            {STEPS.map((step, index) => {
-              // Use different colors from your color wheel for each step
-              let stepColor;
-              if (index <= currentStepIndex) {
-                // Completed steps use primary color
-                stepColor = themePalette.primary;
-              } else if (index === currentStepIndex + 1) {
-                // Next step uses secondary color
-                stepColor = themePalette.secondary || '#3B82F6';
-              } else {
-                // Future steps use gray
-                stepColor = '#D1D5DB'; // gray-300
-              }
-
-              const textColor = index <= currentStepIndex ? 
-                getTextColor(stepColor) : 
-                '#9CA3AF'; // gray-400 for future steps
-              
-              return (
-                <div 
-                  key={step.id} 
-                  className="text-center flex-1"
-                  style={{ color: textColor }}
-                >
-                  <div 
-                    className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2 transition-all duration-300"
-                    style={{ 
-                      backgroundColor: stepColor,
-                      color: textColor,
-                      border: `2px solid ${stepColor}`,
-                      boxShadow: index <= currentStepIndex ? `0 0 8px ${stepColor}60` : 'none'
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-                  <span className="text-xs font-medium">{step.name}</span>
-                </div>
-              );
-            })}
+          {/* Step Counter */}
+          <div className="text-sm font-medium text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm">
+            Step <span className="text-lg font-bold" style={{ color: themePalette.primary }}>{currentStepIndex + 1}</span> of {STEPS.length}
           </div>
         </div>
 
-        {/* Step Content */}
-        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200"> {/* ✅ Simplified styling */}
+        {/* ✅ Enhanced Progress Bar */}
+        <div className="w-full rounded-full h-3 mb-8 bg-gray-200 shadow-inner overflow-hidden">
+          <div
+            className="h-3 rounded-full transition-all duration-500 ease-out"
+            style={{
+              backgroundColor: themePalette.progress,
+              width: `${((currentStepIndex + 1) / STEPS.length) * 100}%`,
+              boxShadow: `0 0 12px ${themePalette.progress}60, inset 0 1px 0 rgba(255,255,255,0.4)`
+            }}
+          />
+        </div>
+
+        {/* ✅ Step Indicators */}
+        <div className="flex justify-between mb-8">
+          {STEPS.map((step, index) => {
+            let stepColor;
+            if (index <= currentStepIndex) {
+              stepColor = themePalette.primary;
+            } else if (index === currentStepIndex + 1) {
+              stepColor = themePalette.secondary || "#3B82F6";
+            } else {
+              stepColor = "#D1D5DB";
+            }
+
+            const textColor =
+              index <= currentStepIndex ? getTextColor(stepColor) : "#9CA3AF";
+
+            const isActive = index === currentStepIndex;
+            const isComplete = index < currentStepIndex;
+
+            return (
+              <div key={step.id} className="text-center flex-1" style={{ color: textColor }}>
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 transition-all duration-300 ${
+                    isActive ? 'scale-110' : ''
+                  }`}
+                  style={{
+                    backgroundColor: stepColor,
+                    color: textColor,
+                    border: `3px solid ${stepColor}`,
+                    boxShadow: index <= currentStepIndex ? `0 0 12px ${stepColor}60` : "none"
+                  }}
+                >
+                  {isComplete ? (
+                    <span className="text-lg">✓</span>
+                  ) : (
+                    <span className="font-bold">{index + 1}</span>
+                  )}
+                </div>
+                <span className={`text-xs font-medium ${isActive ? 'font-bold' : ''}`}>
+                  {step.name}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ✅ Step Content */}
+        <div className="bg-white rounded-xl shadow-xl p-8 border border-gray-100">
           <StepComponent
             user={user}
             userId={userId}
             schools={schools}
-            school={schools?.[0]}
+            school={school}
             onboardingStatus={onboardingStatus}
             onNext={handleNext}
             onBack={handleBack}
             isLoading={isLoading}
             onUpdateData={handleUpdateData}
-            themePalette={themePalette} // Pass palette to step components
+            themePalette={themePalette}
           />
         </div>
 
-        {/* Navigation Buttons */}
+        {/* ✅ Navigation Buttons */}
         <div className="flex justify-between mt-6">
           <button
             onClick={handleBack}
             disabled={currentStepIndex === 0 || isLoading}
-            className="px-6 py-3 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 text-gray-700 hover:bg-gray-50" // ✅ Simplified styling
+            className="px-6 py-3 rounded-lg font-medium border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow"
           >
-            Back
+            ← Back
           </button>
-          
+
           <button
             onClick={handleNext}
             disabled={isLoading}
-            className="px-6 py-3 rounded-lg font-medium text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+            className="px-6 py-3 rounded-lg font-medium text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transform hover:scale-105"
             style={{
               backgroundColor: themePalette.progress,
-              boxShadow: `0 2px 4px ${themePalette.progress}40`
+              boxShadow: `0 4px 6px ${themePalette.progress}40`
             }}
           >
             {isLoading ? (
               <div className="flex items-center">
-                <div 
-                  className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
-                ></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Loading...
               </div>
+            ) : currentStepIndex === STEPS.length - 1 ? (
+              "Complete Setup ✓"
             ) : (
-              currentStepIndex === STEPS.length - 1 ? 'Complete Setup' : 'Next Step'
+              "Next Step →"
             )}
           </button>
         </div>
@@ -222,16 +289,16 @@ export const OnboardingGuard = ({
   isCheckingOnboarding
 }) => {
   console.log("🚀 [OnboardingGuard] Component mounted");
-
-  // Use theme context for consistent styling
+  console.log("🚀 [OnboardingGuard] Schools prop:", schools);
+  
   const { primaryColor, getPrimaryColorValue } = useAppTheme();
 
   if (isCheckingOnboarding) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white"> {/* ✅ White background */}
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div> {/* ✅ Standard blue spinner */}
-          <p className="text-gray-600">Checking onboarding status...</p> {/* ✅ Standard text color */}
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center bg-white p-8 rounded-xl shadow-lg">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Checking onboarding status...</p>
         </div>
       </div>
     );
