@@ -35,7 +35,7 @@ const CreateSchoolForm = ({ user }) => {
     facebook: '',
     tiktok: '',
     linkedin: '',
-    status: 'active', // 👈 default yes
+    status: 'active', // 👈 default yes7
   });
 
   const updateField = (key, value) =>
