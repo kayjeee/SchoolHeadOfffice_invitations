@@ -328,7 +328,7 @@ const Step3Admins = ({
                     >
                       {adminUsers.length}
                     </div>
-                    <span>Team Members</span>
+                    <span>Admin Members</span>
                   </h3>
                   {adminUsers.length > 0 && (
                     <span className="text-sm text-gray-500 flex items-center gap-1">
