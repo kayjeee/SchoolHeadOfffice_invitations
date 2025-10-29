@@ -3,11 +3,11 @@ import { Learner, Grade } from '../../types';
 
 interface LearnerSelectionProps {
   grades: Grade[];
-  learners: Learner[];
+  learnersByGrade: Record<string, Learner[]>;
   selectedGrades: string[];
   expandedGrades: string[];
   isLoadingGrades: boolean;
-  isLoadingLearners: boolean;
+  isLoadingLearners: Record<string, boolean>;
   gradesError: string | null;
   onGradeSelection: (gradeId: string) => void;
   onSelectAllGrades: () => void;
@@ -35,7 +35,7 @@ const getDisplayStatus = (learner: Learner): string => {
 
 export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
   grades,
-  learners,
+  learnersByGrade,
   selectedGrades,
   expandedGrades,
   isLoadingGrades,
@@ -46,17 +46,13 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
   onToggleGradeExpansion,
   onReloadGrades,
 }) => {
-  // Get learners for the currently expanded grade
-  const getExpandedGradeLearners = () => {
-    if (!expandedGrades || expandedGrades.length === 0) return [];
-    const expandedGradeId = expandedGrades[0]; // Assuming single expansion for simplicity
-    return learners.filter(learner => learner.grade_id === expandedGradeId);
-  };
+  const expandedGradeId = expandedGrades.length > 0 ? expandedGrades[0] : null;
+  const expandedGrade = expandedGradeId ? grades.find(g => g.id === expandedGradeId) : null;
+  const expandedGradeLearners = expandedGradeId ? learnersByGrade[expandedGradeId] || [] : [];
+  const isLoadingExpandedGradeLearners = expandedGradeId ? isLoadingLearners[expandedGradeId] : false;
 
-  const expandedGradeLearners = getExpandedGradeLearners();
-  const expandedGrade = expandedGrades.length > 0 
-    ? grades.find(grade => grade.id === expandedGrades[0])
-    : null;
+  const allLearners = Object.values(learnersByGrade).flat();
+  const selectedLearners = allLearners.filter(l => selectedGrades.includes(l.grade_id));
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 mb-8">
@@ -134,8 +130,8 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {grades.map((grade) => {
-                const gradeLearners = learners.filter(l => l.grade_id === grade.id);
                 const isExpanded = expandedGrades.includes(grade.id);
+                const isGradeLoadingLearners = isLoadingLearners[grade.id];
                 
                 return (
                   <div 
@@ -150,7 +146,6 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                     <div className="flex items-center justify-between">
                       <label 
                         className="flex items-center cursor-pointer"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <input
                           type="checkbox"
@@ -168,7 +163,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                       <div className="flex items-center space-x-4">
                         <div className="text-right">
                           <span className="text-sm text-gray-600 font-medium">
-                            {gradeLearners.length} {gradeLearners.length === 1 ? 'learner' : 'learners'}
+                            {grade.learnerCount} {grade.learnerCount === 1 ? 'learner' : 'learners'}
                           </span>
                           <div
                             className={`text-xs px-2 py-1 rounded-full ${
@@ -179,7 +174,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          {isLoadingLearners && selectedGrades.includes(grade.id) ? (
+                          {isGradeLoadingLearners ? (
                             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                           ) : (
                             <button
@@ -213,7 +208,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                       </div>
                     </div>
                     
-                    {isLoadingLearners && selectedGrades.includes(grade.id) && (
+                    {isGradeLoadingLearners && (
                       <div className="mt-3 ml-7">
                         <div className="flex items-center space-x-2 text-sm text-gray-500">
                           <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -270,7 +265,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                   <p className="text-lg font-medium text-gray-600">Select a grade to view learners</p>
                   <p className="text-sm mt-2">Click on a grade or the arrow icon to see its learners</p>
                 </div>
-              ) : isLoadingLearners ? (
+              ) : isLoadingExpandedGradeLearners ? (
                 <div className="text-center py-12">
                   <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading learners...</p>
@@ -360,7 +355,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
             </div>
 
             {expandedGrade && expandedGradeLearners.length > 0 && (
-              <div className="p-4 border-t bg-gray-50 rounded-b-lg">
+              <div className="p-4 border-t bg-gray-50 rounded-b-.lg">
                 <div className="flex flex-wrap justify-between items-center text-sm text-gray-600">
                   <span className="font-medium">
                     Total: {expandedGradeLearners.length} learners
@@ -393,17 +388,17 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
                   .join(", ")}
               </p>
               <p className="text-sm text-blue-600 mt-1">
-                Total learners: {learners.filter(l => selectedGrades.includes(l.grade_id)).length}
+                Total learners: {selectedLearners.length}
               </p>
               <div className="flex space-x-4 mt-2 text-xs text-blue-600">
                 <span>
-                  Active: {learners.filter(l => selectedGrades.includes(l.grade_id) && getDisplayStatus(l) === "Active").length}
+                  Active: {selectedLearners.filter(l => getDisplayStatus(l) === "Active").length}
                 </span>
                 <span>
-                  Female: {learners.filter(l => selectedGrades.includes(l.grade_id) && getDisplayGender(l) === "Female").length}
+                  Female: {selectedLearners.filter(l => getDisplayGender(l) === "Female").length}
                 </span>
                 <span>
-                  Male: {learners.filter(l => selectedGrades.includes(l.grade_id) && getDisplayGender(l) === "Male").length}
+                  Male: {selectedLearners.filter(l => getDisplayGender(l) === "Male").length}
                 </span>
               </div>
             </div>

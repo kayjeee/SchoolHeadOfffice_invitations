@@ -5,7 +5,7 @@ import { LearnerSelection } from "./components/LearnerSelection";
 import { ChannelSelection } from "./components/ChannelSelection/ChannelSelection";
 import { MessageComposer } from "./components/MessageComposer";
 import { InviteResults } from "./components/InviteResults";
-import { getLearnersBySchool } from "./services/learnerService";
+import { getLearnersByGrade } from "./services/learnerService";
 import { getGrades } from "./services/gradeService";
 
 interface Step3SendInvitesProps {
@@ -38,52 +38,37 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
   const schoolId = targetSchool?.id || targetSchool?._id;
 
-  console.log("🏫 [Step3SendInvites] Component mounted");
-  console.log("📦 [Step3SendInvites] Props received:", {
-    user: user ? { id: user._id || user.id, sub: user.sub } : 'No user',
-    school: school,
-    schools: schools,
-    schoolsCount: schools?.length || 0,
-    hasOnNext: typeof onNext === 'function',
-    hasOnBack: typeof onBack === 'function',
-    isLoading: isLoading,
-    hasOnUpdateData: typeof onUpdateData === 'function'
-  });
-
   const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [learners, setLearners] = useState<Learner[]>([]);
+  const [learners, setLearners] = useState<Record<string, Learner[]>>({});
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [inviteMessage, setInviteMessage] = useState<string>("");
   const [isLoadingGrades, setIsLoadingGrades] = useState(false);
-  const [isLoadingLearners, setIsLoadingLearners] = useState(false);
+  const [isLoadingLearners, setIsLoadingLearners] = useState<Record<string, boolean>>({});
   const [gradesError, setGradesError] = useState<string | null>(null);
 
+  const allLearners = Object.values(learners).flat();
   const { canProceedToNext, validationErrors } = useStepValidation({
     currentStep,
     selectedGrades,
-    learners,
+    learners: allLearners,
     selectedChannels,
     inviteMessage,
   });
 
-  const fetchGradesAndLearners = useCallback(async () => {
+  const fetchGrades = useCallback(async () => {
     if (!schoolId) {
-      console.warn("❌ Missing schoolId: cannot fetch data");
       setGradesError("Missing school information");
       return;
     }
 
-    console.log("📚 Fetching grades and learners for school:", schoolId);
     setIsLoadingGrades(true);
-    setIsLoadingLearners(true);
     setGradesError(null);
 
     try {
       const gradesData = await getGrades(schoolId);
-      console.log("✅ Grades fetched:", gradesData);
       const formattedGrades: Grade[] = gradesData.map((g: any) => ({
         id: g.id,
         name: g.name,
@@ -93,25 +78,34 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         isActive: g.status_text === "active",
       }));
       setGrades(formattedGrades);
-
-      const learnersData = await getLearnersBySchool(schoolId);
-      console.log("✅ Learners fetched:", learnersData);
-      setLearners(learnersData);
-
     } catch (error) {
-      console.error("❌ Error fetching data:", error);
       setGradesError("Failed to load school data.");
       setGrades([]);
-      setLearners([]);
     } finally {
       setIsLoadingGrades(false);
-      setIsLoadingLearners(false);
     }
   }, [schoolId]);
 
   useEffect(() => {
-    fetchGradesAndLearners();
-  }, [fetchGradesAndLearners]);
+    fetchGrades();
+  }, [fetchGrades]);
+
+  const fetchLearnersForGrade = async (gradeId: string) => {
+    if (learners[gradeId]) {
+      return;
+    }
+
+    setIsLoadingLearners(prev => ({ ...prev, [gradeId]: true }));
+
+    try {
+      const learnersData = await getLearnersByGrade(gradeId);
+      setLearners(prev => ({ ...prev, [gradeId]: learnersData }));
+    } catch (error) {
+      // Optionally handle per-grade errors
+    } finally {
+      setIsLoadingLearners(prev => ({ ...prev, [gradeId]: false }));
+    }
+  };
 
   const handleGradeSelection = (gradeId: string) => {
     setSelectedGrades((prev) =>
@@ -130,17 +124,22 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   };
 
   const toggleGradeExpansion = (gradeId: string) => {
+    const isExpanded = expandedGrades.includes(gradeId);
+    if (!isExpanded) {
+      fetchLearnersForGrade(gradeId);
+    }
     setExpandedGrades(prev =>
-      prev.includes(gradeId)
+      isExpanded
         ? prev.filter(id => id !== gradeId)
         : [gradeId] // Only allow one grade to be expanded at a time
     );
   };
 
   const handleReloadGrades = async () => {
-    await fetchGradesAndLearners();
+    await fetchGrades();
     setSelectedGrades([]);
     setExpandedGrades([]);
+    setLearners({});
   };
 
   const handleChannelSelection = (channelId: string) => {
@@ -209,7 +208,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
           <LearnerSelection
             grades={grades}
             selectedGrades={selectedGrades}
-            learners={learners}
+            learnersByGrade={learners}
             isLoadingGrades={isLoadingGrades}
             isLoadingLearners={isLoadingLearners}
             gradesError={gradesError}
@@ -225,7 +224,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
           <ChannelSelection
             channels={CHANNELS}
             selectedChannels={selectedChannels}
-            learners={learners.filter(l => selectedGrades.includes(l.grade_id))}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
             selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))}
             onChannelSelection={handleChannelSelection}
             onSelectAllChannels={handleSelectAllChannels}
@@ -248,7 +247,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         return (
           <InviteResults
             selectedChannels={selectedChannels}
-            learners={learners.filter(l => selectedGrades.includes(l.grade_id))}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
             inviteMessage={inviteMessage}
             schools={schools}
             school={targetSchool}
