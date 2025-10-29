@@ -29,6 +29,16 @@ const Step1BasicInfo = ({
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
 
+  // DEBUG: Log initial props
+  useEffect(() => {
+    console.log('🔍 Step1BasicInfo - Initial props:', {
+      schoolName,
+      schoolEmail,
+      phoneNumber,
+      theme
+    });
+  }, []);
+
   // ✅ FIX: Initialize color mode from parent theme prop
   useEffect(() => {
     if (theme && theme.mode && theme.value) {
@@ -76,6 +86,36 @@ const Step1BasicInfo = ({
     }
   };
 
+  // DEBUG: Handle phone number changes with logging
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value;
+    console.log('📞 Phone number input changed:', {
+      value,
+      valueLength: value.length,
+      previousValue: phoneNumber,
+      eventType: e.type
+    });
+    
+    if (onPhoneNumberChange) {
+      onPhoneNumberChange(e);
+    } else {
+      console.error('❌ onPhoneNumberChange prop is not provided or is undefined');
+    }
+  };
+
+  // DEBUG: Log current state
+  useEffect(() => {
+    console.log('📊 Step1BasicInfo - Current state:', {
+      phoneNumber,
+      phoneNumberLength: phoneNumber?.length,
+      schoolName,
+      schoolEmail,
+      focusedField,
+      colorMode,
+      customColor
+    });
+  }, [phoneNumber, schoolName, schoolEmail, focusedField, colorMode, customColor]);
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Hero Header */}
@@ -95,6 +135,17 @@ const Step1BasicInfo = ({
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* DEBUG: Current values display */}
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="text-sm font-bold text-yellow-800 mb-2">🔍 DEBUG INFO:</h3>
+          <div className="text-xs text-yellow-700 grid grid-cols-2 gap-2">
+            <div>Phone Number: <span className="font-mono bg-yellow-100 px-1 rounded">{phoneNumber || '(empty)'}</span></div>
+            <div>Length: <span className="font-mono bg-yellow-100 px-1 rounded">{phoneNumber?.length || 0}</span></div>
+            <div>School Name: <span className="font-mono bg-yellow-100 px-1 rounded">{schoolName || '(empty)'}</span></div>
+            <div>School Email: <span className="font-mono bg-yellow-100 px-1 rounded">{schoolEmail || '(empty)'}</span></div>
+          </div>
+        </div>
+
         {/* Main Form Container */}
         <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl shadow-2xl border border-gray-200">
           <div className="p-8 md:p-12">
@@ -135,7 +186,7 @@ const Step1BasicInfo = ({
                         onFocus={() => setFocusedField('schoolName')}
                         onBlur={() => setFocusedField(null)}
                         placeholder="Enter your school name"
-                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
+                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500
                           transition-all duration-300 focus:outline-none focus:ring-0
                           ${errors.schoolName
                             ? 'border-red-500 focus:border-red-400'
@@ -161,7 +212,7 @@ const Step1BasicInfo = ({
                         onFocus={() => setFocusedField('schoolEmail')}
                         onBlur={() => setFocusedField(null)}
                         placeholder="contact@yourschool.edu"
-                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
+                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500
                           transition-all duration-300 focus:outline-none focus:ring-0
                           ${errors.schoolEmail
                             ? 'border-red-500 focus:border-red-400'
@@ -174,7 +225,7 @@ const Step1BasicInfo = ({
                     )}
                   </div>
 
-                  {/* Phone */}
+                  {/* Phone Number - DEBUG: Enhanced with logging */}
                   <div className="group">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone Number
@@ -182,15 +233,32 @@ const Step1BasicInfo = ({
                     <input
                       type="tel"
                       value={phoneNumber}
-                      onChange={onPhoneNumberChange}
-                      onFocus={() => setFocusedField('phoneNumber')}
-                      onBlur={() => setFocusedField(null)}
+                      onChange={handlePhoneNumberChange}
+                      onFocus={() => {
+                        console.log('📞 Phone number field focused');
+                        setFocusedField('phoneNumber');
+                      }}
+                      onBlur={() => {
+                        console.log('📞 Phone number field blurred');
+                        setFocusedField(null);
+                      }}
+                      onKeyDown={(e) => {
+                        console.log('⌨️ Phone number key pressed:', e.key);
+                      }}
                       placeholder="+1 (555) 123-4567"
-                      className={`w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-gray-900
+                      className={`w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-black
                         placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0
                         focus:border-blue-500 hover:border-gray-400
-                        ${focusedField === 'phoneNumber' ? 'transform scale-[1.02]' : ''}`}
+                        ${focusedField === 'phoneNumber' ? 'transform scale-[1.02] border-2 border-blue-500' : ''}`}
+                      style={{ 
+                        color: 'black',
+                        backgroundColor: '#f9fafb'
+                      }}
                     />
+                    {/* DEBUG: Show current value below input */}
+                    <div className="mt-1 text-xs text-gray-500">
+                      Current value: <span className="font-mono bg-gray-100 px-1 rounded">{phoneNumber || '(empty)'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
