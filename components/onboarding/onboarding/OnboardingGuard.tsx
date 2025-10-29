@@ -10,33 +10,26 @@ import {
 } from "./NavbarTheming/colorUtils";
 
 const OnboardingContent = ({ user, schools, onboardingStatus }) => {
-  console.log("🔵 [OnboardingContent] Component rendered");
-  console.log("🔵 [OnboardingContent] Full schools data:", JSON.stringify(schools, null, 2));
-  
-  const { primaryColor, currentSchool, getPrimaryColorValue } = useAppTheme();
+  const { currentSchool, getPrimaryColorValue } = useAppTheme();
+  const {
+    currentStep,
+    currentStepIndex,
+    goToNextStep,
+    goToPreviousStep,
+    isLoading,
+    setIsLoading,
+    updateOnboardingData,
+  } = useOnboardingFlow();
 
-  // ✅ Safe school data extraction
-// ✅ Normalize school data to ensure consistent shape
-const schoolRaw = schools?.[0] || {};
-const school = {
-  _id: schoolRaw._id || schoolRaw.id,
-  schoolName: schoolRaw.schoolName,
-  schoolEmail: schoolRaw.schoolEmail,
-  city: schoolRaw.city,
-  country: schoolRaw.country,
-  province: schoolRaw.province,
-  userEmail: schoolRaw.userEmail,
-  logo: schoolRaw.logo || schoolRaw.logoUrl || null,
-  ...schoolRaw
-};
+  // Use the `currentSchool` from the App's theme context and normalize it.
+  const school = currentSchool ? {
+    ...currentSchool,
+    id: currentSchool.id || currentSchool._id,
+    _id: currentSchool._id || currentSchool.id,
+  } : null;
 
-console.log("🏫 [OnboardingContent] Extracted school object:", school);
-console.log("🏫 [OnboardingContent] School name:", school?.schoolName);
-console.log("🏫 [OnboardingContent] School ID:", school?._id);
-
-// ✅ Verify logo URL with detailed logging
-const logoUrl = school?.logo;
-
+  // ✅ Verify logo URL with detailed logging
+  const logoUrl = school?.logo;
   
   // Track logo load state
   const [logoLoaded, setLogoLoaded] = React.useState(false);
@@ -67,20 +60,9 @@ const logoUrl = school?.logo;
   const getTextColor = (backgroundColor) =>
     getLogoColor(backgroundColor) || "#000000";
 
-  const {
-    currentStep,
-    currentStepIndex,
-    goToNextStep,
-    goToPreviousStep,
-    isLoading,
-    setIsLoading,
-    updateOnboardingData
-  } = useOnboardingFlow();
-
   const userId = user?._id || user?.id || user?.auth0_id;
 
   const handleNext = async () => {
-    console.log("➡️ [OnboardingContent] handleNext triggered");
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -93,30 +75,24 @@ const logoUrl = school?.logo;
   };
 
   const handleBack = () => {
-    console.log("⬅️ [OnboardingContent] handleBack triggered");
     goToPreviousStep();
   };
 
   const handleUpdateData = (data) => {
-    console.log("📝 [OnboardingContent] handleUpdateData called with:", data);
     updateOnboardingData(data);
   };
 
   const handleLogoLoad = () => {
-    console.log("✅ [OnboardingContent] Logo loaded successfully:", logoUrl);
     setLogoLoaded(true);
     setLogoError(false);
   };
 
   const handleLogoError = (e) => {
-    console.error("🚫 [OnboardingContent] Logo failed to load:", logoUrl);
-    console.error("🚫 [OnboardingContent] Error event:", e);
     setLogoError(true);
     setLogoLoaded(false);
   };
 
   if (!currentStep?.component) {
-    console.warn("⚠️ [OnboardingContent] No currentStep.component - returning null");
     return null;
   }
 
@@ -288,9 +264,6 @@ export const OnboardingGuard = ({
   isOnboardingComplete,
   isCheckingOnboarding
 }) => {
-  console.log("🚀 [OnboardingGuard] Component mounted");
-  console.log("🚀 [OnboardingGuard] Schools prop:", schools);
-  
   const { primaryColor, getPrimaryColorValue } = useAppTheme();
 
   if (isCheckingOnboarding) {
