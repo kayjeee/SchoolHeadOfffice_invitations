@@ -48,7 +48,7 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
 }) => {
   // Get learners for the currently expanded grade
   const getExpandedGradeLearners = () => {
-    if (expandedGrades.length === 0) return [];
+     if (!expandedGrades || expandedGrades.length === 0) return [];
     const expandedGradeId = expandedGrades[0]; // Assuming single expansion for simplicity
     return learners.filter(learner => learner.grade_id === expandedGradeId);
   };
