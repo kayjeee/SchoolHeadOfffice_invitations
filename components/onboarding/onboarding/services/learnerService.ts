@@ -2,7 +2,7 @@ import { CreateLearnerData, BulkUploadResult } from '../types';
 import { Learner } from './../OnboardingFlow/Step3SendInvites/types';
 
 // ✅ Use environment variable for flexibility
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 /**
  * Service for handling learner-related operations
