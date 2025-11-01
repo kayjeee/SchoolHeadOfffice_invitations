@@ -41,6 +41,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
+  const [error, setError] = useState<string | null>(null);
 
   // ========================
   // DATA FETCHING
@@ -69,6 +70,9 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(['parentProfile', user?.sub], updatedProfile);
     },
+    onError: (error) => {
+      setError(error.message);
+    }
   });
 
   // ========================
@@ -106,7 +110,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
       }
     } catch (error) {
       console.error(`Error completing step ${step}:`, error);
-      // Handle error state in UI
+      setError(error.message);
     }
   };
 
@@ -125,5 +129,6 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
     isLoading: isAuthLoading || isProfileLoading || areLearnersLoading,
     progress,
     completeStep,
+    error,
   };
 }

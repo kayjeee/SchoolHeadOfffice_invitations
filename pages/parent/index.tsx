@@ -14,6 +14,8 @@ import LoadingScreen from '../../components/common/LoadingScreen';
 import AuthGate from '../../components/auth/AuthGate';
 
 // Lazy load heavy components
+const FrontPageLayout = dynamic(() => import("../../components/Layouts/FrontPageLayout"));
+const FrontPageLayoutMobileView = dynamic(() => import("../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView"));
 const OnboardingFlow = dynamic(() => import('../../components/parent/Onboarding/OnboardingFlow'));
 const ParentDashboard = dynamic(() => import('../../components/parent/Dashboard/ParentDashboard'));
 
@@ -128,10 +130,14 @@ export default function ParentPage({
     );
   }
 
+  const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
+
   return (
     <ErrorBoundary>
-      <SEOHead title={`${profile?.first_name}'s Dashboard`} />
-      <ParentDashboard user={user} profile={profile} learners={learners} />
+      <LayoutComponent user={user} userRoles={['parent']}>
+        <SEOHead title={`${profile?.first_name}'s Dashboard`} />
+        <ParentDashboard user={user} profile={profile} learners={learners} />
+      </LayoutComponent>
     </ErrorBoundary>
   );
 }
