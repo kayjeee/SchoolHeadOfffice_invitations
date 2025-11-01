@@ -1,8 +1,8 @@
-// components/onboarding/services/learnerService.ts
 import { CreateLearnerData, BulkUploadResult } from '../types';
 import { Learner } from './../OnboardingFlow/Step3SendInvites/types';
 
-const API_BASE_URL = 'https://shobackendv2-production.up.railway.app';
+// ✅ Use environment variable for flexibility
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 /**
  * Service for handling learner-related operations
@@ -38,15 +38,18 @@ class LearnerService {
   /**
    * Get learners by school ID
    */
-  async getLearnersBySchool(schoolId: string, params?: { 
-    page?: number; 
-    limit?: number;
-    gradeId?: string;
-    search?: string;
-  }): Promise<Learner[]> {
+  async getLearnersBySchool(
+    schoolId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      gradeId?: string;
+      search?: string;
+    }
+  ): Promise<Learner[]> {
     const queryParams = new URLSearchParams();
     queryParams.append('school_id', schoolId);
-    
+
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.gradeId) queryParams.append('grade_id', params.gradeId);
@@ -101,7 +104,9 @@ class LearnerService {
   /**
    * Get learner statistics for a school
    */
-  async getLearnerStats(schoolId: string): Promise<{
+  async getLearnerStats(
+    schoolId: string
+  ): Promise<{
     total: number;
     byGrade: { gradeId: string; gradeName: string; count: number }[];
     byStatus: { status: string; count: number }[];
@@ -114,11 +119,15 @@ class LearnerService {
   /**
    * Search learners within a school
    */
-  async searchLearners(schoolId: string, query: string, options?: { gradeId?: string; limit?: number }): Promise<Learner[]> {
+  async searchLearners(
+    schoolId: string,
+    query: string,
+    options?: { gradeId?: string; limit?: number }
+  ): Promise<Learner[]> {
     const queryParams = new URLSearchParams();
     queryParams.append('school_id', schoolId);
     queryParams.append('query', query);
-    
+
     if (options?.gradeId) queryParams.append('grade_id', options.gradeId);
     if (options?.limit) queryParams.append('limit', options.limit.toString());
 
@@ -129,10 +138,12 @@ class LearnerService {
   /**
    * Validate learner data before creation/update
    */
-  async validateLearnerData(learnerData: Partial<CreateLearnerData>): Promise<{ 
-    isValid: boolean; 
-    errors: Record<string, string[]>; 
-    suggestions?: Record<string, string> 
+  async validateLearnerData(
+    learnerData: Partial<CreateLearnerData>
+  ): Promise<{
+    isValid: boolean;
+    errors: Record<string, string[]>;
+    suggestions?: Record<string, string>;
   }> {
     return this.apiCall(`${this.baseUrl}/validate`, {
       method: 'POST',
@@ -151,5 +162,5 @@ class LearnerService {
   }
 }
 
-// Export singleton instance
+// ✅ Export singleton instance
 export const learnerService = new LearnerService();

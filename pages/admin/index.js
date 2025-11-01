@@ -10,7 +10,10 @@ import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm";
 import ValidateSchoolStep from "../../components/Schoolpage/ValidateSchoolStep";
 import ReviewSchoolStep from "../../components/Schoolpage/ReviewSchoolStep";
 import { OnboardingGuard } from "../../components/onboarding/onboarding";
-import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext"; // ✅ consistent import
+import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext"; 
+
+// ✅ Environment-based API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export default function Home() {
   const { user } = useUser();
@@ -54,9 +57,7 @@ export default function Home() {
 
   // 👥 Fetch roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    const url = `https://shobackendv2-production.up.railway.app/api/v2/users/${encodeURIComponent(
-      userId
-    )}/roles`;
+    const url = `${API_BASE_URL}/api/v2/users/${encodeURIComponent(userId)}/roles`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -69,16 +70,15 @@ export default function Home() {
   };
 
   const fetchAndSetUserRoles = async () => {
-  try {
-    const res = await fetch(`/api/getUserRoles?userId=${encodeURIComponent(user.sub)}`);
-    const data = await res.json();
-    setUserRoles(data.roles.map((r) => r.name));
-  } catch (err) {
-    console.error("❌ Error fetching roles:", err);
-    setUserRoles([]);
-  }
-};
-
+    try {
+      const res = await fetch(`/api/getUserRoles?userId=${encodeURIComponent(user.sub)}`);
+      const data = await res.json();
+      setUserRoles(data.roles.map((r) => r.name));
+    } catch (err) {
+      console.error("❌ Error fetching roles:", err);
+      setUserRoles([]);
+    }
+  };
 
   // 🏫 Fetch user schools
   const fetchSchools = async () => {
@@ -87,9 +87,7 @@ export default function Home() {
     setMessage("");
     try {
       const res = await fetch(
-        `https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(
-          user.sub
-        )}/schools`
+        `${API_BASE_URL}/api/v1/users/${encodeURIComponent(user.sub)}/schools`
       );
 
       if (res.status === 404) {
@@ -99,7 +97,6 @@ export default function Home() {
       }
 
       const data = await res.json();
-      // ✅ Normalize data to include logo, _id, etc.
       const mapped = (data.data?.schools || []).map((s) => ({
         id: s._id,
         _id: s._id,
@@ -129,9 +126,7 @@ export default function Home() {
     setIsCheckingOnboarding(true);
     try {
       const res = await fetch(
-        `https://shobackendv2-production.up.railway.app/api/v1/users/${encodeURIComponent(
-          user.sub
-        )}/onboarding_status`
+        `${API_BASE_URL}/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`
       );
       const data = await res.json();
       setOnboardingStatus(data);
@@ -150,7 +145,7 @@ export default function Home() {
     }
   };
 
-  // 🪜 School Registration Stepper
+  // 🪜 Stepper UI
   const renderStepper = () => (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -159,7 +154,6 @@ export default function Home() {
           <p className="text-gray-600">Follow these steps to register your school</p>
         </div>
 
-        {/* Step Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             {["Create", "Validate", "Complete"].map((title, i) => (
@@ -205,7 +199,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Step Content */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           {step === 1 && <CreateSchoolForm user={user} onComplete={fetchSchools} />}
           {step === 2 && <ValidateSchoolStep />}
@@ -232,7 +225,7 @@ export default function Home() {
     </div>
   );
 
-  // 🎨 Onboarding with theme provider
+  // 🎨 Onboarding with Theme Provider
   const OnboardingWithTheme = () => (
     <AppThemeProvider>
       <OnboardingGuard
