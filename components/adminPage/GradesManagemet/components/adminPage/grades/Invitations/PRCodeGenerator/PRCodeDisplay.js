@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiCopy, FiCheck, FiShare2, FiEdit } from 'react-icons/fi';
-import { invitationService } from '../services/api';
+import { invitationService } from '../../../services/invitation/invitationService';
 
 const PRCodeDisplay = ({ invite }) => {
   const [copied, setCopied] = useState(false);
