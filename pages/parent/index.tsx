@@ -124,7 +124,7 @@ export default function ParentPage({
         <OnboardingFlow
           user={user}
           invitationData={invitationData}
-          currentState={currentstep}
+          currentState={currentStep}
         />
       </>
     );
