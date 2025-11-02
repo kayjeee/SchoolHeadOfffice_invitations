@@ -12,12 +12,12 @@ import { ParentService } from '../../lib/services/parent.service';
 import ErrorBoundary from '../../components/common/ErrorBoundary';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import AuthGate from '../../components/auth/AuthGate';
+import ParentDashboard from '../../components/parent/Dashboard/ParentDashboard';
 
 // Lazy load heavy components
 const FrontPageLayout = dynamic(() => import("../../components/Layouts/FrontPageLayout"));
 const FrontPageLayoutMobileView = dynamic(() => import("../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView"));
 const OnboardingFlow = dynamic(() => import('../../components/parent/Onboarding/OnboardingFlow'));
-const ParentDashboard = dynamic(() => import('../../components/parent/Dashboard/ParentDashboard'));
 
 // ========================
 // TYPE DEFINITIONS
@@ -124,7 +124,7 @@ export default function ParentPage({
         <OnboardingFlow
           user={user}
           invitationData={invitationData}
-          currentState={currentStep}
+          currentState={currentstep}
         />
       </>
     );
@@ -136,7 +136,7 @@ export default function ParentPage({
     <ErrorBoundary>
       <LayoutComponent user={user} userRoles={['parent']}>
         <SEOHead title={`${profile?.first_name}'s Dashboard`} />
-        <ParentDashboard user={user} profile={profile} learners={learners} />
+        <ParentDashboard profile={profile} learners={learners} />
       </LayoutComponent>
     </ErrorBoundary>
   );
