@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { gradeService } from '../services/gradeService';
-import { inviteService } from '../services/inviteService';
-import { Grade, Learner, StepState } from '../types';
+import { StepState } from '../types';
 import { useLearnerData } from './useLearnerData';
 import { usePrCodeGeneration } from './usePrCodeGeneration';
 

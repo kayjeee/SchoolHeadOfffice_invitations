@@ -1,124 +1,155 @@
-// components/Schoolpage/CreateSchoolModal.js
 import React, { useState } from 'react';
-import { useApp } from '../useApp';
+import { useRouter } from "next/router";
+import Step1BasicInfo from './steps/Step1BasicInfo';
+import Step2Address from './steps/Step2Address';
+import Step3Admins from './steps/Step3Admins';
+import Step4Social from './steps/Step4Social';
+import LoadingSpinner from '../../spinners/LoadingSpinner';
+import { provisionNewSchool } from './services/schoolService';
 
-const CreateSchoolModal = ({ isOpen, onClose, onSchoolCreated }) => {
-  const app = useApp();
-  const [schoolName, setSchoolName] = useState('');
-  const [schoolDescription, setSchoolDescription] = useState('');
-  const [schoolLogo, setSchoolLogo] = useState(null);
+const CreateSchoolForm = ({ user }) => {
+  const router = useRouter();
+
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewParent({ ...newParent, [name]: value });
-  };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const userEmail = localStorage.getItem('userEmail');
-      if (!userEmail) {
-        console.error('User email is null.');
-        return;
-      }
-      await app.currentUser.functions.createschool({
-        schoolName,
-        schoolDescription,
-        schoolLogo,
-        userEmail,
-      });
-      onSchoolCreated();
-    } catch (error) {
-      console.error('Error creating school:', error.message);
-    } finally {
-      setLoading(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  // 1️⃣ Updated formData initial state
+  const [formData, setFormData] = useState({
+    schoolName: '',
+    schoolEmail: '',
+    phone: '',
+    // ✅ Initialize theme properly
+    theme: { mode: 'white', value: '#b8ebdbff' }, 
+    logo: null,
+    addressLine1: '',
+    addressLine2: '',
+    country: '',
+    province: '',
+    city: '',
+    postalCode: '',
+    location: null,
+    adminUsers: [],
+    website: '',
+    facebook: '',
+    tiktok: '',
+    linkedin: '',
+    status: 'active', // 👈 default yes7
+  });
+
+  const updateField = (key, value) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
+
+  const handleNextStep = () => setStep((prev) => prev + 1);
+  const handlePreviousStep = () => setStep((prev) => prev - 1);
+
+  const handleFormSubmission = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    console.log('📤 Submitting full school provisioning flow:', formData);
+    console.log('🎨 Theme being sent to backend:', formData.theme); // Debug log
+    
+    const school = await provisionNewSchool(formData, user);
+
+    console.log('✅ Provisioning complete:', school);
+    setSuccess(true);
+  } catch (err) {
+    console.error('💥 Error during provisioning:', err);
+    setError('Failed to create and provision school. Please try again.');
+  } finally {
+    router.reload();
+  }
+};
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <Step1BasicInfo
+            schoolName={formData.schoolName}
+            schoolEmail={formData.schoolEmail}
+            phoneNumber={formData.phone}
+            theme={formData.theme}
+            onFileChange={(file) => updateField('logo', file)}
+            onSchoolNameChange={(e) => updateField('schoolName', e.target.value)}
+            onSchoolEmailChange={(e) => updateField('schoolEmail', e.target.value)}
+            onPhoneNumberChange={(e) => updateField('phone', e.target.value)}
+            // 2️⃣ Ensure the theme picker calls onThemeChange(mode, value)
+            // Then, update the handler to store the correct structure
+            onThemeChange={(mode, value) =>
+              setFormData((prev) => ({
+                ...prev,
+                theme: { mode, value }, // ✅ updates correctly on selection
+              }))
+            }
+            onNext={handleNextStep}
+          />
+        );
+      case 2:
+        return (
+          <Step2Address
+            formData={formData}
+            onLine1Change={(e) => updateField('addressLine1', e.target.value)}
+            onLine2Change={(e) => updateField('addressLine2', e.target.value)}
+            onCountryChange={(e) => updateField('country', e.target.value)}
+            onProvinceChange={(e) => updateField('province', e.target.value)}
+            onCityChange={(e) => updateField('city', e.target.value)}
+            onPostalCodeChange={(e) => updateField('postalCode', e.target.value)}
+            onMapClick={(coords) => updateField('location', coords)}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
+          />
+        );
+      case 3:
+        return (
+          <Step3Admins
+            adminUsers={formData.adminUsers}
+            onAdminUsersChange={(admins) => updateField('adminUsers', admins)}
+            onNext={handleNextStep}
+            onPrevious={handlePreviousStep}
+          />
+        );
+      case 4:
+        return (
+          <Step4Social
+            formData={formData}
+            onWebsiteChange={(e) => updateField('website', e.target.value)}
+            onFacebookChange={(e) => updateField('facebook', e.target.value)}
+            onTikTokChange={(e) => updateField('tiktok', e.target.value)}
+            onLinkedInChange={(e) => updateField('linkedin', e.target.value)}
+            onPrevious={handlePreviousStep}
+            onSubmit={handleFormSubmission}
+          />
+        );
+      default:
+        return null;
     }
   };
 
-  const handleLogoChange = (e) => {
-    setSchoolLogo(e.target.files[0]);
-  };
-
-  if (!isOpen) return null;
+  if (loading) {
+    return (
+      <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed z-10 inset-0 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+    <div className="container mx-auto mt-8 p-4 bg-gray-100 border rounded-md">
+      <h1 className="text-2xl font-bold mb-4">Create a School</h1>
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {success && (
+        <div className="text-green-600 mb-4">
+          🎉 School created and you’ve been set as Admin!
         </div>
-
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-          &#8203;
-        </span>
-
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="sm:flex sm:items-start">
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">Create School</h3>
-                <form onSubmit={handleSubmit}>
-                  <div className="mt-2">
-                    <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700">
-                      School Name
-                    </label>
-                    <input
-                      type="text"
-                      id="schoolName"
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      required
-                    />
-                  </div>
-                  <div className="mt-2">
-                    <label htmlFor="schoolDescription" className="block text-sm font-medium text-gray-700">
-                      School Description
-                    </label>
-                    <textarea
-                      id="schoolDescription"
-                      value={schoolDescription}
-                      onChange={(e) => setSchoolDescription(e.target.value)}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      required
-                    ></textarea>
-                  </div>
-                  <div className="mt-2">
-                    <label htmlFor="schoolLogo" className="block text-sm font-medium text-gray-700">
-                      School Logo
-                    </label>
-                    <input
-                      type="file"
-                      id="schoolLogo"
-                      onChange={handleLogoChange}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      required
-                    />
-                  </div>
-                  <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                    <button
-                      type="submit"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                    >
-                      {loading ? 'Creating...' : 'Create'}
-                    </button>
-                    <button
-                      type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                      onClick={onClose}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
+      {renderStep()}
     </div>
   );
 };
 
-export default CreateSchoolModal;
+export default CreateSchoolForm;

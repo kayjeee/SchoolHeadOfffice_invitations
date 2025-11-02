@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { StepState } from "./types";
-import {  Grade, Learner } from "./types"; // NEW: Adjusted import path
+import React, { useState, useEffect, useCallback } from "react";
+import { StepState, Grade, Learner } from "./types";
 import { useStepValidation } from "./hooks/useStepValidation";
-import { useLearnerData } from "./hooks/useLearnerData";
 import { LearnerSelection } from "./components/LearnerSelection";
 import { ChannelSelection } from "./components/ChannelSelection/ChannelSelection";
 import { MessageComposer } from "./components/MessageComposer";
 import { InviteResults } from "./components/InviteResults";
-import { learnerService } from "./services/learnerService";
+import { getLearnersByGrade } from "./services/learnerService";
+import { getGrades } from "./services/gradeService";
 
 interface Step3SendInvitesProps {
   onNext?: () => void;
@@ -16,7 +15,7 @@ interface Step3SendInvitesProps {
   onUpdateData?: (data: { invites: string[] }) => void;
   school: any;
   user: any;
-  schools: any[]; // NEW: Add schools prop
+  schools: any[];
 }
 
 const CHANNELS = [
@@ -33,115 +32,82 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   onUpdateData,
   school,
   user,
-  schools, // NEW: Receive schools prop
+  schools,
 }) => {
-  console.log("🏫 [Step3SendInvites] Component mounted");
-  console.log("📦 [Step3SendInvites] Props received:", {
-    user: user ? { id: user._id || user.id, sub: user.sub } : 'No user',
-    school: school,
-    schools: schools, // NEW: Log schools prop
-    schoolsCount: schools?.length || 0,
-    hasOnNext: typeof onNext === 'function',
-    hasOnBack: typeof onBack === 'function',
-    isLoading: isLoading,
-    hasOnUpdateData: typeof onUpdateData === 'function'
-  });
-
-  // Heavy schools prop logging
-  console.log("🔍 [Step3SendInvites] SCHOOLS PROP DEEP ANALYSIS:");
-  console.log("🏫 [Step3SendInvites] schools value:", schools);
-  console.log("🏫 [Step3SendInvites] schools type:", typeof schools);
-  console.log("🏫 [Step3SendInvites] Array.isArray(schools):", Array.isArray(schools));
-  console.log("🏫 [Step3SendInvites] schools === null:", schools === null);
-  console.log("🏫 [Step3SendInvites] schools === undefined:", schools === undefined);
-  
-  if (schools && Array.isArray(schools)) {
-    console.log("📊 [Step3SendInvites] SCHOOLS ARRAY DETAILS:");
-    schools.forEach((schoolItem, index) => {
-      console.log(`🏫 School [${index}]:`, {
-        id: schoolItem?.id || schoolItem?._id || 'No ID',
-        name: schoolItem?.schoolName || schoolItem?.name || 'No name',
-        email: schoolItem?.schoolEmail || schoolItem?.email,
-        city: schoolItem?.city,
-        country: schoolItem?.country,
-        type: typeof schoolItem,
-        keys: schoolItem ? Object.keys(schoolItem) : 'No school object'
-      });
-    });
-    
-    if (schools.length > 0) {
-      const primarySchool = schools[0];
-      console.log("🎯 [Step3SendInvites] PRIMARY SCHOOL (schools[0]):", {
-        id: primarySchool?.id || primarySchool?._id,
-        name: primarySchool?.schoolName || primarySchool?.name,
-        fullObject: primarySchool
-      });
-    }
-  } else {
-    console.warn("⚠️ [Step3SendInvites] NO SCHOOLS ARRAY or invalid schools prop");
-  }
-
-  // Compare school prop vs schools[0]
-  console.log("🔁 [Step3SendInvites] COMPARISON - school prop vs schools[0]:", {
-    schoolProp: school,
-    schoolsFirst: schools?.[0],
-    areEqual: school === schools?.[0],
-    bothHaveSameId: school?.id === schools?.[0]?.id,
-    schoolPropName: school?.schoolName || school?.name,
-    schoolsFirstName: schools?.[0]?.schoolName || schools?.[0]?.name
-  });
-
-  // Determine which school to use for operations
   const targetSchool = school || schools?.[0];
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
   const schoolId = targetSchool?.id || targetSchool?._id;
 
-  console.log("🎯 [Step3SendInvites] TARGET SCHOOL FOR OPERATIONS:", {
-    targetSchool: targetSchool,
-    schoolName: schoolName,
-    schoolId: schoolId,
-    source: school ? 'school prop' : 'schools[0]'
-  });
-
   const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [learners, setLearners] = useState<Record<string, Learner[]>>({});
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
+  const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [inviteMessage, setInviteMessage] = useState<string>("");
+  const [isLoadingGrades, setIsLoadingGrades] = useState(false);
+  const [isLoadingLearners, setIsLoadingLearners] = useState<Record<string, boolean>>({});
+  const [gradesError, setGradesError] = useState<string | null>(null);
 
-  const {
-    grades,
-    learners,
-    isLoadingGrades,
-    isLoadingLearners,
-    gradesError,
-    expandedGrades,
-    setExpandedGrades,
-    fetchGrades,
-  } = useLearnerData(schoolId);
-
+  const allLearners = Object.values(learners).flat();
   const { canProceedToNext, validationErrors } = useStepValidation({
     currentStep,
     selectedGrades,
-    learners,
+    learners: allLearners,
     selectedChannels,
     inviteMessage,
   });
 
-  console.log("📊 [Step3SendInvites] Component state:", {
-    currentStep: currentStep,
-    selectedGradesCount: selectedGrades.length,
-    selectedChannelsCount: selectedChannels.length,
-    inviteMessageLength: inviteMessage.length,
-    gradesCount: grades.length,
-    learnersCount: learners.length,
-    schoolName: schoolName,
-    schoolId: schoolId
-  });
+  const fetchGrades = useCallback(async () => {
+    if (!schoolId) {
+      setGradesError("Missing school information");
+      return;
+    }
+
+    setIsLoadingGrades(true);
+    setGradesError(null);
+
+    try {
+      const gradesData = await getGrades(schoolId);
+      const formattedGrades: Grade[] = gradesData.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        level: parseInt(g.grade_level?.match(/\d+/)?.[0] || "0"),
+        learnerCount: g.stats?.learners_count || 0,
+        isActive: g.status_text === "active",
+      }));
+      setGrades(formattedGrades);
+    } catch (error) {
+      setGradesError("Failed to load school data.");
+      setGrades([]);
+    } finally {
+      setIsLoadingGrades(false);
+    }
+  }, [schoolId]);
+
+  useEffect(() => {
+    fetchGrades();
+  }, [fetchGrades]);
+
+  const fetchLearnersForGrade = async (gradeId: string) => {
+    if (learners[gradeId]) {
+      return;
+    }
+
+    setIsLoadingLearners(prev => ({ ...prev, [gradeId]: true }));
+
+    try {
+      const learnersData = await getLearnersByGrade(gradeId);
+      setLearners(prev => ({ ...prev, [gradeId]: learnersData }));
+    } catch (error) {
+      // Optionally handle per-grade errors
+    } finally {
+      setIsLoadingLearners(prev => ({ ...prev, [gradeId]: false }));
+    }
+  };
 
   const handleGradeSelection = (gradeId: string) => {
-    console.log("🎯 [Step3SendInvites] handleGradeSelection called:", gradeId);
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     setSelectedGrades((prev) =>
       prev.includes(gradeId)
         ? prev.filter((id) => id !== gradeId)
@@ -150,40 +116,33 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   };
 
   const handleSelectAllGrades = () => {
-    console.log("🎯 [Step3SendInvites] handleSelectAllGrades called");
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     if (selectedGrades.length === grades.length) {
-      console.log("📭 [Step3SendInvites] Deselecting all grades");
       setSelectedGrades([]);
     } else {
-      console.log("✅ [Step3SendInvites] Selecting all grades:", grades.length);
       setSelectedGrades(grades.map((g) => g.id));
     }
   };
 
   const toggleGradeExpansion = (gradeId: string) => {
-    console.log("🎯 [Step3SendInvites] toggleGradeExpansion called:", gradeId);
+    const isExpanded = expandedGrades.includes(gradeId);
+    if (!isExpanded) {
+      fetchLearnersForGrade(gradeId);
+    }
     setExpandedGrades(prev =>
-      prev.includes(gradeId)
+      isExpanded
         ? prev.filter(id => id !== gradeId)
-        : [...prev, gradeId]
+        : [gradeId] // Only allow one grade to be expanded at a time
     );
   };
 
   const handleReloadGrades = async () => {
-    console.log("🔄 [Step3SendInvites] handleReloadGrades called");
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     await fetchGrades();
     setSelectedGrades([]);
     setExpandedGrades([]);
+    setLearners({});
   };
 
   const handleChannelSelection = (channelId: string) => {
-    console.log("🎯 [Step3SendInvites] handleChannelSelection called:", channelId);
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     setSelectedChannels((prev) =>
       prev.includes(channelId)
         ? prev.filter((id) => id !== channelId)
@@ -192,24 +151,15 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   };
 
   const handleSelectAllChannels = () => {
-    console.log("🎯 [Step3SendInvites] handleSelectAllChannels called");
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     if (selectedChannels.length === CHANNELS.length) {
-      console.log("📭 [Step3SendInvites] Deselecting all channels");
       setSelectedChannels([]);
     } else {
-      console.log("✅ [Step3SendInvites] Selecting all channels");
       setSelectedChannels(CHANNELS.map((channel) => channel.id));
     }
   };
 
   const goNext = () => {
-    console.log("➡️ [Step3SendInvites] goNext called, current step:", currentStep);
-    console.log("🏫 [Step3SendInvites] School context:", { schoolName, schoolId });
-    
     if (!canProceedToNext) {
-      console.log("❌ [Step3SendInvites] Cannot proceed - validation failed");
       return;
     }
 
@@ -217,21 +167,17 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
       const selectedGradeNames = grades
         .filter((g) => selectedGrades.includes(g.id))
         .map((g) => g.name);
-      console.log("📝 [Step3SendInvites] Calling onUpdateData with:", selectedGradeNames);
       onUpdateData({ invites: selectedGradeNames });
     }
 
     switch (currentStep) {
       case "grade-selection":
-        console.log("🔄 [Step3SendInvites] Moving to channel-selection");
         setCurrentStep("channel-selection");
         break;
       case "channel-selection":
-        console.log("🔄 [Step3SendInvites] Moving to message-composer");
         setCurrentStep("message-composer");
         break;
       case "message-composer":
-        console.log("🔄 [Step3SendInvites] Moving to results");
         setCurrentStep("results");
         if (onNext) onNext();
         break;
@@ -239,8 +185,6 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   };
 
   const goBack = () => {
-    console.log("⬅️ [Step3SendInvites] goBack called, current step:", currentStep);
-    
     switch (currentStep) {
       case "channel-selection":
         setCurrentStep("grade-selection");
@@ -258,15 +202,13 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   };
 
   const renderStepContent = () => {
-    console.log("🎨 [Step3SendInvites] Rendering step content:", currentStep);
-    
     switch (currentStep) {
       case "grade-selection":
         return (
           <LearnerSelection
             grades={grades}
             selectedGrades={selectedGrades}
-            learners={learners}
+            learnersByGrade={learners}
             isLoadingGrades={isLoadingGrades}
             isLoadingLearners={isLoadingLearners}
             gradesError={gradesError}
@@ -275,49 +217,46 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             onSelectAllGrades={handleSelectAllGrades}
             onToggleGradeExpansion={toggleGradeExpansion}
             onReloadGrades={handleReloadGrades}
-            
           />
         );
-     case "channel-selection":
-  return (
-    <ChannelSelection
-      channels={CHANNELS}
-      selectedChannels={selectedChannels}
-      learners={learners}
-      selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))} // NEW: Pass selected grades
-      onChannelSelection={handleChannelSelection}
-      onSelectAllChannels={handleSelectAllChannels}
-      schoolName={schoolName}
-      schools={schools}
-      school={targetSchool}
-    />
-  );
+      case "channel-selection":
+        return (
+          <ChannelSelection
+            channels={CHANNELS}
+            selectedChannels={selectedChannels}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
+            selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))}
+            onChannelSelection={handleChannelSelection}
+            onSelectAllChannels={handleSelectAllChannels}
+            schoolName={schoolName}
+            schools={schools}
+            school={targetSchool}
+          />
+        );
       case "message-composer":
         return (
           <MessageComposer
             inviteMessage={inviteMessage}
             setInviteMessage={setInviteMessage}
             validationErrors={validationErrors}
-            channels={selectedChannels} // Pass selected channels
-            schoolName={schoolName} // Pass school name
+            channels={selectedChannels}
+            schoolName={schoolName}
           />
         );
       case "results":
         return (
-          <InviteResults 
-            selectedChannels={selectedChannels} 
-            learners={learners} 
+          <InviteResults
+            selectedChannels={selectedChannels}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
             inviteMessage={inviteMessage}
-            schools={schools} // Pass schools array
-            school={targetSchool} // Pass the actual school object
+            schools={schools}
+            school={targetSchool}
           />
         );
       default:
         return null;
     }
   };
-
-  console.log("🎨 [Step3SendInvites] Rendering main component");
 
   return (
     <div className="space-y-6 p-6 bg-white shadow-lg rounded-lg">
@@ -326,7 +265,6 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         <p className="text-gray-600 mt-2">
           Send invitations for <span className="font-medium text-gray-800">{schoolName}</span>
         </p>
-        {/* Debug info - remove in production */}
         <div className="mt-2 text-xs text-gray-400">
           School: {schoolName} | ID: {schoolId} | Schools: {schools?.length || 0}
         </div>

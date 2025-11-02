@@ -30,7 +30,7 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
   console.log("🏫 [Step2UploadLearners] Component mounted");
 
   // ✅ Safe fallback for schools
-  const safeSchools = schools || (school ? [school] : []);
+  const safeSchools = school ? [school] : (schools || []);
 
   console.log("📦 [Step2UploadLearners] Props received:", {
     user: user ? { id: user._id || user.id, sub: user.sub } : "No user",

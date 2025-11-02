@@ -1,7 +1,7 @@
-// components/onboarding/services/inviteService.ts
 import { Invite, CreateInviteData } from '../types';
 
-const API_BASE_URL = 'https://shobackendv2-production.up.railway.app';
+// ✅ Automatically switch between localhost and production
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 /**
  * Service for handling invitation-related operations
@@ -23,11 +23,11 @@ class InviteService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (error) {
       console.error('API call failed:', error);
       throw this.handleError(error);
@@ -66,10 +66,13 @@ class InviteService {
   /**
    * Get invitations for a specific school
    */
-  async getInvitesBySchool(schoolId: string, params?: { page?: number; limit?: number }): Promise<{ invites: Invite[]; total: number }> {
+  async getInvitesBySchool(
+    schoolId: string,
+    params?: { page?: number; limit?: number }
+  ): Promise<{ invites: Invite[]; total: number }> {
     const queryParams = new URLSearchParams();
     queryParams.append('school_id', schoolId);
-    
+
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
@@ -79,7 +82,9 @@ class InviteService {
   /**
    * Get invitation statistics for a school
    */
-  async getInviteStats(schoolId: string): Promise<{
+  async getInviteStats(
+    schoolId: string
+  ): Promise<{
     total: number;
     sent: number;
     pending: number;
@@ -93,7 +98,9 @@ class InviteService {
   /**
    * Bulk create invitations
    */
-  async createBulkInvites(invitesData: CreateInviteData[]): Promise<{ success: number; failed: number; results: Invite[] }> {
+  async createBulkInvites(
+    invitesData: CreateInviteData[]
+  ): Promise<{ success: number; failed: number; results: Invite[] }> {
     return this.apiCall(`${this.baseUrl}/bulk`, {
       method: 'POST',
       body: JSON.stringify({ invites: invitesData }),
@@ -128,5 +135,5 @@ class InviteService {
   }
 }
 
-// Export singleton instance
+// ✅ Export singleton instance
 export const inviteService = new InviteService();

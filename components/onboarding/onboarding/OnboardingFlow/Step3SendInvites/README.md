@@ -88,3 +88,20 @@ Ensure your backend API is running at `http://localhost:4000` as the services ar
 *   **`download.ts`**: Utility for client-side file downloads.
 *   **`clipboard.ts`**: Utility for clipboard operations.
 
+## New Data Flow
+
+The data fetching logic has been refactored to fetch all learners for a school at once, rather than fetching learners for each selected grade. This improves performance by reducing the number of network requests.
+
+```mermaid
+graph TD
+    A[Step3SendInvites Component] -->|1. on mount| B(useEffect fetches data);
+    B --> C{gradeService.getGrades(schoolId)};
+    B --> D{learnerService.getLearnersBySchool(schoolId)};
+    C --> E[Set Grades State];
+    D --> F[Set Learners State];
+    E --> G[LearnerSelection Component];
+    F --> G;
+    G -->|2. User selects grades| H(handleGradeSelection);
+    H --> I[Set SelectedGrades State];
+    I --> J[UI Updates];
+```

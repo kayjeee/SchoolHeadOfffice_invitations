@@ -1,37 +1,37 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import FormComponent from '../../../FormComponent';
-import FileUpload from '../../../FileUpload';
-import useColorMode from '../hooks/useColorMode';
-import { getBackgroundColor, getHoverColor } from '../utils/colorUtils';
+import React, { useState, useMemo, useEffect } from "react";
+import useColorMode from "../hooks/useColorMode";
+import { getBackgroundColor, getHoverColor } from "../utils/colorUtils";
 
 const THEME_PRESETS = [
-  { mode: 'blue', value: '#1E40AF', name: 'Sky Blue' },
-  { mode: 'green', value: '#059669', name: 'Forest Green' },
-  { mode: 'purple', value: '#7C3AED', name: 'Royal Purple' },
-  { mode: 'orange', value: '#F97316', name: 'Sunset Orange' },
-  { mode: 'teal', value: '#14B8A6', name: 'Ocean Teal' },
+  { mode: "blue", value: "#1E40AF", name: "Sky Blue" },
+  { mode: "green", value: "#059669", name: "Forest Green" },
+  { mode: "purple", value: "#7C3AED", name: "Royal Purple" },
+  { mode: "orange", value: "#F97316", name: "Sunset Orange" },
+  { mode: "teal", value: "#14B8A6", name: "Ocean Teal" },
 ];
 
 const Step1BasicInfo = ({
-  schoolName = '',
-  schoolEmail = '',
-  phoneNumber = '',
-  theme, // theme prop from parent
-  onFileChange,
-  onSchoolNameChange,
-  onSchoolEmailChange,
-  onPhoneNumberChange,
-  onThemeChange,
-  onNext,
+  schoolName = "",
+  schoolEmail = "",
+  phoneNumber = "",
+  theme,
+  onFileChange = () => {},
+  onSchoolNameChange = () => {},
+  onSchoolEmailChange = () => {},
+  onPhoneNumberChange = () => {},
+  onThemeChange = () => {},
+  onNext = () => {},
   isLoading = false,
 }) => {
   const [colorMode, customColor, setColorMode] = useColorMode();
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
 
-  // ✅ FIX: Initialize color mode from parent theme prop
+  // Initialize theme from parent
   useEffect(() => {
-    if (theme && theme.mode && theme.value) {
+    if (theme?.mode && theme?.value) {
       setColorMode(theme.mode, theme.value);
     }
   }, [theme, setColorMode]);
@@ -47,14 +47,12 @@ const Step1BasicInfo = ({
   const validateForm = () => {
     const newErrors = {};
 
-    if (!schoolName.trim()) {
-      newErrors.schoolName = 'School name is required';
-    }
+    if (!schoolName.trim()) newErrors.schoolName = "School name is required";
 
     if (!schoolEmail.trim()) {
-      newErrors.schoolEmail = 'School email is required';
+      newErrors.schoolEmail = "School email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(schoolEmail)) {
-      newErrors.schoolEmail = 'Please enter a valid email address';
+      newErrors.schoolEmail = "Please enter a valid email address";
     }
 
     setErrors(newErrors);
@@ -62,18 +60,54 @@ const Step1BasicInfo = ({
   };
 
   const handleNext = () => {
-    if (validateForm()) {
-      onNext();
-    }
+    if (validateForm()) onNext();
   };
 
   const handleColorChange = (mode, value) => {
     setColorMode(mode, value);
+    onThemeChange(mode, value);
+  };
 
-    // ✅ Send theme data back to parent
-    if (onThemeChange) {
-      onThemeChange(mode, value);
+  const handlePhoneNumberChange = (e) => {
+    if (typeof onPhoneNumberChange === "function") {
+      onPhoneNumberChange(e);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPEG, PNG, etc.)');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
+      setLogoFile(file);
+      onFileChange(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoPreview(null);
+    setLogoFile(null);
+    onFileChange(null);
+    // Clear the file input
+    const fileInput = document.getElementById('logo-upload');
+    if (fileInput) fileInput.value = '';
   };
 
   return (
@@ -81,24 +115,21 @@ const Step1BasicInfo = ({
       {/* Hero Header */}
       <div className="relative bg-gradient-to-b from-white via-gray-100 to-white">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 via-transparent to-blue-100/20" />
-        <div className="relative max-w-6xl mx-auto px-4 py-12">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
-              Welcome to SchoolHeadOffice
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-600 font-light">
-              Create your own custom school communication experience
-            </p>
-            <div className="mt-4 w-20 h-1 bg-blue-600 mx-auto rounded-full" />
-          </div>
+        <div className="relative max-w-6xl mx-auto px-4 py-12 text-center">
+          <h1 className="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
+            Welcome to SchoolHeadOffice
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 font-light">
+            Create your own custom school communication experience
+          </p>
+          <div className="mt-4 w-20 h-1 bg-blue-600 mx-auto rounded-full" />
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Main Form Container */}
         <div className="bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl shadow-2xl border border-gray-200">
           <div className="p-8 md:p-12">
-            {/* Progress Indicator */}
+            {/* Step progress */}
             <div className="mb-10">
               <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                 <span>Step 1 of 3</span>
@@ -123,73 +154,89 @@ const Step1BasicInfo = ({
 
                 <div className="space-y-6">
                   {/* School Name */}
-                  <div className="group">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       School Name *
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={schoolName}
-                        onChange={onSchoolNameChange}
-                        onFocus={() => setFocusedField('schoolName')}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder="Enter your school name"
-                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
-                          transition-all duration-300 focus:outline-none focus:ring-0
-                          ${errors.schoolName
-                            ? 'border-red-500 focus:border-red-400'
-                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'}
-                          ${focusedField === 'schoolName' ? 'transform scale-[1.02]' : ''}`}
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={schoolName}
+                      onChange={onSchoolNameChange}
+                      onFocus={() => setFocusedField("schoolName")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Enter your school name"
+                      className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500
+                        transition-all duration-300 focus:outline-none focus:ring-0
+                        ${
+                          errors.schoolName
+                            ? "border-red-500 focus:border-red-400"
+                            : "border-gray-300 focus:border-blue-500 hover:border-gray-400"
+                        }
+                        ${
+                          focusedField === "schoolName"
+                            ? "transform scale-[1.02]"
+                            : ""
+                        }`}
+                    />
                     {errors.schoolName && (
-                      <p className="text-red-600 text-sm mt-2">{errors.schoolName}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.schoolName}
+                      </p>
                     )}
                   </div>
 
                   {/* School Email */}
-                  <div className="group">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       School Email *
                     </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={schoolEmail}
-                        onChange={onSchoolEmailChange}
-                        onFocus={() => setFocusedField('schoolEmail')}
-                        onBlur={() => setFocusedField(null)}
-                        placeholder="contact@yourschool.edu"
-                        className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-gray-900 placeholder-gray-500
-                          transition-all duration-300 focus:outline-none focus:ring-0
-                          ${errors.schoolEmail
-                            ? 'border-red-500 focus:border-red-400'
-                            : 'border-gray-300 focus:border-blue-500 hover:border-gray-400'}
-                          ${focusedField === 'schoolEmail' ? 'transform scale-[1.02]' : ''}`}
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      value={schoolEmail}
+                      onChange={onSchoolEmailChange}
+                      onFocus={() => setFocusedField("schoolEmail")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="contact@yourschool.edu"
+                      className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500
+                        transition-all duration-300 focus:outline-none focus:ring-0
+                        ${
+                          errors.schoolEmail
+                            ? "border-red-500 focus:border-red-400"
+                            : "border-gray-300 focus:border-blue-500 hover:border-gray-400"
+                        }
+                        ${
+                          focusedField === "schoolEmail"
+                            ? "transform scale-[1.02]"
+                            : ""
+                        }`}
+                    />
                     {errors.schoolEmail && (
-                      <p className="text-red-600 text-sm mt-2">{errors.schoolEmail}</p>
+                      <p className="text-red-600 text-sm mt-2">
+                        {errors.schoolEmail}
+                      </p>
                     )}
                   </div>
 
-                  {/* Phone */}
-                  <div className="group">
+                  {/* Phone Number */}
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone Number
                     </label>
                     <input
                       type="tel"
                       value={phoneNumber}
-                      onChange={onPhoneNumberChange}
-                      onFocus={() => setFocusedField('phoneNumber')}
+                      onChange={handlePhoneNumberChange}
+                      onFocus={() => setFocusedField("phoneNumber")}
                       onBlur={() => setFocusedField(null)}
                       placeholder="+1 (555) 123-4567"
-                      className={`w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-gray-900
+                      className={`w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-black
                         placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0
                         focus:border-blue-500 hover:border-gray-400
-                        ${focusedField === 'phoneNumber' ? 'transform scale-[1.02]' : ''}`}
+                        ${
+                          focusedField === "phoneNumber"
+                            ? "transform scale-[1.02] border-2 border-blue-500"
+                            : ""
+                        }`}
                     />
                   </div>
                 </div>
@@ -202,24 +249,74 @@ const Step1BasicInfo = ({
                   School Branding
                 </h2>
                 <p className="text-gray-600 text-lg mb-6">
-                  Upload your official school logo. Need one? Email{' '}
+                  Upload your official school logo. Need one? Email{" "}
                   <span className="font-semibold text-blue-600">
                     freeLogo@SchoolHeadOffice.com
                   </span>
                   .
                 </p>
-                <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-8 hover:border-gray-300 transition-all duration-300">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) onFileChange(file);
-                    }}
-                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 
-                      file:rounded-full file:border-0 file:text-sm file:font-semibold
-                      file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
+                
+                <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
+                  {/* Logo Preview */}
+                  {logoPreview ? (
+                    <div className="mb-4 text-center">
+                      <div className="relative inline-block">
+                        <img 
+                          src={logoPreview} 
+                          alt="School logo preview" 
+                          className="w-32 h-32 object-contain rounded-lg border-2 border-gray-300 mx-auto"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeLogo}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
+                          title="Remove logo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        Logo preview
+                      </p>
+                      {logoFile && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {logoFile.name} ({(logoFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center mb-4 py-8 border-2 border-dashed border-gray-300 rounded-lg bg-white">
+                      <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 rounded-full flex items-center justify-center text-gray-400">
+                        🏫
+                      </div>
+                      <p className="text-gray-500 text-sm">
+                        No logo uploaded
+                      </p>
+                    </div>
+                  )}
+
+                  {/* File Upload */}
+                  <div className="text-center">
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">
+                      PNG, JPG, SVG up to 5MB
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -232,6 +329,7 @@ const Step1BasicInfo = ({
               </h2>
 
               <div className="space-y-6">
+                {/* Preset Colors */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                   {THEME_PRESETS.map((preset) => (
                     <button
@@ -242,12 +340,11 @@ const Step1BasicInfo = ({
                         hover:scale-105 hover:shadow-2xl focus:outline-none focus:scale-105
                         ${
                           colorMode === preset.mode
-                            ? 'border-blue-600 shadow-xl scale-105'
-                            : 'border-gray-300 hover:border-blue-300'
+                            ? "border-blue-600 shadow-xl scale-105"
+                            : "border-gray-300 hover:border-blue-300"
                         }`}
                       style={{
                         background: `linear-gradient(135deg, ${preset.value}11, ${preset.value}05)`,
-                        borderColor: colorMode === preset.mode ? preset.value : undefined,
                       }}
                     >
                       <div
@@ -273,12 +370,16 @@ const Step1BasicInfo = ({
                   <input
                     type="color"
                     value={customColor}
-                    onChange={(e) => handleColorChange('custom', e.target.value)}
+                    onChange={(e) =>
+                      handleColorChange("custom", e.target.value)
+                    }
                     className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300 hover:border-blue-400 transition-colors"
                   />
                   <div>
                     <p className="text-gray-900 font-medium">Custom Color</p>
-                    <p className="text-gray-600 text-sm">Choose your own brand color</p>
+                    <p className="text-gray-600 text-sm">
+                      Choose your own brand color
+                    </p>
                   </div>
                 </div>
 
@@ -292,11 +393,9 @@ const Step1BasicInfo = ({
                       style={{ backgroundColor: previewBg }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = previewHover;
-                        e.currentTarget.style.boxShadow = `0 10px 30px ${previewBg}40`;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = previewBg;
-                        e.currentTarget.style.boxShadow = `0 4px 20px ${previewBg}20`;
                       }}
                     >
                       Primary Button
@@ -313,18 +412,18 @@ const Step1BasicInfo = ({
               </div>
             </div>
 
-            {/* Continue Button */}
+            {/* Continue Button - CHANGED TO GREEN */}
             <div className="pt-8 border-t border-gray-200">
               <button
                 type="button"
                 onClick={handleNext}
                 disabled={isLoading}
-                className={`group relative w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-blue-700
+                className={`group relative w-full py-4 px-8 bg-gradient-to-r from-green-600 to-green-700
                   text-white font-bold text-lg rounded-xl transition-all duration-300
-                  hover:from-blue-500 hover:to-blue-600 hover:shadow-2xl hover:shadow-blue-500/25
+                  hover:from-green-500 hover:to-green-600 hover:shadow-2xl hover:shadow-green-500/25
                   focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
                   transform hover:scale-[1.02] active:scale-[0.98]
-                  ${isLoading ? 'cursor-wait' : 'hover:-translate-y-1'}`}
+                  ${isLoading ? "cursor-wait" : "hover:-translate-y-1"}`}
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
