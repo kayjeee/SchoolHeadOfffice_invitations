@@ -124,7 +124,7 @@ export default function ParentPage({
         <OnboardingFlow
           user={user}
           invitationData={invitationData}
-          currentState={currentstep}
+          currentState={currentStep}
         />
       </>
     );
@@ -136,7 +136,7 @@ export default function ParentPage({
     <ErrorBoundary>
       <LayoutComponent user={user} userRoles={['parent']}>
         <SEOHead title={`${profile?.first_name}'s Dashboard`} />
-        <ParentDashboard profile={profile} learners={learners} />
+        <ParentDashboard user={user} profile={profile} learners={learners} />
       </LayoutComponent>
     </ErrorBoundary>
   );

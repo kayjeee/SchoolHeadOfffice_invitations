@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiCopy, FiCheck, FiExternalLink, FiBarChart2, FiClock } from 'react-icons/fi';
-import { analyticsService } from '../services/api';
+import api from '../services/api';
 
 const InviteLinkManager = ({ invite }) => {
   const [copied, setCopied] = useState(false);
@@ -27,11 +27,11 @@ const InviteLinkManager = ({ invite }) => {
   const handleLoadAnalytics = async () => {
     setLoadingAnalytics(true);
     try {
-      const response = await analyticsService.getPRCodeAnalytics({
+      const response = await api.post('/analytics/pr-code', {
         code: invite.prCode,
         detailed: true
       });
-      setAnalytics(response.analytics);
+      setAnalytics(response.data.analytics);
     } catch (error) {
       console.error('Error loading analytics:', error);
       alert('Failed to load analytics data');
