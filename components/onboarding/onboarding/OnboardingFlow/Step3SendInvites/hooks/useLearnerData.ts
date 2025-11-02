@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { learnerService } from "../services/learnerService";
-import { gradeService } from "../services/gradeService";
+import * as learnerService from "../services/learnerService";
+import * as gradeService from "../services/gradeService";
 import { Grade, Learner } from "../types";
 
 /**
