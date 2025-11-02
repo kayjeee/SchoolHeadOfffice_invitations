@@ -5,15 +5,8 @@ import QRCodeGenerator from './QRCodeGenerator';
 import InviteLinkManager from './InviteLinkManager';
 
 // Services
-import { invitationService } from '../services/invitationService';
+import { invitationService } from '../../../../../services/invitation/invitationService';
 import { prCodeService } from '../services/prCodeService';
-
-console.group('[PRCodeGenerator] Service availability check');
-console.log('prCodeService:', prCodeService);
-console.log('prCodeService methods:', prCodeService ? Object.keys(prCodeService) : 'undefined');
-console.log('invitationService:', invitationService);
-console.log('invitationService methods:', invitationService ? Object.keys(invitationService) : 'undefined');
-console.groupEnd();
 
 const PRCodeGenerator = ({ school, user, onInviteCreated }) => {
   const [recipientType, setRecipientType] = useState('learner');
