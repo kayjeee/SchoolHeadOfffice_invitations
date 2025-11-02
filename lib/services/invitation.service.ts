@@ -15,10 +15,7 @@ type InvitationData = z.infer<typeof InvitationDataSchema>;
 
 export class InvitationService {
   static async verifyToken(token: string): Promise<InvitationData> {
-    const internalApiUrl = process.env.INTERNAL_API_URL;
-    if (!internalApiUrl) {
-      throw new Error('INTERNAL_API_URL is not defined');
-    }
+    const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
 
     const response = await fetch(`${internalApiUrl}/invitations/verify`, {
       method: 'POST',

@@ -2,10 +2,7 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = process.env.INTERNAL_API_URL;
-if (!internalApiUrl) {
-  throw new Error('INTERNAL_API_URL is not defined');
-}
+const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
 
 // ========================
 // SERVER-SIDE API CLIENT
