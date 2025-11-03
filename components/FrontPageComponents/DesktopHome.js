@@ -1,5 +1,5 @@
-// DesktopHome.js
 import { useState } from "react";
+import { useRouter } from "next/router"; // ✅ import router
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
@@ -11,20 +11,21 @@ import AppPromo from "./DesktopComponents/AppPromo";
 const DesktopHome = ({ schools }) => {
   const [chatOpen, setChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter(); // ✅ initialize router
 
+  // ✅ Roles with navigation targets
   const roles = [
-    { name: "Teacher", icon: "📚" },
-    { name: "Parent", icon: "🏠" },
-    { name: "Student", icon: "🎓" },
-    { name: "School Leader", icon: "🏫" },
-    { name: "District Leader", icon: "📍" },
+    { name: "Teacher", icon: "📚", href: "/teacher" },
+    { name: "Parent", icon: "🏠", href: "/parent" },
+    { name: "Student", icon: "🎓", href: "/student" },
+    { name: "School Leader", icon: "🏫", href: "/admin" },
+    { name: "District Leader", icon: "📍", href: "/district" },
   ];
 
   return (
     <>
       {/* HERO SECTION */}
       <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-gray-50 px-6 py-20 overflow-hidden">
-    
         {/* Headline */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -56,13 +57,14 @@ const DesktopHome = ({ schools }) => {
           Get started as a...
         </motion.p>
 
-        {/* Role Cards */}
+        {/* ✅ Role Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-6">
           {roles.map((role) => (
             <motion.div
               key={role.name}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
+              onClick={() => router.push(role.href)} // ✅ navigate on click
               className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl flex flex-col items-center justify-center border border-gray-100 cursor-pointer transition-all"
             >
               <span className="text-4xl mb-3">{role.icon}</span>
@@ -71,21 +73,6 @@ const DesktopHome = ({ schools }) => {
             </motion.div>
           ))}
         </div>
-
-        {/* QR Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-10 flex flex-col items-center justify-center bg-white p-6 rounded-xl shadow-sm border border-gray-100"
-        >
-          <p className="font-semibold text-gray-800 mb-2">Get the App</p>
-          <img
-            src="/qr-code.png"
-            alt="QR Code"
-            className="w-24 h-24 object-contain"
-          />
-        </motion.div>
       </div>
 
       {/* ADDITIONAL COMPONENTS */}
