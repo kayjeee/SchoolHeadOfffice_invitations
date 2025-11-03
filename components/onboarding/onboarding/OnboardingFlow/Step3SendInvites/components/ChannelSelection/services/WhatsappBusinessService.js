@@ -152,7 +152,7 @@ ${schoolName} Admin Team`;
    * 🔹 Step 5: Send a single test message
    * ENHANCED: Better error handling and validation
    */
-  async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }) {
+  async sendTestMessage({ to, schoolName, grade, schoolId, userEmail, message: customMessage }) {
     try {
       logger.info('WhatsAppBusinessService', 'Preparing to send test message', { 
         to, 
@@ -161,29 +161,26 @@ ${schoolName} Admin Team`;
         schoolId 
       });
 
-      // Validate inputs
       if (!to || !schoolName || !schoolId) {
-        throw new Error('Missing required fields: to, schoolName, and schoolId are required');
+        throw new Error('Missing required fields for sending test message');
       }
 
-      // 1️⃣ Create token first
       const token = await this.createInvitation({
         phoneNumber: to,
         schoolId,
         userEmail,
       });
 
-      // 2️⃣ Build dynamic link
       const magicLink = this.buildMagicLink({ token, schoolName });
 
-      // 3️⃣ Build the message body
-      const message = this.buildMagicLinkMessage({
-        schoolName,
-        gradeName: grade?.name || 'your child\'s class',
-        magicLink,
-      });
+      const message = customMessage
+        ? customMessage.replace('[link]', magicLink)
+        : this.buildMagicLinkMessage({
+            schoolName,
+            gradeName: grade?.name || 'your child’s class',
+            magicLink,
+          });
 
-      // 4️⃣ Validate message
       this.validateMessageTemplate(message);
 
       // 5️⃣ Send the test message
