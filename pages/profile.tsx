@@ -11,12 +11,26 @@ const ProfileCard = () => {
   const [error, setError] = useState(null);
   const { user } = useUser();
 
-  const checkAndSaveUser = async () => {
+  const getAccessToken = async () => {
+    const response = await fetch("/api/getAccessToken", {
+      method: "POST",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch access token");
+    }
+    const data = await response.json();
+    return data.accessToken;
+  };
+
+  const checkAndSaveUser = async (token) => {
     try {
       const userId = encodeURIComponent(user.sub);
       const existingUser = await apiClient.get(
-        `/api/v1/users/${userId}`,
-        userSchema
+        `/users/${userId}`,
+        userSchema,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setData(existingUser);
     } catch (error) {
@@ -30,9 +44,12 @@ const ProfileCard = () => {
 
         try {
           const createdUser = await apiClient.post(
-            `/api/v1/users/`,
+            `/users/`,
             userPayload,
-            userSchema
+            userSchema,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
           );
           setData(createdUser);
         } catch (postError) {
@@ -46,7 +63,15 @@ const ProfileCard = () => {
 
   useEffect(() => {
     if (user) {
-      checkAndSaveUser();
+      const init = async () => {
+        try {
+          const token = await getAccessToken();
+          await checkAndSaveUser(token);
+        } catch (e) {
+          setError(e.message);
+        }
+      };
+      init();
     }
   }, [user]);
 
