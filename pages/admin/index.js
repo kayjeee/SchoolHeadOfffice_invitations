@@ -84,7 +84,7 @@ export default function Home() {
     setMessage("");
     try {
       const data = await apiClient.get(
-        `/api/v1/users/${encodeURIComponent(user.sub)}/schools`,
+        `/users/${encodeURIComponent(user.sub)}/schools`,
         schoolsResponseSchema
       );
       const mapped = (data.data?.schools || []).map((s) => ({
@@ -121,7 +121,7 @@ export default function Home() {
     setIsCheckingOnboarding(true);
     try {
       const data = await apiClient.get(
-        `/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`,
+        `/users/${encodeURIComponent(user.sub)}/onboarding_status`,
         onboardingStatusSchema
       );
       setOnboardingStatus(data);
