@@ -35,7 +35,11 @@ class ApiClient {
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const fullUrl = `${API_BASE_URL.replace(/\/$/, "")}/${endpoint.replace(
+          /^\//,
+          ""
+        )}`;
+        const response = await fetch(fullUrl, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
