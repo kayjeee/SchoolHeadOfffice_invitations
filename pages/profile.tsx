@@ -1,94 +1,52 @@
 import { useState, useEffect } from "react";
 import { withPageAuthRequired, useUser } from "@auth0/nextjs-auth0/client";
 import Layout from "../components/layout";
+import { apiClient, APIError } from "../lib/api/api-client";
+import { z } from "zod";
+
+const userSchema = z.any();
 
 const ProfileCard = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const { user } = useUser();
 
-  const getAccessToken = async () => {
+  const checkAndSaveUser = async () => {
     try {
-      const response = await fetch('/api/getAccessToken', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch access token');
-      }
-
-      const data = await response.json();
-      return data.accessToken;
+      const userId = encodeURIComponent(user.sub);
+      const existingUser = await apiClient.get(
+        `/api/v1/users/${userId}`,
+        userSchema
+      );
+      setData(existingUser);
     } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  };
-
-  const checkAndSaveUser = async (token) => {
-    try {
-      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID vdfdf
-      const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
-      const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
-      // Check if user exists
-      const response = await fetch(checkUserUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-    "ngrok-skip-browser-warning": "true"
-        },
-      });
-  
-      if (response.status === 404) {
-        // User does not exist; create the user
+      if (error instanceof APIError && error.status === 404) {
         const userPayload = {
-          auth0_id: user.sub, // Pass Auth0 'sub' as the unique identifier
+          auth0_id: user.sub,
           name: user.name,
           email: user.email,
-          roles: ["default_role"], // Assign default roles
+          roles: ["default_role"],
         };
-  
-        const createResponse = await fetch(postUserUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(userPayload),
-        });
-  
-        if (!createResponse.ok) {
-          throw new Error('Failed to create user in the database');
+
+        try {
+          const createdUser = await apiClient.post(
+            `/api/v1/users/`,
+            userPayload,
+            userSchema
+          );
+          setData(createdUser);
+        } catch (postError) {
+          setError(postError.message);
         }
-  
-        const createdUser = await createResponse.json();
-        setData(createdUser);
-      } else if (response.ok) {
-        // User exists; fetch user data
-        const existingUser = await response.json();
-        setData(existingUser);
       } else {
-        throw new Error('Failed to fetch user data');
+        setError(error.message);
       }
-    } catch (error) {
-      setError(error.message);
     }
   };
-  
 
   useEffect(() => {
     if (user) {
-      console.log("User info from Auth0:", user); // Log the user info
-
-      const fetchData = async () => {
-        try {
-          const token = await getAccessToken();
-          await checkAndSaveUser(token);
-        } catch (err) {
-          setError(err.message);
-        }
-      };
-
-      fetchData();
+      checkAndSaveUser();
     }
   }, [user]);
 
