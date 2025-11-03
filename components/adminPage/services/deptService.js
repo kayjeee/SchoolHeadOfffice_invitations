@@ -1,5 +1,5 @@
 // services/debtService.js
-const API_BASE = 'http://localhost:4000/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
 
 export const fetchDebtSummary = async (schoolId) => {
   const response = await fetch(`${API_BASE}/schools/${schoolId}/debt_summary`);

@@ -36,7 +36,7 @@ export const usePrCode = (schoolId: string, schoolName: string, selectedChannels
           }
         };
 
-        const response = await fetch(`http://localhost:4000/api/v1/schools/${schoolId}/pr_codes`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1'}/schools/${schoolId}/pr_codes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pr_code: prCodeData })
