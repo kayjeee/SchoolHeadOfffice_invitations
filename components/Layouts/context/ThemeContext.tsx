@@ -33,7 +33,7 @@ interface AppThemeContextType {
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
 
 // Add your Rails API base URL here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
 const DEFAULT_PRIMARY = 'white';
@@ -110,7 +110,7 @@ const parseColorFromString = (colorString: string): ColorInput => {
   } catch (e) {
     // If JSON parsing fails, treat as simple string
   }
-  
+
   // Return as simple string
   return colorString;
 };
@@ -128,14 +128,14 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
 
   // Enhanced setPrimaryColor function that accepts both formats
   const setPrimaryColor = useCallback((color: ColorInput) => {
-    nasaLog('INFO', MODULE_TAG, 'Setting primary color', { 
+    nasaLog('INFO', MODULE_TAG, 'Setting primary color', {
       input: color,
-      type: typeof color 
+      type: typeof color
     });
-    
+
     const processedColor = processColorInput(color);
     setPrimaryColorState(processedColor);
-    
+
     // Store the original input format for persistence here
     try {
       const storageValue = typeof color === 'object' ? JSON.stringify(color) : color;
@@ -158,9 +158,9 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
         setPrimaryColor(parsedColor);
         nasaLog('INFO', MODULE_TAG, 'Loaded stored color', { storedColor, parsedColor });
       } catch (e) {
-        nasaLog('WARN', MODULE_TAG, 'Failed to parse stored color, using default', { 
-          storedColor, 
-          error: e 
+        nasaLog('WARN', MODULE_TAG, 'Failed to parse stored color, using default', {
+          storedColor,
+          error: e
         });
       }
     }
@@ -312,7 +312,7 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
       if (selected) {
         setCurrentSchool(selected);
         localStorage.setItem('lastSelectedSchool', selected._id);
-        
+
         // Update primary color based on school theme (handle both formats)
         if (selected.theme) {
           const parsedTheme = parseColorFromString(selected.theme);

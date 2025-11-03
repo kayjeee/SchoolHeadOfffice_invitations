@@ -3,6 +3,8 @@ import QRCode from "react-qr-code";
 import { Copy } from "lucide-react";
 import { Learner } from "../../types";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 interface Channel {
   id: string;
   name: string;
@@ -86,7 +88,7 @@ export const ChannelSelection: React.FC<ChannelSelectionProps> = ({
       setPrCodeError(null);
 
       try {
-        const response = await fetch(`http://localhost:4000/api/v1/schools/${schoolId}/pr_codes`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/schools/${schoolId}/pr_codes`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

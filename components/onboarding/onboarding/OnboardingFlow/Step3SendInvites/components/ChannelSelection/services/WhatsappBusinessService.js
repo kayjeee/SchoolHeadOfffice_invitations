@@ -1,10 +1,12 @@
 // services/WhatsAppBusinessService.js
 import { logger } from '../utils/logger';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 class WhatsAppBusinessService {
   constructor() {
     this.baseURL = '/api/whatsapp-business';
-    this.invitationsURL = 'http://localhost:4000/api/v1/invitations';
+    this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
   }
 
   /**

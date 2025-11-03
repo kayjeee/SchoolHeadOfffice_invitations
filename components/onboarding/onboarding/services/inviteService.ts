@@ -1,13 +1,13 @@
 import { Invite, CreateInviteData } from '../types';
 
 // ✅ Automatically switch between localhost and production
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 /**
  * Service for handling invitation-related operations
  */
 class InviteService {
-  private baseUrl = `${API_BASE_URL}/invites`;
+  private baseUrl = `${API_BASE_URL}/api/v1/invites`;
 
   /**
    * Helper method for making API calls

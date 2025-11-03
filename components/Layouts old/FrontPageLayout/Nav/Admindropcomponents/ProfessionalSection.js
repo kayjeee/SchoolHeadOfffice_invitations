@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 export default function ProfessionalSection({ user }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [approvedSchools, setApprovedSchools] = useState([]);
@@ -21,7 +23,7 @@ export default function ProfessionalSection({ user }) {
 
       try {
         const response = await fetch(
-          `http://localhost:4000/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
+          `${API_BASE_URL}/api/v1/admin_users/schools_for_admin?email=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) throw new Error("Failed to fetch approved schools");
