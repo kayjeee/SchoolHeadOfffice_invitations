@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // Set up logging
+  // 🧾 Structured log object
   const log = {
     request: {
       method: req.method,
@@ -9,106 +9,88 @@ export default async function handler(req, res) {
     },
     response: null,
     errors: [],
-    results: {
-      sent: 0,
-      failed: 0,
-      total: 0,
-      details: []
-    },
-    timings: {
-      start: new Date(),
-      end: null,
-      duration: null
-    }
+    results: { sent: 0, failed: 0, total: 0, details: [] },
+    timings: { start: new Date(), end: null, duration: null },
   };
 
   try {
-    // Validate request method
-    if (req.method !== 'POST') {
-      log.errors.push({ code: 'INVALID_METHOD', message: 'Only POST requests allowed' });
-      return res.status(405).json({ 
-        error: 'Method not allowed',
-        details: log 
-      });
+    // ✅ Enforce POST
+    if (req.method !== "POST") {
+      log.errors.push({ code: "INVALID_METHOD", message: "Only POST allowed" });
+      return res.status(405).json({ error: "Method not allowed", details: log });
     }
 
-    // Validate required environment variables
-    const requiredEnvVars = [
-      'WHATSAPP_PHONE_NUMBER_ID',
-      'WHATSAPP_ACCESS_TOKEN'
-    ];
-
-    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    // ✅ Validate environment
+    const requiredEnvVars = ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"];
+    const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
     if (missingVars.length > 0) {
       log.errors.push({
-        code: 'MISSING_ENV_VARS',
-        message: 'Required environment variables not set',
-        missing: missingVars
+        code: "MISSING_ENV_VARS",
+        message: "Required environment variables not set",
+        missing: missingVars,
       });
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        details: log 
-      });
+      return res.status(500).json({ error: "Server configuration error", details: log });
     }
 
-    // Validate and extract parameters
-    const { gradeIds, message, schoolName, recipientNumbers } = req.body;
-    
-    if (!recipientNumbers || !Array.isArray(recipientNumbers) || recipientNumbers.length === 0) {
-      log.errors.push({ 
-        code: 'MISSING_RECIPIENTS', 
-        message: 'No recipient numbers provided' 
-      });
-      return res.status(400).json({ 
-        error: 'Recipient numbers are required',
-        details: log 
-      });
+    // ✅ Validate input
+    const { gradeIds, schoolName, personalizedMessages } = req.body;
+    if (!personalizedMessages || !Array.isArray(personalizedMessages) || personalizedMessages.length === 0) {
+      log.errors.push({ code: "MISSING_MESSAGES", message: "No personalized messages provided" });
+      return res.status(400).json({ error: "personalizedMessages array required", details: log });
     }
 
-    if (!message) {
-      log.errors.push({ code: 'MISSING_MESSAGE', message: 'No message content provided' });
-      return res.status(400).json({ 
-        error: 'Message content is required',
-        details: log 
-      });
-    }
-
-    log.results.total = recipientNumbers.length;
+    log.results.total = personalizedMessages.length;
     const whatsappUrl = `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    // Send messages to each recipient
-    for (const phoneNumber of recipientNumbers) {
+    // ✅ Loop and send per recipient
+    for (const entry of personalizedMessages) {
+      const { to, message, gradeName, magicLink } = entry;
       try {
-        // Format phone number (remove all non-digit characters)
-        const formattedNumber = phoneNumber.replace(/\D/g, '');
-        
-        // Ensure South African numbers start with 27 and are 11 digits
-        if (formattedNumber.startsWith('27') && formattedNumber.length !== 11) {
+        if (!to) {
+          log.results.failed++;
+          log.results.details.push({ to, status: "failed", error: "Missing phone number" });
+          continue;
+        }
+
+        const formattedNumber = to.replace(/\D/g, "");
+        if (!formattedNumber.startsWith("27") || formattedNumber.length !== 11) {
           log.results.failed++;
           log.results.details.push({
-            phoneNumber: formattedNumber,
-            status: 'failed',
-            error: 'Invalid SA number format - must be 11 digits'
+            to: formattedNumber,
+            status: "failed",
+            error: "Invalid South African number (must be 27XXXXXXXXX)",
           });
           continue;
         }
 
+        // ✅ Build WhatsApp Template Payload
         const payload = {
           messaging_product: "whatsapp",
           to: formattedNumber,
-          type: "text",
-          text: {
-            body: message
-          }
+          type: "template",
+          template: {
+            name: "school_invitation_message", // ✅ Active Meta Template
+            language: { code: "en_US" },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: gradeName || "your child’s class" }, // {{gradeId}}
+                  { type: "text", text: magicLink || "https://portal.schoolheadoffice.com/join" }, // {{testType}}
+                  { type: "text", text: schoolName || "Your School" }, // {{schoolName}}
+                ],
+              },
+            ],
+          },
         };
 
         const apiResponse = await fetch(whatsappUrl, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
 
         const responseData = await apiResponse.json();
@@ -116,36 +98,34 @@ export default async function handler(req, res) {
         if (apiResponse.ok) {
           log.results.sent++;
           log.results.details.push({
-            phoneNumber: formattedNumber,
-            status: 'success',
-            messageId: responseData.messages?.[0]?.id
+            to: formattedNumber,
+            status: "success",
+            messageId: responseData.messages?.[0]?.id,
           });
         } else {
           log.results.failed++;
           log.results.details.push({
-            phoneNumber: formattedNumber,
-            status: 'failed',
-            error: responseData.error?.message || 'WhatsApp API error'
+            to: formattedNumber,
+            status: "failed",
+            error: responseData.error?.message || "WhatsApp API error",
           });
         }
 
-        // Small delay to avoid rate limiting (100ms between messages)
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        // ⏳ small delay to prevent rate limits
+        await new Promise((r) => setTimeout(r, 200));
       } catch (error) {
         log.results.failed++;
         log.results.details.push({
-          phoneNumber,
-          status: 'error',
-          error: error.message
+          to: entry?.to,
+          status: "error",
+          error: error.message,
         });
       }
     }
 
-    // Successful response
+    // ✅ Summary response
     log.timings.end = new Date();
     log.timings.duration = log.timings.end - log.timings.start;
-    
     log.response = {
       status: 200,
       data: {
@@ -154,28 +134,22 @@ export default async function handler(req, res) {
         failedCount: log.results.failed,
         totalCount: log.results.total,
         details: log.results.details,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
 
     return res.status(200).json(log.response.data);
   } catch (error) {
     log.errors.push({
-      code: 'SERVER_ERROR',
+      code: "SERVER_ERROR",
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
-    
     log.timings.end = new Date();
     log.timings.duration = log.timings.end - log.timings.start;
-
-    console.error('❌ WhatsApp Bulk Send Error:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? log : null 
-    });
+    console.error("❌ WhatsApp Bulk Template Send Error:", error);
+    return res.status(500).json({ error: "Internal server error", details: process.env.NODE_ENV === "development" ? log : null });
   } finally {
-    // Log complete request/response cycle
-    console.log('📝 WhatsApp Bulk Send Log:', JSON.stringify(log, null, 2));
+    console.log("📝 WhatsApp Bulk Template Send Log:", JSON.stringify(log, null, 2));
   }
 }
