@@ -6,10 +6,6 @@ import DesktopHome from "../components/FrontPageComponents/DesktopHome";
 import MobileHome from "../components/FrontPageComponents/MobileHome";
 import LoadingSpinner from "../components/spinners/LoadingSpinner";
 import clientPromise from "../lib/mongodb";
-import { apiClient, APIError } from "../lib/api/api-client";
-import { z } from "zod";
-
-const userSchema = z.any();
 
 const Home = ({ schools }) => {
   const { user, isLoading: authLoading } = useUser();
@@ -25,60 +21,81 @@ const Home = ({ schools }) => {
     isProcessing: true, // 🔹 controls "Loading..." state
   });
 
-  const getAccessToken = async () => {
+  // ✅ Helper: get Management API access token
+  const getAccessTokenFromAPI = async () => {
     const response = await fetch("/api/getAccessToken", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
     });
-    if (!response.ok) {
-      throw new Error("Failed to fetch access token");
-    }
-    const data = await response.json();
-    return data.accessToken;
+    if (!response.ok) throw new Error("Failed to fetch access token");
+    const { accessToken } = await response.json();
+    return accessToken;
   };
 
+  // ✅ Step 1: Check and Save User should work
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
+    const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
+    const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
+
     console.log("[checkAndSaveUser] Checking user:", userId);
 
-    try {
-      const existingUser = await apiClient.get(`/users/${userId}`, userSchema, {
-        headers: { Authorization: `Bearer ${token}` },
+    const response = await fetch(checkUserUrl, {
+      headers: { Authorization: `Bearer ${token}`,
+    "ngrok-skip-browser-warning": "true" },
+    });
+
+    if (response.status === 404) {
+      console.log("[checkAndSaveUser] User not found, creating...");
+      const userPayload = {
+        auth0_id: authUser.sub,
+        name: authUser.name,
+        email: authUser.email,
+        roles: ["default_role"],
+      };
+
+      const createResponse = await fetch(postUserUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify(userPayload),
       });
+
+      if (!createResponse.ok)
+        throw new Error("Failed to create user in backend");
+
+      const createdUser = await createResponse.json();
+      console.log("[checkAndSaveUser] User created:", createdUser);
+      return createdUser;
+    }
+
+    if (response.ok) {
+      const existingUser = await response.json();
       console.log("[checkAndSaveUser] User exists:", existingUser);
       return existingUser;
-    } catch (error) {
-      if (error instanceof APIError && error.status === 404) {
-        console.log("[checkAndSaveUser] User not found, creating...");
-        const userPayload = {
-          auth0_id: authUser.sub,
-          name: authUser.name,
-          email: authUser.email,
-          roles: ["default_role"],
-        };
-
-        const createdUser = await apiClient.post(
-          `/users`,
-          userPayload,
-          userSchema,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        console.log("[checkAndSaveUser] User created:", createdUser);
-        return createdUser;
-      }
-      throw error;
     }
+
+    throw new Error("Failed to fetch or create user");
   };
 
   // ✅ Step 2: Fetch user roles from Auth0
-  const fetchUserRoles = async (userId) => {
-    // This is a call to our own backend, which then calls Auth0
-    const response = await fetch(`/api/getUserRoles?userId=${userId}`);
+  const fetchUserRoles = async (accessToken, userId) => {
+    const rolesUrl = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${userId}/roles`;
+    const response = await fetch(rolesUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
     if (!response.ok) throw new Error("Failed to fetch user roles");
     const rolesData = await response.json();
     console.log("[fetchUserRoles] Roles fetched:", rolesData);
-    return rolesData.roles.map((role) => role.name);
+    return rolesData.map((role) => role.name);
   };
 
   // ✅ Step 3: Initialization flow
@@ -94,11 +111,13 @@ const Home = ({ schools }) => {
       console.log("[initializeUser] Auth0 user ready:", user);
 
       try {
-        const token = await getAccessToken();
+        const token = await getAccessTokenFromAPI();
+        console.log("[initializeUser] Got access token.");
+
         // Step 1: Check or create user in backend
         const userRecord = await checkAndSaveUser(token, user);
         // Step 2: Fetch roles from Auth0
-        const roles = await fetchUserRoles(encodeURIComponent(user.sub));
+        const roles = await fetchUserRoles(token, encodeURIComponent(user.sub));
 
         setState((prev) => ({
           ...prev,
@@ -177,3 +196,4 @@ export async function getServerSideProps() {
 }
 
 export default Home;
+
