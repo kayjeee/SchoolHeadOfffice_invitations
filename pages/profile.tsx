@@ -29,7 +29,7 @@ const ProfileCard = () => {
     try {
       const userId = encodeURIComponent(user.sub); // Auth0's unique user ID vdfdf
       const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
-      const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}api/v1/users/`;
+      const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
       // Check if user exists
       const response = await fetch(checkUserUrl, {
         headers: {
