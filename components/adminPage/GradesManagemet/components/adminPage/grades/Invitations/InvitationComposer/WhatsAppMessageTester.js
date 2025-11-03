@@ -11,9 +11,9 @@ import {
   Edit3,
   Smartphone
 } from 'lucide-react';
-import { sendWhatsAppMessage } from '../services/WhatsappBusinessService';
+import WhatsAppBusinessService from '../../../../../../../onboarding/onboarding/OnboardingFlow/Step3SendInvites/components/ChannelSelection/services/WhatsappBusinessService';
 
-const WhatsAppMessageTester = ({ selectedGrade, schoolName, testMessage, onMessageUpdate }) => {
+const WhatsAppMessageTester = ({ selectedGrade, schoolName, testMessage, onMessageUpdate, userEmail, schoolId }) => {
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -45,7 +45,7 @@ You're invited to join our secure parent communication portal for ${selectedGrad
 ✅ Connect with teachers directly
 ✅ Access school resources and calendar
 
-Join now: https://www.schoolheadoffice.com/.${schoolName.toLowerCase().replace(/\s+/g, '')}.com/join
+Join now: [link]
 
 For support, WhatsApp us at this number or email support@${schoolName.toLowerCase().replace(/\s+/g, '')}.com
 
@@ -81,28 +81,34 @@ ${schoolName} Admin Team`;
   };
 
   const handleSendTest = async () => {
-    if (!validateInputs()) {
-      return;
-    }
+    if (!validateInputs()) return;
 
     setIsSending(true);
     setTestResult(null);
 
     try {
-      const result = await sendWhatsAppMessage(testPhoneNumber.replace(/\s+/g, ''));
+      const result = await WhatsAppBusinessService.sendTestMessage({
+        to: testPhoneNumber.replace(/\s+/g, ''),
+        schoolName,
+        grade: selectedGrade,
+        schoolId,
+        userEmail,
+        message: getMessageContent(),
+      });
 
       setTestResult({
         success: true,
         messageId: result.messageId,
+        magicLink: result.magicLink,
         timestamp: new Date().toISOString(),
-        message: 'Test message sent successfully! Check your WhatsApp.'
+        message: '✅ Test message sent successfully! Check your WhatsApp.',
       });
     } catch (error) {
       setTestResult({
         success: false,
         error: error.message,
         timestamp: new Date().toISOString(),
-        message: 'Failed to send test message. Please try again.'
+        message: '❌ Failed to send test message. Please try again.',
       });
     } finally {
       setIsSending(false);
