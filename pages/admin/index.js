@@ -10,32 +10,10 @@ import CreateSchoolForm from "../../components/Schoolpage/CreateSchoolForm";
 import ValidateSchoolStep from "../../components/Schoolpage/ValidateSchoolStep";
 import ReviewSchoolStep from "../../components/Schoolpage/ReviewSchoolStep";
 import { OnboardingGuard } from "../../components/onboarding/onboarding";
-import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext";
-import { apiClient } from "../../lib/api/api-client";
-import { z } from "zod";
+import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext"; 
 
-const schoolSchema = z.object({
-  id: z.string(),
-  _id: z.string(),
-  schoolName: z.string(),
-  schoolEmail: z.string(),
-  city: z.string(),
-  country: z.string(),
-  province: z.string(),
-  logo: z.string().optional(),
-  userEmail: z.string().optional(),
-  line1: z.string().optional(),
-  line2: z.string().optional(),
-  postalCode: z.string().optional(),
-});
-
-const schoolsResponseSchema = z.object({
-  data: z.object({
-    schools: z.array(schoolSchema),
-  }),
-});
-
-const onboardingStatusSchema = z.any();
+// ✅ Environment-based API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://shobackendv2-production.up.railway.app/";
 
 export default function Home() {
   const { user } = useUser();
@@ -66,6 +44,31 @@ export default function Home() {
     checkOnboardingStatus();
   }, [user]);
 
+  // 🔐 Fetch Auth0 Access Token
+  const fetchAccessToken = async () => {
+    const res = await fetch("/api/getAccessToken", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Failed to fetch access token");
+    const { accessToken } = await res.json();
+    return accessToken;
+  };
+
+  // 👥 Fetch roles from Auth0
+  const fetchUserRoles = async (accessToken, userId) => {
+    const url = `${API_BASE_URL}/api/v2/users/${encodeURIComponent(userId)}/roles`;
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!res.ok) throw new Error("Failed to fetch user roles");
+    const roles = await res.json();
+    return roles.map((r) => r.name);
+  };
+
   const fetchAndSetUserRoles = async () => {
     try {
       const res = await fetch(`/api/getUserRoles?userId=${encodeURIComponent(user.sub)}`);
@@ -83,10 +86,17 @@ export default function Home() {
     setIsLoading(true);
     setMessage("");
     try {
-      const data = await apiClient.get(
-        `/users/${encodeURIComponent(user.sub)}/schools`,
-        schoolsResponseSchema
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/users/${encodeURIComponent(user.sub)}/schools`
       );
+
+      if (res.status === 404) {
+        setSchools([]);
+        setMessage("You have not created any school yet. Please create a new school.");
+        return;
+      }
+
+      const data = await res.json();
       const mapped = (data.data?.schools || []).map((s) => ({
         id: s._id,
         _id: s._id,
@@ -103,13 +113,8 @@ export default function Home() {
       }));
       setSchools(mapped);
     } catch (err) {
-      if (err.status === 404) {
-        setSchools([]);
-        setMessage("You have not created any school yet. Please create a new school.");
-      } else {
-        console.error("❌ Error fetching schools:", err);
-        setMessage("Failed to fetch schools. Please try again later.");
-      }
+      console.error("❌ Error fetching schools:", err);
+      setMessage("Failed to fetch schools. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -120,10 +125,10 @@ export default function Home() {
     if (!user?.sub) return;
     setIsCheckingOnboarding(true);
     try {
-      const data = await apiClient.get(
-        `/users/${encodeURIComponent(user.sub)}/onboarding_status`,
-        onboardingStatusSchema
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/users/${encodeURIComponent(user.sub)}/onboarding_status`
       );
+      const data = await res.json();
       setOnboardingStatus(data);
 
       const complete =
