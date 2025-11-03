@@ -13,7 +13,7 @@ export default function PricingPage() {
     dropdownOpen: false,
     userData: null,
     error: null,
-    
+
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -64,8 +64,8 @@ export default function PricingPage() {
         const roles = await fetchUserRoles(accessToken, encodeURIComponent(userId));
         setState((prev) => ({ ...prev, userRoles: roles }));
 
-        const checkUserUrl = `http://localhost:4000/api/v1/users/${userId}`;
-        const postUserUrl = `http://localhost:4000/api/v1/users/`;
+        const checkUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1'}/users/${userId}`;
+        const postUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1'}/users/`;
 
         const userResponse = await fetch(checkUserUrl, {
           headers: { Authorization: `Bearer ${accessToken}` },

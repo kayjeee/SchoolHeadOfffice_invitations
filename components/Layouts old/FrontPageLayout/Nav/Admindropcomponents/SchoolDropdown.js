@@ -14,7 +14,7 @@ const SchoolDropdown = ({ user }) => {
 
       try {
         const response = await fetch(
-          `http://localhost:4000/api/v1/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1'}/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) {

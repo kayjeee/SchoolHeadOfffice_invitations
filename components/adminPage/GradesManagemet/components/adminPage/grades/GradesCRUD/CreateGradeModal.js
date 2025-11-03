@@ -96,7 +96,7 @@ const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCre
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -135,7 +135,7 @@ const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCre
       };
 
       const response = await axios.post(
-        `http://localhost:4000/api/v1/schools/${schoolId}/grades`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1'}/schools/${schoolId}/grades`,
         payload,
         {
           headers: {
@@ -166,7 +166,7 @@ const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCre
       onClose();
     } catch (error) {
       console.error('Error creating grade:', error);
-      
+
       if (error.response && error.response.data) {
         if (error.response.data.errors) {
           setErrors(error.response.data.errors);
@@ -186,7 +186,7 @@ const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCre
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div 
+        <div
           className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
           onClick={onClose}
         ></div>
