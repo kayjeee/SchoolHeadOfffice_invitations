@@ -25,13 +25,25 @@ const Home = ({ schools }) => {
     isProcessing: true, // 🔹 controls "Loading..." state
   });
 
-  // ✅ Step 1: Check and Save User should work
-  const checkAndSaveUser = async (authUser) => {
+  const getAccessToken = async () => {
+    const response = await fetch("/api/getAccessToken", {
+      method: "POST",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch access token");
+    }
+    const data = await response.json();
+    return data.accessToken;
+  };
+
+  const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
     console.log("[checkAndSaveUser] Checking user:", userId);
 
     try {
-      const existingUser = await apiClient.get(`/users/${userId}`, userSchema);
+      const existingUser = await apiClient.get(`/users/${userId}`, userSchema, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log("[checkAndSaveUser] User exists:", existingUser);
       return existingUser;
     } catch (error) {
@@ -47,7 +59,10 @@ const Home = ({ schools }) => {
         const createdUser = await apiClient.post(
           `/users`,
           userPayload,
-          userSchema
+          userSchema,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
         console.log("[checkAndSaveUser] User created:", createdUser);
         return createdUser;
@@ -79,8 +94,9 @@ const Home = ({ schools }) => {
       console.log("[initializeUser] Auth0 user ready:", user);
 
       try {
+        const token = await getAccessToken();
         // Step 1: Check or create user in backend
-        const userRecord = await checkAndSaveUser(user);
+        const userRecord = await checkAndSaveUser(token, user);
         // Step 2: Fetch roles from Auth0
         const roles = await fetchUserRoles(encodeURIComponent(user.sub));
 
