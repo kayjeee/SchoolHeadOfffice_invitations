@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { withPageAuthRequired, useUser } from "@auth0/nextjs-auth0/client";
 import Layout from "../components/layout";
-import { apiClient, APIError } from "../lib/api/api-client";
-import { z } from "zod";
-
-const userSchema = z.any();
 
 const ProfileCard = () => {
   const [data, setData] = useState(null);
@@ -12,66 +8,87 @@ const ProfileCard = () => {
   const { user } = useUser();
 
   const getAccessToken = async () => {
-    const response = await fetch("/api/getAccessToken", {
-      method: "POST",
-    });
-    if (!response.ok) {
-      throw new Error("Failed to fetch access token");
+    try {
+      const response = await fetch('/api/getAccessToken', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch access token');
+      }
+
+      const data = await response.json();
+      return data.accessToken;
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    const data = await response.json();
-    return data.accessToken;
   };
 
   const checkAndSaveUser = async (token) => {
     try {
-      const userId = encodeURIComponent(user.sub);
-      const existingUser = await apiClient.get(
-        `/users/${userId}`,
-        userSchema,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setData(existingUser);
-    } catch (error) {
-      if (error instanceof APIError && error.status === 404) {
+      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID vdfdf
+      const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
+      const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}api/v1/users/`;
+      // Check if user exists
+      const response = await fetch(checkUserUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+    "ngrok-skip-browser-warning": "true"
+        },
+      });
+  
+      if (response.status === 404) {
+        // User does not exist; create the user
         const userPayload = {
-          auth0_id: user.sub,
+          auth0_id: user.sub, // Pass Auth0 'sub' as the unique identifier
           name: user.name,
           email: user.email,
-          roles: ["default_role"],
+          roles: ["default_role"], // Assign default roles
         };
-
-        try {
-          const createdUser = await apiClient.post(
-            `/users/`,
-            userPayload,
-            userSchema,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          setData(createdUser);
-        } catch (postError) {
-          setError(postError.message);
+  
+        const createResponse = await fetch(postUserUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(userPayload),
+        });
+  
+        if (!createResponse.ok) {
+          throw new Error('Failed to create user in the database');
         }
+  
+        const createdUser = await createResponse.json();
+        setData(createdUser);
+      } else if (response.ok) {
+        // User exists; fetch user data
+        const existingUser = await response.json();
+        setData(existingUser);
       } else {
-        setError(error.message);
+        throw new Error('Failed to fetch user data');
       }
+    } catch (error) {
+      setError(error.message);
     }
   };
+  
 
   useEffect(() => {
     if (user) {
-      const init = async () => {
+      console.log("User info from Auth0:", user); // Log the user info
+
+      const fetchData = async () => {
         try {
           const token = await getAccessToken();
           await checkAndSaveUser(token);
-        } catch (e) {
-          setError(e.message);
+        } catch (err) {
+          setError(err.message);
         }
       };
-      init();
+
+      fetchData();
     }
   }, [user]);
 
