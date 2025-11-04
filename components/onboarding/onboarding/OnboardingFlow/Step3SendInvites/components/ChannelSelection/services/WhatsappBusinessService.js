@@ -388,6 +388,30 @@ ${schoolName} Admin Team`;
       };
     }
   }
+
+  /**
+   * 🔹 Schedule bulk messages with personalized links
+   */
+  async scheduleBulkMessage(data) {
+    // TODO: Implement scheduling logic
+    console.log('Scheduling bulk message with data:', data);
+    return Promise.resolve({ success: true, message: 'Scheduling not implemented yet' });
+  }
+
+  /**
+   * 🔹 Validate message template
+   */
+  validateMessageTemplate(message) {
+    if (!message || typeof message !== 'string') {
+      throw new Error('Message content is invalid');
+    }
+    if (message.trim().length === 0) {
+      throw new Error('Message content cannot be empty');
+    }
+    if (message.length > 4096) {
+      throw new Error('Message content is too long');
+    }
+  }
 }
 
 export default new WhatsAppBusinessService();
