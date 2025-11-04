@@ -11,7 +11,6 @@ class WhatsAppBusinessService {
 
   /**
    * 🔹 Create an invitation to generate a token
-   * FIXED: Using 'school' instead of 'school_id' based on backend requirements
    */
   async createInvitation({ phoneNumber, schoolId, userEmail }) {
     try {
@@ -21,7 +20,6 @@ class WhatsAppBusinessService {
         userEmail 
       });
 
-      // Validate required fields
       if (!schoolId) {
         throw new Error('schoolId is required to create invitation');
       }
@@ -32,7 +30,7 @@ class WhatsAppBusinessService {
 
       const payload = {
         phone_number: phoneNumber,
-        school: schoolId, // 🔥 FIXED: Use 'school' not 'school_id'
+        school: schoolId,
         role: 'parent',
       };
 
@@ -110,6 +108,35 @@ ${schoolName} Admin Team`;
   }
 
   /**
+   * 🔹 Validate message before sending
+   */
+  validateMessageTemplate(message) {
+    if (typeof message !== 'string') {
+      throw new Error('Message must be a string');
+    }
+
+    const validations = [
+      {
+        check: message.length > 0,
+        error: 'Message cannot be empty',
+      },
+      {
+        check: message.length <= 4096,
+        error: `Message exceeds maximum length of 4096 characters (current: ${message.length})`,
+      }
+    ];
+
+    for (const validation of validations) {
+      if (!validation.check) {
+        throw new Error(validation.error);
+      }
+    }
+
+    console.log('✅ [validateMessageTemplate] Message validation passed');
+    return true;
+  }
+
+  /**
    * 🔹 Build magic link from token and school name
    */
   buildMagicLink({ token, schoolName }) {
@@ -120,7 +147,7 @@ ${schoolName} Admin Team`;
   }
 
   /**
-   * 🔹 Send a single test message - USING RELIABLE TEXT MESSAGES
+   * 🔹 Send a single test message
    */
   async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }) {
     try {
@@ -153,6 +180,9 @@ ${schoolName} Admin Team`;
         magicLink,
       });
 
+      // 4️⃣ Validate message
+      this.validateMessageTemplate(message);
+
       console.log('📤 [sendTestMessage] Prepared message details:', {
         to,
         messageLength: message.length,
@@ -160,19 +190,16 @@ ${schoolName} Admin Team`;
         hasToken: !!token
       });
 
-      // 4️⃣ Send the test message as TEXT (reliable and works)
+      // 5️⃣ Send the test message as TEXT
       const payload = {
         to: to,
-        message: message, // Full composed message
+        message: message,
         schoolName,
         magicLink,
         grade: grade?.name,
       };
 
-      console.log('🎯 [sendTestMessage] Sending to API endpoint:', {
-        endpoint: `${this.baseURL}/test-message`,
-        payload: { ...payload, message: payload.message.substring(0, 100) + '...' }
-      });
+      console.log('🎯 [sendTestMessage] Sending to API endpoint');
 
       const response = await fetch(`${this.baseURL}/test-message`, {
         method: 'POST',
@@ -253,6 +280,9 @@ ${schoolName} Admin Team`;
             gradeName: 'your child\'s class',
             magicLink,
           });
+
+          // Validate each message
+          this.validateMessageTemplate(message);
 
           personalizedMessages.push({
             to: number,
