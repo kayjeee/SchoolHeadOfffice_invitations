@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FiEdit, FiTrash2, FiEye, FiMail, FiPhone, FiUser, FiCalendar, FiMoreVertical } from 'react-icons/fi';
 import axios from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }) => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -17,10 +19,10 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
     const fetchLearners = async () => {
       try {
         setLoading(true);
-        let url = 'https://sho-backend-v2.onrender.com/api/v1/learners';
-        
+        let url = `${API_BASE_URL}/api/v1/learners`;
+
         if (selectedGrade) {
-          url = `https://sho-backend-v2.onrender.com/api/v1/grades/${selectedGrade.id}/learners`;
+          url = `${API_BASE_URL}/api/v1/grades/${selectedGrade.id}/learners`;
         }
 
         const response = await axios.get(url, {
@@ -54,7 +56,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
   };
 
   const handleSelectLearner = (learnerId) => {
-    setSelectedLearners(prev => 
+    setSelectedLearners(prev =>
       prev.includes(learnerId)
         ? prev.filter(id => id !== learnerId)
         : [...prev, learnerId]
@@ -71,7 +73,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
 
   const handleDeleteLearner = async (learnerId) => {
     try {
-      await axios.delete(`http://localhost:4000/api/v1/learners/${learnerId}`);
+      await axios.delete(`${API_BASE_URL}/api/v1/learners/${learnerId}`);
       setLearners(learners.filter(learner => learner.id !== learnerId));
     } catch (err) {
       setError(err.message);
@@ -81,8 +83,8 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
   const handleBulkDelete = async () => {
     try {
       await Promise.all(
-        selectedLearners.map(id => 
-          axios.delete(`http://localhost:4000/api/v1/learners/${id}`)
+        selectedLearners.map(id =>
+          axios.delete(`${API_BASE_URL}/api/v1/learners/${id}`)
         )
       );
       setLearners(learners.filter(learner => !selectedLearners.includes(learner.id)));
@@ -100,7 +102,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
 
   const handleBulkInvitation = () => {
     if (onOpenInvitationModal && selectedLearners.length > 0) {
-      const selectedLearnerObjects = learners.filter(learner => 
+      const selectedLearnerObjects = learners.filter(learner =>
         selectedLearners.includes(learner.id)
       );
       onOpenInvitationModal(selectedGrade, selectedLearnerObjects);
@@ -132,11 +134,11 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   };
 
@@ -180,14 +182,14 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
               {learners.length} learners found
             </p>
           </div>
-          
+
           {/* Bulk Actions */}
           {selectedLearners.length > 0 && (
             <div className="flex items-center space-x-3">
               <span className="text-sm text-gray-500">
                 {selectedLearners.length} selected
               </span>
-              <button 
+              <button
                 className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                 onClick={() => {
                   // Implement bulk email functionality
@@ -196,14 +198,14 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
                 <FiMail className="mr-1 h-4 w-4" />
                 Email
               </button>
-              <button 
+              <button
                 className="inline-flex items-center px-3 py-1 border border-green-300 shadow-sm text-sm leading-4 font-medium rounded-md text-green-700 bg-white hover:bg-green-50"
                 onClick={handleBulkInvitation}
               >
                 <FiMail className="mr-1 h-4 w-4" />
                 Invite Selected
               </button>
-              <button 
+              <button
                 className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                 onClick={handleBulkDelete}
               >
@@ -228,7 +230,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
                   className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                 />
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('name')}
               >
@@ -253,7 +255,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Contact
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('enrollment_date')}
               >
@@ -266,7 +268,7 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
                   )}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('status')}
               >
@@ -329,13 +331,13 @@ const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center space-x-2">
-                      <a 
+                      <a
                         href={`tel:${learner.guardian_info?.[0]?.phone || ''}`}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         <FiPhone className="h-4 w-4" />
                       </a>
-                      <a 
+                      <a
                         href={`mailto:${learner.guardian_info?.[0]?.email || ''}`}
                         className="text-blue-600 hover:text-blue-900"
                       >
