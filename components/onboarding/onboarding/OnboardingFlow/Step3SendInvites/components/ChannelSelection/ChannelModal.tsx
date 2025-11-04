@@ -267,8 +267,9 @@ ${schoolName} Admin Team`;
       
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
-        message: messageContent,
-        gradeId: selectedGrade?.id,
+        grade: selectedGrade,
+        schoolId: schoolId,
+        userEmail: school?.userEmail,
         schoolName: schoolName
       });
 
@@ -316,9 +317,10 @@ ${schoolName} Admin Team`;
       
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
-        message: messageContent,
         schoolName: schoolName,
-        recipientNumbers: recipientNumbers.map(r => r.phone)
+        recipientNumbers: recipientNumbers.map(r => r.phone),
+        schoolId: schoolId,
+        userEmail: school?.userEmail
       });
 
       setTestResult({
@@ -362,7 +364,9 @@ ${schoolName} Admin Team`;
         message: scheduleData.message,
         scheduledAt: scheduleData.scheduledAt,
         timezone: scheduleData.timezone,
-        recipientNumbers: recipientNumbers.map(r => r.phone)
+        recipientNumbers: recipientNumbers.map(r => r.phone),
+        schoolId: schoolId,
+        schoolName: schoolName
       });
 
       console.log('Message scheduled:', result);
