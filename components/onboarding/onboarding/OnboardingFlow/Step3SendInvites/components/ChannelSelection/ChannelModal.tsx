@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { logger } from './utils/logger';
-import { ChannelModalProps } from '../types/channel';
-import { Modal } from '../ui/Modal';
-import { QrCodeWithCopy } from '../QrCodeWithCopy';
-import { CopyButton } from '../ui/CopyButton';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { useAudienceData } from '../hooks/useAudienceData';
+import { ChannelModalProps } from './types/channel';
+import { Modal } from './ui/Modal';
+import { QrCodeWithCopy } from './QrCodeWithCopy';
+import { CopyButton } from './ui/CopyButton';
+import { LoadingSpinner } from './ui/LoadingSpinner';
+import { useAudienceData } from './hooks/useAudienceData';
 
 // WhatsApp imports
-import { WhatsAppTesterSection } from '../WhatsAppTesterSection';
-import { WhatsAppScheduler, ScheduleData } from '../WhatsAppScheduler';
-import WhatsAppBusinessService from '../../services/WhatsAppBusinessService';
+import { WhatsAppTesterSection } from './WhatsAppTesterSection';
+import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
+import WhatsAppBusinessService from './services/WhatsAppBusinessService';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
   channel,
