@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { logger } from './utils/logger';
-import { ChannelModalProps } from './types/channel';
-import { Modal } from './ui/Modal';
-import { QrCodeWithCopy } from './QrCodeWithCopy';
-import { CopyButton } from './ui/CopyButton';
-import { LoadingSpinner } from './ui/LoadingSpinner';
-import { useAudienceData } from './hooks/useAudienceData';
+import { logger } from '../utils/logger';
+import { ChannelModalProps } from '../types/channel';
+import { Modal } from '../ui/Modal';
+import { QrCodeWithCopy } from '../QrCodeWithCopy';
+import { CopyButton } from '../ui/CopyButton';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { useAudienceData } from '../hooks/useAudienceData';
 
-// NEW WHATSAPP IMPORTS
-import { WhatsAppTesterSection } from './WhatsAppTesterSection';
-import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
-import WhatsAppBusinessService from './services/WhatsappBusinessService';
+// WhatsApp imports
+import { WhatsAppTesterSection } from '../WhatsAppTesterSection';
+import { WhatsAppScheduler, ScheduleData } from '../WhatsAppScheduler';
+import WhatsAppBusinessService from '../../services/WhatsAppBusinessService';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
   channel,
@@ -41,9 +41,7 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
     isOpen
   });
 
-  // =======================================================
-  // 🔥 ENHANCED WHATSAPP STATES
-  // =======================================================
+  // WhatsApp states
   const [activeTab, setActiveTab] = useState<'test' | 'schedule' | 'contacts'>('contacts');
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
@@ -52,7 +50,6 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   const [isScheduling, setIsScheduling] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState<any>({});
-  // =======================================================
 
   const handleSelectChannel = () => {
     logger.info('ChannelModal', 'Channel selected', {
@@ -141,7 +138,7 @@ Click here to join: ${schoolLink}`;
     return whatsappNumbers.length > 0;
   });
 
-  // Get the best WhatsApp number for a learner (prioritize WhatsApp-specific fields)
+  // Get the best WhatsApp number for a learner
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);
 
@@ -208,10 +205,7 @@ Click here to join: ${schoolLink}`;
     });
   };
 
-  // =======================================================
-  // 🔥 ENHANCED WHATSAPP HANDLERS
-  // =======================================================
-
+  // WhatsApp Handlers
   const selectedGrade = selectedGrades.length === 1 ? selectedGrades[0] : null;
   const gradeName = selectedGrade?.name || 'your selected grades';
 
@@ -263,19 +257,21 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
+      // Validate message using the service method
       WhatsAppBusinessService.validateMessageTemplate(messageContent);
       
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
+        schoolName: schoolName,
         grade: selectedGrade,
         schoolId: schoolId,
-        userEmail: school?.userEmail,
-        schoolName: schoolName
+        userEmail: school?.userEmail || 'admin@schoolheadoffice.com'
       });
 
       setTestResult({
         success: true,
         messageId: result.messageId,
+        magicLink: result.magicLink,
         message: 'Test message sent successfully! Check your WhatsApp.'
       });
     } catch (error: any) {
@@ -311,6 +307,7 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
+      // Validate message using the service method
       WhatsAppBusinessService.validateMessageTemplate(messageContent);
       
       const recipientNumbers = getRecipientNumbers();
@@ -320,7 +317,7 @@ ${schoolName} Admin Team`;
         schoolName: schoolName,
         recipientNumbers: recipientNumbers.map(r => r.phone),
         schoolId: schoolId,
-        userEmail: school?.userEmail
+        userEmail: school?.userEmail || 'admin@schoolheadoffice.com'
       });
 
       setTestResult({
@@ -352,13 +349,15 @@ ${schoolName} Admin Team`;
     }
   };
 
-  // Enhanced schedule handler
+  // Schedule handler
   const handleScheduleMessage = async (scheduleData: ScheduleData) => {
     setIsScheduling(true);
 
     try {
       const recipientNumbers = getRecipientNumbers();
       
+      // Note: scheduleBulkMessage might not be implemented in the service yet
+      // This is a placeholder for future implementation
       const result = await WhatsAppBusinessService.scheduleBulkMessage({
         gradeIds: selectedGrades.map(g => g.id),
         message: scheduleData.message,
@@ -380,14 +379,9 @@ ${schoolName} Admin Team`;
     }
   };
 
-  // =======================================================
-  // 🔥 ENHANCED WHATSAPP TAB CONTENT RENDERERS
-  // =======================================================
-
-  // Original WhatsApp Contacts Table and Warning
+  // WhatsApp Contacts Tab
   const renderWhatsAppContactsTab = () => (
     <>
-      {/* WhatsApp-specific: Learner Details Section */}
       {learnersWithWhatsApp.length > 0 && !isLoading ? (
         <div className="border border-green-200 rounded-lg p-4 bg-green-50">
           <h4 className="font-semibold text-green-900 mb-3 flex items-center">
@@ -415,18 +409,10 @@ ${schoolName} Admin Team`;
             <table className="w-full text-sm">
               <thead className="bg-green-100 sticky top-0">
                 <tr>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                    Learner Name
-                  </th>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                    WhatsApp Number
-                  </th>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                    Grade
-                  </th>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">
-                    Source
-                  </th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Learner Name</th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">WhatsApp Number</th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Grade</th>
+                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Source</th>
                 </tr>
               </thead>
               <tbody>
@@ -434,7 +420,6 @@ ${schoolName} Admin Team`;
                   const grade = grades.find(g => g.id === learner.grade_id);
                   const bestNumber = getBestWhatsAppNumber(learner);
 
-                  // Determine the source of the number for display
                   const getNumberSource = (learner: any, number: string): string => {
                     const sources = [
                       { field: learner.whatsapp, name: 'whatsapp' },
@@ -453,22 +438,11 @@ ${schoolName} Admin Team`;
                   const numberSource = getNumberSource(learner, bestNumber);
 
                   return (
-                    <tr
-                      key={learner.id}
-                      className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}
-                    >
-                      <td className="p-2 border-b border-green-100 text-gray-700">
-                        {learner.full_name}
-                      </td>
-                      <td className="p-2 border-b border-green-100 font-mono text-green-700">
-                        {bestNumber}
-                      </td>
-                      <td className="p-2 border-b border-green-100 text-gray-600">
-                        {grade?.name || 'Unknown'}
-                      </td>
-                      <td className="p-2 border-b border-green-100 text-xs text-gray-500">
-                        {numberSource}
-                      </td>
+                    <tr key={learner.id} className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}>
+                      <td className="p-2 border-b border-green-100 text-gray-700">{learner.full_name}</td>
+                      <td className="p-2 border-b border-green-100 font-mono text-green-700">{bestNumber}</td>
+                      <td className="p-2 border-b border-green-100 text-gray-600">{grade?.name || 'Unknown'}</td>
+                      <td className="p-2 border-b border-green-100 text-xs text-gray-500">{numberSource}</td>
                     </tr>
                   );
                 })}
@@ -476,14 +450,12 @@ ${schoolName} Admin Team`;
             </table>
           </div>
 
-          {/* Quick Actions */}
           <div className="mt-3 text-xs text-green-700">
             <p><strong>💡 Pro Tip:</strong> Use "Copy Numbers Only" for bulk WhatsApp messaging</p>
             <p className="mt-1"><strong>🔍 Note:</strong> Landline numbers (011...) are automatically excluded</p>
           </div>
         </div>
       ) : (
-        /* WhatsApp-specific: No Numbers Warning */
         learnersWithWhatsApp.length === 0 && !isLoading && totalLearners > 0 && (
           <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
             <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
@@ -502,7 +474,7 @@ ${schoolName} Admin Team`;
     </>
   );
 
-  // Main WhatsApp Tab Renderer
+  // Main WhatsApp Content Renderer
   const renderWhatsAppContent = () => {
     if (channel.id !== 'whatsapp') return null;
 
@@ -579,7 +551,7 @@ ${schoolName} Admin Team`;
     );
   };
 
-  // Debug: Log phone number sources for troubleshooting
+  // Debug logging
   React.useEffect(() => {
     if (channel.id === 'whatsapp' && learners.length > 0 && !isLoading) {
       console.log('📱 [ChannelModal] WhatsApp Number Analysis:', {
@@ -588,7 +560,6 @@ ${schoolName} Admin Team`;
         sampleNumbers: learners.slice(0, 3).map(learner => ({
           name: learner.full_name,
           phone: learner.phone,
-          // whatsapp: learner.whatsapp, // Removed because 'whatsapp' does not exist on type 'Learner'
           contact: learner.contact,
           bestNumber: getBestWhatsAppNumber(learner),
           allNumbers: getWhatsAppNumbers(learner)
@@ -607,7 +578,6 @@ ${schoolName} Admin Team`;
     isWhatsApp: channel.id === 'whatsapp'
   });
 
-  // Don't render if modal is not open
   if (!isOpen) return null;
 
   return (
@@ -633,9 +603,7 @@ ${schoolName} Admin Team`;
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
             👥 Audience Overview
-            {isLoading && (
-              <LoadingSpinner size="sm" text="Loading..." className="ml-2" />
-            )}
+            {isLoading && <LoadingSpinner size="sm" text="Loading..." className="ml-2" />}
           </h4>
 
           {error ? (
@@ -805,7 +773,7 @@ ${schoolName} Admin Team`;
           </button>
         </div>
 
-        {/* Debug Info - Remove in production */}
+        {/* Debug Info */}
         <div className="text-xs text-gray-400 border-t pt-2">
           <p>Debug: Channel={channel.id} | School={schoolId} | Grades={grades.length} | Learners={totalLearners}</p>
           <p>WhatsApp Contacts: {learnersWithWhatsApp.length}</p>
