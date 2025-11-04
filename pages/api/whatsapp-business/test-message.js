@@ -54,13 +54,16 @@ export default async function handler(req, res) {
     // ✅ Build WhatsApp API request payload
     const whatsappUrl = `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
+    const templateName = process.env.WHATSAPP_TEMPLATE_NAME || "school_invitation_message";
+    const languageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en";
+
     const payload = {
       messaging_product: "whatsapp",
       to: formattedNumber,
       type: "template",
       template: {
-        name: "school_invitation_message", // ✅ Your approved template name
-        language: { code: "en_US" },
+        name: templateName, // ✅ Use template name from env var
+        language: { code: languageCode },
         components: [
           {
             type: "body",
