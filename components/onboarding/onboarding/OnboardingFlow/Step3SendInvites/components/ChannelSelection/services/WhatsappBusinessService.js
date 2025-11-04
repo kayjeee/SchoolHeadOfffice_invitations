@@ -10,12 +10,12 @@ class WhatsAppBusinessService {
   }
 
   /**
-   * 🔹 Step 1: Create an invitation to generate a token
-   * FIXED: Changed school_id → school in payload
+   * 🔹 Create an invitation to generate a token
+   * FIXED: Using 'school' instead of 'school_id' based on backend requirements
    */
   async createInvitation({ phoneNumber, schoolId, userEmail }) {
     try {
-      logger.info('WhatsAppBusinessService', 'Creating invitation token', { 
+      console.log('🎯 [createInvitation] Starting with:', { 
         phoneNumber, 
         schoolId,
         userEmail 
@@ -32,11 +32,11 @@ class WhatsAppBusinessService {
 
       const payload = {
         phone_number: phoneNumber,
-school_id: schoolId,
-role: 'parent',
+        school: schoolId, // 🔥 FIXED: Use 'school' not 'school_id'
+        role: 'parent',
       };
 
-      console.log('📤 [WhatsAppBusinessService] Creating invitation with payload:', payload);
+      console.log('📤 [createInvitation] Sending to invitations API:', payload);
 
       const response = await fetch(this.invitationsURL, {
         method: 'POST',
@@ -47,10 +47,11 @@ role: 'parent',
         body: JSON.stringify(payload),
       });
 
-      console.log('📥 [WhatsAppBusinessService] Invitation response status:', response.status);
-
       const data = await response.json();
-      console.log('📥 [WhatsAppBusinessService] Invitation response data:', data);
+      console.log('📥 [createInvitation] Response:', { 
+        status: response.status, 
+        data 
+      });
 
       if (!response.ok) {
         throw new Error(data.message || `HTTP ${response.status}: Failed to create invitation`);
@@ -65,30 +66,22 @@ role: 'parent',
         throw new Error('No token received in invitation response');
       }
 
-      logger.info('WhatsAppBusinessService', 'Invitation token created successfully', { 
-        token: token.substring(0, 8) + '...', // Log partial token for security
-        phoneNumber 
-      });
+      console.log('✅ [createInvitation] Token created successfully');
       return token;
     } catch (error) {
-      logger.error('WhatsAppBusinessService', 'Failed to create invitation', {
-        error: error.message,
-        phoneNumber,
-        schoolId,
-        userEmail
-      });
+      console.error('❌ [createInvitation] Error:', error.message);
       throw error;
     }
   }
 
   /**
-   * 🔹 Step 2: Compose final WhatsApp message with magic link
+   * 🔹 Compose final WhatsApp message with magic link
    */
   buildMagicLinkMessage({ schoolName, gradeName, magicLink }) {
     const domain = schoolName.toLowerCase().replace(/\s+/g, '');
     const supportEmail = `support@${domain}.com`;
 
-    return `🏫 ${schoolName} Parent Portal Invitation
+    const message = `🏫 ${schoolName} Parent Portal Invitation
 
 Dear Parent,
 
@@ -105,63 +98,37 @@ For support, WhatsApp us at this number or email ${supportEmail}
 
 Best wishes,
 ${schoolName} Admin Team`;
+
+    console.log('📝 [buildMagicLinkMessage] Built message:', {
+      schoolName,
+      gradeName,
+      magicLinkLength: magicLink?.length,
+      messageLength: message.length
+    });
+
+    return message;
   }
 
   /**
-   * 🔹 Step 3: Validate message before sending
-   */
-  validateMessageTemplate(message) {
-    if (typeof message !== 'string') {
-      throw new Error('Message must be a string');
-    }
-
-    const validations = [
-      {
-        check: message.length > 0,
-        error: 'Message cannot be empty',
-      },
-      {
-        check: message.length <= 4096,
-        error: `Message exceeds maximum length of 4096 characters (current: ${message.length})`,
-      },
-      {
-        check: !message.includes('{{1}}') || message.match(/{{(\d+)}}/g)?.length <= 10,
-        error: 'Maximum 10 variables allowed in template',
-      },
-      {
-        check: !message.match(/[<>]/g),
-        error: 'Message contains invalid characters (< or >)',
-      },
-    ];
-
-    for (const validation of validations) {
-      if (!validation.check) {
-        throw new Error(validation.error);
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * 🔹 Step 4: Build magic link from token and school name
+   * 🔹 Build magic link from token and school name
    */
   buildMagicLink({ token, schoolName }) {
     const domain = schoolName.toLowerCase().replace(/\s+/g, '');
-    return `https://portal.${domain}.com/join?token=${token}`;
+    const magicLink = `https://portal.${domain}.com/join?token=${token}`;
+    console.log('🔗 [buildMagicLink] Generated:', magicLink);
+    return magicLink;
   }
 
   /**
-   * 🔹 Step 5: Send a single test message
-   * ENHANCED: Better error handling and validation
+   * 🔹 Send a single test message - USING RELIABLE TEXT MESSAGES
    */
   async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }) {
     try {
-      logger.info('WhatsAppBusinessService', 'Preparing to send test message', { 
-        to, 
-        schoolName, 
-        grade: grade?.name,
-        schoolId 
+      console.log('🚀 [sendTestMessage] Starting with:', {
+        to,
+        schoolName,
+        schoolId,
+        grade: grade?.name
       });
 
       // Validate inputs
@@ -186,20 +153,26 @@ ${schoolName} Admin Team`;
         magicLink,
       });
 
-      // 4️⃣ Validate message
-      this.validateMessageTemplate(message);
-
-      // 5️⃣ Send the test message
-      const payload = {
+      console.log('📤 [sendTestMessage] Prepared message details:', {
         to,
-        message,
-        gradeId: grade?.id,
-        schoolName,
-        testType: 'MAGIC_LINK',
+        messageLength: message.length,
         magicLink,
+        hasToken: !!token
+      });
+
+      // 4️⃣ Send the test message as TEXT (reliable and works)
+      const payload = {
+        to: to,
+        message: message, // Full composed message
+        schoolName,
+        magicLink,
+        grade: grade?.name,
       };
 
-      console.log('📤 [WhatsAppBusinessService] Sending test message:', payload);
+      console.log('🎯 [sendTestMessage] Sending to API endpoint:', {
+        endpoint: `${this.baseURL}/test-message`,
+        payload: { ...payload, message: payload.message.substring(0, 100) + '...' }
+      });
 
       const response = await fetch(`${this.baseURL}/test-message`, {
         method: 'POST',
@@ -211,43 +184,42 @@ ${schoolName} Admin Team`;
       });
 
       const data = await response.json();
-      
+
+      console.log('📥 [sendTestMessage] API Response:', {
+        status: response.status,
+        ok: response.ok,
+        data
+      });
+
       if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}: Failed to send test message`);
       }
 
-      logger.info('WhatsAppBusinessService', 'Test message sent successfully', { 
+      console.log('✅ [sendTestMessage] Success!', { 
         messageId: data.messageId,
-        to 
+        type: data.type || 'text'
       });
-      
-      return { 
-        ...data, 
+
+      return {
+        ...data,
         magicLink,
-        token // Return token for debugging
+        token
       };
     } catch (error) {
-      logger.error('WhatsAppBusinessService', 'Failed to send test message', {
-        error: error.message,
-        to,
-        schoolName,
-        schoolId
-      });
+      console.error('❌ [sendTestMessage] Failed:', error.message);
       throw error;
     }
   }
 
   /**
-   * 🔹 Step 6: Send bulk messages with personalized links
-   * ENHANCED: Better error handling and progress tracking
+   * 🔹 Send bulk messages with personalized links
    */
   async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }) {
     try {
-      logger.info('WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
+      console.log('🚀 [sendBulkMessages] Starting bulk send:', {
         recipientCount: recipientNumbers.length,
         schoolName,
-        schoolId,
-        gradeIds
+        schoolId
       });
 
       // Validate inputs
@@ -265,10 +237,10 @@ ${schoolName} Admin Team`;
       // Generate individual tokens and messages per recipient
       for (let i = 0; i < recipientNumbers.length; i++) {
         const number = recipientNumbers[i];
-        
+
         try {
-          console.log(`🔄 [WhatsAppBusinessService] Processing recipient ${i + 1}/${recipientNumbers.length}: ${number}`);
-          
+          console.log(`🔄 [sendBulkMessages] Processing ${i + 1}/${recipientNumbers.length}: ${number}`);
+
           const token = await this.createInvitation({
             phoneNumber: number,
             schoolId,
@@ -282,13 +254,11 @@ ${schoolName} Admin Team`;
             magicLink,
           });
 
-          this.validateMessageTemplate(message);
-
-          personalizedMessages.push({ 
-            to: number, 
+          personalizedMessages.push({
+            to: number,
             message,
             magicLink,
-            token // Include token for reference
+            token
           });
 
           // Small delay to avoid overwhelming the API
@@ -297,7 +267,7 @@ ${schoolName} Admin Team`;
           }
 
         } catch (error) {
-          console.error(`❌ [WhatsAppBusinessService] Failed to process recipient ${number}:`, error.message);
+          console.error(`❌ [sendBulkMessages] Failed for ${number}:`, error.message);
           errors.push({
             phoneNumber: number,
             error: error.message
@@ -305,22 +275,16 @@ ${schoolName} Admin Team`;
         }
       }
 
-      // Log any errors that occurred during token generation
       if (errors.length > 0) {
-        logger.warn('WhatsAppBusinessService', 'Some invitations failed during token generation', {
-          failedCount: errors.length,
-          successfulCount: personalizedMessages.length,
-          errors: errors.slice(0, 5) // Log first 5 errors
-        });
+        console.warn(`⚠️ [sendBulkMessages] ${errors.length} invitations failed during generation`);
       }
 
       if (personalizedMessages.length === 0) {
         throw new Error('No messages could be generated. All invitations failed.');
       }
 
-      console.log(`📤 [WhatsAppBusinessService] Sending ${personalizedMessages.length} bulk messages`);
+      console.log(`📤 [sendBulkMessages] Sending ${personalizedMessages.length} messages to bulk endpoint`);
 
-      // Send bulk messages
       const response = await fetch(`${this.baseURL}/send-bulk`, {
         method: 'POST',
         headers: {
@@ -330,7 +294,7 @@ ${schoolName} Admin Team`;
         body: JSON.stringify({
           gradeIds,
           schoolName,
-          schoolId, // Include schoolId in bulk payload
+          schoolId,
           campaignType: 'MAGIC_LINK_INVITES',
           personalizedMessages,
           totalRecipients: personalizedMessages.length,
@@ -339,104 +303,60 @@ ${schoolName} Admin Team`;
       });
 
       const data = await response.json();
-      
+
+      console.log('📥 [sendBulkMessages] Bulk API Response:', data);
+
       if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
       }
 
-      const result = {
+      return {
         ...data,
         generationErrors: errors,
         totalProcessed: personalizedMessages.length + errors.length
       };
-
-      logger.info('WhatsAppBusinessService', 'Bulk magic link messages sent successfully', {
-        sentCount: data.sentCount,
-        failedCount: data.failedCount,
-        generationErrors: errors.length,
-        totalRecipients: recipientNumbers.length
-      });
-
-      return result;
     } catch (error) {
-      logger.error('WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
-        error: error.message,
-        schoolName,
-        schoolId,
-        recipientCount: recipientNumbers?.length
-      });
+      console.error('❌ [sendBulkMessages] Failed:', error.message);
       throw error;
     }
   }
 
   /**
-   * 🔹 NEW: Schedule bulk messages for later delivery
-   */
-  async scheduleBulkMessage({ gradeIds, message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName }) {
-    try {
-      logger.info('WhatsAppBusinessService', 'Scheduling bulk message', {
-        scheduledAt,
-        recipientCount: recipientNumbers.length,
-        schoolName
-      });
-
-      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          gradeIds,
-          message,
-          scheduledAt,
-          timezone,
-          recipientNumbers,
-          schoolId,
-          schoolName,
-          campaignType: 'SCHEDULED_INVITES',
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to schedule message`);
-      }
-
-      logger.info('WhatsAppBusinessService', 'Bulk message scheduled successfully', {
-        scheduleId: data.scheduleId,
-        scheduledFor: scheduledAt
-      });
-
-      return data;
-    } catch (error) {
-      logger.error('WhatsAppBusinessService', 'Failed to schedule bulk message', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 🔹 NEW: Validate phone number format
+   * 🔹 Validate phone number format
    */
   validatePhoneNumber(phoneNumber) {
     if (!phoneNumber) return false;
-    
     const cleaned = phoneNumber.replace(/\s+/g, '');
-    // Basic international phone number validation
     const phoneRegex = /^\+?[1-9]\d{1,14}$/;
     return phoneRegex.test(cleaned);
   }
 
   /**
-   * 🔹 NEW: Format phone number consistently
+   * 🔹 Format phone number consistently
    */
   formatPhoneNumber(phoneNumber) {
     if (!phoneNumber) return '';
-    
     const cleaned = phoneNumber.replace(/\s+/g, '');
-    // Ensure it starts with +
     return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+  }
+
+  /**
+   * 🔹 Quick health check for WhatsApp service
+   */
+  async healthCheck() {
+    try {
+      const response = await fetch(`${this.baseURL}/health`);
+      const data = await response.json();
+      return {
+        healthy: response.ok,
+        ...data
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        error: error.message
+      };
+    }
   }
 }
 
