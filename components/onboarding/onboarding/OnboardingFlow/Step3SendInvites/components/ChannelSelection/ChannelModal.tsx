@@ -10,7 +10,7 @@ import { useAudienceData } from './hooks/useAudienceData';
 // NEW WHATSAPP IMPORTS
 import { WhatsAppTesterSection } from './WhatsAppTesterSection';
 import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
-import WhatsAppBusinessService from './services/WhatsappBusinessService';
+import WhatsappBusinessService from './services/WhatsappBusinessService';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
   channel,
@@ -263,9 +263,9 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
+      WhatsappBusinessService.validateMessageTemplate(messageContent);
       
-      const result = await WhatsAppBusinessService.sendTestMessage({
+      const result = await WhatsappBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
         grade: selectedGrade,
         schoolId: schoolId,
@@ -311,11 +311,11 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
+      WhatsappBusinessService.validateMessageTemplate(messageContent);
       
       const recipientNumbers = getRecipientNumbers();
       
-      const result = await WhatsAppBusinessService.sendBulkMessages({
+      const result = await WhatsappBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
         schoolName: schoolName,
         recipientNumbers: recipientNumbers.map(r => r.phone),
@@ -359,7 +359,7 @@ ${schoolName} Admin Team`;
     try {
       const recipientNumbers = getRecipientNumbers();
       
-      const result = await WhatsAppBusinessService.scheduleBulkMessage({
+      const result = await WhatsappBusinessService.scheduleBulkMessage({
         gradeIds: selectedGrades.map(g => g.id),
         message: scheduleData.message,
         scheduledAt: scheduleData.scheduledAt,
