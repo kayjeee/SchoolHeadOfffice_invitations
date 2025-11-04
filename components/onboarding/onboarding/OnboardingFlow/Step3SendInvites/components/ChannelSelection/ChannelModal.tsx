@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { logger } from '../utils/logger';
+import { logger } from './utils/logger';
 import { ChannelModalProps } from '../types/channel';
 import { Modal } from '../ui/Modal';
 import { QrCodeWithCopy } from '../QrCodeWithCopy';
