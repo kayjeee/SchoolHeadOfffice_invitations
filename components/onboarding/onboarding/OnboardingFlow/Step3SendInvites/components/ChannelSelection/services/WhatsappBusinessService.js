@@ -32,7 +32,8 @@ class WhatsAppBusinessService {
 
       const payload = {
         phone_number: phoneNumber,
-        school: schoolId, // 🔥 FIXED: school_id → school
+school_id: schoolId,
+role: 'parent',
       };
 
       console.log('📤 [WhatsAppBusinessService] Creating invitation with payload:', payload);
