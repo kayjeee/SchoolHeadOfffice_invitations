@@ -183,21 +183,18 @@ ${schoolName} Admin Team`;
 
       const token = await this.createInvitation({ phoneNumber: to, schoolId, userEmail });
       const magicLink = this.buildMagicLink({ token, schoolName });
-      const message = this.buildMagicLinkMessage({
-        schoolName,
-        gradeName: grade?.name || 'your child\'s class',
-        magicLink,
-      });
-
-      this.validateMessageTemplate(message);
+      const gradeName = grade?.name || "your child's class";
+      const supportEmail = `support@${schoolName.toLowerCase().replace(/\s+/g, '')}.com`;
 
       const payload = {
         to,
-        message,
-        gradeId: grade?.id,
-        schoolName,
-        testType: 'MAGIC_LINK',
-        magicLink,
+        variables: {
+          schoolname: schoolName,
+          gradename: gradeName,
+          magiclink: magicLink,
+          supportemail: supportEmail,
+        },
+        fallbackTemplate: "school_invitation"
       };
 
       const response = await fetch(`${this.baseURL}/test-message`, {

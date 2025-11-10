@@ -1,6 +1,6 @@
 // services/WhatsAppTesterSection.js
-import React from "react";
-import { Send, Loader, AlertCircle, CheckCircle, Users } from "lucide-react";
+import React from 'react';
+import { Send, Loader, AlertCircle, CheckCircle, Users } from 'lucide-react';
 
 export const WhatsAppTesterSection = ({
   testPhoneNumber,
@@ -16,22 +16,11 @@ export const WhatsAppTesterSection = ({
   schoolName,
   selectedGrade,
   totalRecipients,
-  canSendBulk,
+  canSendBulk
 }) => {
-  // --- Helper to clean phone number ---
-  const formatPhoneNumber = (value) => value.replace(/[^\d+]/g, "");
-
-  // --- Debug logs ---
-  console.log("📱 WhatsApp Tester Rendered");
-  console.log("Current State:", {
-    testPhoneNumber,
-    messageContent,
-    schoolName,
-    selectedGrade,
-    totalRecipients,
-    canSendBulk,
-    validationErrors,
-  });
+  const formatPhoneNumber = (value) => {
+    return value.replace(/[^\d+]/g, '');
+  };
 
   return (
     <div className="space-y-4">
@@ -43,12 +32,10 @@ export const WhatsAppTesterSection = ({
         <input
           type="tel"
           value={testPhoneNumber}
-          onChange={(e) =>
-            onPhoneNumberChange(formatPhoneNumber(e.target.value))
-          }
+          onChange={(e) => onPhoneNumberChange(formatPhoneNumber(e.target.value))}
           placeholder="+27123456789"
           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-            validationErrors?.phone ? "border-red-300" : "border-gray-300"
+            validationErrors?.phone ? 'border-red-300' : 'border-gray-300'
           }`}
         />
         {validationErrors?.phone && (
@@ -70,9 +57,8 @@ export const WhatsAppTesterSection = ({
           value={messageContent}
           onChange={(e) => onMessageChange(e.target.value)}
           rows={8}
-          placeholder="Enter your WhatsApp message here..."
           className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-            validationErrors?.message ? "border-red-300" : "border-gray-300"
+            validationErrors?.message ? 'border-red-300' : 'border-gray-300'
           }`}
         />
         {validationErrors?.message && (
@@ -81,12 +67,8 @@ export const WhatsAppTesterSection = ({
           </p>
         )}
         <div className="mt-2 flex justify-between text-xs text-gray-500">
-          <span>
-            {messageContent.split(/\s+/).filter(Boolean).length} words
-          </span>
-          <span
-            className={messageContent.length > 4000 ? "text-orange-600" : ""}
-          >
+          <span>{messageContent.split(/\s+/).filter(Boolean).length} words</span>
+          <span className={messageContent.length > 4000 ? 'text-orange-600' : ''}>
             {messageContent.length}/4096 characters
           </span>
         </div>
@@ -94,20 +76,9 @@ export const WhatsAppTesterSection = ({
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        {/* --- Send Test Button --- */}
         <button
-          onClick={() => {
-            console.log("🚀 Sending test message:", {
-              to: testPhoneNumber,
-              message: messageContent,
-              schoolName,
-              selectedGrade,
-            });
-            onSendTest();
-          }}
-          disabled={
-            isSending || !testPhoneNumber.trim() || !messageContent.trim()
-          }
+          onClick={onSendTest}
+          disabled={isSending || !testPhoneNumber.trim() || !messageContent.trim()}
           className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSending ? (
@@ -121,41 +92,30 @@ export const WhatsAppTesterSection = ({
           )}
         </button>
 
-        {/* --- Bulk Send Button --- */}
         {canSendBulk && (
           <button
-            onClick={() => {
-              console.log("📤 Sending bulk message:", {
-                totalRecipients,
-                message: messageContent,
-              });
-              onSendBulk();
-            }}
+            onClick={onSendBulk}
             disabled={isSendingBulk || !messageContent.trim()}
             className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSendingBulk ? (
               <>
-                <Loader className="animate-spin mr-2" size={16} /> Sending
-                Bulk...
+                <Loader className="animate-spin mr-2" size={16} /> Sending Bulk...
               </>
             ) : (
               <>
-                <Users size={16} className="mr-2" /> Send to {totalRecipients}{" "}
-                Contacts
+                <Users size={16} className="mr-2" /> Send to {totalRecipients} Contacts
               </>
             )}
           </button>
         )}
       </div>
 
-      {/* Test Result Display */}
+      {/* Test Result */}
       {testResult && (
         <div
           className={`border rounded-lg p-4 ${
-            testResult.success
-              ? "bg-green-50 border-green-200"
-              : "bg-red-50 border-red-200"
+            testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
           }`}
         >
           <div className="flex items-center space-x-2 mb-2">
@@ -164,41 +124,25 @@ export const WhatsAppTesterSection = ({
             ) : (
               <AlertCircle className="text-red-600" size={16} />
             )}
-            <span
-              className={`font-medium ${
-                testResult.success ? "text-green-800" : "text-red-800"
-              }`}
-            >
-              {testResult.success ? "Success!" : "Error"}
+            <span className={`font-medium ${testResult.success ? 'text-green-800' : 'text-red-800'}`}>
+              {testResult.success ? 'Success!' : 'Error'}
             </span>
           </div>
 
-          <p
-            className={`text-sm ${
-              testResult.success ? "text-green-700" : "text-red-700"
-            }`}
-          >
+          <p className={`text-sm ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
             {testResult.message}
           </p>
 
           {testResult.success && testResult.magicLink && (
             <p className="text-xs text-green-600 mt-1 break-all">
-              Magic Link:{" "}
-              <a
-                href={testResult.magicLink}
-                className="underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              Magic Link: <a href={testResult.magicLink} className="underline" target="_blank" rel="noopener noreferrer">
                 {testResult.magicLink}
               </a>
             </p>
           )}
 
           {testResult.error && (
-            <p className="text-xs text-red-600 mt-1">
-              Error: {testResult.error}
-            </p>
+            <p className="text-xs text-red-600 mt-1">Error: {testResult.error}</p>
           )}
 
           {testResult.bulkResult && (
