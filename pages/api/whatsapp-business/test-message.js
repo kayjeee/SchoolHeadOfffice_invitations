@@ -1,11 +1,6 @@
 export default async function handler(req, res) {
   const log = {
-    request: {
-      method: req.method,
-      headers: req.headers,
-      body: req.body,
-      query: req.query,
-    },
+    request: { method: req.method, headers: req.headers, body: req.body, query: req.query },
     whatsappRequest: null,
     whatsappResponse: null,
     errors: [],
@@ -13,77 +8,49 @@ export default async function handler(req, res) {
   };
 
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
     const { WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN } = process.env;
     if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
-      return res.status(500).json({
-        error: "Missing WhatsApp credentials",
-        details: { missing: ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"] },
-      });
+      return res.status(500).json({ error: "Missing WhatsApp credentials" });
     }
 
-    const {
-      to,
-      messageContent,
-      variables = {},
-      fallbackTemplate = "school_invitation",
-    } = req.body;
+    const { to, variables = {}, fallbackTemplate = "school_invitation" } = req.body;
 
-    if (!to) {
-      return res.status(400).json({ error: "Recipient phone number required" });
-    }
+    if (!to) return res.status(400).json({ error: "Recipient phone number required" });
 
     const formattedNumber = to.replace(/\D/g, "");
-    if (!formattedNumber.startsWith("27")) {
-      return res.status(400).json({ error: "Invalid phone number format" });
-    }
+    if (!formattedNumber.startsWith("27")) return res.status(400).json({ error: "Invalid phone number format" });
 
     const whatsappUrl = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    // ✅ Detect {{variables}} in the message
-    const variableMatches = messageContent?.match(/{{\s*[\w.]+\s*}}/g) || [];
-
-    // ✅ Replace placeholders with actual variable values
-    let parsedMessage = messageContent;
-    if (variableMatches.length > 0) {
-      variableMatches.forEach((match) => {
-        const key = match.replace(/[{}]/g, "").trim();
-        const value = variables[key] ?? `[${key}]`;
-        parsedMessage = parsedMessage.replace(match, value);
-      });
+    // ⚡ Ensure all variables for the template are present
+    const requiredVariables = ["gradename", "magiclink", "supportemail", "schoolname"];
+    for (const key of requiredVariables) {
+      if (!variables[key]) {
+        return res.status(400).json({ error: `Missing template variable: ${key}` });
+      }
     }
 
-    // ✅ Decide whether to send raw text or Meta template
-    const useRawText = variableMatches.length > 0 || messageContent?.trim().length > 0;
-
-    const payload = useRawText
-      ? {
-          messaging_product: "whatsapp",
-          to: formattedNumber,
-          type: "text",
-          text: { body: parsedMessage },
-        }
-      : {
-          messaging_product: "whatsapp",
-          to: formattedNumber,
-          type: "template",
-          template: {
-            name: fallbackTemplate,
-            language: { code: "en" },
-            components: [
-              {
-                type: "body",
-                parameters: Object.entries(variables).map(([_, val]) => ({
-                  type: "text",
-                  text: val,
-                })),
-              },
-            ],
+    // Map variables in order to Meta template
+    const payload = {
+      messaging_product: "whatsapp",
+      to: formattedNumber,
+      type: "template",
+      template: {
+        name: fallbackTemplate,
+        language: { code: "en" },
+        components: [
+          {
+            type: "body",
+            parameters: requiredVariables.map((key) => ({
+              type: "text",
+              text: variables[key],
+            })),
           },
-        };
+        ],
+      },
+    };
 
     log.whatsappRequest = {
       url: whatsappUrl,
@@ -94,11 +61,7 @@ export default async function handler(req, res) {
       },
     };
 
-    console.log("📤 Sending WhatsApp Message:", {
-      to: formattedNumber,
-      type: useRawText ? "text" : "template",
-      messagePreview: parsedMessage,
-    });
+    console.log("📤 Sending WhatsApp Template:", { to: formattedNumber, payload });
 
     const apiResponse = await fetch(whatsappUrl, {
       method: "POST",
@@ -119,14 +82,13 @@ export default async function handler(req, res) {
 
     const success = {
       success: true,
-      type: useRawText ? "text" : "template",
+      type: "template",
       messageId: responseData.messages?.[0]?.id,
-      messagePreview: parsedMessage,
       recipient: formattedNumber,
       timestamp: new Date().toISOString(),
     };
 
-    console.log("✅ WhatsApp Message Sent:", success);
+    console.log("✅ WhatsApp Template Sent:", success);
     return res.status(200).json(success);
   } catch (err) {
     console.error("💥 Server Error:", err);
