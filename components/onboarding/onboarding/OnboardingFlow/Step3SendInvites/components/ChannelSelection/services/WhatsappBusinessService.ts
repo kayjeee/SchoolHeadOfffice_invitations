@@ -303,15 +303,53 @@ ${schoolName} Admin Team`;
     }
   }
 
-  async scheduleBulkMessage({ gradeIds, message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName }: ScheduleMessageParams): Promise<any> {
+  async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }: BulkMessagesParams): Promise<any> {
     try {
-      logger.info('WhatsAppBusinessService', 'Scheduling bulk message', {
-        scheduledAt,
-        recipientCount: recipientNumbers.length,
-        schoolName
-      });
+        logger.info('WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
+            recipientCount: recipientNumbers.length,
+            schoolName,
+            schoolId,
+            gradeIds
+          });
+      if (!schoolId || !schoolName) throw new Error('schoolId and schoolName are required for bulk messages');
+      if (!recipientNumbers || recipientNumbers.length === 0) throw new Error('recipientNumbers cannot be empty');
 
-      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
+      const personalizedMessages: { to: string; message: string; magicLink: string; token: string }[] = [];
+      const errors: { phoneNumber: string; error: string }[] = [];
+
+      for (let i = 0; i < recipientNumbers.length; i++) {
+        const number = recipientNumbers[i];
+        try {
+          const token = await this.createInvitation({ phoneNumber: number, schoolId, userEmail });
+          const magicLink = this.buildMagicLink({ token, schoolName });
+          const message = this.buildMagicLinkMessage({
+            schoolName,
+            gradeName: 'your child\'s class',
+            magicLink,
+          });
+          this.validateMessageTemplate(message);
+          personalizedMessages.push({ to: number, message, magicLink, token });
+          if (i < recipientNumbers.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        } catch (error: any) {
+            errors.push({ phoneNumber: number, error: error.message });
+        }
+      }
+
+      if (errors.length > 0) {
+        logger.warn('WhatsAppBusinessService', 'Some invitations failed during token generation', {
+          failedCount: errors.length,
+          successfulCount: personalizedMessages.length,
+          errors: errors.slice(0, 5)
+        });
+      }
+
+      if (personalizedMessages.length === 0) {
+        throw new Error('No messages could be generated. All invitations failed.');
+      }
+
+      const response = await fetch(`${this.baseURL}/send-bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -319,25 +357,29 @@ ${schoolName} Admin Team`;
         },
         body: JSON.stringify({
           gradeIds,
-          message,
-          scheduledAt,
-          timezone,
-          recipientNumbers,
-          schoolId,
           schoolName,
-          campaignType: 'SCHEDULED_INVITES',
+          schoolId,
+          campaignType: 'MAGIC_LINK_INVITES',
+          personalizedMessages,
+          totalRecipients: personalizedMessages.length,
+          failedDuringGeneration: errors.length,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to schedule message`);
+        throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
       }
 
-      return data;
+      return { ...data, generationErrors: errors, totalProcessed: personalizedMessages.length + errors.length };
     } catch (error: any) {
-      logger.error('WhatsAppBusinessService', 'Failed to schedule bulk message', error);
+      logger.error('WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
+        error: error.message,
+        schoolName,
+        schoolId,
+        recipientCount: recipientNumbers?.length
+      });
       throw error;
     }
   }
