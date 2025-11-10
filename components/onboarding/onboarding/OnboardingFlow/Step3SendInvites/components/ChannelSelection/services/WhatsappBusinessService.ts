@@ -184,7 +184,6 @@ ${schoolName} Admin Team`;
       const token = await this.createInvitation({ phoneNumber: to, schoolId, userEmail });
       const magicLink = this.buildMagicLink({ token, schoolName });
       const gradeName = grade?.name || "your child's class";
-      const supportEmail = `support@${schoolName.toLowerCase().replace(/\s+/g, '')}.com`;
 
       const payload = {
         to,
@@ -192,7 +191,6 @@ ${schoolName} Admin Team`;
           schoolname: schoolName,
           gradename: gradeName,
           magiclink: magicLink,
-          supportemail: supportEmail,
         },
         fallbackTemplate: "school_invitation"
       };

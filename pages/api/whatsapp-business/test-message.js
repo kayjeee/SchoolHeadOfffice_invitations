@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const whatsappUrl = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
     // ⚡ Ensure all variables for the template are present
-    const requiredVariables = ["gradename", "magiclink", "supportemail", "schoolname"];
+    const requiredVariables = ["gradename", "magiclink", "schoolname"];
     for (const key of requiredVariables) {
       if (!variables[key]) {
         return res.status(400).json({ error: `Missing template variable: ${key}` });
