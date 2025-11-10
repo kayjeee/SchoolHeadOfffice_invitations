@@ -1,4 +1,3 @@
-// pages/api/whatsapp-business/test-message.js
 export default async function handler(req, res) {
   const log = {
     request: {
@@ -7,89 +6,100 @@ export default async function handler(req, res) {
       body: req.body,
       query: req.query,
     },
-    response: null,
+    whatsappRequest: null,
+    whatsappResponse: null,
     errors: [],
-    timings: {
-      start: new Date(),
-      end: null,
-      duration: null,
-    },
+    timings: { start: new Date(), end: null, duration: null },
   };
 
   try {
     if (req.method !== "POST") {
-      log.errors.push({ code: "INVALID_METHOD", message: "Only POST allowed" });
-      return res.status(405).json({ error: "Method not allowed", details: log });
+      return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // ✅ Check env vars
-    const requiredEnvVars = ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"];
-    const missing = requiredEnvVars.filter((v) => !process.env[v]);
-    if (missing.length) {
-      log.errors.push({
-        code: "MISSING_ENV_VARS",
-        message: "Missing required env vars",
-        missing,
+    const { WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN } = process.env;
+    if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
+      return res.status(500).json({
+        error: "Missing WhatsApp credentials",
+        details: { missing: ["WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"] },
       });
-      return res.status(500).json({ error: "Server misconfigured", details: log });
     }
 
-    // ✅ Extract payload
-    const { to, gradeId, schoolName, testType } = req.body;
+    const {
+      to,
+      messageContent,
+      variables = {},
+      fallbackTemplate = "school_invitation",
+    } = req.body;
+
     if (!to) {
-      log.errors.push({ code: "MISSING_PHONE_NUMBER", message: "Missing 'to'" });
-      return res.status(400).json({ error: "Phone number required", details: log });
+      return res.status(400).json({ error: "Recipient phone number required" });
     }
 
-    // ✅ Normalize phone number (digits only)
     const formattedNumber = to.replace(/\D/g, "");
-    if (!formattedNumber.startsWith("27") || formattedNumber.length !== 11) {
-      log.errors.push({
-        code: "INVALID_SA_NUMBER",
-        message: "South African numbers must start with 27 and be 11 digits",
-      });
-      return res.status(400).json({ error: "Invalid phone format", details: log });
+    if (!formattedNumber.startsWith("27")) {
+      return res.status(400).json({ error: "Invalid phone number format" });
     }
 
-    // ✅ Build WhatsApp API request payload
-    const whatsappUrl = `https://graph.facebook.com/v22.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
+    const whatsappUrl = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    const payload = {
-      messaging_product: "whatsapp",
-      to: formattedNumber,
-      type: "template",
-      template: {
-        name: "school_invitation_message", // ✅ Your approved template name
-        language: { code: "en_US" },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: gradeId || "your child’s class" }, // {{gradeId}}
-              { type: "text", text: testType || "https://portal.schoolheadoffice.com/join" }, // {{testType}} magic link
-              { type: "text", text: schoolName || "Your School" }, // {{schoolName}}
+    // ✅ Detect {{variables}} in the message
+    const variableMatches = messageContent?.match(/{{\s*[\w.]+\s*}}/g) || [];
+
+    // ✅ Replace placeholders with actual variable values
+    let parsedMessage = messageContent;
+    if (variableMatches.length > 0) {
+      variableMatches.forEach((match) => {
+        const key = match.replace(/[{}]/g, "").trim();
+        const value = variables[key] ?? `[${key}]`;
+        parsedMessage = parsedMessage.replace(match, value);
+      });
+    }
+
+    // ✅ Decide whether to send raw text or Meta template
+    const useRawText = variableMatches.length > 0 || messageContent?.trim().length > 0;
+
+    const payload = useRawText
+      ? {
+          messaging_product: "whatsapp",
+          to: formattedNumber,
+          type: "text",
+          text: { body: parsedMessage },
+        }
+      : {
+          messaging_product: "whatsapp",
+          to: formattedNumber,
+          type: "template",
+          template: {
+            name: fallbackTemplate,
+            language: { code: "en" },
+            components: [
+              {
+                type: "body",
+                parameters: Object.entries(variables).map(([_, val]) => ({
+                  type: "text",
+                  text: val,
+                })),
+              },
             ],
           },
-        ],
-      },
-    };
+        };
 
     log.whatsappRequest = {
       url: whatsappUrl,
       payload,
       headers: {
-        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     };
 
-    console.log("📤 Sending WhatsApp Template Message:", {
+    console.log("📤 Sending WhatsApp Message:", {
       to: formattedNumber,
-      template: payload.template.name,
-      variables: payload.template.components[0].parameters.map((p) => p.text),
+      type: useRawText ? "text" : "template",
+      messagePreview: parsedMessage,
     });
 
-    // ✅ Send message
     const apiResponse = await fetch(whatsappUrl, {
       method: "POST",
       headers: log.whatsappRequest.headers,
@@ -99,48 +109,35 @@ export default async function handler(req, res) {
     const responseData = await apiResponse.json();
     log.whatsappResponse = { status: apiResponse.status, data: responseData };
 
-    console.log("📥 WhatsApp API Response:", responseData);
-
     if (!apiResponse.ok) {
-      log.errors.push({
-        code: "WHATSAPP_API_ERROR",
-        message: responseData.error?.message || "WhatsApp API error",
-        details: responseData,
-      });
       return res.status(apiResponse.status).json({
-        error: responseData.error?.message || "WhatsApp API error",
-        details: log,
+        success: false,
+        error: responseData?.error?.message || "WhatsApp API error",
+        details: responseData,
       });
     }
 
-    // ✅ Success response
-    log.timings.end = new Date();
-    log.timings.duration = log.timings.end - log.timings.start;
-    log.response = {
-      status: 200,
-      data: {
-        success: true,
-        messageId: responseData.messages?.[0]?.id,
-        recipient: formattedNumber,
-        timestamp: new Date().toISOString(),
-      },
+    const success = {
+      success: true,
+      type: useRawText ? "text" : "template",
+      messageId: responseData.messages?.[0]?.id,
+      messagePreview: parsedMessage,
+      recipient: formattedNumber,
+      timestamp: new Date().toISOString(),
     };
 
-    return res.status(200).json(log.response.data);
-  } catch (error) {
-    log.errors.push({
-      code: "SERVER_ERROR",
-      message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-    });
-    log.timings.end = new Date();
-    log.timings.duration = log.timings.end - log.timings.start;
-    console.error("❌ WhatsApp Template Message Error:", error);
+    console.log("✅ WhatsApp Message Sent:", success);
+    return res.status(200).json(success);
+  } catch (err) {
+    console.error("💥 Server Error:", err);
     return res.status(500).json({
-      error: "Internal server error",
-      details: process.env.NODE_ENV === "development" ? log : null,
+      success: false,
+      error: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
   } finally {
-    console.log("📝 WhatsApp Template Message Log:", JSON.stringify(log, null, 2));
+    log.timings.end = new Date();
+    log.timings.duration = log.timings.end - log.timings.start;
+    console.log("📝 Full WhatsApp Log:", JSON.stringify(log, null, 2));
   }
 }
