@@ -263,8 +263,6 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
         grade: selectedGrade,
@@ -311,8 +309,6 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
       const recipientNumbers = getRecipientNumbers();
       
       const result = await WhatsAppBusinessService.sendBulkMessages({
