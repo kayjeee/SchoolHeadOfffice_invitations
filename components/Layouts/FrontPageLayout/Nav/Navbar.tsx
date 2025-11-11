@@ -165,7 +165,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
           {/* Center Section */}
           <div className="flex flex-1 justify-center">
-            <Tabs />
+
           </div>
 
           {/* Right Section */}

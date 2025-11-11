@@ -1,5 +1,5 @@
 // services/accountService.js
-const API_BASE = 'http://localhost:4000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 export const fetchAccounts = async (schoolId, filters = {}) => {
   try {
@@ -10,15 +10,15 @@ export const fetchAccounts = async (schoolId, filters = {}) => {
     params.append('grade', filters.grade || 'all');
 
     const response = await fetch(
-      `${API_BASE}/schools/${schoolId}/parents?${params.toString()}`
+      `${API_BASE_URL}/api/v1/schools/${schoolId}/parents?${params.toString()}`
     );
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch accounts');
     }
 
     const data = await response.json();
-    
+
     // Transform the API response to match your frontend structure
     return data.data.map(parent => ({
       id: parent.id,
@@ -44,7 +44,7 @@ export const fetchAccounts = async (schoolId, filters = {}) => {
 
 export const getAccountById = async (accountId) => {
   try {
-    const response = await fetch(`${API_BASE}/accounts/${accountId}`);
+    const response = await fetch(`${API_BASE_URL}/api/v1/accounts/${accountId}`);
     if (!response.ok) {
       throw new Error('Failed to fetch account');
     }
@@ -57,14 +57,14 @@ export const getAccountById = async (accountId) => {
 
 export const updateAccount = async (accountId, updates) => {
   try {
-    const response = await fetch(`${API_BASE}/accounts/${accountId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/accounts/${accountId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(updates)
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to update account');
     }

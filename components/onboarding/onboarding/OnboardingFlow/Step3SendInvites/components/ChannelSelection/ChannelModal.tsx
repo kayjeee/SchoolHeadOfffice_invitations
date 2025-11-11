@@ -50,7 +50,11 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [customMessage, setCustomMessage] = useState('');
+  const [customMessage, setCustomMessage] = useState(`Hi {{1}},
+
+Your new account has been created successfully.
+
+Please verify {{2}} to complete your profile.`);
   const [validationErrors, setValidationErrors] = useState<any>({});
   // =======================================================
 
@@ -215,24 +219,8 @@ Click here to join: ${schoolLink}`;
   const selectedGrade = selectedGrades.length === 1 ? selectedGrades[0] : null;
   const gradeName = selectedGrade?.name || 'your selected grades';
 
-  // Generate default message
-  const defaultMessage = `🏫 ${schoolName} Parent Portal Invitation
-
-Dear Parent,
-
-You're invited to join our secure parent communication portal for ${gradeName}.
-
-✅ Get real-time updates about your child's progress
-✅ Receive important announcements instantly  
-✅ Connect with teachers directly
-✅ Access school resources and calendar
-
-Join now: ${schoolLink}
-
-Best wishes,
-${schoolName} Admin Team`;
-
-  const messageContent = customMessage || defaultMessage;
+  // Use the custom message template as default
+  const messageContent = customMessage;
 
   // Test message validation
   const validateTestInputs = () => {
@@ -263,12 +251,10 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
-        message: messageContent,
-        gradeId: selectedGrade?.id,
+        schoolId: schoolId,
+        userEmail: school?.userEmail,
         schoolName: schoolName
       });
 
@@ -310,15 +296,14 @@ ${schoolName} Admin Team`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
       const recipientNumbers = getRecipientNumbers();
       
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
-        message: messageContent,
         schoolName: schoolName,
-        recipientNumbers: recipientNumbers.map(r => r.phone)
+        recipientNumbers: recipientNumbers.map(r => r.phone),
+        schoolId: schoolId,
+        userEmail: school?.userEmail
       });
 
       setTestResult({
@@ -362,7 +347,9 @@ ${schoolName} Admin Team`;
         message: scheduleData.message,
         scheduledAt: scheduleData.scheduledAt,
         timezone: scheduleData.timezone,
-        recipientNumbers: recipientNumbers.map(r => r.phone)
+        recipientNumbers: recipientNumbers.map(r => r.phone),
+        schoolId: schoolId,
+        schoolName: schoolName
       });
 
       console.log('Message scheduled:', result);
@@ -584,7 +571,6 @@ ${schoolName} Admin Team`;
         sampleNumbers: learners.slice(0, 3).map(learner => ({
           name: learner.full_name,
           phone: learner.phone,
-          // whatsapp: learner.whatsapp, // Removed because 'whatsapp' does not exist on type 'Learner'
           contact: learner.contact,
           bestNumber: getBestWhatsAppNumber(learner),
           allNumbers: getWhatsAppNumbers(learner)

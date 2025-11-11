@@ -4,7 +4,7 @@ import { z } from 'zod';
 // ========================
 // API CLIENT CONFIGURATION
 // ========================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -35,7 +35,7 @@ class ApiClient {
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
           ...options,
           headers: {
             'Content-Type': 'application/json',

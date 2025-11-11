@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
 const SchoolDropdown = ({ user }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [approvedSchools, setApprovedSchools] = useState([]);
@@ -14,7 +16,7 @@ const SchoolDropdown = ({ user }) => {
 
       try {
         const response = await fetch(
-          `http://localhost:4000/api/v1/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
+          `${API_BASE_URL}/api/v1/request_accesses/approved_schools?user[email]=${encodeURIComponent(user.email)}`
         );
 
         if (!response.ok) {

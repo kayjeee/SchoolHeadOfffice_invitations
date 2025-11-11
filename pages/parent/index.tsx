@@ -68,7 +68,7 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
 
       return { props: { initialProfile: profile, initialLearners: learners } };
     } catch (error) {
-        console.error('Error fetching user data:', error);
+      console.error('Error fetching user data:', error);
     }
   }
 
@@ -136,7 +136,7 @@ export default function ParentPage({
     <ErrorBoundary>
       <LayoutComponent user={user} userRoles={['parent']}>
         <SEOHead title={`${profile?.first_name}'s Dashboard`} />
-        <ParentDashboard profile={profile} learners={learners} />
+        <ParentDashboard user={user} profile={profile} learners={learners} />
       </LayoutComponent>
     </ErrorBoundary>
   );
