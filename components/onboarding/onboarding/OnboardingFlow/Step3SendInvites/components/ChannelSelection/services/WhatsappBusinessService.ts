@@ -26,6 +26,7 @@ interface BulkMessagesParams {
   recipientNumbers: string[];
   schoolId: string;
   userEmail?: string;
+  gradeIds?: string[];
 }
 
 interface ScheduleMessageParams {
@@ -35,6 +36,7 @@ interface ScheduleMessageParams {
   recipientNumbers: string[];
   schoolId: string;
   schoolName: string;
+  gradeIds?: string[];
 }
 
 class WhatsAppBusinessService {
@@ -160,6 +162,95 @@ ${schoolName} Admin Team`;
     }
 
     return { ...data, payload };
+  }
+
+  // ✅ ADDED: Bulk messages method
+  async sendBulkMessages({ schoolName, recipientNumbers, schoolId, userEmail, gradeIds }: BulkMessagesParams): Promise<any> {
+    if (!recipientNumbers || recipientNumbers.length === 0) {
+      throw new Error('No recipient numbers provided');
+    }
+
+    const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
+    const supportEmail = this.buildSupportEmail(sanitizedSchoolName);
+
+    const payload = {
+      schoolName: sanitizedSchoolName,
+      recipientNumbers,
+      schoolId,
+      userEmail,
+      gradeIds,
+      supportEmail,
+      totalRecipients: recipientNumbers.length,
+      batchType: 'BULK_INVITATION'
+    };
+
+    const response = await fetch(`${this.baseURL}/bulk-messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('❌ WhatsApp Bulk API Error:', data);
+      throw new Error(data.error || 'Failed to send bulk WhatsApp messages');
+    }
+
+    return {
+      sentCount: data.sentCount || recipientNumbers.length,
+      failedCount: data.failedCount || 0,
+      totalCount: recipientNumbers.length,
+      batchId: data.batchId
+    };
+  }
+
+  // ✅ ADDED: Schedule bulk message method
+  async scheduleBulkMessage({ message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName, gradeIds }: ScheduleMessageParams): Promise<any> {
+    if (!recipientNumbers || recipientNumbers.length === 0) {
+      throw new Error('No recipient numbers provided');
+    }
+
+    this.validateMessageTemplate(message);
+
+    const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
+    const supportEmail = this.buildSupportEmail(sanitizedSchoolName);
+
+    const payload = {
+      message,
+      scheduledAt: new Date(scheduledAt).toISOString(),
+      timezone,
+      recipientNumbers,
+      schoolId,
+      schoolName: sanitizedSchoolName,
+      gradeIds,
+      supportEmail,
+      totalRecipients: recipientNumbers.length,
+      scheduleType: 'BULK_SCHEDULED'
+    };
+
+    const response = await fetch(`${this.baseURL}/schedule-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('❌ WhatsApp Schedule API Error:', data);
+      throw new Error(data.error || 'Failed to schedule WhatsApp messages');
+    }
+
+    return {
+      scheduleId: data.scheduleId,
+      scheduledFor: data.scheduledFor,
+      totalRecipients: recipientNumbers.length
+    };
   }
 
   getTemplateInfo() {
