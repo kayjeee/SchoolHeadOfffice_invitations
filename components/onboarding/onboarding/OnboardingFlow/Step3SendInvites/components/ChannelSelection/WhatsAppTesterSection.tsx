@@ -1,8 +1,25 @@
-// services/WhatsAppTesterSection.js
+// components/onboarding/onboarding/OnboardingFlow/Step3SendInvites/components/ChannelSelection/WhatsAppTesterSection.tsx
 import React from "react";
 import { Send, Loader, AlertCircle, CheckCircle, Users } from "lucide-react";
 
-export const WhatsAppTesterSection = ({
+interface WhatsAppTesterSectionProps {
+  testPhoneNumber: string;
+  onPhoneNumberChange: (value: string) => void;
+  messageContent: string;
+  onMessageChange: (value: string) => void;
+  onSendTest: () => void;
+  onSendBulk: () => void;
+  isSending: boolean;
+  isSendingBulk: boolean;
+  testResult: any;
+  validationErrors: any;
+  schoolName: string;
+  selectedGrade: any;
+  totalRecipients: number;
+  canSendBulk: boolean;
+}
+
+export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
   testPhoneNumber,
   onPhoneNumberChange,
   messageContent,
@@ -18,8 +35,8 @@ export const WhatsAppTesterSection = ({
   totalRecipients,
   canSendBulk,
 }) => {
-  // --- Helper to clean phone number ---
-  const formatPhoneNumber = (value) => value.replace(/[^\d+]/g, "");
+  // Helper to clean phone number
+  const formatPhoneNumber = (value: string) => value.replace(/[^\d+]/g, "");
 
   return (
     <div className="space-y-4">
@@ -35,7 +52,7 @@ export const WhatsAppTesterSection = ({
             onPhoneNumberChange(formatPhoneNumber(e.target.value))
           }
           placeholder="+27123456789"
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
             validationErrors?.phone ? "border-red-300" : "border-gray-300"
           }`}
         />
@@ -59,7 +76,7 @@ export const WhatsAppTesterSection = ({
           onChange={(e) => onMessageChange(e.target.value)}
           rows={8}
           placeholder="Enter your WhatsApp message here..."
-          className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+          className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
             validationErrors?.message ? "border-red-300" : "border-gray-300"
           }`}
         />
@@ -80,9 +97,19 @@ export const WhatsAppTesterSection = ({
         </div>
       </div>
 
+      {/* Template Variables Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Template Variables</h4>
+        <div className="text-xs text-blue-800 space-y-1">
+          <p><strong>Available variables:</strong> {"{{1}}"}, {"{{2}}"}, {"{{3}}"}, etc.</p>
+          <p><strong>Example usage:</strong> &quot;Hi {"{{1}}"}, your account {"{{2}}"} has been created.&quot;</p>
+          <p><strong>Current template:</strong> &quot;Hi {"{{1}}"}, your account has been created. Please verify {"{{2}}"} to complete your profile.&quot;</p>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="flex gap-3">
-        {/* --- Send Test Button --- */}
+        {/* Send Test Button */}
         <button
           onClick={() => {
             onSendTest();
@@ -103,7 +130,7 @@ export const WhatsAppTesterSection = ({
           )}
         </button>
 
-        {/* --- Bulk Send Button --- */}
+        {/* Bulk Send Button */}
         {canSendBulk && (
           <button
             onClick={() => {
@@ -114,13 +141,11 @@ export const WhatsAppTesterSection = ({
           >
             {isSendingBulk ? (
               <>
-                <Loader className="animate-spin mr-2" size={16} /> Sending
-                Bulk...
+                <Loader className="animate-spin mr-2" size={16} /> Sending Bulk...
               </>
             ) : (
               <>
-                <Users size={16} className="mr-2" /> Send to {totalRecipients}{" "}
-                Contacts
+                <Users size={16} className="mr-2" /> Send to {totalRecipients} Contacts
               </>
             )}
           </button>
@@ -188,6 +213,25 @@ export const WhatsAppTesterSection = ({
           )}
         </div>
       )}
+
+      {/* Information Section */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gray-900 mb-2">💡 How to Use</h4>
+        <div className="text-xs text-gray-700 space-y-2">
+          <div>
+            <strong className="text-gray-900">Test Message:</strong>
+            <p className="mt-1">Send to a single phone number to verify your message template works correctly before sending to all contacts.</p>
+          </div>
+          <div>
+            <strong className="text-gray-900">Bulk Send:</strong>
+            <p className="mt-1">Send the same message to all {totalRecipients} WhatsApp contacts at once. Make sure to test first!</p>
+          </div>
+          <div>
+            <strong className="text-gray-900">Template Variables:</strong>
+            <p className="mt-1">Use {"{{1}}"}, {"{{2}}"}, etc. as placeholders that will be automatically replaced with actual data for each contact.</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

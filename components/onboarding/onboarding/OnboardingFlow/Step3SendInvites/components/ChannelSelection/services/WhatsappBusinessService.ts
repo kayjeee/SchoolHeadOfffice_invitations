@@ -1,55 +1,41 @@
 // services/WhatsAppBusinessService.ts
 import { logger } from '../utils/logger';
 
-const API_BASE_URL: string = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
-interface Grade {
-    id: string;
-    name: string;
-  }
+interface InvitationParams {
+  phoneNumber: string;
+  schoolId: string;
+  userEmail?: string;
+}
 
-  interface InvitationParams {
-    phoneNumber: string;
-    schoolId: string;
-    userEmail?: string;
-  }
+interface BuildMagicLinkParams {
+  token: string;
+  schoolName: string;
+}
 
-  interface MagicLinkParams {
-    schoolName: string;
-    gradeName: string;
-    magicLink: string;
-  }
+interface TestMessageParams {
+  to: string;
+  schoolName: string;
+  schoolId: string;
+  userEmail?: string;
+}
 
-  interface BuildMagicLinkParams {
-    token: string;
-    schoolName: string;
-  }
+interface BulkMessagesParams {
+  schoolName: string;
+  recipientNumbers: string[];
+  schoolId: string;
+  userEmail?: string;
+}
 
-  interface TestMessageParams {
-    to: string;
-    schoolName: string;
-    grade?: Grade;
-    schoolId: string;
-    userEmail?: string;
-  }
-
-  interface BulkMessagesParams {
-    gradeIds: string[];
-    schoolName: string;
-    recipientNumbers: string[];
-    schoolId: string;
-    userEmail?: string;
-  }
-
-  interface ScheduleMessageParams {
-    gradeIds: string[];
-    message: string;
-    scheduledAt: string | Date;
-    timezone: string;
-    recipientNumbers: string[];
-    schoolId: string;
-    schoolName: string;
-  }
+interface ScheduleMessageParams {
+  message: string;
+  scheduledAt: string | Date;
+  timezone: string;
+  recipientNumbers: string[];
+  schoolId: string;
+  schoolName: string;
+}
 
 class WhatsAppBusinessService {
   private baseURL: string;
@@ -60,67 +46,68 @@ class WhatsAppBusinessService {
     this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
   }
 
-  async createInvitation({ phoneNumber, schoolId, userEmail }: InvitationParams): Promise<string> {
-    try {
-      logger.info('WhatsAppBusinessService', 'Creating invitation token', {
-        phoneNumber,
-        schoolId,
-        userEmail
-      });
-
-      if (!schoolId) throw new Error('schoolId is required to create invitation');
-      if (!phoneNumber) throw new Error('phoneNumber is required to create invitation');
-
-      const payload = {
-        phone_number: phoneNumber,
-        school_id: schoolId,
-        role: 'parent',
-      };
-
-      const response = await fetch(this.invitationsURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Email': userEmail || 'kagiso.killagram@gmail.com',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}: Failed to create invitation`);
-      }
-      if (!data.success) {
-        throw new Error(data.message || 'API returned success: false');
-      }
-
-      const token = data.invitation?.token || data.token;
-      if (!token) {
-        throw new Error('No token received in invitation response');
-      }
-
-      return token;
-    } catch (error: any) {
-      logger.error('WhatsAppBusinessService', 'Failed to create invitation', {
-        error: error.message,
-        phoneNumber,
-        schoolId,
-        userEmail
-      });
-      throw error;
+  // ✅ Internal validator
+  private validateMessageTemplate(message: string): void {
+    if (typeof message !== 'string' || message.trim() === '') {
+      throw new Error('Message must be a non-empty string');
+    }
+    if (message.length > 4096) {
+      throw new Error('Message exceeds maximum length (4096 chars)');
+    }
+    if (/[<>]/g.test(message)) {
+      throw new Error('Message contains invalid characters: < or >');
     }
   }
 
-  buildMagicLinkMessage({ schoolName, gradeName, magicLink }: MagicLinkParams): string {
-    const domain = schoolName.toLowerCase().replace(/\s+/g, '');
-    const supportEmail = `support@${domain}.com`;
+  private sanitizeSchoolName(schoolName: string): string {
+    return schoolName?.trim() || 'Your School';
+  }
 
+  private buildSupportEmail(schoolName: string): string {
+    const domain = schoolName.toLowerCase().replace(/\s+/g, '');
+    return `support@${domain || 'schoolportal'}.com`;
+  }
+
+  private buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
+    const domain = schoolName.toLowerCase().replace(/\s+/g, '');
+    return `https://portal.${domain}.com/join?token=${token}`;
+  }
+
+  async createInvitation({ phoneNumber, schoolId, userEmail }: InvitationParams): Promise<string> {
+    if (!schoolId || !phoneNumber) {
+      throw new Error('schoolId and phoneNumber are required');
+    }
+
+    const payload = {
+      phone_number: phoneNumber,
+      school_id: schoolId,
+      role: 'parent',
+    };
+
+    const response = await fetch(this.invitationsURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Email': userEmail || 'kagiso.killagram@gmail.com',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to create invitation');
+    }
+
+    return data.invitation?.token || data.token;
+  }
+
+  private buildMagicLinkMessage(schoolName: string, magicLink: string, supportEmail: string): string {
     return `🏫 ${schoolName} Parent Portal Invitation
 
 Dear Parent,
 
-You're invited to join our secure parent communication portal for ${gradeName}.
+Confirm that your child has joined our secure parent communication portal for ${schoolName}.
 
 ✅ Get real-time updates about your child's progress
 ✅ Receive important announcements instantly
@@ -135,266 +122,56 @@ Best wishes,
 ${schoolName} Admin Team`;
   }
 
-  validateMessageTemplate(message: string): boolean {
-    if (typeof message !== 'string') {
-      throw new Error('Message must be a string');
+  async sendTestMessage({ to, schoolName, schoolId, userEmail }: TestMessageParams): Promise<any> {
+    const formattedNumber = to.replace(/\D/g, "");
+    if (!formattedNumber.startsWith("27")) {
+      throw new Error('Invalid phone number: must start with 27');
     }
 
-    const validations = [
-      {
-        check: message.length > 0,
-        error: 'Message cannot be empty',
+    const token = await this.createInvitation({ phoneNumber: formattedNumber, schoolId, userEmail });
+    const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
+    const magicLink = this.buildMagicLink({ token, schoolName: sanitizedSchoolName });
+    const supportEmail = this.buildSupportEmail(sanitizedSchoolName);
+
+    const messageText = this.buildMagicLinkMessage(sanitizedSchoolName, magicLink, supportEmail);
+    this.validateMessageTemplate(messageText);
+
+    const payload = {
+      to: formattedNumber,
+      schoolName: sanitizedSchoolName,
+      magicLink,
+      supportEmail,
+      testType: 'MAGIC_LINK',
+    };
+
+    const response = await fetch(`${this.baseURL}/test-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
       },
-      {
-        check: message.length <= 4096,
-        error: `Message exceeds maximum length of 4096 characters (current: ${message.length})`,
-      },
-      {
-        check: !message.includes('{{1}}') || (message.match(/{{(\d+)}}/g) || []).length <= 10,
-        error: 'Maximum 10 variables allowed in template',
-      },
-      {
-        check: !message.match(/[<>]/g),
-        error: 'Message contains invalid characters (< or >)',
-      },
-    ];
+      body: JSON.stringify(payload),
+    });
 
-    for (const validation of validations) {
-      if (!validation.check) {
-        throw new Error(validation.error);
-      }
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('❌ WhatsApp API Error:', data);
+      throw new Error(data.error || 'Failed to send WhatsApp message');
     }
 
-    return true;
+    return { ...data, payload };
   }
 
-  buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
-    const domain = schoolName.toLowerCase().replace(/\s+/g, '');
-    return `https://portal.${domain}.com/join?token=${token}`;
-  }
-
-  async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }: TestMessageParams): Promise<any> {
-    try {
-      logger.info('WhatsAppBusinessService', 'Preparing to send test message', { to, schoolName, grade: grade?.name, schoolId });
-
-      if (!to || !schoolName || !schoolId) {
-        throw new Error('Missing required fields: to, schoolName, and schoolId are required');
-      }
-
-      const token = await this.createInvitation({ phoneNumber: to, schoolId, userEmail });
-      const magicLink = this.buildMagicLink({ token, schoolName });
-      const gradeName = grade?.name || "your child's class";
-
-      const payload = {
-        to,
-        variables: {
-          schoolname: schoolName,
-          gradename: gradeName,
-          magiclink: magicLink,
-        },
-        fallbackTemplate: "school_invitation"
-      };
-
-      const response = await fetch(`${this.baseURL}/test-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to send test message`);
-      }
-
-      return { ...data, magicLink, token };
-    } catch (error: any) {
-      logger.error('WhatsAppBusinessService', 'Failed to send test message', {
-        error: error.message,
-        to,
-        schoolName,
-        schoolId
-      });
-      throw error;
-    }
-  }
-
-  async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }: BulkMessagesParams): Promise<any> {
-    try {
-        logger.info('WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
-            recipientCount: recipientNumbers.length,
-            schoolName,
-            schoolId,
-            gradeIds
-          });
-      if (!schoolId || !schoolName) throw new Error('schoolId and schoolName are required for bulk messages');
-      if (!recipientNumbers || recipientNumbers.length === 0) throw new Error('recipientNumbers cannot be empty');
-
-      const personalizedMessages: { to: string; message: string; magicLink: string; token: string }[] = [];
-      const errors: { phoneNumber: string; error: string }[] = [];
-
-      for (let i = 0; i < recipientNumbers.length; i++) {
-        const number = recipientNumbers[i];
-        try {
-          const token = await this.createInvitation({ phoneNumber: number, schoolId, userEmail });
-          const magicLink = this.buildMagicLink({ token, schoolName });
-          const message = this.buildMagicLinkMessage({
-            schoolName,
-            gradeName: 'your child\'s class',
-            magicLink,
-          });
-          this.validateMessageTemplate(message);
-          personalizedMessages.push({ to: number, message, magicLink, token });
-          if (i < recipientNumbers.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        } catch (error: any) {
-            errors.push({ phoneNumber: number, error: error.message });
-        }
-      }
-
-      if (errors.length > 0) {
-        logger.warn('WhatsAppBusinessService', 'Some invitations failed during token generation', {
-          failedCount: errors.length,
-          successfulCount: personalizedMessages.length,
-          errors: errors.slice(0, 5)
-        });
-      }
-
-      if (personalizedMessages.length === 0) {
-        throw new Error('No messages could be generated. All invitations failed.');
-      }
-
-      const response = await fetch(`${this.baseURL}/send-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          gradeIds,
-          schoolName,
-          schoolId,
-          campaignType: 'MAGIC_LINK_INVITES',
-          personalizedMessages,
-          totalRecipients: personalizedMessages.length,
-          failedDuringGeneration: errors.length,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
-      }
-
-      return { ...data, generationErrors: errors, totalProcessed: personalizedMessages.length + errors.length };
-    } catch (error: any) {
-      logger.error('WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
-        error: error.message,
-        schoolName,
-        schoolId,
-        recipientCount: recipientNumbers?.length
-      });
-      throw error;
-    }
-  }
-
-  async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }: BulkMessagesParams): Promise<any> {
-    try {
-        logger.info('WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
-            recipientCount: recipientNumbers.length,
-            schoolName,
-            schoolId,
-            gradeIds
-          });
-      if (!schoolId || !schoolName) throw new Error('schoolId and schoolName are required for bulk messages');
-      if (!recipientNumbers || recipientNumbers.length === 0) throw new Error('recipientNumbers cannot be empty');
-
-      const personalizedMessages: { to: string; message: string; magicLink: string; token: string }[] = [];
-      const errors: { phoneNumber: string; error: string }[] = [];
-
-      for (let i = 0; i < recipientNumbers.length; i++) {
-        const number = recipientNumbers[i];
-        try {
-          const token = await this.createInvitation({ phoneNumber: number, schoolId, userEmail });
-          const magicLink = this.buildMagicLink({ token, schoolName });
-          const message = this.buildMagicLinkMessage({
-            schoolName,
-            gradeName: 'your child\'s class',
-            magicLink,
-          });
-          this.validateMessageTemplate(message);
-          personalizedMessages.push({ to: number, message, magicLink, token });
-          if (i < recipientNumbers.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        } catch (error: any) {
-            errors.push({ phoneNumber: number, error: error.message });
-        }
-      }
-
-      if (errors.length > 0) {
-        logger.warn('WhatsAppBusinessService', 'Some invitations failed during token generation', {
-          failedCount: errors.length,
-          successfulCount: personalizedMessages.length,
-          errors: errors.slice(0, 5)
-        });
-      }
-
-      if (personalizedMessages.length === 0) {
-        throw new Error('No messages could be generated. All invitations failed.');
-      }
-
-      const response = await fetch(`${this.baseURL}/send-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          gradeIds,
-          schoolName,
-          schoolId,
-          campaignType: 'MAGIC_LINK_INVITES',
-          personalizedMessages,
-          totalRecipients: personalizedMessages.length,
-          failedDuringGeneration: errors.length,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
-      }
-
-      return { ...data, generationErrors: errors, totalProcessed: personalizedMessages.length + errors.length };
-    } catch (error: any) {
-      logger.error('WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
-        error: error.message,
-        schoolName,
-        schoolId,
-        recipientCount: recipientNumbers?.length
-      });
-      throw error;
-    }
-  }
-
-  validatePhoneNumber(phoneNumber: string): boolean {
-    if (!phoneNumber) return false;
-    const cleaned = phoneNumber.replace(/\s+/g, '');
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    return phoneRegex.test(cleaned);
-  }
-
-  formatPhoneNumber(phoneNumber: string): string {
-    if (!phoneNumber) return '';
-    const cleaned = phoneNumber.replace(/\s+/g, '');
-    return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+  getTemplateInfo() {
+    return {
+      templateName: 'school_invitation',
+      variables: [
+        { position: 1, name: 'gradename', description: 'Grade name (e.g. "1st Grade")' },
+        { position: 2, name: 'magiclink', description: 'Magic link invitation URL' },
+        { position: 3, name: 'supportemail', description: 'Support email for the school' },
+        { position: 4, name: 'schoolname', description: 'Name of the school' },
+      ],
+    };
   }
 }
 
