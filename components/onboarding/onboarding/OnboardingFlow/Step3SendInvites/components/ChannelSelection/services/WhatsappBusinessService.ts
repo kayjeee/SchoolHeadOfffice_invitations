@@ -47,7 +47,7 @@ class WhatsAppBusinessService {
   }
 
   // ✅ Internal validator
-  private validateMessageTemplate(message: string): void {
+  public validateMessageTemplate(message: string): void {
     if (typeof message !== 'string' || message.trim() === '') {
       throw new Error('Message must be a non-empty string');
     }

@@ -255,7 +255,6 @@ Click here to join: ${schoolLink}`;
       
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
-        grade: selectedGrade,
         schoolId: schoolId,
         userEmail: school?.userEmail,
         schoolName: schoolName
