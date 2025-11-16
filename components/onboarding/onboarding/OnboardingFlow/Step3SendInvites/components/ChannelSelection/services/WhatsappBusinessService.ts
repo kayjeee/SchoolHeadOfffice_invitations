@@ -72,7 +72,7 @@ class WhatsAppBusinessService {
 
   private buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
     const domain = schoolName.toLowerCase().replace(/\s+/g, '');
-    return `https://portal.${domain}.com/join?token=${token}`;
+    return `https://www.schoolheadoffice.com/parent/${domain}/join?token=${token}`;
   }
 
   async createInvitation({ phoneNumber, schoolId, userEmail }: InvitationParams): Promise<string> {
