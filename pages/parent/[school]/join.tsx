@@ -14,6 +14,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 };
 
 export default function JoinRedirect() {
-  return null; // we never render this page
+  return null; // we never render this page here
 }
 
