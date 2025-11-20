@@ -42,4 +42,23 @@ export class InvitationService {
 
     return validationResult.data;
   }
+
+  static async claim(token: string, userId: string): Promise<{ success: boolean }> {
+    const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
+
+    const response = await fetch(`${internalApiUrl}/invitations/claim`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, userId }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ message: "Unknown error" }));
+      throw new Error(`Failed to claim invitation: ${response.statusText} - ${errorBody.message}`);
+    }
+
+    return { success: true };
+  }
 }
