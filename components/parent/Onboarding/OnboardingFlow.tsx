@@ -6,6 +6,7 @@ import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
+import ConfirmLearner from './steps/ConfirmLearner';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
@@ -19,6 +20,7 @@ export default function OnboardingFlow({ user }) {
   });
 
   const hasInvitation = !!onboardingData.invitation_id;
+  const hasLearnerPrefill = hasInvitation && onboardingData.learner_name && onboardingData.school_name;
 
   const handleFinalStepComplete = async (data) => {
     if (hasInvitation) {
@@ -45,13 +47,17 @@ export default function OnboardingFlow({ user }) {
           isLocked={isLocked}
         />;
       case 'LINK_LEARNERS':
+        if (hasLearnerPrefill) {
+          return <ConfirmLearner
+            onComplete={() => completeStep(currentStep, {})}
+            prefillData={{
+              learner_name: onboardingData.learner_name,
+              school_name: onboardingData.school_name,
+            }}
+          />;
+        }
         return <LinkLearners
           onComplete={(data) => completeStep(currentStep, data)}
-          prefillData={{
-            learner_name: onboardingData.learner_name,
-            school_slug: onboardingData.school_slug
-          }}
-          isLocked={isLocked}
         />;
       case 'TERMS_ACCEPTANCE':
         return <TermsAcceptance onComplete={handleFinalStepComplete} />;
