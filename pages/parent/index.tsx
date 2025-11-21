@@ -59,10 +59,11 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
     try {
       // Verify token and fetch invitation payload
       const verifiedInvitation = await InvitationService.verifyToken(token);
+      let invitationData: any = null;
 
       if (verifiedInvitation.success) {
         // Create a new object that conforms to the InvitationData interface
-        const invitationData = {
+        invitationData = {
           token: token,
           school_slug: school || undefined,
         };
@@ -81,6 +82,9 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
             },
           };
         }
+      } else {
+        // If verification fails, throw an error to trigger the catch block
+        throw new Error("Invitation verification failed as per API response.");
       }
 
       // Not logged in: show AuthGate + pass invitation data to client
