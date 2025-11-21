@@ -60,31 +60,27 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
       // Verify token and fetch invitation payload
       const verifiedInvitation = await InvitationService.verifyToken(token);
 
-      // Create a new object that conforms to the InvitationData interface
-      const invitationData: InvitationData = {
-        ...verifiedInvitation,
-        token: token,
-        school_slug: school || undefined,
-      };
-
-      // If user is already authenticated, link invitation immediately
-      if (session?.user) {
-        try {
-          await ParentService.linkInvitation(session.user.sub, invitationData.id);
-        } catch (linkErr) {
-          console.error("Warning: failed to link invitation to user:", linkErr);
-          // Continue — still redirect to onboarding
-        }
-
-        // Redirect to same page with start_onboarding to trigger client onboarding flow
-        return {
-          redirect: {
-            destination: `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(
-              invitationData.school_slug || school || ""
-            )}&start_onboarding=true`,
-            permanent: false,
-          },
+      if (verifiedInvitation.success) {
+        // Create a new object that conforms to the InvitationData interface
+        const invitationData = {
+          token: token,
+          school_slug: school || undefined,
         };
+
+        // If user is already authenticated, link invitation immediately
+        if (session?.user) {
+          // Since we don't have an invitation ID, we can't link it.
+          // We can proceed to the onboarding flow directly.
+          // Redirect to same page with start_onboarding to trigger client onboarding flow
+          return {
+            redirect: {
+              destination: `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(
+                invitationData.school_slug || school || ""
+              )}&start_onboarding=true`,
+              permanent: false,
+            },
+          };
+        }
       }
 
       // Not logged in: show AuthGate + pass invitation data to client
@@ -170,12 +166,8 @@ export default function ParentPage({
       if (invitationData) {
         // store a minimal safe payload (avoid storing secrets)
         const safe = {
-          id: invitationData.id,
           token: invitationData.token,
           school_slug: invitationData.school_slug,
-          school_name: invitationData.school_name,
-          learner_name: invitationData.learner_name,
-          parent_phone: invitationData.parent_phone,
         };
         sessionStorage.setItem("sho_invitation", JSON.stringify(safe));
         // optionally set into onboarding state immediately if hook exposes setter

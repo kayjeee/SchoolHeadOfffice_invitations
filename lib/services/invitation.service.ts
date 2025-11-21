@@ -3,19 +3,15 @@ import { z } from 'zod';
 
 // Define the schema for the expected API response
 const InvitationDataSchema = z.object({
-  id: z.string(),
-  school_id: z.string(),
-  school_name: z.string(),
-  phone_number: z.string(),
-  learner_ids: z.array(z.string()),
-  expires_at: z.string(),
+  success: z.boolean(),
+  message: z.string(),
 });
 
 type InvitationData = z.infer<typeof InvitationDataSchema>;
 
 export class InvitationService {
   static async verifyToken(token: string): Promise<InvitationData> {
-    const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
+    const internalApiUrl = 'http://localhost:4000/api/v1';
 
     const response = await fetch(`${internalApiUrl}/invitations/verify`, {
       method: 'POST',
@@ -44,7 +40,7 @@ export class InvitationService {
   }
 
   static async claim(token: string, userId: string): Promise<{ success: boolean }> {
-    const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
+    const internalApiUrl = 'http://localhost:4000/api/v1';
 
     const response = await fetch(`${internalApiUrl}/invitations/claim`, {
       method: 'POST',
