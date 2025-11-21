@@ -291,13 +291,13 @@ export async function getServerSideProps(context) {
       events, 
       requestAccess
     ] = await Promise.all([
-      db.collection('School').findOne({ schoolName: decodeURIComponent(params.schoolId) }),
+      db.collection('School').findOne({ schoolName: decodeURIComponent(params.school_slug) }),
       db.collection('School').find({}).sort({ metacritic: -1 }).limit(1000).toArray(),
-      db.collection('Resource').find({ schoolname: decodeURIComponent(params.schoolId) }).toArray(),
-      db.collection('Folder').find({ schoolName: decodeURIComponent(params.schoolId) }).toArray(),
-      db.collection('Newsletter').find({ schoolname: decodeURIComponent(params.schoolId) }).toArray(),
-      db.collection('Events').find({ schoolname: decodeURIComponent(params.schoolId) }).toArray(),
-      db.collection('RequestAccess').find({ schoolName: decodeURIComponent(params.schoolId) }).toArray()
+      db.collection('Resource').find({ schoolname: decodeURIComponent(params.school_slug) }).toArray(),
+      db.collection('Folder').find({ schoolName: decodeURIComponent(params.school_slug) }).toArray(),
+      db.collection('Newsletter').find({ schoolname: decodeURIComponent(params.school_slug) }).toArray(),
+      db.collection('Events').find({ schoolname: decodeURIComponent(params.school_slug) }).toArray(),
+      db.collection('RequestAccess').find({ schoolName: decodeURIComponent(params.school_slug) }).toArray()
     ]);
 
     if (!school) {
@@ -315,7 +315,7 @@ export async function getServerSideProps(context) {
         newsletters: JSON.parse(JSON.stringify(newsletters)),
         events: JSON.parse(JSON.stringify(events)),
         requestAccess: JSON.parse(JSON.stringify(requestAccess)),
-        selectedSchool: decodeURIComponent(params.schoolId),
+        selectedSchool: decodeURIComponent(params.school_slug),
       },
     };
   } catch (e) {
