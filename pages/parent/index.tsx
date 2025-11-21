@@ -58,13 +58,14 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
   if (token) {
     try {
       // Verify token and fetch invitation payload
-      const invitationData = await InvitationService.verifyToken(token);
+      const verifiedInvitation = await InvitationService.verifyToken(token);
 
-      // attach token and school to invitationData for convenience
-      invitationData.token = token;
-      if (school && !invitationData.school_slug) {
-        invitationData.school_slug = school;
-      }
+      // Create a new object that conforms to the InvitationData interface
+      const invitationData: InvitationData = {
+        ...verifiedInvitation,
+        token: token,
+        school_slug: school || undefined,
+      };
 
       // If user is already authenticated, link invitation immediately
       if (session?.user) {
@@ -250,7 +251,7 @@ export default function ParentPage({
     return (
       <>
         <SEOHead title="Complete Your Registration" />
-        <OnboardingFlow user={user} invitationData={invitationData ?? undefined} currentState={currentStep} />
+        <OnboardingFlow user={user} />
       </>
     );
   }

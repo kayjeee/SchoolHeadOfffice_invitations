@@ -22,16 +22,18 @@ export default function AuthGate({
 
   /**
    * Build a safe returnTo URL that ALWAYS keeps the token.
+   * The final URL will be encoded by the loginUrl template string.
    */
   const safeReturnTo = useMemo(() => {
     if (hasInvitation) {
-      const url = `${returnTo}?token=${invitationData!.token}`;
-      return encodeURIComponent(url);
+      // The `returnTo` may already contain query params, so we need to handle that.
+      const separator = returnTo.includes('?') ? '&' : '?';
+      return `${returnTo}${separator}token=${invitationData!.token}`;
     }
-    return encodeURIComponent(returnTo);
+    return returnTo;
   }, [invitationData, returnTo, hasInvitation]);
 
-  const loginUrl = `/api/auth/login?returnTo=${safeReturnTo}`;
+  const loginUrl = `/api/auth/login?returnTo=${encodeURIComponent(safeReturnTo)}`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">

@@ -1,5 +1,5 @@
 // components/parent/Onboarding/steps/ProfileSetup.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,16 +15,27 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface ProfileSetupProps {
   onComplete: (data: ProfileFormData) => void;
+  prefillData?: {
+    phone?: string;
+  };
+  isLocked?: boolean;
 }
 
-export default function ProfileSetup({ onComplete }: ProfileSetupProps) {
+export default function ProfileSetup({ onComplete, prefillData, isLocked }: ProfileSetupProps) {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
+
+  useEffect(() => {
+    if (prefillData?.phone) {
+      setValue('phone', prefillData.phone);
+    }
+  }, [prefillData, setValue]);
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
@@ -43,7 +54,11 @@ export default function ProfileSetup({ onComplete }: ProfileSetupProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-            <input {...register('phone')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input
+              {...register('phone')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100"
+              disabled={isLocked}
+            />
             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
           </div>
           <div>

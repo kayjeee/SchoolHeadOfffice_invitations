@@ -1,7 +1,7 @@
 // components/MainContentArea.js
 import React, { useEffect } from 'react';
 import DetailsTab from '../Schoolpage/DetailsTab';
-import ResourceTab from '../schooldashboard/ResourceTabAdmin';
+import ResourceTab from '../Schoolpage/ResourceTabAdmin';
 import NewsletterView from '../schooldashboard/NewsletterViewAdmin';
 import MyCalendar from '../schooldashboard/CalendarAdmin';
 import AccountTab from '../schooldashboard/AccountTab';

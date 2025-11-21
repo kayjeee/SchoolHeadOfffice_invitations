@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import SchoolDashboardLayout from '../../components/schooldashboard/SchoolDashboardLayout';
-import SideNavSchool from '../../components/schooldashboard/SideNavSchool';
-import LoginModal from '../../components/LoginModal';
-import clientPromise from '../../lib/mongodb';
-import { useApp } from '../../components/useApp'; // Importing custom hook for app context
+import SchoolDashboardLayout from '../../../components/schooldashboard/SchoolDashboardLayout';
+import SideNavSchool from '../../../components/schooldashboard/SideNavSchool';
+import LoginModal from '../../../components/LoginModal';
+import clientPromise from '../../../lib/mongodb';
+import { useApp } from '../../../components/useApp'; // Importing custom hook for app context
 import { Credentials } from 'realm-web'; // Importing MongoDB Realm Credentials for login
-import { AuthProvider } from '../../components/context/AuthContext'; // Importing authentication provider
-import useColorMode from "../../components/schooldashboard/hooks/useColorMode"; // Custom hook for handling light/dark mode
-import { useAccessStatus } from '../../components/hooks/schoolsindexpage/useAccessStatus'; // Hook for fetching user's access status
-import { useFetchSchoolData } from '../../components/hooks/schoolsindexpage/useFetchSchoolData'; // Hook for fetching school-related data
-import { useLogin } from '../../components/hooks/schoolsindexpage/useLogin'; // Hook for handling login functionality
-import { useTabHandler } from '../../components/hooks/schoolsindexpage/useTabHandler'; // Hook for handling tab switching logic
-import { SchoolModals } from '../../components/hooks/SchoolModals'; // Component for handling various modals like login, request access, etc.
-import MainContentArea from '../../components/hooks/MainContentArea'; // Main content area component
-import MobileMainContentArea from '../../components/hooks/MobileMainContentArea'; // Main content area component
-import AdvertisementSection from '../../components/hooks/AdvertisementSection'; // Component for handling advertisements
-import MobileAdvertisementSection from '../../components/hooks/MobileAdvertisementSection'; // Component for handling advertisements
+import { AuthProvider } from '../../../components/context/AuthContext'; // Importing authentication provider
+import useColorMode from "../../../components/schooldashboard/hooks/useColorMode"; // Custom hook for handling light/dark mode
+import { useAccessStatus } from '../../../components/hooks/schoolsindexpage/useAccessStatus'; // Hook for fetching user's access status
+import { useFetchSchoolData } from '../../../components/hooks/schoolsindexpage/useFetchSchoolData'; // Hook for fetching school-related data
+import { useLogin } from '../../../components/hooks/schoolsindexpage/useLogin'; // Hook for handling login functionality
+import { useTabHandler } from '../../../components/hooks/schoolsindexpage/useTabHandler'; // Hook for handling tab switching logic
+import { SchoolModals } from '../../../components/hooks/SchoolModals'; // Component for handling various modals like login, request access, etc.
+import MainContentArea from '../../../components/hooks/MainContentArea'; // Main content area component
+import MobileMainContentArea from '../../../components/hooks/MobileMainContentArea'; // Main content area component
+import AdvertisementSection from '../../../components/hooks/AdvertisementSection'; // Component for handling advertisements
+import MobileAdvertisementSection from '../../../components/hooks/MobileAdvertisementSection'; // Component for handling advertisements
 
 
 export default function School({schools, school, folders, resources, requestAccess, newsletters, events, selectedSchool }) {
