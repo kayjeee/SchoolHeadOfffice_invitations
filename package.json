@@ -5,7 +5,7 @@
     "build": "next build",
     "start": "next start",
     "clear": "next clear",
-    "dev:clean": "next clear && next dev"
+    "dev:clean": "next dev"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^2.2.0",
