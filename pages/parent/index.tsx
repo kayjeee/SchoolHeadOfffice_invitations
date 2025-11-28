@@ -14,12 +14,30 @@ import LoadingScreen from "../../components/common/LoadingScreen";
 import AuthGate from "../../components/auth/AuthGate";
 import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
 
-// Lazy load heavy components
-const FrontPageLayout = dynamic(() => import("../../components/Layouts/FrontPageLayout"));
-const FrontPageLayoutMobileView = dynamic(
-  () => import("../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView")
+// ✅ ONLY dynamic imports - removed conflicting static imports
+const FrontPageLayout = dynamic(
+  () => import("../../components/Layouts/FrontPageLayout"),
+  { 
+    loading: () => <LoadingScreen message="Loading layout..." />,
+    ssr: true
+  }
 );
-const OnboardingFlow = dynamic(() => import("../../components/parent/Onboarding/OnboardingFlow"));
+
+const FrontPageLayoutMobileView = dynamic(
+  () => import("../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView"),
+  { 
+    loading: () => <LoadingScreen message="Loading mobile layout..." />,
+    ssr: true
+  }
+);
+
+const OnboardingFlow = dynamic(
+  () => import("../../components/parent/Onboarding/OnboardingFlow"),
+  { 
+    loading: () => <LoadingScreen message="Loading onboarding..." />,
+    ssr: false
+  }
+);
 
 // -----------------------
 // Types
@@ -252,9 +270,21 @@ export default function ParentPage({
     );
   }
 
-  // fully onboarded -> show dashboard
+  // ✅ FIXED: Properly select layout component with debugging
   const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
 
+  // Optional: Add debugging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Layout Debug Info:', {
+      isMobile,
+      selectedLayout: isMobile ? 'Mobile' : 'Desktop',
+      hasLayoutComponent: !!LayoutComponent,
+      user: user?.email,
+      profile: profile?.first_name
+    });
+  }
+
+  // fully onboarded -> show dashboard
   return (
     <ErrorBoundary>
       <LayoutComponent user={user} userRoles={["parent"]}>
