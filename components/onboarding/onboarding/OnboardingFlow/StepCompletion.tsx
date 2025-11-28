@@ -1,13 +1,19 @@
 import React from "react";
+import { useRouter } from 'next/router';
 import OnboardingLayout from "../layouts/OnboardingLayout";
 import StepLayout from "../layouts/StepLayout";
 import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
 
 const StepCompletion: React.FC = () => {
   const { onboardingStatus } = useOnboardingFlow();
+  const router = useRouter();
 
   return (
-    <OnboardingLayout title="Onboarding Complete" description="You're all set!">
+    <OnboardingLayout
+      title="Onboarding Complete"
+      description="You're all set!"
+      showNavbar={true}
+    >
       <StepLayout stepTitle="Congratulations!" stepDescription="You have completed all the onboarding steps.">
         <div className="text-center space-y-4">
           <p className="text-green-600 font-semibold text-lg">
@@ -17,7 +23,7 @@ const StepCompletion: React.FC = () => {
             You can now access all the features available for your role.
           </p>
           <button
-            onClick={() => window.location.href = "/dashboard"} // Redirect to main app
+            onClick={() => router.push("/dashboard")} // Redirect to main app
             className="px-4 py-2 bg-blue-500 text-white rounded mt-2"
           >
             Go to Dashboard
