@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { InvitationService } from '../../../lib/services/invitation.service';
+import { ParentAPI } from '../../../lib/api/parent-api';
 import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
@@ -11,6 +12,7 @@ import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import LearnerSelection from './LearnerSelection';
 
 export default function OnboardingFlow({ user }) {
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
@@ -25,11 +27,16 @@ export default function OnboardingFlow({ user }) {
   const handleFinalStepComplete = async (data) => {
     if (hasInvitation) {
       try {
+        // First, link the learners
+        await ParentAPI.linkLearners(onboardingData.invitation_token, onboardingData.parent_phone);
+
+        // Then, claim the invitation
         await InvitationService.claim(onboardingData.invitation_token, user.sub);
+
         // On success, clear the sessionStorage to prevent re-use
         sessionStorage.removeItem('sho_invitation');
       } catch (error) {
-        console.error("Failed to claim invitation:", error);
+        console.error("Failed to link learners or claim invitation:", error);
         // Decide if you want to block the user or show an error
       }
     }
@@ -41,24 +48,28 @@ export default function OnboardingFlow({ user }) {
 
     switch (currentStep) {
       case 'PROFILE_SETUP':
-        return <ProfileSetup
-          onComplete={(data) => completeStep(currentStep, data)}
-          prefillData={{ phone: onboardingData.parent_phone }}
-          isLocked={isLocked}
-        />;
+        return (
+          <>
+            {onboardingData.learners && (
+              <div className="mb-6">
+                <LearnerSelection learners={onboardingData.learners} schoolName={onboardingData.school_name} />
+              </div>
+            )}
+            <ProfileSetup
+              onComplete={(data) => completeStep(currentStep, data)}
+              prefillData={{ phone: onboardingData.parent_phone }}
+              isLocked={isLocked}
+            />
+          </>
+        );
       case 'LINK_LEARNERS':
-        if (hasLearnerPrefill) {
-          return <ConfirmLearner
-            onComplete={() => completeStep(currentStep, {})}
-            prefillData={{
-              learner_name: onboardingData.learner_name,
-              school_name: onboardingData.school_name,
-            }}
-          />;
+        // This step is now handled by the automatic linking process
+        // We can skip this step if the user has an invitation
+        if (hasInvitation) {
+          completeStep(currentStep, {});
+          return null;
         }
-        return <LinkLearners
-          onComplete={(data) => completeStep(currentStep, data)}
-        />;
+        return <LinkLearners onComplete={(data) => completeStep(currentStep, data)} />;
       case 'TERMS_ACCEPTANCE':
         return <TermsAcceptance onComplete={handleFinalStepComplete} />;
       case 'IDENTITY_VERIFICATION':

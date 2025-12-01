@@ -60,4 +60,9 @@ export class ParentAPI {
     const responseSchema = z.object({ success: z.boolean() });
     return await apiClient.post(`/parents/${userId}/learners/link`, { learnerId }, responseSchema);
   }
+
+  static async linkLearners(invitation_token: string, phone_number: string): Promise<{ success: boolean; linked_learners: number }> {
+    const responseSchema = z.object({ success: z.boolean(), linked_learners: z.number() });
+    return await apiClient.post('/parent/link-learners', { invitation_token, phone_number }, responseSchema);
+  }
 }

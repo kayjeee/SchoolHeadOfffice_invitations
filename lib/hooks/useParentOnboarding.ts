@@ -32,7 +32,7 @@ interface InvitationData {
     school_slug?: string;
     school_name?: string;
     parent_phone?: string;
-    learner_name?: string;
+    learners?: { id: string; name: string; grade?: string }[];
 }
 
 interface UseParentOnboardingProps {
@@ -80,7 +80,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
       setOnboardingData(prev => ({
         ...prev,
         parent_phone: invitationPrefill.parent_phone || prev.parent_phone,
-        learner_name: invitationPrefill.learner_name || prev.learner_name,
+        learners: invitationPrefill.learners || prev.learners,
         school_slug: invitationPrefill.school_slug || prev.school_slug,
         school_name: invitationPrefill.school_name || prev.school_name,
         invitation_id: invitationPrefill.id,
