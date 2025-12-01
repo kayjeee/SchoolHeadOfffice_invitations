@@ -4,22 +4,32 @@ import { z } from 'zod';
 // Define the schema for the expected API response
 const InvitationDataSchema = z.object({
   success: z.boolean(),
-  message: z.string(),
+  message: z.string().optional(),
+  parent_phone: z.string().optional(),
+  learners: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    grade: z.string().optional(),
+  })).optional(),
+  school: z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+  }).optional(),
 });
 
 type InvitationData = z.infer<typeof InvitationDataSchema>;
 
 export class InvitationService {
   static async verifyToken(token: string): Promise<InvitationData> {
-    const internalApiUrl = 'http://localhost:4000/api/v1';
+    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
-    const response = await fetch(`${internalApiUrl}/invitations/verify`, {
-      method: 'POST',
+    const response = await fetch(`${internalApiUrl}/invitations/${token}/verify_with_details`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         // Add any necessary authentication headers for the internal API
       },
-      body: JSON.stringify({ token }),
     });
 
     if (!response.ok) {
@@ -40,7 +50,7 @@ export class InvitationService {
   }
 
   static async claim(token: string, userId: string): Promise<{ success: boolean }> {
-    const internalApiUrl = 'http://localhost:4000/api/v1';
+    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
     const response = await fetch(`${internalApiUrl}/invitations/claim`, {
       method: 'POST',
