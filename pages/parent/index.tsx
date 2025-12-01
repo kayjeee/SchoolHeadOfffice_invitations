@@ -213,86 +213,94 @@ export default function ParentPage({
     }
   }, [invitationData, setInvitationPrefill]);
 
-  // Render error screens early
-  if (serverError || clientError) {
-    return (
-      <>
-        <SEOHead title="Parent Portal" />
-        <div className="min-h-screen flex items-center justify-center p-6">
-          <div className="max-w-lg text-center bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">{serverError || clientError}</p>
-            <p className="text-sm text-gray-500">If this continues, please contact support.</p>
+  // 🧭 Main rendering logic - FIXED VERSION
+  // ALL content paths go through the layout wrapper
+  const renderContent = () => {
+    // Early returns for error and loading states - NO LAYOUT
+    if (serverError || clientError) {
+      return (
+        <>
+          <SEOHead title="Parent Portal" />
+          <div className="min-h-screen flex items-center justify-center p-6">
+            <div className="max-w-lg text-center bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+              <p className="text-gray-600 mb-4">{serverError || clientError}</p>
+              <p className="text-sm text-gray-500">If this continues, please contact support.</p>
+            </div>
           </div>
-        </div>
-      </>
-    );
-  }
+        </>
+      );
+    }
 
-  if (isLoading) {
-    return <LoadingScreen message="Loading parent portal..." />;
-  }
+    if (isLoading) {
+      return <LoadingScreen message="Loading parent portal..." />;
+    }
 
-  // Not authenticated → show AuthGate which will preserve token/school in returnTo
-  if (!user) {
-    // Build a returnTo that keeps token & school so Auth0 returns with them
-    const returnTo = invitationToken
-      ? `/parent?token=${encodeURIComponent(invitationToken)}${school ? `&school=${encodeURIComponent(school)}` : ""}`
-      : "/parent";
+    // Determine inner content based on state
+    let innerContent;
+    let pageTitle = "Parent Portal";
+
+    if (!user) {
+      // Not authenticated → show AuthGate (NO LAYOUT)
+      const returnTo = invitationToken
+        ? `/parent?token=${encodeURIComponent(invitationToken)}${school ? `&school=${encodeURIComponent(school)}` : ""}`
+        : "/parent";
+
+      return (
+        <>
+          <SEOHead title="Parent Portal Login" />
+          <AuthGate
+            invitationData={
+              invitationData
+                ? {
+                    ...invitationData,
+                    token: invitationToken,
+                  }
+                : undefined
+            }
+            returnTo={returnTo}
+          />
+        </>
+      );
+    }
+
+    if (!isOnboardingComplete) {
+      // Onboarding flow
+      innerContent = <OnboardingFlow user={user} />;
+      pageTitle = "Complete Your Registration";
+    } else {
+      // Fully onboarded → show dashboard
+      innerContent = <ParentDashboard user={user} profile={profile} learners={learners} />;
+      pageTitle = `${profile?.first_name || "Parent"}'s Dashboard`;
+    }
+
+    // ✅ ALWAYS wrap authenticated content with layout
+    const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
+
+    // Optional: Add debugging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Layout Debug Info:', {
+        isMobile,
+        selectedLayout: isMobile ? 'Mobile' : 'Desktop',
+        hasLayoutComponent: !!LayoutComponent,
+        user: user?.email,
+        profile: profile?.first_name,
+        isOnboardingComplete
+      });
+    }
 
     return (
-      <>
-        <SEOHead title="Parent Portal Login" />
-        <AuthGate
-          invitationData={
-            invitationData
-              ? {
-                  ...invitationData,
-                  token: invitationToken,
-                }
-              : undefined
-          }
-          // pass returnTo string — AuthGate will encode it
-          returnTo={returnTo}
-        />
-      </>
+      <ErrorBoundary>
+        <LayoutComponent user={user} userRoles={["parent"]}>
+          <SEOHead title={pageTitle} />
+          {innerContent}
+        </LayoutComponent>
+      </ErrorBoundary>
     );
-  }
+  };
 
-  // Authenticated but onboarding not complete -> show onboarding flow
-  if (!isOnboardingComplete) {
-    // Ensure onboarding flow has the invitation data (read from storage if necessary inside the flow)
-    return (
-      <>
-        <SEOHead title="Complete Your Registration" />
-        <OnboardingFlow user={user} />
-      </>
-    );
-  }
-
-  // ✅ FIXED: Properly select layout component with debugging
-  const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
-
-  // Optional: Add debugging in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Layout Debug Info:', {
-      isMobile,
-      selectedLayout: isMobile ? 'Mobile' : 'Desktop',
-      hasLayoutComponent: !!LayoutComponent,
-      user: user?.email,
-      profile: profile?.first_name
-    });
-  }
-
-  // fully onboarded -> show dashboard
-  return (
-    <ErrorBoundary>
-      <LayoutComponent user={user} userRoles={["parent"]}>
-        <SEOHead title={`${profile?.first_name || "Parent"}'s Dashboard`} />
-        <ParentDashboard user={user} profile={profile} learners={learners} />
-      </LayoutComponent>
-    </ErrorBoundary>
-  );
+  // Simple return - all logic in renderContent
+  return renderContent();
 }
 
 // -----------------------
