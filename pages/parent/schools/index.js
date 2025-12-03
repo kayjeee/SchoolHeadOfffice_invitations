@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import clientPromise from '../../lib/mongodb';
-import { AuthProvider } from '../../components/context/AuthContext';
-import { useSelectedSchools } from '../../components/hooks/useSelectedSchools';
-import PersonalSchoolLayout from '../../components/PersonalSchoolLayout/PersonalSchoolLayout';
-import PersonalSchoolLayoutMobile from '../../components/PersonalSchoolLayout/PersonalSchoolLayoutMobile';
-import SchoolSelection from '../../components/PersonalSchools/SchoolSelection';
-import MobileSchoolSelection from '../../components/PersonalSchools/MobileSchoolSelection';
-import SelectedSchoolsScreen from '../../components/PersonalSchools/SelectedSchoolsScreen';
-import LoginUserModal from '../../components/UserLogin/LoginUserModal';
-import { useApp } from '../../components/redux/useApp';
+import clientPromise from '../../../lib/mongodb';
+import { AuthProvider } from '../../../components/context/AuthContext';
+import { useSelectedSchools } from '../../../components/hooks/useSelectedSchools';
+import PersonalSchoolLayout from '../../../components/parent/schools/PersonalSchoolLayout';
+import PersonalSchoolLayoutMobile from '../../../components/parent/schools/PersonalSchoolLayoutMobile';
+import SchoolSelection from '../../../components/parent/schools/SchoolSelection';
+import MobileSchoolSelection from '../../../components/parent/schools/MobileSchoolSelection';
+import SelectedSchoolsScreen from '../../../components/parent/schools/SelectedSchoolsScreen';
+import LoginUserModal from '../../../components/auth/LoginUserModal';
+import { useApp } from '../../../components/redux/useApp';
 
 export default function Schools({ schools }) {
   const router = useRouter();
