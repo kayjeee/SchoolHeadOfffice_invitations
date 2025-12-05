@@ -24,7 +24,9 @@ const ParentProfileSchema = z.object({
   avatar_url: z.string().url().optional(),
 });
 
-const ParentProfileUpdateSchema = ParentProfileSchema.omit({ id: true, user_id: true }).partial();
+const ParentProfileUpdateSchema = ParentProfileSchema.omit({ id: true, user_id: true }).partial().extend({
+  invitation_token: z.string().optional(),
+});
 
 export type Learner = z.infer<typeof LearnerSchema>;
 export type ParentProfile = z.infer<typeof ParentProfileSchema>;

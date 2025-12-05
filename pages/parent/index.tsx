@@ -48,7 +48,7 @@ interface InvitationData {
   school_slug?: string;
   school_name?: string;
   parent_phone?: string;
-  learner_name?: string;
+  learners?: { id: string; name: string; grade?: string }[];
   [key: string]: any;
 }
 
@@ -77,42 +77,38 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
     try {
       // Verify token and fetch invitation payload
       const verifiedInvitation = await InvitationService.verifyToken(token);
-      let invitationData: any = null;
 
       if (verifiedInvitation.success) {
-        // Create a new object that conforms to the InvitationData interface
-        invitationData = {
+        const invitationData = {
           token: token,
-          school_slug: school || undefined,
+          ...verifiedInvitation,
         };
 
         // If user is already authenticated, link invitation immediately
         if (session?.user) {
-          // Since we don't have an invitation ID, we can't link it.
-          // We can proceed to the onboarding flow directly.
           // Redirect to same page with start_onboarding to trigger client onboarding flow
           return {
             redirect: {
               destination: `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(
-                invitationData.school_slug || school || ""
+                school || ""
               )}&start_onboarding=true`,
               permanent: false,
             },
           };
         }
+
+        // Not logged in: show AuthGate + pass invitation data to client
+        return {
+          props: {
+            invitationToken: token,
+            invitationData,
+            school: school || null,
+          },
+        };
       } else {
         // If verification fails, throw an error to trigger the catch block
         throw new Error("Invitation verification failed as per API response.");
       }
-
-      // Not logged in: show AuthGate + pass invitation data to client
-      return {
-        props: {
-          invitationToken: token,
-          invitationData,
-          school: invitationData.school_slug || school || null,
-        },
-      };
     } catch (err) {
       console.error("Invitation verification failed:", err);
       return {
@@ -179,6 +175,7 @@ export default function ParentPage({
   } = useParentOnboarding({
     initialProfile,
     initialLearners,
+    invitationData,
   });
 
   // Persist invitationData to sessionStorage so it survives client navigations/refreshes
@@ -186,18 +183,11 @@ export default function ParentPage({
   useEffect(() => {
     try {
       if (invitationData) {
-        // store a minimal safe payload (avoid storing secrets)
-        const safe = {
-          token: invitationData.token,
-          school_slug: invitationData.school_slug,
-        };
-        sessionStorage.setItem("sho_invitation", JSON.stringify(safe));
-        // optionally set into onboarding state immediately if hook exposes setter
+        sessionStorage.setItem("sho_invitation", JSON.stringify(invitationData));
         if (typeof setInvitationPrefill === "function") {
-          setInvitationPrefill(safe);
+          setInvitationPrefill(invitationData);
         }
       } else {
-        // If not passed down, try to read from storage (useful after redirect + auth)
         const raw = sessionStorage.getItem("sho_invitation");
         if (raw) {
           const parsed = JSON.parse(raw);
@@ -207,8 +197,6 @@ export default function ParentPage({
         }
       }
     } catch (err) {
-      // no-op - sessionStorage might be unavailable in SSR contexts
-      // We swallow errors to avoid breaking render.
       console.debug("invitation storage error", err);
     }
   }, [invitationData, setInvitationPrefill]);
@@ -266,7 +254,7 @@ export default function ParentPage({
 
     if (!isOnboardingComplete) {
       // Onboarding flow
-      innerContent = <OnboardingFlow user={user} />;
+      innerContent = <OnboardingFlow user={user} invitationData={invitationData} />;
       pageTitle = "Complete Your Registration";
     } else {
       // Fully onboarded → show dashboard

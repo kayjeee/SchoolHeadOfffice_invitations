@@ -44,26 +44,26 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">First Name</label>
-            <input {...register('first_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input {...register('first_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
             {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Last Name</label>
-            <input {...register('last_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input {...register('last_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
             {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Phone Number</label>
             <input
               {...register('phone')}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100 text-black"
               disabled={isLocked}
             />
             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input {...register('email')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <input {...register('email')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
         </div>
