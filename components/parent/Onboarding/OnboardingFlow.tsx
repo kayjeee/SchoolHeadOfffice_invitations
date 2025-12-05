@@ -7,7 +7,7 @@ import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
-import ConfirmLearner from './steps/ConfirmLearner';
+import ConfirmLearners from './steps/ConfirmLearners';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
@@ -27,8 +27,12 @@ export default function OnboardingFlow({ user }) {
   const handleFinalStepComplete = async (data) => {
     if (hasInvitation) {
       try {
-        // First, link the learners
-        await ParentAPI.linkLearners(onboardingData.invitation_token, onboardingData.parent_phone);
+        // Add invitation token to the profile data
+        const profileData = {
+          ...onboardingData.PROFILE_SETUP,
+          invitation_token: onboardingData.invitation_token,
+        };
+        await completeStep('PROFILE_SETUP', profileData);
 
         // Then, claim the invitation
         await InvitationService.claim(onboardingData.invitation_token, user.sub);
@@ -49,25 +53,26 @@ export default function OnboardingFlow({ user }) {
     switch (currentStep) {
       case 'PROFILE_SETUP':
         return (
-          <>
-            {onboardingData.learners && (
-              <div className="mb-6">
-                <LearnerSelection learners={onboardingData.learners} schoolName={onboardingData.school_name} />
-              </div>
-            )}
-            <ProfileSetup
-              onComplete={(data) => completeStep(currentStep, data)}
-              prefillData={{ phone: onboardingData.parent_phone }}
-              isLocked={isLocked}
-            />
-          </>
+          <ProfileSetup
+            onComplete={(data) => completeStep(currentStep, data)}
+            prefillData={{ phone: onboardingData.parent_phone }}
+            isLocked={isLocked}
+          />
         );
       case 'LINK_LEARNERS':
-        // This step is now handled by the automatic linking process
-        // We can skip this step if the user has an invitation
         if (hasInvitation) {
-          completeStep(currentStep, {});
-          return null;
+          return (
+            <ConfirmLearners
+              learners={onboardingData.learners || []}
+              onConfirm={() => completeStep(currentStep, { confirmed: true })}
+              onReject={() => {
+                // Handle rejection - maybe show a message to contact the school
+                // For now, we'll just log it and move on
+                console.warn("User rejected the learner list.");
+                completeStep(currentStep, { confirmed: false });
+              }}
+            />
+          );
         }
         return <LinkLearners onComplete={(data) => completeStep(currentStep, data)} />;
       case 'TERMS_ACCEPTANCE':

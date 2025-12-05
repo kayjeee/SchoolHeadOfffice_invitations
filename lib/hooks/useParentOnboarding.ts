@@ -38,19 +38,20 @@ interface InvitationData {
 interface UseParentOnboardingProps {
   initialProfile?: ParentProfile | null;
   initialLearners?: Learner[];
+  invitationData?: InvitationData | null;
 }
 
 // ========================
 // STATE MACHINE HOOK
 // ========================
 
-export function useParentOnboarding({ initialProfile, initialLearners = [] }: UseParentOnboardingProps) {
+export function useParentOnboarding({ initialProfile, initialLearners = [], invitationData }: UseParentOnboardingProps) {
   const { user, isLoading: isAuthLoading } = useUser();
   const queryClient = useQueryClient();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
-  const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(null);
+  const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData);
   const [error, setError] = useState<string | null>(null);
 
   // ========================
@@ -63,16 +64,18 @@ export function useParentOnboarding({ initialProfile, initialLearners = [] }: Us
 
   useEffect(() => {
     // On init, check sessionStorage for invitation data and load it.
-    try {
-      const raw = sessionStorage.getItem("sho_invitation");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setInvitationPrefill(parsed);
+    if (!invitationPrefill) {
+      try {
+        const raw = sessionStorage.getItem("sho_invitation");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setInvitationPrefill(parsed);
+        }
+      } catch (err) {
+        console.warn("Could not read invitation from sessionStorage:", err);
       }
-    } catch (err) {
-      console.warn("Could not read invitation from sessionStorage:", err);
     }
-  }, [setInvitationPrefill]);
+  }, [invitationPrefill, setInvitationPrefill]);
 
   useEffect(() => {
     // When prefill data is available, merge it into the main onboarding state

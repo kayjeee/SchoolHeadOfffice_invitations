@@ -48,7 +48,7 @@ interface InvitationData {
   school_slug?: string;
   school_name?: string;
   parent_phone?: string;
-  learner_name?: string;
+  learners?: { id: string; name: string; grade?: string }[];
   [key: string]: any;
 }
 
@@ -77,42 +77,38 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
     try {
       // Verify token and fetch invitation payload
       const verifiedInvitation = await InvitationService.verifyToken(token);
-      let invitationData: any = null;
 
       if (verifiedInvitation.success) {
-        // Create a new object that conforms to the InvitationData interface
-        invitationData = {
+        const invitationData = {
           token: token,
-          school_slug: school || undefined,
+          ...verifiedInvitation,
         };
 
         // If user is already authenticated, link invitation immediately
         if (session?.user) {
-          // Since we don't have an invitation ID, we can't link it.
-          // We can proceed to the onboarding flow directly.
           // Redirect to same page with start_onboarding to trigger client onboarding flow
           return {
             redirect: {
               destination: `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(
-                invitationData.school_slug || school || ""
+                school || ""
               )}&start_onboarding=true`,
               permanent: false,
             },
           };
         }
+
+        // Not logged in: show AuthGate + pass invitation data to client
+        return {
+          props: {
+            invitationToken: token,
+            invitationData,
+            school: school || null,
+          },
+        };
       } else {
         // If verification fails, throw an error to trigger the catch block
         throw new Error("Invitation verification failed as per API response.");
       }
-
-      // Not logged in: show AuthGate + pass invitation data to client
-      return {
-        props: {
-          invitationToken: token,
-          invitationData,
-          school: invitationData.school_slug || school || null,
-        },
-      };
     } catch (err) {
       console.error("Invitation verification failed:", err);
       return {
