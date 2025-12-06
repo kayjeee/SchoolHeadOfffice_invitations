@@ -11,6 +11,7 @@ import { useAudienceData } from './hooks/useAudienceData';
 import { WhatsAppTesterSection } from './WhatsAppTesterSection';
 import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
 import WhatsAppBusinessService from './services/WhatsappBusinessService';
+import { EmailModalContent } from './EmailModalContent';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
   channel,
@@ -719,7 +720,15 @@ Click here to join: ${schoolLink}`;
         </div>
 
         {/* Enhanced WhatsApp Content with Bulk Send */}
-        {renderWhatsAppContent()}
+        {channel.id === 'whatsapp' && renderWhatsAppContent()}
+        {channel.id === 'email' && (
+          <EmailModalContent
+            learners={learners}
+            grades={grades}
+            schoolId={schoolId}
+            schoolName={schoolName}
+          />
+        )}
 
         {/* School Information */}
         <div className="bg-gray-50 rounded-lg p-4">
