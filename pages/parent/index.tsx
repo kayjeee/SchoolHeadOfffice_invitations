@@ -80,6 +80,7 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
 
       if (verifiedInvitation.success) {
         const invitationData = {
+          id: token,
           token: token,
           ...verifiedInvitation,
         };

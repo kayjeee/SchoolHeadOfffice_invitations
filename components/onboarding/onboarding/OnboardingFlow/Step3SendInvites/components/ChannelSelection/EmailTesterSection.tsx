@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { School } from '../../../types';
+import { School } from './types/channel';
 
 interface EmailTesterSectionProps {
   testEmail: string;

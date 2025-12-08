@@ -54,3 +54,10 @@ export interface ChannelModalProps {
   selectedLearners: Learner[]; // NEW: Add selected learners
   school: any; // Add school prop for API calls
 }
+
+export interface ScheduleData {
+  message: string;
+  subject: string;
+  scheduledAt: string;
+  timezone: string;
+}
