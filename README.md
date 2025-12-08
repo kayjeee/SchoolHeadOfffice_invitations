@@ -1,6 +1,6 @@
 # Parent Onboarding Enhancement - Technical Overview
 
-## Problem Statement
+## Problem Statement ok
 
 The current parent onboarding system has critical gaps that create friction in the user experience:
 

@@ -72,7 +72,7 @@ class WhatsAppBusinessService {
 
   private buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
     const encodedSchoolName = encodeURIComponent(schoolName);
-    return `https://www.schoolheadoffice.com/parent?token=${token}&school=${encodedSchoolName}`;
+    return `?token=${token}&school=${encodedSchoolName}`;
   }
 
   async createInvitation({ phoneNumber, schoolId, userEmail }: InvitationParams): Promise<string> {

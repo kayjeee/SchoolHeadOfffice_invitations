@@ -1,5 +1,4 @@
-
-import React, 'react';
+import { useState } from 'react';
 import { ScheduleData } from './types/channel';
 
 interface EmailSchedulerProps {
@@ -17,14 +16,17 @@ export const EmailScheduler: React.FC<EmailSchedulerProps> = ({
   subject,
   totalRecipients,
 }) => {
-  const [scheduledAt, setScheduledAt] = React.useState('');
-  const [timezone, setTimezone] = React.useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [timezone, setTimezone] = useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
 
   const handleSchedule = () => {
     if (!scheduledAt) {
       alert('Please select a date and time to schedule the message.');
       return;
     }
+
     onSchedule({ message: messageContent, subject, scheduledAt, timezone });
   };
 
@@ -47,7 +49,8 @@ export const EmailScheduler: React.FC<EmailSchedulerProps> = ({
             id="scheduled-at"
             value={scheduledAt}
             onChange={(e) => setScheduledAt(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+              focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
         </div>
 
@@ -59,9 +62,9 @@ export const EmailScheduler: React.FC<EmailSchedulerProps> = ({
             type="text"
             id="timezone"
             value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm"
             readOnly
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+              bg-gray-100 sm:text-sm"
           />
         </div>
       </div>
@@ -69,7 +72,9 @@ export const EmailScheduler: React.FC<EmailSchedulerProps> = ({
       <button
         onClick={handleSchedule}
         disabled={isScheduling || totalRecipients === 0}
-        className="w-full px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+        className="w-full px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent 
+          rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 
+          focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
       >
         {isScheduling ? 'Scheduling...' : `Schedule for ${totalRecipients} Recipients`}
       </button>
