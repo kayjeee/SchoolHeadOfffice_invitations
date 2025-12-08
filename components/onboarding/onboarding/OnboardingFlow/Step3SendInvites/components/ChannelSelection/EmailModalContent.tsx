@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Grade, Learner } from '../../../types';
+import { Grade, Learner } from '../../types';
 import { EmailTesterSection } from './EmailTesterSection';
 import { EmailScheduler } from './EmailScheduler';
 import EmailService from './services/EmailService';
