@@ -37,7 +37,7 @@
     "install": "^0.13.0",
     "lucide-react": "^0.526.0",
     "mongodb": "^6.3.0",
-    "next": "latest",
+    "next": "15.0.5",
     "nodemailer": "^6.9.16",
     "npm": "^11.5.2",
     "qrcode.react": "^4.2.0",
