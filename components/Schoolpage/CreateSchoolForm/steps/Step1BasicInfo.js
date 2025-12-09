@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import useColorMode from "../hooks/useColorMode";
-import { getBackgroundColor, getHoverColor } from "../utils/colorUtils";
+import { lightenColor } from "../utils/colorUtils";
 
 const THEME_PRESETS = [
   { mode: "blue", value: "#1E40AF", name: "Sky Blue" },
@@ -38,10 +38,10 @@ const Step1BasicInfo = ({
 
   const { previewBg, previewHover } = useMemo(
     () => ({
-      previewBg: getBackgroundColor(colorMode, customColor),
-      previewHover: getHoverColor(colorMode, customColor),
+      previewBg: customColor,
+      previewHover: lightenColor(customColor, 20),
     }),
-    [colorMode, customColor]
+    [customColor]
   );
 
   const validateForm = () => {
@@ -255,15 +255,15 @@ const Step1BasicInfo = ({
                   </span>
                   .
                 </p>
-                
+
                 <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
                   {/* Logo Preview */}
                   {logoPreview ? (
                     <div className="mb-4 text-center">
                       <div className="relative inline-block">
-                        <img 
-                          src={logoPreview} 
-                          alt="School logo preview" 
+                        <img
+                          src={logoPreview}
+                          alt="School logo preview"
                           className="w-32 h-32 object-contain rounded-lg border-2 border-gray-300 mx-auto"
                         />
                         <button
@@ -309,7 +309,7 @@ const Step1BasicInfo = ({
                       className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors duration-200 font-medium text-sm"
                     >
                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3> 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                       {logoPreview ? 'Change Logo' : 'Upload Logo'}
                     </label>
