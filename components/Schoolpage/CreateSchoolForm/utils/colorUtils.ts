@@ -222,5 +222,14 @@ export const generateColorPalette = (baseColor: string): ColorPalette | null => 
     };
   }
 };
+export const lightenColor = (hex: string, percent: number): string | null => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
 
+  const [r, g, b] = rgb.map(c => {
+    const newColor = c + (255 - c) * (percent / 100);
+    return Math.round(Math.min(255, newColor));
+  });
 
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+};
