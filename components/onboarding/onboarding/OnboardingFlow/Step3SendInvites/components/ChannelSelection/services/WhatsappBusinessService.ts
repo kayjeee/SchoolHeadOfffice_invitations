@@ -71,7 +71,12 @@ class WhatsAppBusinessService {
   }
 
   private buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
-    const encodedSchoolName = encodeURIComponent(schoolName);
+    // Add a validation check
+    if (!schoolName || schoolName.trim() === '') {
+      // Throw an error or use a clear default. Throwing an error helps debug.
+      throw new Error('schoolName is required to build the magic link');
+    }
+    const encodedSchoolName = encodeURIComponent(schoolName.trim());
     return `?token=${token}&school=${encodedSchoolName}`;
   }
 
