@@ -7,6 +7,12 @@ export default async function handler(req, res) {
   if (!to || !magicLink) {
     return res.status(400).json({ error: "Phone number and magicLink are required" });
   }
+  // ADD THIS CHECK
+  if (magicLink.includes('school=undefined')) {
+    return res.status(400).json({
+      error: "Invalid magicLink: school parameter is undefined. Check frontend service."
+    });
+  }
 
   const formattedNumber = to.replace(/\D/g, "");
   const whatsappUrl = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;

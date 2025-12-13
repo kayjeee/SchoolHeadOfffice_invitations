@@ -34,7 +34,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   user,
   schools,
 }) => {
-  const targetSchool = school || schools?.[0];
+  const targetSchool = schools?.[0] || school;
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
   const schoolId = targetSchool?.id || targetSchool?._id;
 
