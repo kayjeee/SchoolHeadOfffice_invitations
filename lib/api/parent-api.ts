@@ -7,7 +7,7 @@ import { apiClient, APIError } from './api-client';
 // ========================
 
 const LearnerSchema = z.object({
-  id: z.string(),
+  learner_number: z.string(),
   first_name: z.string(),
   last_name: z.string(),
   grade: z.string(),
@@ -55,16 +55,11 @@ export class ParentAPI {
 
   static async getLearners(userId: string): Promise<Learner[]> {
     const LearnersArraySchema = z.array(LearnerSchema);
-    return await apiClient.get(`/parents/${userId}/learners`, LearnersArraySchema);
+    return await apiClient.get(`/my_learners`, LearnersArraySchema);
   }
 
-  static async linkLearner(userId: string, learnerId: string): Promise<{ success: boolean }> {
+  static async linkLearner(userId: string, learner_number: string): Promise<{ success: boolean }> {
     const responseSchema = z.object({ success: z.boolean() });
-    return await apiClient.post(`/parents/${userId}/learners/link`, { learnerId }, responseSchema);
-  }
-
-  static async linkLearners(invitation_token: string, phone_number: string): Promise<{ success: boolean; linked_learners: number }> {
-    const responseSchema = z.object({ success: z.boolean(), linked_learners: z.number() });
-    return await apiClient.post('/parent/link-learners', { invitation_token, phone_number }, responseSchema);
+    return await apiClient.post(`/learners/link`, { learner_number }, responseSchema);
   }
 }

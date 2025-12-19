@@ -3,7 +3,7 @@ import React from 'react';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 
 interface Learner {
-  id: string;
+  learner_number: string;
   name: string;
   grade?: string;
 }
@@ -19,7 +19,7 @@ export default function LearnerSelection({ learners, schoolName }: LearnerSelect
       <h2 className="text-xl font-semibold mb-4">Your children at {schoolName}:</h2>
       <ul className="space-y-4">
         {learners.map((learner) => (
-          <li key={learner.id} className="flex items-center">
+          <li key={learner.learner_number} className="flex items-center">
             <CheckCircleIcon className="h-6 w-6 text-green-500 mr-3" />
             <div>
               <p className="font-semibold">{learner.name}</p>
@@ -28,9 +28,6 @@ export default function LearnerSelection({ learners, schoolName }: LearnerSelect
           </li>
         ))}
       </ul>
-      <p className="mt-6 text-sm text-gray-600">
-        These children will be linked to your account automatically after you complete your profile.
-      </p>
     </div>
   );
 }
