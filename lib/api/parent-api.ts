@@ -55,10 +55,10 @@ export class ParentAPI {
 
   static async getLearners(userId: string): Promise<Learner[]> {
     const LearnersArraySchema = z.array(LearnerSchema);
-    return await apiClient.get(`/my_learners`, LearnersArraySchema);
+    return await apiClient.get(`/parents/${userId}/my_learners`, LearnersArraySchema);
   }
 
-  static async linkLearner(userId: string, learner_number: string): Promise<{ success: boolean }> {
+  static async linkLearner(learner_number: string): Promise<{ success: boolean }> {
     const responseSchema = z.object({ success: z.boolean() });
     return await apiClient.post(`/learners/link`, { learner_number }, responseSchema);
   }

@@ -24,7 +24,7 @@ export default function OnboardingFlow({ user, invitationData }) {
 
   const handleLinkLearner = async (data) => {
     try {
-      await ParentAPI.linkLearner(user.sub, data.learner_number);
+      await ParentAPI.linkLearner(data.learner_number);
       completeStep('LINK_LEARNERS', data);
     } catch (error) {
       console.error("Failed to link learner:", error);
