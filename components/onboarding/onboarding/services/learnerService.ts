@@ -39,7 +39,7 @@ class LearnerService {
    * Get learners by school ID
    */
   async getLearnersBySchool(
-    schoolId: string,
+    schoolId: any,
     params?: {
       page?: number;
       limit?: number;
@@ -47,8 +47,9 @@ class LearnerService {
       search?: string;
     }
   ): Promise<Learner[]> {
+    const id = schoolId?.$oid || schoolId?.id || schoolId;
     const queryParams = new URLSearchParams();
-    queryParams.append('school_id', schoolId);
+    queryParams.append('school_id', id);
 
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());

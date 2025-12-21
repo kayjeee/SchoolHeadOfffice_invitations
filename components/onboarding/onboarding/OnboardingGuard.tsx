@@ -282,7 +282,7 @@ export const OnboardingGuard = ({
   }
 
   return (
-    <OnboardingFlowProvider schools={schools}>
+    <OnboardingFlowProvider schools={schools} user={user}>
       <OnboardingContent
         user={user}
         schools={schools}

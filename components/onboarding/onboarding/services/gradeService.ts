@@ -37,9 +37,10 @@ class GradeService {
   /**
    * Get grades by school ID
    */
-  async getGradesBySchool(schoolId: string, params?: { includeLearners?: boolean; activeOnly?: boolean }): Promise<Grade[]> {
+  async getGradesBySchool(schoolId: any, params?: { includeLearners?: boolean; activeOnly?: boolean }): Promise<Grade[]> {
+    const id = schoolId?.$oid || schoolId?.id || schoolId;
     const queryParams = new URLSearchParams();
-    queryParams.append('school_id', schoolId);
+    queryParams.append('school_id', id);
     
     if (params?.includeLearners) queryParams.append('include_learners', 'true');
     if (params?.activeOnly) queryParams.append('active_only', 'true');
