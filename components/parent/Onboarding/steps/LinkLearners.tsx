@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const linkLearnerSchema = z.object({
-  learnerId: z.string().min(6, 'Invalid Learner ID'),
+  learner_number: z.string().min(6, 'Invalid Learner Number'),
 });
 
 type LinkLearnerFormData = z.infer<typeof linkLearnerSchema>;
@@ -28,9 +28,9 @@ export default function LinkLearners({ onComplete }: LinkLearnersProps) {
       <h3 className="text-xl font-bold mb-4">Link Your Learners</h3>
       <form onSubmit={handleSubmit(onComplete)}>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Learner ID</label>
-          <input {...register('learnerId')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-          {errors.learnerId && <p className="text-red-500 text-xs mt-1">{errors.learnerId.message}</p>}
+          <label className="block text-sm font-medium text-gray-700">Learner Number</label>
+          <input {...register('learner_number')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+          {errors.learner_number && <p className="text-red-500 text-xs mt-1">{errors.learner_number.message}</p>}
         </div>
         <div className="mt-6 text-right">
           <button
