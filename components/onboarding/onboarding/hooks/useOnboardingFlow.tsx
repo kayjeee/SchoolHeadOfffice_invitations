@@ -17,37 +17,46 @@ export const useOnboardingFlow = () => {
 // ----------------------
 // Internal Provider
 // ----------------------
-const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
+const InternalOnboardingFlowProvider = ({ children, schools = [], user }) => {
   const safeSchools = Array.isArray(schools) ? schools : [];
 
-  console.log("🏫 [OnboardingFlowProvider] Provider mounted with schools:", {
-    rawSchools: schools,
-    safeSchoolsCount: safeSchools.length,
-    schoolsType: typeof schools,
-    isArray: Array.isArray(schools),
-    isNull: schools === null,
-    isUndefined: schools === undefined,
+  const findPrimarySchool = () => {
+    if (!safeSchools || !safeSchools.length || !user) return undefined;
+
+    const userSchoolId =
+      user.school_id?._id?.$oid ||
+      user.school_id ||
+      user.school_ids?.[0]?._id?.$oid ||
+      user.school_ids?.[0];
+
+    const foundSchool = safeSchools.find(school => {
+      const schoolId =
+        school.id ||
+        school._id?.$oid ||
+        school._id;
+      return schoolId === userSchoolId;
+    });
+
+    return foundSchool ? {
+      id: foundSchool.id || foundSchool._id?.$oid || foundSchool._id,
+      name: foundSchool.name || foundSchool.schoolName,
+      ...foundSchool
+    } : undefined;
+  };
+
+  const primarySchool = findPrimarySchool();
+
+  console.log('🔍 School resolution debug:', {
+    userSchoolIds: user?.school_ids,
+    schoolsAvailable: safeSchools?.length,
+    schoolsFirst: safeSchools?.[0],
+    primarySchoolFound: primarySchool,
+    normalizedPrimarySchool: primarySchool ? {
+      id: primarySchool.id,
+      name: primarySchool.name,
+      originalId: primarySchool._id
+    } : 'NOT FOUND'
   });
-
-  // Detailed school logging
-  if (safeSchools.length > 0) {
-    console.log("📊 [OnboardingFlowProvider] SCHOOLS DETAILED ANALYSIS:");
-    safeSchools.forEach((school, index) => {
-      console.log(`🏫 School [${index}]:`, {
-        id: school?.id || school?._id || "No ID",
-        name: school?.name || "No name",
-        type: typeof school,
-        keys: school ? Object.keys(school) : "No school object",
-      });
-    });
-
-    const primarySchool = safeSchools[0];
-    console.log("🎯 [OnboardingFlowProvider] PRIMARY SCHOOL:", {
-      id: primarySchool?.id || primarySchool?._id,
-      name: primarySchool?.name,
-      fullObject: primarySchool,
-    });
-  }
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [onboardingData, setOnboardingData] = useState({});
@@ -58,7 +67,7 @@ const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
     console.log("➡️ goToNextStep called", {
       currentStepIndex,
       schoolsCount: safeSchools.length,
-      primarySchool: safeSchools[0]?.name,
+      primarySchool: primarySchool?.name,
     });
 
     if (currentStepIndex < STEPS.length - 1) {
@@ -72,7 +81,7 @@ const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
     console.log("⬅️ goToPreviousStep called", {
       currentStepIndex,
       schoolsCount: safeSchools.length,
-      primarySchool: safeSchools[0]?.name,
+      primarySchool: primarySchool?.name,
     });
 
     if (currentStepIndex > 0) {
@@ -118,8 +127,8 @@ const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
           ...data,
           schoolsContext: {
             schoolsCount: safeSchools.length,
-            primarySchoolId: safeSchools[0]?.id || safeSchools[0]?._id,
-            primarySchoolName: safeSchools[0]?.name,
+            primarySchoolId: primarySchool?.id,
+            primarySchoolName: primarySchool?.name,
             allSchools: safeSchools,
           },
         },
@@ -172,9 +181,9 @@ const InternalOnboardingFlowProvider = ({ children, schools = [] }) => {
     // Schools context
     schools: safeSchools,
     schoolsCount: safeSchools.length,
-    primarySchool: safeSchools[0],
-    primarySchoolName: safeSchools[0]?.name,
-    primarySchoolId: safeSchools[0]?.id || safeSchools[0]?._id,
+    primarySchool: primarySchool,
+    primarySchoolName: primarySchool?.name,
+    primarySchoolId: primarySchool?.id,
   };
 
   console.log("🔄 [OnboardingFlowProvider] Context value updated:", {
