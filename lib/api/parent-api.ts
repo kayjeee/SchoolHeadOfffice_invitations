@@ -7,6 +7,7 @@ import { apiClient, APIError } from './api-client';
 // ========================
 
 const LearnerSchema = z.object({
+  id: z.string(),
   learner_number: z.string(),
   first_name: z.string(),
   last_name: z.string(),
@@ -53,9 +54,9 @@ export class ParentAPI {
     return await apiClient.put(`/parents/${userId}/profile`, data, ParentProfileSchema);
   }
 
-  static async getLearners(userId: string): Promise<Learner[]> {
+  static async getLearners(): Promise<Learner[]> {
     const LearnersArraySchema = z.array(LearnerSchema);
-    return await apiClient.get(`/parents/${userId}/my_learners`, LearnersArraySchema);
+    return await apiClient.get(`/my_learners`, LearnersArraySchema);
   }
 
   static async linkLearner(learner_number: string): Promise<{ success: boolean }> {
