@@ -8,11 +8,18 @@ import { apiClient, APIError } from './api-client';
 
 const LearnerSchema = z.object({
   id: z.string(),
-  learner_number: z.string(),
   first_name: z.string(),
   last_name: z.string(),
-  grade: z.string(),
-  school_id: z.string(),
+  full_name: z.string(),
+  accession_number: z.string(),
+  school_name: z.string(),
+  grade_name: z.string(),
+  status: z.string(),
+});
+
+const GetLearnersResponseSchema = z.object({
+  learners: z.array(LearnerSchema),
+  learner_count: z.number(),
 });
 
 const ParentProfileSchema = z.object({
@@ -30,6 +37,7 @@ const ParentProfileUpdateSchema = ParentProfileSchema.omit({ id: true, user_id: 
 });
 
 export type Learner = z.infer<typeof LearnerSchema>;
+export type GetLearnersResponse = z.infer<typeof GetLearnersResponseSchema>;
 export type ParentProfile = z.infer<typeof ParentProfileSchema>;
 export type ParentProfileUpdate = z.infer<typeof ParentProfileUpdateSchema>;
 
@@ -54,9 +62,8 @@ export class ParentAPI {
     return await apiClient.put(`/parents/${userId}/profile`, data, ParentProfileSchema);
   }
 
-  static async getLearners(userId: string): Promise<Learner[]> {
-    const LearnersArraySchema = z.array(LearnerSchema);
-    return await apiClient.get(`/parents/${userId}/my_learners`, LearnersArraySchema);
+  static async getMyLearners(userId: string): Promise<GetLearnersResponse> {
+    return await apiClient.get(`/parents/${userId}/my_learners`, GetLearnersResponseSchema);
   }
 
   static async linkLearner(learner_number: string): Promise<{ success: boolean }> {
