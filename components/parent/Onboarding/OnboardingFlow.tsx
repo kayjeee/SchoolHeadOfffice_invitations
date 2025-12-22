@@ -7,6 +7,7 @@ import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
+import LearnerSelection from './steps/LearnerSelection';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
@@ -22,13 +23,8 @@ export default function OnboardingFlow({ user, invitationData }) {
 
   const hasInvitation = !!onboardingData.invitation_id;
 
-  const handleLinkLearner = async (data) => {
-    try {
-      await ParentAPI.linkLearner(data.learner_number);
-      completeStep('LINK_LEARNERS', data);
-    } catch (error) {
-      console.error("Failed to link learner:", error);
-    }
+  const handleLearnersConfirmed = (selectedLearnerIds: string[]) => {
+    completeStep('LINK_LEARNERS', { selectedLearnerIds });
   };
 
   const handleFinalStepComplete = async (data) => {
@@ -56,7 +52,7 @@ export default function OnboardingFlow({ user, invitationData }) {
           />
         );
       case 'LINK_LEARNERS':
-        return <LinkLearners onComplete={handleLinkLearner} />;
+        return <LearnerSelection onComplete={handleLearnersConfirmed} />;
       case 'TERMS_ACCEPTANCE':
         return <TermsAcceptance onComplete={handleFinalStepComplete} />;
       case 'IDENTITY_VERIFICATION':
