@@ -1,20 +1,23 @@
 // components/parent/Onboarding/OnboardingFlow.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
-import { ParentAPI } from '../../../lib/api/parent-api';
+import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationService } from '../../../lib/services/invitation.service';
 import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
-import LearnerSelection from './steps/LearnerSelection';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
-import { InformationCircleIcon } from '@heroicons/react/24/outline';
+import { InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function OnboardingFlow({ user, invitationData }) {
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
+  const [learners, setLearners] = useState<Learner[]>([]);
+  const [isLoadingLearners, setIsLoadingLearners] = useState(true);
+  const [fetchLearnersError, setFetchLearnersError] = useState<string | null>(null);
+
   const { completeStep, currentStep, progress, onboardingData } = useParentOnboarding({
     initialProfile: null,
     initialLearners: [],
@@ -23,9 +26,24 @@ export default function OnboardingFlow({ user, invitationData }) {
 
   const hasInvitation = !!onboardingData.invitation_id;
 
-  const handleLearnersConfirmed = (selectedLearnerIds: string[]) => {
-    completeStep('LINK_LEARNERS', { selectedLearnerIds });
+  const fetchLearners = async () => {
+    if (!user?.sub) return;
+    setIsLoadingLearners(true);
+    setFetchLearnersError(null);
+    try {
+      const response = await ParentAPI.getMyLearners(user.sub);
+      setLearners(response.learners);
+    } catch (error) {
+      console.error("Failed to fetch learners:", error);
+      setFetchLearnersError("We couldn't load your linked learners. Please try again later.");
+    } finally {
+      setIsLoadingLearners(false);
+    }
   };
+
+  useEffect(() => {
+    fetchLearners();
+  }, [user]);
 
   const handleFinalStepComplete = async (data) => {
     if (hasInvitation) {
@@ -52,7 +70,26 @@ export default function OnboardingFlow({ user, invitationData }) {
           />
         );
       case 'LINK_LEARNERS':
-        return <LearnerSelection onComplete={handleLearnersConfirmed} />;
+        if (isLoadingLearners) {
+          return <LoadingScreen message="Fetching your learners..." />;
+        }
+        if (fetchLearnersError) {
+          return (
+            <div className="text-center p-8 bg-white rounded-lg shadow-md">
+              <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-red-700">Error</h3>
+              <p className="text-gray-600 mt-2">{fetchLearnersError}</p>
+            </div>
+          );
+        }
+        return (
+          <LinkLearners
+            existingLearners={learners}
+            onLearnerLinked={fetchLearners}
+            onComplete={() => completeStep('LINK_LEARNERS')}
+            user={user}
+          />
+        );
       case 'TERMS_ACCEPTANCE':
         return <TermsAcceptance onComplete={handleFinalStepComplete} />;
       case 'IDENTITY_VERIFICATION':
