@@ -63,4 +63,9 @@ export class ParentAPI {
     const responseSchema = z.object({ success: z.boolean() });
     return await apiClient.post(`/learners/link`, { learner_number }, responseSchema);
   }
+
+  static async removeLearner(userId: string, learnerId: string): Promise<{ success: boolean }> {
+    const responseSchema = z.object({ success: z.boolean() });
+    return await apiClient.delete(`/parents/${userId}/my_learners/${learnerId}`, responseSchema);
+  }
 }

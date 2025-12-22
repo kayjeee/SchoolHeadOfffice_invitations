@@ -125,6 +125,26 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     }
   });
 
+  const linkLearnerMutation = useMutation({
+    mutationFn: (learnerNumber: string) => ParentAPI.linkLearner(user!.sub!, learnerNumber),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
+  const removeLearnerMutation = useMutation({
+    mutationFn: (learnerId: string) => ParentAPI.removeLearner(user!.sub!, learnerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
   // ========================
   // ONBOARDING LOGIC
   // ========================
@@ -181,5 +201,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     completeStep,
     error,
     setInvitationPrefill,
+    linkLearner: linkLearnerMutation.mutateAsync,
+    removeLearner: removeLearnerMutation.mutateAsync,
   };
 }
