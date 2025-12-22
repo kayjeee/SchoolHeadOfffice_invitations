@@ -106,7 +106,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
 
   const { data: learners, isLoading: areLearnersLoading } = useQuery({
     queryKey: ['parentLearners', user?.sub],
-    queryFn: () => ParentAPI.getLearners(),
+    queryFn: () => ParentAPI.getLearners(user!.sub!),
     enabled: !!user?.sub,
     initialData: initialLearners,
   });
