@@ -65,8 +65,8 @@ export default function LinkLearners({ existingLearners, onLearnerLinked, onComp
                 </div>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p><span className="font-medium">Learner No:</span> {learner.accession_number}</p>
-                  <p className="flex items-center"><BuildingLibraryIcon className="h-4 w-4 mr-2" /> {learner.school_name}</p>
-                  <p className="flex items-center"><AcademicCapIcon className="h-4 w-4 mr-2" /> {learner.grade_name}</p>
+                  <p className="flex items-center"><BuildingLibraryIcon className="h-4 w-4 mr-2" /> {learner.school_name ?? 'Not available'}</p>
+                  <p className="flex items-center"><AcademicCapIcon className="h-4 w-4 mr-2" /> {learner.grade_name ?? 'Not available'}</p>
                 </div>
               </div>
             ))}

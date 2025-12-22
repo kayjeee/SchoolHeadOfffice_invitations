@@ -12,9 +12,9 @@ const LearnerSchema = z.object({
   last_name: z.string(),
   full_name: z.string(),
   accession_number: z.string(),
-  school_name: z.string(),
-  grade_name: z.string(),
-  status: z.string(),
+  school_name: z.string().nullable(),
+  grade_name: z.string().nullable(),
+  status: z.string().nullable(),
 });
 
 const GetLearnersResponseSchema = z.object({
