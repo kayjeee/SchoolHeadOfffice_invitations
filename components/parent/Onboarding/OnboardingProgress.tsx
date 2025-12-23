@@ -10,6 +10,7 @@ const STEPS = [
   'Profile Setup',
   'Identity Verification',
   'Link Learners',
+  'Contact Summary',
   'Notifications',
   'Terms',
 ];

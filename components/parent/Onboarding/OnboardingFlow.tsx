@@ -7,6 +7,7 @@ import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
+import ParentContactSummary from './steps/ParentContactSummary';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
@@ -18,7 +19,7 @@ export default function OnboardingFlow({ user, invitationData }) {
   const [isLoadingLearners, setIsLoadingLearners] = useState(true);
   const [fetchLearnersError, setFetchLearnersError] = useState<string | null>(null);
 
-  const { completeStep, currentStep, progress, onboardingData } = useParentOnboarding({
+  const { completeStep, currentStep, progress, onboardingData, profile } = useParentOnboarding({
     initialProfile: null,
     initialLearners: [],
     invitationData,
@@ -86,8 +87,26 @@ export default function OnboardingFlow({ user, invitationData }) {
           <LinkLearners
             existingLearners={learners}
             onLearnerLinked={fetchLearners}
-            onComplete={() => completeStep('LINK_LEARNERS')}
+            onComplete={() => completeStep('LINK_LEARNERS', {})}
             user={user}
+          />
+        );
+      case 'PARENT_CONTACT_SUMMARY':
+        const parentData = {
+          name: profile?.first_name ? `${profile.first_name} ${profile.last_name}` : user?.name || '',
+          email: profile?.email || user?.email || '',
+          phone: profile?.phone || onboardingData.parent_phone || '',
+        };
+        const schoolData = {
+            name: onboardingData.school_name || 'the school',
+            whatsappNumber: onboardingData.school_whatsapp_number || null,
+        };
+        return (
+          <ParentContactSummary
+            parent={parentData}
+            learners={learners}
+            school={schoolData}
+            onComplete={() => completeStep('PARENT_CONTACT_SUMMARY', {})}
           />
         );
       case 'TERMS_ACCEPTANCE':
