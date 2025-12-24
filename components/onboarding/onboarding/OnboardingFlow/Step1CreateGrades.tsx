@@ -63,7 +63,7 @@ const Step1CreateGrades = ({
 
   const schoolLogo = school?.logoUrl || school?.logo || null;
   const schoolName = school?.schoolName || school?.name || "your school";
-  
+
   console.log("🖼️ [Step1CreateGrades] Logo URL:", schoolLogo);
   console.log("🏫 [Step1CreateGrades] School Name:", schoolName);
 
@@ -104,17 +104,31 @@ const Step1CreateGrades = ({
       return;
     }
 
+    // Enhanced school ID extraction
+    const schoolId = school?.id || school?._id || school?.schoolId;
+
+    if (!schoolId) {
+      console.error("❌ [Step1CreateGrades] School ID is missing");
+      alert("Critical error: School ID is missing. Cannot proceed.");
+      return;
+    }
+
+    const payload = {
+      grades,
+      schoolId: schoolId,
+      schoolName: schoolName,
+    };
+
+    console.log("📦 [Step1CreateGrades] Payload for completeStep:", payload);
+
+
     try {
       console.log("📝 [Step1CreateGrades] Calling onUpdateData with grades");
       if (onUpdateData) {
         onUpdateData({ grades });
       }
 
-      await completeStep(user.sub, "create_grades", {
-        grades,
-        schoolId: school?.id || school?._id,
-        schoolName: schoolName
-      });
+      await completeStep(user.sub, "create_grades", payload);
 
       console.log("✅ [Step1CreateGrades] completeStep API call successful");
 
@@ -140,8 +154,8 @@ const Step1CreateGrades = ({
                 {schoolLogo ? (
                   <div className="flex-shrink-0">
                     <div className="w-20 h-20 bg-white rounded-xl shadow-lg overflow-hidden ring-4 ring-white/30">
-                      <img 
-                        src={schoolLogo} 
+                      <img
+                        src={schoolLogo}
                         alt={`${schoolName} logo`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -159,7 +173,7 @@ const Step1CreateGrades = ({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Title */}
                 <div>
                   <h1 className="text-3xl font-bold text-white mb-1">
@@ -282,8 +296,8 @@ const Step1CreateGrades = ({
               grades.length > 0 ? "border-green-200" : "border-gray-100"
             }`}>
               <div className={`px-6 py-4 border-b transition-colors duration-300 ${
-                grades.length > 0 
-                  ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100" 
+                grades.length > 0
+                  ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
                   : "bg-gray-50 border-gray-200"
               }`}>
                 <div className="flex items-center justify-between">
@@ -294,15 +308,15 @@ const Step1CreateGrades = ({
                     Selected Grades
                   </h4>
                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                    grades.length > 0 
-                      ? "bg-green-600 text-white" 
+                    grades.length > 0
+                      ? "bg-green-600 text-white"
                       : "bg-gray-200 text-gray-600"
                   }`}>
                     {grades.length}
                   </span>
                 </div>
               </div>
-              
+
               <div className="p-6">
                 {grades.length === 0 ? (
                   <div className="text-center py-12">
