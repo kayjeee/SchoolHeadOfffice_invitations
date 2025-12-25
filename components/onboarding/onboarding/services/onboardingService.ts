@@ -12,7 +12,7 @@ async function apiFetch(
       ...options,
     };
 
-    if (fetchOptions.body) {
+    if (fetchOptions.body && !fetchOptions.method) {
       fetchOptions.method = "POST";
     }
 

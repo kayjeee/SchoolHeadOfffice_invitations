@@ -34,10 +34,18 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   user,
   schools,
 }) => {
-  // Prioritize the `schools` prop as it's more reliable during onboarding.
-  const targetSchool = schools?.[0] || school;
+  // Prioritize the `school` prop, which is explicitly passed from the previous step.
+  const targetSchool = school || schools?.[0];
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
   const schoolId = targetSchool?.id || targetSchool?._id;
+
+  console.log('🔍 [Step3SendInvites] Props:', {
+    schoolProp: school,
+    schoolsProp: schools,
+    targetSchool,
+    schoolId: schoolId,
+    user: user?.sub
+  });
 
   const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -61,7 +69,8 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
 
   const fetchGrades = useCallback(async () => {
     if (!schoolId) {
-      setGradesError("Missing school information");
+      console.error("❌ [Step3SendInvites] Missing schoolId, cannot fetch grades.");
+      setGradesError("Missing school information. Please go back and try again.");
       return;
     }
 
@@ -212,7 +221,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             learnersByGrade={learners}
             isLoadingGrades={isLoadingGrades}
             isLoadingLearners={isLoadingLearners}
-            gradesError={gradesError}
+            gradesError={null} // Error is now handled by the error UI
             expandedGrades={expandedGrades}
             onGradeSelection={handleGradeSelection}
             onSelectAllGrades={handleSelectAllGrades}
@@ -271,7 +280,29 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         </div>
       </div>
 
-      {renderStepContent()}
+      {gradesError ? (
+        <div className="error-state text-center p-8 bg-red-50 border-2 border-red-200 rounded-lg">
+          <h3 className="text-xl font-semibold text-red-700">❌ Missing School Information</h3>
+          <p className="text-red-600 mt-2">{gradesError}</p>
+          <button onClick={onBack} className="mt-4 px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+            ← Go Back
+          </button>
+          <div className="debug-info mt-4 text-xs text-left bg-gray-100 p-2 rounded">
+            <pre>
+              <code>
+                {JSON.stringify({
+                  schoolProp: school,
+                  schoolsProp: schools,
+                  resolvedSchool: targetSchool,
+                  schoolId: schoolId,
+                }, null, 2)}
+              </code>
+            </pre>
+          </div>
+        </div>
+      ) : (
+        renderStepContent()
+      )}
 
       <div className="flex justify-between mt-8">
         <button
