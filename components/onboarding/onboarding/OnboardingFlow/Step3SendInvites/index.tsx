@@ -241,6 +241,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
             schoolName={schoolName}
             schools={schools}
             school={targetSchool}
+            user={user}
           />
         );
       case "message-composer":

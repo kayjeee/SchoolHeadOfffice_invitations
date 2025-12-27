@@ -24,7 +24,8 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   onChannelSelect,
   isSelected,
   selectedGrades = [],
-  school
+  school,
+  user
 }) => {
   console.log('🎯 [ChannelModal] Props received:', {
     channel: channel?.name,
@@ -273,6 +274,7 @@ Click here to join: ${schoolLink}`;
         learnerNumber: learnerNumber,
         parentName: parentName,
         invitedVia: invitedVia,
+        senderId: user?.sub,
       });
 
       setTestResult({
