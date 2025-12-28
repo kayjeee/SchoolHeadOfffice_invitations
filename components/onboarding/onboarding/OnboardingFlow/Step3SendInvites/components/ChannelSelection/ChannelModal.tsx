@@ -24,8 +24,7 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   onChannelSelect,
   isSelected,
   selectedGrades = [],
-  school,
-  user
+  school
 }) => {
   console.log('🎯 [ChannelModal] Props received:', {
     channel: channel?.name,
@@ -48,9 +47,6 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   // =======================================================
   const [activeTab, setActiveTab] = useState<'test' | 'schedule' | 'contacts'>('contacts');
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
-  const [parentName, setParentName] = useState('');
-  const [learnerNumber, setLearnerNumber] = useState('');
-  const [invitedVia, setInvitedVia] = useState('whatsapp');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
@@ -238,14 +234,6 @@ Click here to join: ${schoolLink}`;
       errors.phone = 'Please enter a valid phone number (E.164 format or similar, e.g., +27821234567)';
     }
 
-    if (!parentName.trim()) {
-      errors.parentName = 'Parent/guest name is required';
-    }
-
-    if (!learnerNumber.trim()) {
-      errors.learnerNumber = 'Learner number is required';
-    }
-
     if (!messageContent.trim()) {
       errors.message = 'Message content is required';
     } else if (messageContent.length > 4096) {
@@ -270,11 +258,7 @@ Click here to join: ${schoolLink}`;
         to: testPhoneNumber.replace(/\s+/g, ''),
         schoolId: schoolId,
         userEmail: school?.userEmail,
-        schoolName: schoolName,
-        learnerNumber: learnerNumber,
-        parentName: parentName,
-        invitedVia: invitedVia,
-        senderId: user?.sub,
+        schoolName: schoolName
       });
 
       setTestResult({
@@ -556,12 +540,6 @@ Click here to join: ${schoolLink}`;
           <WhatsAppTesterSection
             testPhoneNumber={testPhoneNumber}
             onPhoneNumberChange={setTestPhoneNumber}
-            parentName={parentName}
-            onParentNameChange={setParentName}
-            learnerNumber={learnerNumber}
-            onLearnerNumberChange={setLearnerNumber}
-            invitedVia={invitedVia}
-            onInvitedViaChange={setInvitedVia}
             messageContent={messageContent}
             onMessageChange={setCustomMessage}
             onSendTest={handleSendTest}

@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
 import { ParentAPI, ParentProfile, Learner, ParentProfileUpdate } from '../api/parent-api';
-import { UserSyncService, RailsUser } from '../services/userSyncService';
 
 // ========================
 // TYPES & CONSTANTS
@@ -56,8 +55,6 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
   const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData);
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [railsUser, setRailsUser] = useState<RailsUser | null>(null);
 
   // ========================
   // INVITATION PREFILL LOGIC
@@ -96,38 +93,6 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
       }));
     }
   }, [invitationPrefill]);
-
-  // ========================
-  // USER SYNC LOGIC
-  // ========================
-
-  const handleSyncUser = useCallback(async () => {
-    if (!user) return;
-
-    setIsSyncing(true);
-    setError(null);
-
-    try {
-      const syncedUser = await UserSyncService.syncUserWithRails(
-        user,
-        invitationPrefill?.token
-      );
-      setRailsUser(syncedUser);
-      // After a successful sync, we can invalidate queries that depend on the Rails user ID
-      queryClient.invalidateQueries({ queryKey: ['parentProfile', user.sub] });
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user.sub] });
-    } catch (err) {
-      setError(err.message || 'Failed to synchronize your account with our records.');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [user, invitationPrefill?.token, queryClient]);
-
-  useEffect(() => {
-    if (user && !railsUser) {
-      handleSyncUser();
-    }
-  }, [user, railsUser, handleSyncUser]);
 
 
   // ========================
@@ -228,17 +193,15 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
 
   return {
     user,
-    railsUser,
     profile,
     learners,
     currentStep,
     onboardingData,
     isOnboardingComplete: currentStep === 'COMPLETE',
-    isLoading: isAuthLoading || isSyncing || isProfileLoading || areLearnersLoading,
+    isLoading: isAuthLoading || isProfileLoading || areLearnersLoading,
     progress,
     completeStep,
     error,
-    retrySync: handleSyncUser,
     setInvitationPrefill,
     linkLearner: linkLearnerMutation.mutateAsync,
     removeLearner: removeLearnerMutation.mutateAsync,

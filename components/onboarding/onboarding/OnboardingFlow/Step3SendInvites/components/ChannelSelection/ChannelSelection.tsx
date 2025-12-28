@@ -15,7 +15,6 @@ export const ChannelSelection: React.FC<ChannelSelectionProps> = ({
   schoolName,
   schools,
   school,
-  user,
   onChannelSelection,
   onSelectAllChannels,
 }) => {
@@ -179,7 +178,6 @@ export const ChannelSelection: React.FC<ChannelSelectionProps> = ({
             selectedGrades={selectedGrades || []} // Ensure this is passed and has fallback
           selectedLearners={learners}
             school={school} // Pass school prop for API calls
-            user={user}
             
         />
       )}

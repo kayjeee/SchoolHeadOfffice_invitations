@@ -104,31 +104,17 @@ const Step1CreateGrades = ({
       return;
     }
 
-    // Enhanced school ID extraction
-    const schoolId = school?.id || school?._id || school?.schoolId;
-
-    if (!schoolId) {
-      console.error("❌ [Step1CreateGrades] School ID is missing");
-      alert("Critical error: School ID is missing. Cannot proceed.");
-      return;
-    }
-
-    const payload = {
-      grades,
-      schoolId: schoolId,
-      schoolName: schoolName,
-    };
-
-    console.log("📦 [Step1CreateGrades] Payload for completeStep:", payload);
-
-
     try {
       console.log("📝 [Step1CreateGrades] Calling onUpdateData with grades");
       if (onUpdateData) {
         onUpdateData({ grades });
       }
 
-      await completeStep(user.sub, "create_grades", payload);
+      await completeStep(user.sub, "create_grades", {
+        grades,
+        schoolId: school?.id || school?._id,
+        schoolName: schoolName
+      });
 
       console.log("✅ [Step1CreateGrades] completeStep API call successful");
 

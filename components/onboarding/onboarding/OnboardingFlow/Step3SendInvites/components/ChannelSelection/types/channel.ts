@@ -53,7 +53,6 @@ export interface ChannelModalProps {
   selectedGrades: Grade[]; // NEW: Add selected grades
   selectedLearners: Learner[]; // NEW: Add selected learners
   school: any; // Add school prop for API calls
-  user: any;
 }
 
 export interface ScheduleData {

@@ -172,7 +172,6 @@ export default function ParentPage({
     learners,
     currentStep,
     error: clientError,
-    retrySync,
     setInvitationPrefill, // optional helper (see hook improvements below)
   } = useParentOnboarding({
     initialProfile,
@@ -215,15 +214,7 @@ export default function ParentPage({
             <div className="max-w-lg text-center bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
               <p className="text-gray-600 mb-4">{serverError || clientError}</p>
-              {retrySync && (
-                <button
-                  onClick={() => retrySync()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Retry
-                </button>
-              )}
-              <p className="text-sm text-gray-500 mt-4">If this continues, please contact support.</p>
+              <p className="text-sm text-gray-500">If this continues, please contact support.</p>
             </div>
           </div>
         </>
