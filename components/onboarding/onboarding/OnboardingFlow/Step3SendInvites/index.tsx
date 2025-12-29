@@ -34,10 +34,10 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   user,
   schools,
 }) => {
-  // Prioritize the `schools` prop as it's more reliable during onboarding.
-  const targetSchool = schools?.[0] || school;
+  // Resolve school information with a clear order of precedence.
+  const schoolId = user?.primary_school_id || schools?.[0]?._id || schools?.[0]?.id || school?.id || school?._id;
+  const targetSchool = schools?.find(s => s._id === schoolId || s.id === schoolId) || school;
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
-  const schoolId = targetSchool?.id || targetSchool?._id;
 
   const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -88,8 +88,10 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   }, [schoolId]);
 
   useEffect(() => {
-    fetchGrades();
-  }, [fetchGrades]);
+    if (schoolId) {
+      fetchGrades();
+    }
+  }, [schoolId, fetchGrades]);
 
   const fetchLearnersForGrade = async (gradeId: string) => {
     if (learners[gradeId]) {
