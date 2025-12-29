@@ -5,6 +5,12 @@ import { Send, Loader, AlertCircle, CheckCircle, Users } from "lucide-react";
 interface WhatsAppTesterSectionProps {
   testPhoneNumber: string;
   onPhoneNumberChange: (value: string) => void;
+  parentName: string;
+  onParentNameChange: (value: string) => void;
+  learnerNumber: string;
+  onLearnerNumberChange: (value: string) => void;
+  invitedVia: string;
+  onInvitedViaChange: (value: string) => void;
   messageContent: string;
   onMessageChange: (value: string) => void;
   onSendTest: () => void;
@@ -22,6 +28,12 @@ interface WhatsAppTesterSectionProps {
 export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
   testPhoneNumber,
   onPhoneNumberChange,
+  parentName,
+  onParentNameChange,
+  learnerNumber,
+  onLearnerNumberChange,
+  invitedVia,
+  onInvitedViaChange,
   messageContent,
   onMessageChange,
   onSendTest,
@@ -64,6 +76,73 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
         <p className="mt-1 text-xs text-gray-500">
           Include country code (e.g., +27 for South Africa)
         </p>
+      </div>
+
+      {/* Parent/Guest Name Input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Parent/Guest Name *
+        </label>
+        <input
+          type="text"
+          value={parentName}
+          onChange={(e) => onParentNameChange(e.target.value)}
+          placeholder="Enter parent or guest full name"
+          required
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
+            validationErrors?.parentName ? "border-red-300" : "border-gray-300"
+          }`}
+        />
+        {validationErrors?.parentName && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle size={14} className="mr-1" /> {validationErrors.parentName}
+          </p>
+        )}
+      </div>
+
+      {/* Learner Number Input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Learner Number *
+        </label>
+        <input
+          type="text"
+          value={learnerNumber}
+          onChange={(e) => onLearnerNumberChange(e.target.value)}
+          placeholder="Student ID or accession number"
+          required
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
+            validationErrors?.learnerNumber ? "border-red-300" : "border-gray-300"
+          }`}
+        />
+        {validationErrors?.learnerNumber && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle size={14} className="mr-1" /> {validationErrors.learnerNumber}
+          </p>
+        )}
+      </div>
+
+      {/* Invitation Channel Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Invitation Channel *
+        </label>
+        <select
+          value={invitedVia}
+          onChange={(e) => onInvitedViaChange(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black ${
+            validationErrors?.invitedVia ? "border-red-300" : "border-gray-300"
+          }`}
+        >
+          <option value="whatsapp">WhatsApp</option>
+          <option value="sms">SMS</option>
+          <option value="email">Email</option>
+        </select>
+        {validationErrors?.invitedVia && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle size={14} className="mr-1" /> {validationErrors.invitedVia}
+          </p>
+        )}
       </div>
 
       {/* Message Preview */}
@@ -115,7 +194,7 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
             onSendTest();
           }}
           disabled={
-            isSending || !testPhoneNumber.trim() || !messageContent.trim()
+            isSending || !testPhoneNumber.trim() || !parentName.trim() || !learnerNumber.trim() || !invitedVia.trim() || !messageContent.trim()
           }
           className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
