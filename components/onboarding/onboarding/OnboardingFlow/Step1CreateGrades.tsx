@@ -110,11 +110,23 @@ const Step1CreateGrades = ({
         onUpdateData({ grades });
       }
 
-      await completeStep(user.sub, "create_grades", {
+      const schoolId = school?.id || school?._id || school?.schoolId;
+
+      if (!schoolId) {
+        console.error("❌ [Step1CreateGrades] School ID is missing");
+        alert("Critical error: School ID is missing. Cannot proceed.");
+        return;
+      }
+
+      const payload = {
         grades,
-        schoolId: school?.id || school?._id,
-        schoolName: schoolName
-      });
+        schoolId: schoolId,
+        schoolName: schoolName,
+      };
+
+      console.log("📦 [Step1CreateGrades] Payload for completeStep:", payload);
+
+      await completeStep(user.sub, "create_grades", payload);
 
       console.log("✅ [Step1CreateGrades] completeStep API call successful");
 
