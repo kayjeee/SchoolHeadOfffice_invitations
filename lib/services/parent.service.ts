@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
+const internalApiUrl = 'http://localhost:4000';
 
 // ========================
 // SERVER-SIDE API CLIENT
