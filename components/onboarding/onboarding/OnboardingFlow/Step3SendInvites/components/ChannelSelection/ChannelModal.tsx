@@ -47,6 +47,9 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   // =======================================================
   const [activeTab, setActiveTab] = useState<'test' | 'schedule' | 'contacts'>('contacts');
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [learnerNumber, setLearnerNumber] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [invitedVia, setInvitedVia] = useState('whatsapp');
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
@@ -258,7 +261,10 @@ Click here to join: ${schoolLink}`;
         to: testPhoneNumber.replace(/\s+/g, ''),
         schoolId: schoolId,
         userEmail: school?.userEmail,
-        schoolName: schoolName
+        schoolName: schoolName,
+        learnerNumber,
+        parentName,
+        invitedVia,
       });
 
       setTestResult({
@@ -540,6 +546,12 @@ Click here to join: ${schoolLink}`;
           <WhatsAppTesterSection
             testPhoneNumber={testPhoneNumber}
             onPhoneNumberChange={setTestPhoneNumber}
+            learnerNumber={learnerNumber}
+            onLearnerNumberChange={setLearnerNumber}
+            parentName={parentName}
+            onParentNameChange={setParentName}
+            invitedVia={invitedVia}
+            onInvitedViaChange={setInvitedVia}
             messageContent={messageContent}
             onMessageChange={setCustomMessage}
             onSendTest={handleSendTest}

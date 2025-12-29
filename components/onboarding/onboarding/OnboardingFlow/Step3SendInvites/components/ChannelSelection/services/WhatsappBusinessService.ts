@@ -7,6 +7,9 @@ interface InvitationParams {
   phoneNumber: string;
   schoolId: string;
   userEmail?: string;
+  learnerNumber?: string;
+  parentName?: string;
+  invitedVia?: string;
 }
 
 interface BuildMagicLinkParams {
@@ -19,6 +22,9 @@ interface TestMessageParams {
   schoolName: string;
   schoolId: string;
   userEmail?: string;
+  learnerNumber?: string;
+  parentName?: string;
+  invitedVia?: string;
 }
 
 interface BulkMessagesParams {
@@ -80,7 +86,14 @@ class WhatsAppBusinessService {
     return `?token=${token}&school=${encodedSchoolName}`;
   }
 
-  async createInvitation({ phoneNumber, schoolId, userEmail }: InvitationParams): Promise<string> {
+  async createInvitation({
+    phoneNumber,
+    schoolId,
+    userEmail,
+    learnerNumber,
+    parentName,
+    invitedVia,
+  }: InvitationParams): Promise<string> {
     if (!schoolId || !phoneNumber) {
       throw new Error('schoolId and phoneNumber are required');
     }
@@ -89,6 +102,9 @@ class WhatsAppBusinessService {
       phone_number: phoneNumber,
       school_id: schoolId,
       role: 'parent',
+      learner_number: learnerNumber,
+      parent_name: parentName,
+      invited_via: invitedVia,
     };
 
     const response = await fetch(this.invitationsURL, {
@@ -129,13 +145,28 @@ Best wishes,
 ${schoolName} Admin Team`;
   }
 
-  async sendTestMessage({ to, schoolName, schoolId, userEmail }: TestMessageParams): Promise<any> {
+  async sendTestMessage({
+    to,
+    schoolName,
+    schoolId,
+    userEmail,
+    learnerNumber,
+    parentName,
+    invitedVia,
+  }: TestMessageParams): Promise<any> {
     const formattedNumber = to.replace(/\D/g, "");
     if (!formattedNumber.startsWith("27")) {
       throw new Error('Invalid phone number: must start with 27');
     }
 
-    const token = await this.createInvitation({ phoneNumber: formattedNumber, schoolId, userEmail });
+    const token = await this.createInvitation({
+      phoneNumber: formattedNumber,
+      schoolId,
+      userEmail,
+      learnerNumber,
+      parentName,
+      invitedVia,
+    });
     const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
     const magicLink = this.buildMagicLink({ token, schoolName: sanitizedSchoolName });
     const supportEmail = this.buildSupportEmail(sanitizedSchoolName);
