@@ -1,5 +1,15 @@
-// services/WhatsAppBusinessService.js
+// services/WhatsAppBusinessService.ts
 import { logger } from '../utils/logger';
+
+interface InvitationParams {
+  phoneNumber: string;
+  schoolId: string;
+  learnerNumbers?: string[];
+  parentName?: string;
+  gradeId?: string;
+  sender: string; // ⚠️ TEMPORARY – remove once backend auth is enforced
+  userEmail?: string;
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -13,7 +23,15 @@ this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
 * 🔹 Step 1: Create an invitation to generate a token
 * FIXED: Changed school_id → school in payload
 */
-async createInvitation({ phoneNumber, schoolId, userEmail }) {
+async createInvitation({
+  phoneNumber,
+  schoolId,
+  learnerNumbers,
+  parentName,
+  gradeId,
+  sender,
+  userEmail,
+}) {
 try {
 logger.info('WhatsAppBusinessService', 'Creating invitation token', {
 phoneNumber,
@@ -30,10 +48,17 @@ if (!phoneNumber) {
 throw new Error('phoneNumber is required to create invitation');
 }
 
+// ⚠️ sender is TEMPORARILY passed from frontend
+// TODO: Remove sender from payload and derive it from auth on backend
 const payload = {
-phone_number: phoneNumber,
-school_id: schoolId,
-role: 'parent',
+  phone_number: phoneNumber,
+  school_id: schoolId,
+  learner_numbers: learnerNumbers ?? [],
+  role: 'parent',
+  parent_name: parentName ?? null,
+  grade_id: gradeId ?? null,
+  invited_via: 'whatsapp',
+  sender, // ⚠️ TEMPORARY
 };
 
 console.log('📤 [WhatsAppBusinessService] Creating invitation with payload:', payload);
@@ -171,9 +196,13 @@ throw new Error('Missing required fields: to, schoolName, and schoolId are requi
 
 // 1️⃣ Create token first
 const token = await this.createInvitation({
-phoneNumber: to,
-schoolId,
-userEmail,
+  phoneNumber: to,
+  schoolId,
+  learnerNumbers: [],
+  parentName: 'Test Parent',
+  gradeId: undefined,
+  sender: userEmail || 'system@whatsapp',
+  userEmail,
 });
 
 // 2️⃣ Build dynamic link
@@ -270,9 +299,13 @@ try {
 console.log(`🔄 [WhatsAppBusinessService] Processing recipient ${i + 1}/${recipientNumbers.length}: ${number}`);
 
 const token = await this.createInvitation({
-phoneNumber: number,
-schoolId,
-userEmail,
+  phoneNumber: number,
+  schoolId,
+  learnerNumbers: [],
+  parentName: null,
+  gradeId: undefined, // Cannot determine a single grade from gradeIds array
+  sender: userEmail || 'system@whatsapp',
+  userEmail,
 });
 
 const magicLink = this.buildMagicLink({ token, schoolName });
