@@ -7,18 +7,11 @@ async function apiFetch(
   console.log("🌐 API Request:", { url, options });
 
   try {
-    const fetchOptions = {
+    const res = await fetch(url, {
       headers: { "Content-Type": "application/json", ...options.headers },
+      // Remove credentials to avoid CORS issue
       ...options,
-    };
-
-    if (fetchOptions.body && !fetchOptions.method) {
-      fetchOptions.method = "POST";
-    }
-
-    console.log("📦 Fetch Options:", fetchOptions);
-
-    const res = await fetch(url, fetchOptions);
+    });
 
     const data = await res.json().catch(() => ({}));
 
