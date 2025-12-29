@@ -31,7 +31,7 @@ async createInvitation({
   gradeId,
   sender,
   userEmail,
-}) {
+}: InvitationParams): Promise<string> {
 try {
 logger.info('WhatsAppBusinessService', 'Creating invitation token', {
 phoneNumber,
@@ -201,7 +201,7 @@ const token = await this.createInvitation({
   learnerNumbers: [],
   parentName: 'Test Parent',
   gradeId: undefined,
-  sender: userEmail || 'system@whatsapp',
+  sender: userEmail || 'kagiso.killagram@gmail.com',
   userEmail,
 });
 
@@ -304,7 +304,7 @@ const token = await this.createInvitation({
   learnerNumbers: [],
   parentName: null,
   gradeId: undefined, // Cannot determine a single grade from gradeIds array
-  sender: userEmail || 'system@whatsapp',
+  sender: userEmail || 'kagiso.killagram@gmail.com',
   userEmail,
 });
 
