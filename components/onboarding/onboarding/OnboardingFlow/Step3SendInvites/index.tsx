@@ -34,10 +34,18 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
   user,
   schools,
 }) => {
-  // Prioritize the `schools` prop as it's more reliable during onboarding.
-  const targetSchool = schools?.[0] || school;
+  // Prioritize the `school` prop, which is explicitly passed from the previous step.
+  const targetSchool = school || schools?.[0];
   const schoolName = targetSchool?.schoolName || targetSchool?.name || "your school";
   const schoolId = targetSchool?.id || targetSchool?._id;
+
+  console.log('🔍 [Step3SendInvites] Props:', {
+    schoolProp: school,
+    schoolsProp: schools,
+    targetSchool,
+    schoolId: schoolId,
+    user: user?.sub
+  });
 
   const [currentStep, setCurrentStep] = useState<StepState>("grade-selection");
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -61,7 +69,8 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
 
   const fetchGrades = useCallback(async () => {
     if (!schoolId) {
-      setGradesError("Missing school information");
+      console.error("❌ [Step3SendInvites] Missing schoolId, cannot fetch grades.");
+      setGradesError("Missing school information. Please go back and try again.");
       return;
     }
 
