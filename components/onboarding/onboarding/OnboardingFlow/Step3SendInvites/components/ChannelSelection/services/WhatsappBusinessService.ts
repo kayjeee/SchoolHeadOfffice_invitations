@@ -10,6 +10,7 @@ interface InvitationParams {
   learnerNumber?: string;
   parentName?: string;
   invitedVia?: string;
+  sender_id?: string;
 }
 
 interface BuildMagicLinkParams {
@@ -25,6 +26,7 @@ interface TestMessageParams {
   learnerNumber?: string;
   parentName?: string;
   invitedVia?: string;
+  sender_id?: string;
 }
 
 interface BulkMessagesParams {
@@ -93,6 +95,7 @@ class WhatsAppBusinessService {
     learnerNumber,
     parentName,
     invitedVia,
+    sender_id,
   }: InvitationParams): Promise<string> {
     if (!schoolId || !phoneNumber) {
       throw new Error('schoolId and phoneNumber are required');
@@ -105,6 +108,7 @@ class WhatsAppBusinessService {
       learner_number: learnerNumber,
       parent_name: parentName,
       invited_via: invitedVia,
+      sender_id: sender_id,
     };
 
     const response = await fetch(this.invitationsURL, {
@@ -153,6 +157,7 @@ ${schoolName} Admin Team`;
     learnerNumber,
     parentName,
     invitedVia,
+    sender_id,
   }: TestMessageParams): Promise<any> {
     const formattedNumber = to.replace(/\D/g, "");
     if (!formattedNumber.startsWith("27")) {
@@ -166,6 +171,7 @@ ${schoolName} Admin Team`;
       learnerNumber,
       parentName,
       invitedVia,
+      sender_id,
     });
     const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
     const magicLink = this.buildMagicLink({ token, schoolName: sanitizedSchoolName });

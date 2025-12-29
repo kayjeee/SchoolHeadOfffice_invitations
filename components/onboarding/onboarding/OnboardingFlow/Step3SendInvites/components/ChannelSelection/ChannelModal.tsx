@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { logger } from './utils/logger';
 import { ChannelModalProps } from './types/channel';
 import { Modal } from './ui/Modal';
@@ -26,6 +27,7 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   selectedGrades = [],
   school
 }) => {
+  const { user } = useUser();
   console.log('🎯 [ChannelModal] Props received:', {
     channel: channel?.name,
     isOpen,
@@ -265,6 +267,7 @@ Click here to join: ${schoolLink}`;
         learnerNumber,
         parentName,
         invitedVia,
+        sender_id: user?.sub,
       });
 
       setTestResult({
