@@ -16,7 +16,10 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 interface ProfileSetupProps {
   onComplete: (data: ProfileFormData) => void;
   prefillData?: {
+    first_name?: string;
+    last_name?: string;
     phone?: string;
+    email?: string;
   };
   isLocked?: boolean;
 }
@@ -32,8 +35,11 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
   });
 
   useEffect(() => {
-    if (prefillData?.phone) {
-      setValue('phone', prefillData.phone);
+    if (prefillData) {
+      if (prefillData.first_name) setValue('first_name', prefillData.first_name);
+      if (prefillData.last_name) setValue('last_name', prefillData.last_name);
+      if (prefillData.phone) setValue('phone', prefillData.phone);
+      if (prefillData.email) setValue('email', prefillData.email);
     }
   }, [prefillData, setValue]);
 
@@ -44,26 +50,42 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">First Name</label>
-            <input {...register('first_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
+            <input 
+              {...register('first_name')} 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500" 
+              placeholder="Enter your first name"
+            />
             {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Last Name</label>
-            <input {...register('last_name')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
+            <input 
+              {...register('last_name')} 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500" 
+              placeholder="Enter your last name"
+            />
             {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Phone Number
+              {isLocked && <span className="ml-2 text-xs text-blue-600">(Pre-filled from invitation)</span>}
+            </label>
             <input
               {...register('phone')}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100 text-black"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm disabled:bg-gray-100 text-black focus:border-green-500 focus:ring-green-500"
               disabled={isLocked}
+              placeholder="27123456789"
             />
             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input {...register('email')} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black" />
+            <input 
+              {...register('email')} 
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500" 
+              placeholder="your.email@example.com"
+            />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
         </div>
@@ -71,7 +93,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Saving...' : 'Save & Continue'}
           </button>
