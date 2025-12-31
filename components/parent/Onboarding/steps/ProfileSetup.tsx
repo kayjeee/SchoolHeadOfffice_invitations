@@ -1,5 +1,5 @@
 // components/parent/Onboarding/steps/ProfileSetup.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,14 +22,18 @@ interface ProfileSetupProps {
     email?: string;
   };
   isLocked?: boolean;
+  user?: any;
 }
 
-export default function ProfileSetup({ onComplete, prefillData, isLocked }: ProfileSetupProps) {
+export default function ProfileSetup({ onComplete, prefillData, isLocked, user }: ProfileSetupProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
   });
@@ -43,10 +47,55 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
     }
   }, [prefillData, setValue]);
 
+  const handleSave = async (data: ProfileFormData) => {
+    if (!user?.sub) {
+      setSaveError('User authentication required');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      // Save to backend
+      const response = await fetch(
+        `http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}/update_profile`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user: data }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.errors?.join(', ') || 'Failed to save profile');
+      }
+
+      console.log('✅ Profile saved successfully:', result.data.user);
+      onComplete(data);
+    } catch (error: any) {
+      console.error('Failed to save profile:', error);
+      setSaveError(error.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-xl font-bold mb-4">Setup Your Profile</h3>
-      <form onSubmit={handleSubmit(onComplete)}>
+      
+      {saveError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{saveError}</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit(handleSave)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -92,10 +141,10 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked }: Prof
         <div className="mt-6 text-right">
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSaving}
             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Saving...' : 'Save & Continue'}
+            {isSaving ? 'Saving...' : 'Save & Continue'}
           </button>
         </div>
       </form>

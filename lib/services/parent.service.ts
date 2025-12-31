@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = 'http://localhost:4000';
+const internalApiUrl = 'http://localhost:4000/api/v1';
 
 // ========================
 // SERVER-SIDE API CLIENT
