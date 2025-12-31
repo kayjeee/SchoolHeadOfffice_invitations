@@ -3,14 +3,19 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
-import { ParentAPI, ParentProfile, Learner, ParentProfileUpdate } from '../api/parent-api';
+import {
+  ParentAPI,
+  ParentProfile,
+  Learner,
+  ParentProfileUpdate,
+} from '../api/parent-api';
 import { UserSyncService, RailsUser } from '../services/userSyncService';
 
-// ========================
-// TYPES & CONSTANTS
-// ========================
+/* =======================
+   TYPES & CONSTANTS
+======================= */
 
-type OnboardingStep =
+export type OnboardingStep =
   | 'INITIALIZING'
   | 'PROFILE_SETUP'
   | 'IDENTITY_VERIFICATION'
@@ -20,7 +25,7 @@ type OnboardingStep =
   | 'TERMS_ACCEPTANCE'
   | 'COMPLETE';
 
-const ONBOARDING_STEPS: OnboardingStep[] = [
+const STEPS: OnboardingStep[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
@@ -30,217 +35,259 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 ];
 
 interface InvitationData {
-    id: string;
-    token?: string;
-    school_slug?: string;
-    school_name?: string;
-    parent_phone?: string;
-    learners?: { id: string; name: string; grade?: string }[];
+  id: string;
+  token?: string;
+  school_name?: string;
+  parent_phone?: string;
+  learners?: any[];
 }
 
-interface UseParentOnboardingProps {
+interface Props {
   initialProfile?: ParentProfile | null;
   initialLearners?: Learner[];
   invitationData?: InvitationData | null;
 }
 
-// ========================
-// STATE MACHINE HOOK
-// ========================
+/* =======================
+   HOOK
+======================= */
 
-export function useParentOnboarding({ initialProfile, initialLearners = [], invitationData }: UseParentOnboardingProps) {
+export function useParentOnboarding({
+  initialProfile = null,
+  initialLearners = [],
+  invitationData,
+}: Props) {
   const { user, isLoading: isAuthLoading } = useUser();
   const queryClient = useQueryClient();
 
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
-  const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
-  const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData);
+  const [currentStep, setCurrentStep] =
+    useState<OnboardingStep>('INITIALIZING');
+  const [onboardingData, setOnboardingData] =
+    useState<Record<string, any>>({});
+  const [railsUser, setRailsUser] =
+    useState<RailsUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [railsUser, setRailsUser] = useState<RailsUser | null>(null);
 
-  // ========================
-  // INVITATION PREFILL LOGIC
-  // ========================
-
-  const setInvitationPrefill = useCallback((inv: Partial<InvitationData>) => {
-    setInvitationPrefillState(inv);
-  }, []);
+  /* =======================
+     INVITATION PREFILL
+  ======================= */
 
   useEffect(() => {
-    // On init, check sessionStorage for invitation data and load it.
-    if (!invitationPrefill) {
-      try {
-        const raw = sessionStorage.getItem("sho_invitation");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setInvitationPrefill(parsed);
-        }
-      } catch (err) {
-        console.warn("Could not read invitation from sessionStorage:", err);
-      }
-    }
-  }, [invitationPrefill, setInvitationPrefill]);
-
-  useEffect(() => {
-    // When prefill data is available, merge it into the main onboarding state
-    if (invitationPrefill) {
-      setOnboardingData(prev => ({
+    if (invitationData) {
+      setOnboardingData((prev) => ({
         ...prev,
-        parent_phone: invitationPrefill.parent_phone || prev.parent_phone,
-        learners: invitationPrefill.learners || prev.learners,
-        school_slug: invitationPrefill.school_slug || prev.school_slug,
-        school_name: invitationPrefill.school_name || prev.school_name,
-        invitation_id: invitationPrefill.id,
-        invitation_token: invitationPrefill.token,
+        invitation_id: invitationData.id,
+        invitation_token: invitationData.token,
+        parent_phone: invitationData.parent_phone,
+        school_name: invitationData.school_name,
+        learners: invitationData.learners,
       }));
     }
-  }, [invitationPrefill]);
+  }, [invitationData]);
 
-  // ========================
-  // USER SYNC LOGIC
-  // ========================
+  /* =======================
+     USER SYNC
+  ======================= */
 
-  const handleSyncUser = useCallback(async () => {
+  const syncUser = useCallback(async () => {
     if (!user) return;
 
     setIsSyncing(true);
-    setError(null);
-
     try {
-      const syncedUser = await UserSyncService.syncUserWithRails(
+      const synced = await UserSyncService.syncUserWithRails(
         user,
-        invitationPrefill?.token
+        invitationData?.token
       );
-      setRailsUser(syncedUser);
-      // After a successful sync, we can invalidate queries that depend on the Rails user ID
-      queryClient.invalidateQueries({ queryKey: ['parentProfile', user.sub] });
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user.sub] });
-    } catch (err) {
-      setError(err.message || 'Failed to synchronize your account with our records.');
+      setRailsUser(synced);
+    } catch (err: any) {
+      setError(err.message || 'User sync failed');
     } finally {
       setIsSyncing(false);
     }
-  }, [user, invitationPrefill?.token, queryClient]);
+  }, [user, invitationData?.token]);
 
   useEffect(() => {
     if (user && !railsUser) {
-      handleSyncUser();
+      syncUser();
     }
-  }, [user, railsUser, handleSyncUser]);
+  }, [user, railsUser, syncUser]);
 
+  /* =======================
+     DATA FETCHING
+  ======================= */
 
-  // ========================
-  // DATA FETCHING
-  // ========================
+  const { data: profile, isLoading: profileLoading } =
+    useQuery({
+      queryKey: ['parentProfile', user?.sub],
+      queryFn: () => ParentAPI.getProfile(user!.sub!),
+      enabled: !!user?.sub,
+      initialData: initialProfile,
+    });
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['parentProfile', user?.sub],
-    queryFn: () => ParentAPI.getProfile(user!.sub!),
-    enabled: !!user?.sub,
-    initialData: initialProfile,
+  const { data: learners = [], isLoading: learnersLoading } =
+    useQuery({
+      queryKey: ['parentLearners', user?.sub],
+      queryFn: () => ParentAPI.getLearners(user!.sub!),
+      enabled: !!user?.sub,
+      initialData: initialLearners,
+    });
+
+  /* =======================
+     MUTATIONS
+  ======================= */
+
+  const updateProfile = useMutation({
+    mutationFn: (data: ParentProfileUpdate) =>
+      ParentAPI.updateProfile(user!.sub!, data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['parentProfile', user?.sub],
+      }),
   });
 
-  const { data: learners, isLoading: areLearnersLoading } = useQuery({
-    queryKey: ['parentLearners', user?.sub],
-    queryFn: () => ParentAPI.getLearners(user!.sub!),
-    enabled: !!user?.sub,
-    initialData: initialLearners,
-  });
-
-  // ========================
-  // DATA MUTATIONS
-  // ========================
-
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: ParentProfileUpdate) => ParentAPI.updateProfile(user!.sub!, data),
-    onSuccess: (updatedProfile) => {
-      queryClient.setQueryData(['parentProfile', user?.sub], updatedProfile);
-    },
-    onError: (error) => {
-      setError(error.message);
-    }
-  });
-
-  const linkLearnerMutation = useMutation({
-    mutationFn: (learnerNumber: string) => ParentAPI.linkLearner(user!.sub!, learnerNumber),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
-    },
-    onError: (error) => {
-      setError(error.message);
-    },
-  });
-
-  const removeLearnerMutation = useMutation({
-    mutationFn: (learnerId: string) => ParentAPI.removeLearner(user!.sub!, learnerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
-    },
-    onError: (error) => {
-      setError(error.message);
-    },
-  });
-
-  // ========================
-  // ONBOARDING LOGIC
-  // ========================
+  /* =======================
+     STEP LOGIC - FIXED VERSION
+  ======================= */
 
   useEffect(() => {
-    if (!user || isProfileLoading) return;
+    if (!user || profileLoading) return;
 
+    // ========== FIXED LOGIC ==========
+    // ALWAYS start with PROFILE_SETUP if user doesn't have a profile
     if (!profile) {
       setCurrentStep('PROFILE_SETUP');
-    } else if (learners.length === 0) {
+      return;
+    }
+
+    // If profile exists but is incomplete (missing required fields), also show PROFILE_SETUP
+    // Adjust the condition based on what fields are required
+    const isProfileIncomplete = !profile.phone_number || !profile.name;
+    if (isProfileIncomplete) {
+      setCurrentStep('PROFILE_SETUP');
+      return;
+    }
+
+    // After profile is complete, check for learners
+    if (learners.length === 0) {
       setCurrentStep('LINK_LEARNERS');
+      return;
+    }
+
+    // All basic steps are complete, determine next step based on onboarding progress
+    // Find the first step that hasn't been marked as completed in onboardingData
+    const firstIncompleteStep = STEPS.find(step => !onboardingData[step]);
+    if (firstIncompleteStep) {
+      setCurrentStep(firstIncompleteStep);
     } else {
-      // Add more checks for other steps here
+      // All steps have data, mark as complete
       setCurrentStep('COMPLETE');
     }
-  }, [user, profile, learners, isProfileLoading]);
+    // ========== END FIX ==========
+  }, [user, profile, learners, profileLoading, onboardingData]);
 
-  const completeStep = async (step: OnboardingStep, data: any) => {
-    try {
-      setOnboardingData(prev => ({ ...prev, [step]: data }));
+  /* =======================
+     STEP COMPLETION
+  ======================= */
 
-      if (step === 'PROFILE_SETUP') {
-        await updateProfileMutation.mutateAsync(data);
+  const completeStep = async (
+    step: OnboardingStep,
+    data: any
+  ) => {
+    // Save step data
+    setOnboardingData((prev) => ({ ...prev, [step]: data }));
+
+    // Handle profile setup completion
+    if (step === 'PROFILE_SETUP') {
+      try {
+        await updateProfile.mutateAsync(data);
+      } catch (error) {
+        console.error('Failed to update profile:', error);
+        throw error;
       }
+    }
 
-      const currentIndex = ONBOARDING_STEPS.indexOf(step);
-      const nextStep = ONBOARDING_STEPS[currentIndex + 1];
-
-      if (nextStep) {
-        setCurrentStep(nextStep);
-      } else {
-        setCurrentStep('COMPLETE');
-      }
-    } catch (error) {
-      console.error(`Error completing step ${step}:`, error);
-      setError(error.message);
+    // Determine next step
+    const index = STEPS.indexOf(step);
+    const nextStep = STEPS[index + 1];
+    
+    if (nextStep) {
+      setCurrentStep(nextStep);
+    } else {
+      // Last step completed
+      setCurrentStep('COMPLETE');
     }
   };
 
+  /* =======================
+     NAVIGATION
+  ======================= */
+
+  const goBack = () => {
+    const index = STEPS.indexOf(currentStep);
+    if (index > 0) {
+      setCurrentStep(STEPS[index - 1]);
+    }
+  };
+
+  const moveToStep = (step: OnboardingStep) => {
+    if (STEPS.includes(step) || step === 'COMPLETE') {
+      setCurrentStep(step);
+    }
+  };
+
+  /* =======================
+     UTILITIES
+  ======================= */
+
   const progress = useMemo(() => {
-    const completedSteps = ONBOARDING_STEPS.indexOf(currentStep);
-    return Math.max(0, (completedSteps / ONBOARDING_STEPS.length) * 100);
+    const index = STEPS.indexOf(currentStep);
+    return Math.max(0, (index / STEPS.length) * 100);
   }, [currentStep]);
 
+  const isOnboardingComplete = currentStep === 'COMPLETE';
+
+  const retrySync = useCallback(() => {
+    if (user) {
+      syncUser();
+    }
+  }, [user, syncUser]);
+
+  /* =======================
+     RETURN VALUES
+  ======================= */
+
   return {
+    // User data
     user,
     railsUser,
     profile,
     learners,
+    
+    // Onboarding state
     currentStep,
     onboardingData,
-    isOnboardingComplete: currentStep === 'COMPLETE',
-    isLoading: isAuthLoading || isSyncing || isProfileLoading || areLearnersLoading,
+    isOnboardingComplete,
     progress,
-    completeStep,
+    
+    // Loading states
+    isLoading:
+      isAuthLoading ||
+      isSyncing ||
+      profileLoading ||
+      learnersLoading,
+    
+    // Errors
     error,
-    retrySync: handleSyncUser,
-    setInvitationPrefill,
-    linkLearner: linkLearnerMutation.mutateAsync,
-    removeLearner: removeLearnerMutation.mutateAsync,
+    
+    // Actions
+    completeStep,
+    goBack,
+    moveToStep,
+    retrySync,
+    
+    // Additional helpers
+    hasInvitation: !!onboardingData.invitation_id,
+    invitationToken: onboardingData.invitation_token,
   };
 }

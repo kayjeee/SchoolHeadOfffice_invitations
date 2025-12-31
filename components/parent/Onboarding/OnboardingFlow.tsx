@@ -12,6 +12,7 @@ import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
 import { InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import BackButton from './BackButton';
 
 export default function OnboardingFlow({ user, invitationData }) {
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
@@ -19,7 +20,14 @@ export default function OnboardingFlow({ user, invitationData }) {
   const [isLoadingLearners, setIsLoadingLearners] = useState(true);
   const [fetchLearnersError, setFetchLearnersError] = useState<string | null>(null);
 
-  const { completeStep, currentStep, progress, onboardingData, profile } = useParentOnboarding({
+  const { 
+    completeStep, 
+    goBack, // Make sure this function exists in your useParentOnboarding hook
+    currentStep, 
+    progress, 
+    onboardingData, 
+    profile 
+  } = useParentOnboarding({
     initialProfile: null,
     initialLearners: [],
     invitationData,
@@ -61,6 +69,26 @@ export default function OnboardingFlow({ user, invitationData }) {
   const renderStep = () => {
     const isLocked = hasInvitation && isInvitationPrefillLocked;
 
+    // Define which steps should show back button
+    const showBackButton = ['LINK_LEARNERS', 'IDENTITY_VERIFICATION'].includes(currentStep);
+
+    // Wrapper function to add back button to step
+    const renderWithBackButton = (content: React.ReactNode) => {
+      if (!showBackButton) return content;
+      
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-start">
+            <BackButton 
+              onBack={goBack} 
+              disabled={false}
+            />
+          </div>
+          {content}
+        </div>
+      );
+    };
+
     switch (currentStep) {
       case 'PROFILE_SETUP':
         return (
@@ -83,7 +111,7 @@ export default function OnboardingFlow({ user, invitationData }) {
             </div>
           );
         }
-        return (
+        return renderWithBackButton(
           <LinkLearners
             existingLearners={learners}
             onLearnerLinked={fetchLearners}
@@ -112,7 +140,9 @@ export default function OnboardingFlow({ user, invitationData }) {
       case 'TERMS_ACCEPTANCE':
         return <TermsAcceptance onComplete={handleFinalStepComplete} />;
       case 'IDENTITY_VERIFICATION':
-        return <IdentityVerification onComplete={(data) => completeStep(currentStep, data)} />;
+        return renderWithBackButton(
+          <IdentityVerification onComplete={(data) => completeStep(currentStep, data)} />
+        );
       case 'NOTIFICATION_PREFERENCES':
         return <NotificationPreferences onComplete={(data) => completeStep(currentStep, data)} />;
       case 'INITIALIZING':
