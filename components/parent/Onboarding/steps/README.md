@@ -17,3 +17,28 @@ This directory contains the individual React components that make up the steps o
 - **Props:**
   - `onComplete`: A callback function that is called when the user submits their payment information. It passes an object with the `paymentMethod` and `details` of the payment.
 - **Usage:** This component is rendered as the `PAYMENT_SETUP` step in the `OnboardingFlow` if the user chooses the 'premium' tier.
+
+
+├─ steps/ │
+│
+├─ ConfirmLearner.tsx │ 
+│ 
+├─ ConfirmLearners.tsx │ 
+│ 
+├─ IdentityVerification.tsx │ │ ├─ LearnerCard.tsx │ │ ├─ LearnerDetailsModal.tsx │ │ ├─ LearnerSelection.tsx │ 
+│ 
+├─ LinkLearners.tsx │ 
+│ 
+├─ NotificationPreferences.tsx │ 
+│ 
+├─ ParentContactSummary.tsx │ 
+│ 
+├─ ProfileSetup.tsx │
+│ 
+├─ TermsAcceptance.tsx │ 
+│ 
+└─ README.md │ 
+├─ BackButton.tsx │ 
+├─ OnboardingFlow.tsx 
+│
+└─ OnboardingProgress.tsx

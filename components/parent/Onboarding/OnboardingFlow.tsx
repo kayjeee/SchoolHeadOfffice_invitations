@@ -22,6 +22,13 @@ interface OnboardingFlowProps {
 }
 
 export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
+  console.log('');
+  console.log('🎬 ═══════════════════════════════════════');
+  console.log('🎬 OnboardingFlow Component Rendered');
+  console.log('🎬 ═══════════════════════════════════════');
+  console.log('👤 User:', user?.email || user?.sub);
+  console.log('📨 Has invitation:', !!invitationData);
+  
   // Invitation state
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
   
@@ -40,9 +47,12 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     goBack,
     currentStep, 
     progress, 
-    onboardingData, 
+    onboardingData,
+    completedSteps,
     profile,
-    steps // Check if this is available in your hook
+    steps,
+    isOnboardingComplete,
+    _debug
   } = useParentOnboarding({
     initialProfile: null,
     initialLearners: [],
@@ -51,9 +61,24 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   const hasInvitation = !!onboardingData.invitation_id;
 
+  // Log hook state
+  useEffect(() => {
+    console.log('🔄 Hook State Update:', {
+      currentStep,
+      progress: `${progress.toFixed(1)}%`,
+      completedSteps,
+      isOnboardingComplete,
+      totalSteps: steps?.length,
+      goBackAvailable: typeof goBack === 'function'
+    });
+  }, [currentStep, progress, completedSteps, isOnboardingComplete, steps, goBack]);
+
   // Fetch existing user profile
   const fetchUserProfile = async () => {
+    console.log('📥 Fetching user profile...', { userId: user?.sub });
+    
     if (!user?.sub) {
+      console.log('⏭️ Skipping profile fetch: no user ID');
       setIsLoadingProfile(false);
       return;
     }
@@ -73,14 +98,16 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data.user) {
-          console.log('📋 Existing user profile:', result.data.user);
+          console.log('✅ User profile fetched:', result.data.user);
           setExistingProfile(result.data.user);
+        } else {
+          console.log('⚠️ Profile fetch succeeded but no user data');
         }
       } else {
-        console.warn('Failed to fetch user profile:', response.status);
+        console.warn('❌ Failed to fetch user profile:', response.status);
       }
     } catch (error) {
-      console.error("Failed to fetch user profile:", error);
+      console.error("❌ Error fetching user profile:", error);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -88,7 +115,10 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // Fetch learners linked to this parent
   const fetchLearners = async () => {
+    console.log('📥 Fetching learners...', { userId: user?.sub });
+    
     if (!user?.sub) {
+      console.log('⏭️ Skipping learners fetch: no user ID');
       setIsLoadingLearners(false);
       return;
     }
@@ -97,9 +127,13 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     setFetchLearnersError(null);
     try {
       const response = await ParentAPI.getMyLearners(user.sub);
+      console.log('✅ Learners fetched:', {
+        count: response.learners?.length || 0,
+        learners: response.learners
+      });
       setLearners(response.learners);
     } catch (error) {
-      console.error("Failed to fetch learners:", error);
+      console.error("❌ Error fetching learners:", error);
       setFetchLearnersError("We couldn't load your linked learners. Please try again later.");
     } finally {
       setIsLoadingLearners(false);
@@ -108,62 +142,67 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // Load initial data on mount
   useEffect(() => {
+    console.log('🚀 OnboardingFlow mounted, loading initial data...');
     fetchUserProfile();
     fetchLearners();
   }, [user]);
 
   // Handle final step completion and invitation claiming
   const handleFinalStepComplete = async (data: any) => {
+    console.log('');
+    console.log('🎊 ═══════════════════════════════════════');
+    console.log('🎊 FINAL STEP COMPLETION');
+    console.log('🎊 ═══════════════════════════════════════');
+    console.log('📦 Final step data:', data);
+    console.log('📨 Has invitation to claim:', hasInvitation);
+    
     if (hasInvitation) {
       try {
+        console.log('🔗 Claiming invitation...', onboardingData.invitation_token);
         await InvitationService.claim(onboardingData.invitation_token, user.sub);
+        console.log('✅ Invitation claimed successfully');
         sessionStorage.removeItem('sho_invitation');
+        console.log('🧹 Cleared invitation from sessionStorage');
       } catch (error) {
-        console.error("Failed to claim invitation:", error);
+        console.error("❌ Failed to claim invitation:", error);
       }
     }
+    
+    console.log('➡️ Completing TERMS_ACCEPTANCE step...');
     completeStep('TERMS_ACCEPTANCE', data);
+    console.log('🎊 ═══════════════════════════════════════');
+    console.log('');
   };
 
   // Enhanced back button handler
   const handleGoBack = () => {
-    console.log('🔙 Back button clicked for step:', currentStep);
+    console.log('');
+    console.log('🔙 ═══════════════════════════════════════');
+    console.log('🔙 BACK BUTTON CLICKED');
+    console.log('🔙 ═══════════════════════════════════════');
+    console.log('📍 Current step:', currentStep);
+    console.log('🔍 goBack function available:', typeof goBack === 'function');
     
-    // Try the hook's goBack function first
     if (goBack && typeof goBack === 'function') {
-      console.log('📞 Calling hook goBack function');
+      console.log('✅ Calling hook goBack function');
       goBack();
     } else {
-      console.warn('⚠️ goBack function not available from hook, using manual navigation');
-      
-      // Manual step navigation based on current step
-      const stepOrder = [
-        'PROFILE_SETUP',
-        'IDENTITY_VERIFICATION', 
-        'LINK_LEARNERS',
-        'PARENT_CONTACT_SUMMARY',
-        'NOTIFICATION_PREFERENCES',
-        'TERMS_ACCEPTANCE'
-      ];
-      
-      const currentIndex = stepOrder.indexOf(currentStep);
-      if (currentIndex > 0) {
-        const previousStep = stepOrder[currentIndex - 1];
-        console.log(`🔄 Manually navigating to previous step: ${previousStep}`);
-        
-        // You might need to call a different function to go back
-        // This depends on your useParentOnboarding hook implementation
-        // If there's a setCurrentStep or similar function, use it here
-      } else {
-        console.log('🏁 Already at first step, nowhere to go back');
-      }
+      console.error('❌ goBack function not available from hook!');
+      console.error('⚠️ This should not happen - check useParentOnboarding hook');
     }
+    
+    console.log('🔙 ═══════════════════════════════════════');
+    console.log('');
   };
 
   // Render content with optional back button
   const renderWithBackButton = (content: React.ReactNode, showBack: boolean) => {
-    if (!showBack) return content;
+    if (!showBack) {
+      console.log('ℹ️ Not showing back button for this step');
+      return content;
+    }
     
+    console.log('✅ Showing back button for this step');
     return (
       <div className="space-y-6">
         <div className="flex justify-start">
@@ -179,31 +218,45 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // Render the current step
   const renderStep = () => {
-    const isLocked = hasInvitation && isInvitationPrefillLocked;
+    console.log('');
+    console.log('🎨 ═══════════════════════════════════════');
+    console.log('🎨 RENDERING STEP:', currentStep);
+    console.log('🎨 ═══════════════════════════════════════');
     
-    // Show back button on ALL steps except PROFILE_SETUP and INITIALIZING
+    const isLocked = hasInvitation && isInvitationPrefillLocked;
     const showBackButton = currentStep !== 'PROFILE_SETUP' && currentStep !== 'INITIALIZING';
 
-    // Debug info
-    console.log('🔍 Current step:', currentStep);
-    console.log('🔍 Show back button?', showBackButton);
-    console.log('🔍 goBack function available?', typeof goBack === 'function');
+    console.log('🔒 Invitation locked:', isLocked);
+    console.log('⬅️ Show back button:', showBackButton);
+    console.log('🎨 ═══════════════════════════════════════');
+    console.log('');
 
     switch (currentStep) {
       case 'PROFILE_SETUP':
+        console.log('📝 Rendering PROFILE_SETUP step');
+        
         if (isLoadingProfile) {
           return <LoadingScreen message="Loading your profile..." />;
         }
         
-        // Extract first and last name from the combined name field
         const existingName = existingProfile?.name || '';
         const nameParts = existingName.split(' ');
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
+        console.log('📋 Profile prefill data:', {
+          firstName,
+          lastName,
+          email: existingProfile?.email || user?.email,
+          phone: hasInvitation ? onboardingData.parent_phone : existingProfile?.phone_number
+        });
+        
         return (
           <ProfileSetup
-            onComplete={(data) => completeStep(currentStep, data)}
+            onComplete={(data) => {
+              console.log('✅ ProfileSetup onComplete called with data:', data);
+              completeStep(currentStep, data);
+            }}
             prefillData={{
               first_name: firstName,
               last_name: lastName,
@@ -218,12 +271,20 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         );
 
       case 'IDENTITY_VERIFICATION':
+        console.log('🆔 Rendering IDENTITY_VERIFICATION step');
         return renderWithBackButton(
-          <IdentityVerification onComplete={(data) => completeStep(currentStep, data)} />,
+          <IdentityVerification 
+            onComplete={(data) => {
+              console.log('✅ IdentityVerification onComplete called with data:', data);
+              completeStep(currentStep, data);
+            }} 
+          />,
           showBackButton
         );
 
       case 'LINK_LEARNERS':
+        console.log('👨‍👩‍👧‍👦 Rendering LINK_LEARNERS step');
+        
         if (isLoadingLearners) {
           return <LoadingScreen message="Fetching your learners..." />;
         }
@@ -239,29 +300,26 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           );
         }
         
+        console.log('👥 Existing learners count:', learners.length);
         return renderWithBackButton(
           <LinkLearners
             existingLearners={learners}
-            onLearnerLinked={fetchLearners}
-            onComplete={() => completeStep('LINK_LEARNERS', {})}
+            onLearnerLinked={() => {
+              console.log('🔄 Learner linked, refreshing learner list...');
+              fetchLearners();
+            }}
+            onComplete={() => {
+              console.log('✅ LinkLearners onComplete called');
+              completeStep('LINK_LEARNERS', {});
+            }}
             user={user}
           />,
           showBackButton
         );
 
-      case 'SUBSCRIPTION_CHOICE':
-        return renderWithBackButton(
-          <SubscriptionChoice onComplete={(data) => completeStep(currentStep, data)} />,
-          showBackButton
-        );
-
-      case 'PAYMENT_SETUP':
-        return renderWithBackButton(
-          <PaymentSetup onComplete={(data) => completeStep(currentStep, data)} />,
-          showBackButton
-        );
-
       case 'PARENT_CONTACT_SUMMARY':
+        console.log('📋 Rendering PARENT_CONTACT_SUMMARY step');
+        
         const parentData = {
           name: profile?.name || user?.name || '',
           email: profile?.email || user?.email || '',
@@ -273,35 +331,68 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           whatsappNumber: onboardingData.school_whatsapp_number || null,
         };
         
+        console.log('👤 Parent data:', parentData);
+        console.log('🏫 School data:', schoolData);
+        console.log('👥 Learners:', learners.length);
+        
         return renderWithBackButton(
           <ParentContactSummary
             parent={parentData}
             learners={learners}
             school={schoolData}
-            onComplete={() => completeStep('PARENT_CONTACT_SUMMARY', {})}
+            onComplete={() => {
+              console.log('✅ ParentContactSummary onComplete called');
+              completeStep('PARENT_CONTACT_SUMMARY', {});
+            }}
           />,
           showBackButton
         );
 
       case 'NOTIFICATION_PREFERENCES':
+        console.log('🔔 Rendering NOTIFICATION_PREFERENCES step');
         return renderWithBackButton(
           <NotificationPreferences 
-            onComplete={(data) => completeStep(currentStep, data)} 
+            onComplete={(data) => {
+              console.log('✅ NotificationPreferences onComplete called with data:', data);
+              completeStep(currentStep, data);
+            }} 
           />,
           showBackButton
         );
 
       case 'TERMS_ACCEPTANCE':
+        console.log('📜 Rendering TERMS_ACCEPTANCE step (FINAL STEP)');
         return renderWithBackButton(
-          <TermsAcceptance onComplete={handleFinalStepComplete} />,
+          <TermsAcceptance 
+            onComplete={(data) => {
+              console.log('✅ TermsAcceptance onComplete called (FINAL!)');
+              handleFinalStepComplete(data);
+            }} 
+          />,
           showBackButton
         );
 
       case 'INITIALIZING':
+        console.log('⏳ Rendering INITIALIZING state');
         return <LoadingScreen message="Initializing onboarding..." />;
 
+      case 'COMPLETE':
+        console.log('🎉 Onboarding marked as COMPLETE - should not render this');
+        return (
+          <div className="text-center p-8 bg-white rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold text-green-600 mb-4">Onboarding Complete!</h2>
+            <p className="text-gray-600">Redirecting to dashboard...</p>
+          </div>
+        );
+
       default:
-        return null;
+        console.error('❌ Unknown step:', currentStep);
+        return (
+          <div className="text-center p-8 bg-red-50 rounded-lg border border-red-200">
+            <h3 className="text-xl font-bold text-red-700">Unknown Step</h3>
+            <p className="text-gray-600 mt-2">Step: {currentStep}</p>
+          </div>
+        );
     }
   };
 
@@ -309,7 +400,12 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Progress indicator */}
-        <OnboardingProgress currentStep={currentStep} progress={progress} />
+        <OnboardingProgress 
+          currentStep={currentStep} 
+          progress={progress}
+          completedSteps={completedSteps}
+          steps={steps}
+        />
 
         {/* Invitation banner */}
         {hasInvitation && (
@@ -322,7 +418,10 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
             </div>
             {isInvitationPrefillLocked && (
               <button
-                onClick={() => setInvitationPrefillLocked(false)}
+                onClick={() => {
+                  console.log('🔓 Unlocking invitation prefill');
+                  setInvitationPrefillLocked(false);
+                }}
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
                 Edit
@@ -331,14 +430,18 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           </div>
         )}
 
-        {/* Debug info - only in development */}
+        {/* Debug info (development only) */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-            <div className="font-semibold text-yellow-800">Debug Info:</div>
-            <div className="text-yellow-700">
-              <div>Current Step: {currentStep}</div>
-              <div>Progress: {progress}%</div>
-              <div>Has goBack function: {typeof goBack === 'function' ? '✅ Yes' : '❌ No'}</div>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+            <div className="font-semibold text-yellow-800 mb-1">OnboardingFlow Debug:</div>
+            <div className="text-yellow-700 space-y-1">
+              <div>Current Step: <span className="font-mono font-semibold">{currentStep}</span></div>
+              <div>Progress: <span className="font-mono">{progress.toFixed(1)}%</span></div>
+              <div>Completed: <span className="font-mono">[{completedSteps.join(', ')}]</span></div>
+              <div>Total Steps: <span className="font-mono">{steps?.length || 0}</span></div>
+              <div>Is Complete: <span className="font-mono">{isOnboardingComplete ? '✅ Yes' : '❌ No'}</span></div>
+              <div>goBack Available: <span className="font-mono">{typeof goBack === 'function' ? '✅ Yes' : '❌ No'}</span></div>
+              <div>Has Invitation: <span className="font-mono">{hasInvitation ? '✅ Yes' : '❌ No'}</span></div>
             </div>
           </div>
         )}
