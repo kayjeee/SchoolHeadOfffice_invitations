@@ -53,6 +53,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   const queryClient = useQueryClient();
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
+  const [completedSteps, setCompletedSteps] = useState<Set<OnboardingStep>>(new Set());
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
   const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +130,6 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     }
   }, [user, railsUser, handleSyncUser]);
 
-
   // ========================
   // DATA FETCHING
   // ========================
@@ -183,7 +183,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   });
 
   // ========================
-  // ONBOARDING LOGIC
+  // ONBOARDING LOGIC - WITH BACK FUNCTION
   // ========================
 
   useEffect(() => {
@@ -202,6 +202,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   const completeStep = async (step: OnboardingStep, data: any) => {
     try {
       setOnboardingData(prev => ({ ...prev, [step]: data }));
+      setCompletedSteps(prev => new Set(prev).add(step));
 
       if (step === 'PROFILE_SETUP') {
         await updateProfileMutation.mutateAsync(data);
@@ -221,10 +222,33 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     }
   };
 
-  const progress = useMemo(() => {
-    const completedSteps = ONBOARDING_STEPS.indexOf(currentStep);
-    return Math.max(0, (completedSteps / ONBOARDING_STEPS.length) * 100);
+  // ADD THIS FUNCTION - The missing goBack function
+  const goBack = useCallback(() => {
+    const currentIndex = ONBOARDING_STEPS.indexOf(currentStep);
+    
+    // Don't go back from first step
+    if (currentIndex <= 0) return;
+    
+    const previousStep = ONBOARDING_STEPS[currentIndex - 1];
+    setCurrentStep(previousStep);
+    
+    // Optional: Remove the step from completed steps if going back
+    setCompletedSteps(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(currentStep);
+      return newSet;
+    });
+    
+    console.log(`🔙 Going back from ${currentStep} to ${previousStep}`);
   }, [currentStep]);
+
+  const progress = useMemo(() => {
+    const completedCount = completedSteps.size;
+    return Math.max(0, (completedCount / ONBOARDING_STEPS.length) * 100);
+  }, [completedSteps]);
+
+  // Get the step order for debugging/display
+  const steps = useMemo(() => ONBOARDING_STEPS, []);
 
   return {
     user,
@@ -232,11 +256,14 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     profile,
     learners,
     currentStep,
+    steps, // Add this to expose step order
+    completedSteps: Array.from(completedSteps),
     onboardingData,
     isOnboardingComplete: currentStep === 'COMPLETE',
     isLoading: isAuthLoading || isSyncing || isProfileLoading || areLearnersLoading,
     progress,
     completeStep,
+    goBack, // Now this will be available!
     error,
     retrySync: handleSyncUser,
     setInvitationPrefill,
