@@ -196,12 +196,18 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   useEffect(() => {
     if (!user || isProfileLoading) return;
 
-    if (!profile) {
-      setCurrentStep('PROFILE_SETUP');
-    } else if (learners.length === 0) {
-      setCurrentStep('LINK_LEARNERS');
+    if (profile?.needsOnboarding) {
+      if (!profile) {
+        setCurrentStep('PROFILE_SETUP');
+      } else if (learners.length === 0) {
+        setCurrentStep('LINK_LEARNERS');
+      } else {
+        // If needsOnboarding is true, but they have a profile and learners,
+        // it's likely they are partway through. We can make this smarter later.
+        // For now, let's just put them at the beginning of the remaining steps.
+        setCurrentStep('SUBSCRIPTION_CHOICE');
+      }
     } else {
-      // Add more checks for other steps here
       setCurrentStep('COMPLETE');
     }
   }, [user, profile, learners, isProfileLoading]);

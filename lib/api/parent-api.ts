@@ -19,6 +19,7 @@ export interface ParentProfile {
   phone_number?: string;
   roles: string[];
   school_ids: string[];
+  needsOnboarding: boolean;
 }
 
 export interface UpdateProfileData {
