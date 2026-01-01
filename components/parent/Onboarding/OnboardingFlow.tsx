@@ -317,6 +317,49 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           showBackButton
         );
 
+      case 'SUBSCRIPTION_CHOICE':
+        console.log('💳 Rendering SUBSCRIPTION_CHOICE step');
+        return renderWithBackButton(
+          <SubscriptionChoice
+            onComplete={(data) => {
+              console.log('✅ SubscriptionChoice onComplete called with data:', data);
+              completeStep(currentStep, data);
+            }}
+            initialSelection={onboardingData.SUBSCRIPTION_CHOICE?.tier}
+          />,
+          showBackButton
+        );
+
+      case 'PAYMENT_SETUP':
+        console.log('💰 Rendering PAYMENT_SETUP step');
+        
+        // Get billing amount from subscription choice
+        const subscriptionData = onboardingData.SUBSCRIPTION_CHOICE || {};
+        const billingCycle = subscriptionData.billingCycle || 'monthly';
+        const baseAmount = 99; // Base premium price
+        const billingAmount = billingCycle === 'monthly' 
+          ? baseAmount 
+          : Math.round((baseAmount * 12) * 0.85); // 15% discount for annual
+        
+        console.log('💰 Payment details:', {
+          billingCycle,
+          billingAmount,
+          currency: 'ZAR'
+        });
+        
+        return renderWithBackButton(
+          <PaymentSetup
+            onComplete={(data) => {
+              console.log('✅ PaymentSetup onComplete called with data:', data);
+              completeStep(currentStep, data);
+            }}
+            selectedTier="premium"
+            billingAmount={billingCycle === 'monthly' ? billingAmount : Math.round(billingAmount / 12)}
+            currency="ZAR"
+          />,
+          showBackButton
+        );
+
       case 'PARENT_CONTACT_SUMMARY':
         console.log('📋 Rendering PARENT_CONTACT_SUMMARY step');
         

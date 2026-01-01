@@ -15,6 +15,8 @@ const STEP_DISPLAY_NAMES: Record<string, string> = {
   'PROFILE_SETUP': 'Profile',
   'IDENTITY_VERIFICATION': 'Identity',
   'LINK_LEARNERS': 'Learners',
+  'SUBSCRIPTION_CHOICE': 'Plan',
+  'PAYMENT_SETUP': 'Payment',
   'PARENT_CONTACT_SUMMARY': 'Summary',
   'NOTIFICATION_PREFERENCES': 'Notifications',
   'TERMS_ACCEPTANCE': 'Terms',
@@ -24,6 +26,7 @@ const DEFAULT_STEPS = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
+  'SUBSCRIPTION_CHOICE',
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
@@ -74,8 +77,8 @@ export default function OnboardingProgress({
         </div>
       </div>
 
-      {/* Step indicators */}
-      <div className="grid grid-cols-6 gap-2">
+      {/* Step indicators - responsive grid */}
+      <div className={`grid gap-2 ${steps.length <= 6 ? 'grid-cols-6' : 'grid-cols-8'}`}>
         {steps.map((step, index) => {
           const isCompleted = completedSteps.includes(step);
           const isCurrent = step === currentStep;

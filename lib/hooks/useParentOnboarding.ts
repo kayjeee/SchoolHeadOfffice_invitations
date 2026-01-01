@@ -15,6 +15,8 @@ type OnboardingStep =
   | 'PROFILE_SETUP'
   | 'IDENTITY_VERIFICATION'
   | 'LINK_LEARNERS'
+  | 'SUBSCRIPTION_CHOICE'
+  | 'PAYMENT_SETUP'
   | 'PARENT_CONTACT_SUMMARY'
   | 'NOTIFICATION_PREFERENCES'
   | 'TERMS_ACCEPTANCE'
@@ -25,6 +27,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
+  'SUBSCRIPTION_CHOICE',
+  // PAYMENT_SETUP is conditionally added if premium is selected
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
@@ -312,6 +316,29 @@ export function useParentOnboarding({
         console.log('🔄 Triggering profile API update...');
         await updateProfileMutation.mutateAsync(data);
         console.log('✅ Profile API update complete');
+      }
+
+      // Special handling for SUBSCRIPTION_CHOICE
+      if (step === 'SUBSCRIPTION_CHOICE') {
+        if (data.tier === 'premium') {
+          console.log('💳 Premium selected - next step is PAYMENT_SETUP');
+          logStepTransition(step, 'PAYMENT_SETUP', 'Premium subscription requires payment');
+          setCurrentStep('PAYMENT_SETUP');
+          return;
+        } else {
+          console.log('🆓 Standard (free) selected - skipping PAYMENT_SETUP');
+          logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Standard subscription skips payment');
+          setCurrentStep('PARENT_CONTACT_SUMMARY');
+          return;
+        }
+      }
+
+      // Special handling for PAYMENT_SETUP - always go to PARENT_CONTACT_SUMMARY
+      if (step === 'PAYMENT_SETUP') {
+        console.log('💰 Payment setup complete - moving to PARENT_CONTACT_SUMMARY');
+        logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Payment complete');
+        setCurrentStep('PARENT_CONTACT_SUMMARY');
+        return;
       }
 
       // Determine next step
