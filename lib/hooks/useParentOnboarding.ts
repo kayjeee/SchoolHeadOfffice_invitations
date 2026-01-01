@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
-import { ParentAPI, ParentProfile, Learner, ParentProfileUpdate } from '../api/parent-api';
+import { ParentAPI, ParentProfile, Learner, UpdateProfileData } from '../api/parent-api';
 import { UserSyncService, RailsUser } from '../services/userSyncService';
 
 // ========================
@@ -15,6 +15,8 @@ type OnboardingStep =
   | 'PROFILE_SETUP'
   | 'IDENTITY_VERIFICATION'
   | 'LINK_LEARNERS'
+  | 'SUBSCRIPTION_CHOICE'
+  | 'PAYMENT_SETUP'
   | 'PARENT_CONTACT_SUMMARY'
   | 'NOTIFICATION_PREFERENCES'
   | 'TERMS_ACCEPTANCE'
@@ -24,6 +26,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
+  'SUBSCRIPTION_CHOICE',
+  'PAYMENT_SETUP',
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
@@ -143,7 +147,10 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
 
   const { data: learners, isLoading: areLearnersLoading } = useQuery({
     queryKey: ['parentLearners', user?.sub],
-    queryFn: () => ParentAPI.getLearners(user!.sub!),
+    queryFn: async () => {
+      const response = await ParentAPI.getMyLearners(user!.sub!);
+      return response.learners;
+    },
     enabled: !!user?.sub,
     initialData: initialLearners,
   });
@@ -153,7 +160,7 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
   // ========================
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data: ParentProfileUpdate) => ParentAPI.updateProfile(user!.sub!, data),
+    mutationFn: (data: UpdateProfileData) => ParentAPI.updateProfile(user!.sub!, data),
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(['parentProfile', user?.sub], updatedProfile);
     },
@@ -172,15 +179,15 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     },
   });
 
-  const removeLearnerMutation = useMutation({
-    mutationFn: (learnerId: string) => ParentAPI.removeLearner(user!.sub!, learnerId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
-    },
-    onError: (error) => {
-      setError(error.message);
-    },
-  });
+  // const removeLearnerMutation = useMutation({
+  //   mutationFn: (learnerId: string) => ParentAPI.removeLearner(user!.sub!, learnerId),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
+  //   },
+  //   onError: (error) => {
+  //     setError(error.message);
+  //   },
+  // });
 
   // ========================
   // ONBOARDING LOGIC - WITH BACK FUNCTION
@@ -208,8 +215,15 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
         await updateProfileMutation.mutateAsync(data);
       }
 
-      const currentIndex = ONBOARDING_STEPS.indexOf(step);
-      const nextStep = ONBOARDING_STEPS[currentIndex + 1];
+      let nextStep: OnboardingStep | undefined;
+      if (step === 'SUBSCRIPTION_CHOICE' && data.tier === 'standard') {
+        // Skip PAYMENT_SETUP if standard tier is chosen
+        const currentIndex = ONBOARDING_STEPS.indexOf('PAYMENT_SETUP');
+        nextStep = ONBOARDING_STEPS[currentIndex + 1];
+      } else {
+        const currentIndex = ONBOARDING_STEPS.indexOf(step);
+        nextStep = ONBOARDING_STEPS[currentIndex + 1];
+      }
 
       if (nextStep) {
         setCurrentStep(nextStep);
@@ -268,6 +282,6 @@ export function useParentOnboarding({ initialProfile, initialLearners = [], invi
     retrySync: handleSyncUser,
     setInvitationPrefill,
     linkLearner: linkLearnerMutation.mutateAsync,
-    removeLearner: removeLearnerMutation.mutateAsync,
+    // removeLearner: removeLearnerMutation.mutateAsync,
   };
 }

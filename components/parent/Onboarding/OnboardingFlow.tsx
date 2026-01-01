@@ -7,6 +7,8 @@ import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
+import SubscriptionChoice from './steps/SubscriptionChoice';
+import PaymentSetup from './steps/PaymentSetup';
 import ParentContactSummary from './steps/ParentContactSummary';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
@@ -247,13 +249,23 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           showBackButton
         );
 
+      case 'SUBSCRIPTION_CHOICE':
+        return renderWithBackButton(
+          <SubscriptionChoice onComplete={(data) => completeStep(currentStep, data)} />,
+          showBackButton
+        );
+
+      case 'PAYMENT_SETUP':
+        return renderWithBackButton(
+          <PaymentSetup onComplete={(data) => completeStep(currentStep, data)} />,
+          showBackButton
+        );
+
       case 'PARENT_CONTACT_SUMMARY':
         const parentData = {
-          name: profile?.first_name 
-            ? `${profile.first_name} ${profile.last_name}` 
-            : user?.name || '',
+          name: profile?.name || user?.name || '',
           email: profile?.email || user?.email || '',
-          phone: profile?.phone || onboardingData.parent_phone || '',
+          phone: profile?.phone_number || onboardingData.parent_phone || '',
         };
         
         const schoolData = {

@@ -1,5 +1,5 @@
 // services/WhatsAppBusinessService.ts
-import { logger } from '../utils/logger';
+import { nasaLog as logger } from '../nasaLogger';
 
 interface InvitationParams {
   phoneNumber: string;
@@ -14,6 +14,9 @@ interface InvitationParams {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
 class WhatsAppBusinessService {
+  baseURL: string;
+  invitationsURL: string;
+
 constructor() {
 this.baseURL = '/api/whatsapp-business';
 this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
@@ -33,7 +36,7 @@ async createInvitation({
   userEmail,
 }: InvitationParams): Promise<string> {
 try {
-logger.info('WhatsAppBusinessService', 'Creating invitation token', {
+logger('INFO', 'WhatsAppBusinessService', 'Creating invitation token', {
 phoneNumber,
 schoolId,
 userEmail
@@ -90,13 +93,13 @@ if (!token) {
 throw new Error('No token received in invitation response');
 }
 
-logger.info('WhatsAppBusinessService', 'Invitation token created successfully', {
+logger('INFO', 'WhatsAppBusinessService', 'Invitation token created successfully', {
 token: token.substring(0, 8) + '...', // Log partial token for security
 phoneNumber
 });
 return token;
 } catch (error) {
-logger.error('WhatsAppBusinessService', 'Failed to create invitation', {
+logger('ERROR', 'WhatsAppBusinessService', 'Failed to create invitation', {
 error: error.message,
 phoneNumber,
 schoolId,
@@ -182,7 +185,7 @@ return `https://portal.${domain}.com/join?token=${token}`;
 */
 async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }) {
 try {
-logger.info('WhatsAppBusinessService', 'Preparing to send test message', {
+logger('INFO', 'WhatsAppBusinessService', 'Preparing to send test message', {
 to,
 schoolName,
 grade: grade?.name,
@@ -245,7 +248,7 @@ if (!response.ok) {
 throw new Error(data.error || `HTTP ${response.status}: Failed to send test message`);
 }
 
-logger.info('WhatsAppBusinessService', 'Test message sent successfully', {
+logger('INFO', 'WhatsAppBusinessService', 'Test message sent successfully', {
 messageId: data.messageId,
 to
 });
@@ -256,7 +259,7 @@ magicLink,
 token // Return token for debugging
 };
 } catch (error) {
-logger.error('WhatsAppBusinessService', 'Failed to send test message', {
+logger('ERROR', 'WhatsAppBusinessService', 'Failed to send test message', {
 error: error.message,
 to,
 schoolName,
@@ -272,7 +275,7 @@ throw error;
 */
 async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }) {
 try {
-logger.info('WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
+logger('INFO', 'WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
 recipientCount: recipientNumbers.length,
 schoolName,
 schoolId,
@@ -340,7 +343,7 @@ error: error.message
 
 // Log any errors that occurred during token generation
 if (errors.length > 0) {
-logger.warn('WhatsAppBusinessService', 'Some invitations failed during token generation', {
+logger('WARN', 'WhatsAppBusinessService', 'Some invitations failed during token generation', {
 failedCount: errors.length,
 successfulCount: personalizedMessages.length,
 errors: errors.slice(0, 5) // Log first 5 errors
@@ -383,7 +386,7 @@ generationErrors: errors,
 totalProcessed: personalizedMessages.length + errors.length
 };
 
-logger.info('WhatsAppBusinessService', 'Bulk magic link messages sent successfully', {
+logger('INFO', 'WhatsAppBusinessService', 'Bulk magic link messages sent successfully', {
 sentCount: data.sentCount,
 failedCount: data.failedCount,
 generationErrors: errors.length,
@@ -392,7 +395,7 @@ totalRecipients: recipientNumbers.length
 
 return result;
 } catch (error) {
-logger.error('WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
+logger('ERROR', 'WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
 error: error.message,
 schoolName,
 schoolId,
@@ -407,7 +410,7 @@ throw error;
 */
 async scheduleBulkMessage({ gradeIds, message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName }) {
 try {
-logger.info('WhatsAppBusinessService', 'Scheduling bulk message', {
+logger('INFO', 'WhatsAppBusinessService', 'Scheduling bulk message', {
 scheduledAt,
 recipientCount: recipientNumbers.length,
 schoolName
@@ -437,14 +440,14 @@ if (!response.ok) {
 throw new Error(data.error || `HTTP ${response.status}: Failed to schedule message`);
 }
 
-logger.info('WhatsAppBusinessService', 'Bulk message scheduled successfully', {
+logger('INFO', 'WhatsAppBusinessService', 'Bulk message scheduled successfully', {
 scheduleId: data.scheduleId,
 scheduledFor: scheduledAt
 });
 
 return data;
 } catch (error) {
-logger.error('WhatsAppBusinessService', 'Failed to schedule bulk message', error);
+logger('ERROR', 'WhatsAppBusinessService', 'Failed to schedule bulk message', error);
 throw error;
 }
 }

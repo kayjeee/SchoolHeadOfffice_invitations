@@ -20,7 +20,7 @@ interface LearnerSelectionProps {
 }
 
 export default function LearnerSelection({ onComplete }: LearnerSelectionProps) {
-  const { learners, linkLearner, removeLearner, isLoading } = useParentOnboarding({});
+  const { learners, linkLearner, isLoading } = useParentOnboarding({});
 
   const [selectedLearnerIds, setSelectedLearnerIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,7 +134,6 @@ export default function LearnerSelection({ onComplete }: LearnerSelectionProps) 
               isSelected={selectedLearnerIds.includes(learner.id)}
               onSelect={handleSelectLearner}
               onViewDetails={setViewingLearner}
-              onRemove={removeLearner}
             />
           ))
         ) : (

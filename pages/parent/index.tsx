@@ -269,7 +269,7 @@ export default function ParentPage({
     } else {
       // Fully onboarded → show dashboard
       innerContent = <ParentDashboard user={user} profile={profile} learners={learners} />;
-      pageTitle = `${profile?.first_name || "Parent"}'s Dashboard`;
+      pageTitle = `${profile?.name || "Parent"}'s Dashboard`;
     }
 
     // ✅ ALWAYS wrap authenticated content with layout
@@ -282,7 +282,7 @@ export default function ParentPage({
         selectedLayout: isMobile ? 'Mobile' : 'Desktop',
         hasLayoutComponent: !!LayoutComponent,
         user: user?.email,
-        profile: profile?.first_name,
+        profile: profile?.name,
         isOnboardingComplete
       });
     }
