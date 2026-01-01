@@ -1,7 +1,12 @@
-// services/WhatsAppBusinessService.ts - HYBRID VERSION
+// services/WhatsAppBusinessService.ts - HYBRID + MULTI-COUNTRY VERSION
 import { logger } from '../utils/logger';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+
+/* ------------------------------------------------------------------ */
+/* Types                                                              */
+/* ------------------------------------------------------------------ */
 
 interface InvitationParams {
   phoneNumber: string;
@@ -11,6 +16,7 @@ interface InvitationParams {
   parentName?: string;
   invitedVia?: string;
   sender_id?: string;
+  countryCode?: string;
 }
 
 interface BuildMagicLinkParams {
@@ -27,6 +33,7 @@ interface TestMessageParams {
   parentName?: string;
   invitedVia?: string;
   sender_id?: string;
+  countryCode?: string;
 }
 
 interface BulkMessagesParams {
@@ -47,27 +54,95 @@ interface ScheduleMessageParams {
   gradeIds?: string[];
 }
 
+interface CountryConfig {
+  code: string;
+  name: string;
+  regex: RegExp;
+  whatsappSupported: boolean;
+  example: string;
+  minLength: number;
+  maxLength: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Service                                                            */
+/* ------------------------------------------------------------------ */
+
 class WhatsAppBusinessService {
   private baseURL: string;
   private invitationsURL: string;
+
+  /* ---------------- Country Configuration ---------------- */
+
+  private readonly SUPPORTED_COUNTRIES: CountryConfig[] = [
+    {
+      code: '27',
+      name: 'South Africa',
+      regex: /^27[1-9][0-9]{8}$/,
+      whatsappSupported: true,
+      example: '+27821234567',
+      minLength: 11,
+      maxLength: 11,
+    },
+    {
+      code: '256',
+      name: 'Uganda',
+      regex: /^256(7[0-9]|20|3[0-9])\d{7}$/,
+      whatsappSupported: true,
+      example: '+256758642938',
+      minLength: 12,
+      maxLength: 12,
+    },
+    {
+      code: '254',
+      name: 'Kenya',
+      regex: /^254(7[0-9]|1[0-9])\d{7}$/,
+      whatsappSupported: true,
+      example: '+254712345678',
+      minLength: 12,
+      maxLength: 12,
+    },
+    {
+      code: '267',
+      name: 'Botswana',
+      regex: /^267(7[0-9]|6[0-9])\d{6}$/,
+      whatsappSupported: true,
+      example: '+26771234567',
+      minLength: 11,
+      maxLength: 11,
+    },
+    {
+      code: '234',
+      name: 'Nigeria',
+      regex: /^234[7-9][0-1][0-9]{8}$/,
+      whatsappSupported: true,
+      example: '+2348123456789',
+      minLength: 13,
+      maxLength: 14,
+    },
+  ];
 
   constructor() {
     this.baseURL = '/api/whatsapp-business';
     this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
   }
 
-  // ✅ Internal validator
-  public validateMessageTemplate(message: string): void {
-    if (typeof message !== 'string' || message.trim() === '') {
-      throw new Error('Message must be a non-empty string');
-    }
-    if (message.length > 4096) {
-      throw new Error('Message exceeds maximum length (4096 chars)');
-    }
-    if (/[<>]/g.test(message)) {
-      throw new Error('Message contains invalid characters: < or >');
-    }
+  /* ------------------------------------------------------------------ */
+  /* Backward Compatibility                                             */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * ⚠️ NO-OP METHOD
+   * Kept only so legacy UI code does not crash.
+   * Frontend no longer validates WhatsApp templates.
+   */
+  public validateMessageTemplate(_message: string): void {
+    return;
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Utilities                                                          */
+  /* ------------------------------------------------------------------ */
 
   private sanitizeSchoolName(schoolName: string): string {
     return schoolName?.trim() || 'Your School';
@@ -78,112 +153,162 @@ class WhatsAppBusinessService {
     return `support@${domain || 'schoolportal'}.com`;
   }
 
-  // ✅ CORRECT: Builds only the query string, NOT the full URL
   private buildMagicLink({ token, schoolName }: BuildMagicLinkParams): string {
-    if (!schoolName || schoolName.trim() === '') {
-      throw new Error('schoolName is required to build the magic link');
+    if (!schoolName?.trim()) {
+      throw new Error('schoolName is required');
     }
-    const encodedSchoolName = encodeURIComponent(schoolName.trim());
-    return `?token=${token}&school=${encodedSchoolName}`; // Just the query string
+    return `?token=${token}&school=${encodeURIComponent(schoolName.trim())}`;
   }
 
-  // ✅ FLEXIBLE: Optional fields for development
-  async createInvitation({
-    phoneNumber,
-    schoolId,
-    userEmail,
-    learnerNumber,
-    parentName,
-    invitedVia = 'whatsapp', // Default value
-    sender_id,
-  }: InvitationParams): Promise<string> {
-    if (!schoolId || !phoneNumber) {
-      throw new Error('schoolId and phoneNumber are required');
+  /* ------------------------------------------------------------------ */
+  /* Phone Validation                                                   */
+  /* ------------------------------------------------------------------ */
+
+  private getCountryConfig(phone: string): CountryConfig | null {
+    const digits = phone.replace(/\D/g, '');
+    return (
+      [...this.SUPPORTED_COUNTRIES]
+        .sort((a, b) => b.code.length - a.code.length)
+        .find((c) => digits.startsWith(c.code)) || null
+    );
+  }
+
+  public validatePhoneNumber(
+    phone: string,
+    countryCode?: string
+  ): {
+    isValid: boolean;
+    formattedNumber: string;
+    country: CountryConfig | null;
+    error?: string;
+  } {
+    let digits = phone.replace(/\D/g, '');
+
+    if (countryCode && !digits.startsWith(countryCode)) {
+      digits = digits.startsWith('0')
+        ? countryCode + digits.slice(1)
+        : countryCode + digits;
     }
 
-    // Build payload with optional fields
+    const country = this.getCountryConfig(digits);
+    if (!country) {
+      return {
+        isValid: false,
+        formattedNumber: digits,
+        country: null,
+        error: 'Unsupported country code',
+      };
+    }
+
+    if (
+      digits.length < country.minLength ||
+      digits.length > country.maxLength
+    ) {
+      return {
+        isValid: false,
+        formattedNumber: digits,
+        country,
+        error: `Invalid ${country.name} number length`,
+      };
+    }
+
+    if (!country.regex.test(digits)) {
+      return {
+        isValid: false,
+        formattedNumber: digits,
+        country,
+        error: `Invalid ${country.name} number format`,
+      };
+    }
+
+    return { isValid: true, formattedNumber: digits, country };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Invitations                                                        */
+  /* ------------------------------------------------------------------ */
+
+  async createInvitation(params: InvitationParams): Promise<string> {
+    const validation = this.validatePhoneNumber(
+      params.phoneNumber,
+      params.countryCode
+    );
+
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+
     const payload: any = {
-      phone_number: phoneNumber,
-      school_id: schoolId,
+      phone_number: validation.formattedNumber,
+      school_id: params.schoolId,
       role: 'parent',
+      invited_via: params.invitedVia || 'whatsapp',
     };
 
-    // Add optional fields if they exist
-    if (learnerNumber) payload.learner_number = learnerNumber;
-    if (parentName) payload.parent_name = parentName;
-    if (invitedVia) payload.invited_via = invitedVia;
-    if (sender_id) payload.sender_id = sender_id;
+    if (params.learnerNumber) payload.learner_number = params.learnerNumber;
+    if (params.parentName) payload.parent_name = params.parentName;
+    if (params.sender_id) payload.sender_id = params.sender_id;
+    if (validation.country) {
+      payload.country_code = validation.country.code;
+      payload.country_name = validation.country.name;
+    }
 
-    const response = await fetch(this.invitationsURL, {
+    const res = await fetch(this.invitationsURL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Email': userEmail || 'kagiso.killagram@gmail.com',
+        'X-User-Email': params.userEmail || 'system@schoolheadoffice.com',
       },
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || 'Failed to create invitation');
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Invitation failed');
     }
 
     return data.invitation?.token || data.token;
   }
 
-  // ✅ REMOVED: We don't build messages in frontend anymore
-  // private buildMagicLinkMessage() { ... } // DELETE THIS METHOD
+  /* ------------------------------------------------------------------ */
+  /* Test Message                                                       */
+  /* ------------------------------------------------------------------ */
 
-  // ✅ CORRECT: Passes token query string to backend
-  async sendTestMessage({
-    to,
-    schoolName,
-    schoolId,
-    userEmail,
-    learnerNumber,
-    parentName,
-    invitedVia = 'whatsapp',
-    sender_id,
-  }: TestMessageParams): Promise<any> {
-    const formattedNumber = to.replace(/\D/g, "");
-    if (!formattedNumber.startsWith("27")) {
-      throw new Error('Invalid phone number: must start with 27');
+  async sendTestMessage(params: TestMessageParams): Promise<any> {
+    const validation = this.validatePhoneNumber(
+      params.to,
+      params.countryCode
+    );
+
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
 
-    // 1. Create invitation with all provided data (optional fields)
     const token = await this.createInvitation({
-      phoneNumber: formattedNumber,
-      schoolId,
-      userEmail,
-      learnerNumber,
-      parentName,
-      invitedVia,
-      sender_id,
+      phoneNumber: validation.formattedNumber,
+      schoolId: params.schoolId,
+      userEmail: params.userEmail,
+      learnerNumber: params.learnerNumber,
+      parentName: params.parentName,
+      invitedVia: params.invitedVia,
+      sender_id: params.sender_id,
+      countryCode: validation.country?.code,
     });
 
-    // 2. Build query string (NOT full URL)
-    const sanitizedSchoolName = this.sanitizeSchoolName(schoolName);
-    const magicLinkQuery = this.buildMagicLink({ 
-      token, 
-      schoolName: sanitizedSchoolName 
-    });
+    const schoolName = this.sanitizeSchoolName(params.schoolName);
 
-    const supportEmail = this.buildSupportEmail(sanitizedSchoolName);
-
-    // 3. Send to backend proxy - it will build the final WhatsApp message
     const payload = {
-      to: formattedNumber,
-      schoolName: sanitizedSchoolName,
-      magicLink: magicLinkQuery, // ✅ Just the query string: "?token=abc&school=xyz"
-      supportEmail,
+      to: validation.formattedNumber,
+      schoolName,
+      magicLink: this.buildMagicLink({ token, schoolName }),
+      supportEmail: this.buildSupportEmail(schoolName),
       testType: 'MAGIC_LINK',
-      // Pass optional data for better personalization
-      learnerNumber,
-      parentName,
+      parentName: params.parentName,
+      learnerNumber: params.learnerNumber,
+      country: validation.country?.name,
     };
 
-    const response = await fetch(`${this.baseURL}/test-message`, {
+    const res = await fetch(`${this.baseURL}/test-message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -192,40 +317,20 @@ class WhatsAppBusinessService {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      console.error('❌ WhatsApp API Error:', data);
-      throw new Error(data.error || 'Failed to send WhatsApp message');
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'WhatsApp send failed');
     }
 
-    return { 
-      ...data, 
-      payload,
-      invitationToken: token // Return token for debugging
-    };
+    return { ...data, invitationToken: token };
   }
 
-  // Bulk and schedule methods remain the same...
-  async sendBulkMessages({ schoolName, recipientNumbers, schoolId, userEmail, gradeIds }: BulkMessagesParams): Promise<any> {
-    // ... existing implementation
-  }
+  /* ------------------------------------------------------------------ */
+  /* Info                                                               */
+  /* ------------------------------------------------------------------ */
 
-  async scheduleBulkMessage({ message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName, gradeIds }: ScheduleMessageParams): Promise<any> {
-    // ... existing implementation
-  }
-
-  getTemplateInfo() {
-    return {
-      templateName: 'school_invitation',
-      variables: [
-        { position: 1, name: 'gradename', description: 'Grade name (e.g. "1st Grade")' },
-        { position: 2, name: 'magiclink', description: 'Magic link invitation URL' },
-        { position: 3, name: 'supportemail', description: 'Support email for the school' },
-        { position: 4, name: 'schoolname', description: 'Name of the school' },
-        { position: 5, name: 'parentname', description: 'Parent name for personalization' },
-        { position: 6, name: 'learnername', description: 'Learner name for personalization' },
-      ],
-    };
+  getSupportedCountries() {
+    return this.SUPPORTED_COUNTRIES;
   }
 }
 

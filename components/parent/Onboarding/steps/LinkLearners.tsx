@@ -81,8 +81,8 @@ export default function LinkLearners({
                     <p className="font-medium text-gray-900">
                       {learner.first_name} {learner.last_name}
                     </p>
-                    {learner.grade_name && (
-                      <p className="text-sm text-gray-500">Grade: {learner.grade_name}</p>
+                    {learner.grade && (
+                      <p className="text-sm text-gray-500">Grade: {learner.grade}</p>
                     )}
                     {learner.learner_number && (
                       <p className="text-sm text-gray-500">ID: {learner.learner_number}</p>

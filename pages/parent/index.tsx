@@ -1,4 +1,4 @@
-// pages/parent/index.tsx
+// pages/parent/index.tsx - FIXED VERSION WITH CONSISTENT LAYOUTS
 import React, { useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
@@ -14,7 +14,6 @@ import LoadingScreen from "../../components/common/LoadingScreen";
 import AuthGate from "../../components/auth/AuthGate";
 import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
 
-// ✅ ONLY dynamic imports - removed conflicting static imports
 const FrontPageLayout = dynamic(
   () => import("../../components/Layouts/FrontPageLayout"),
   { 
@@ -39,9 +38,6 @@ const OnboardingFlow = dynamic(
   }
 );
 
-// -----------------------
-// Types
-// -----------------------
 interface InvitationData {
   id: string;
   token?: string;
@@ -61,10 +57,10 @@ interface ParentPageProps {
   error?: string | null;
 }
 
-// -----------------------
-// SERVER-SIDE
-// -----------------------
 export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (context) => {
+  console.log('🔍 SSR: getServerSideProps called');
+  console.log('🔍 SSR Query params:', context.query);
+  
   const session = await getSession(context.req, context.res);
   const rawToken = context.query.token;
   const rawSchool = context.query.school;
@@ -72,33 +68,37 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
   const token = typeof rawToken === "string" ? rawToken : null;
   const school = typeof rawSchool === "string" ? rawSchool : null;
 
+  console.log('👤 SSR: Session user:', session?.user?.email || 'not authenticated');
+  console.log('🎟️ SSR: Token:', token ? 'present' : 'none');
+
   // CASE: magic link token present
   if (token) {
+    console.log('🎟️ SSR: Processing invitation token...');
     try {
-      // Verify token and fetch invitation payload
       const verifiedInvitation = await InvitationService.verifyToken(token);
 
       if (verifiedInvitation.success) {
+        console.log('✅ SSR: Invitation verified successfully');
         const invitationData = {
           id: token,
           token: token,
           ...verifiedInvitation,
         };
 
-        // If user is already authenticated, link invitation immediately
+        // If user is already authenticated, pass invitation data to client
         if (session?.user) {
-          // Redirect to same page with start_onboarding to trigger client onboarding flow
+          console.log('✅ SSR: User authenticated, passing invitation to client');
           return {
-            redirect: {
-              destination: `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(
-                school || ""
-              )}&start_onboarding=true`,
-              permanent: false,
+            props: {
+              invitationToken: token,
+              invitationData,
+              school: school || null,
             },
           };
         }
 
-        // Not logged in: show AuthGate + pass invitation data to client
+        // Not logged in: show AuthGate
+        console.log('⚠️ SSR: User not authenticated, showing AuthGate');
         return {
           props: {
             invitationToken: token,
@@ -107,11 +107,10 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
           },
         };
       } else {
-        // If verification fails, throw an error to trigger the catch block
-        throw new Error("Invitation verification failed as per API response.");
+        throw new Error("Invitation verification failed");
       }
     } catch (err) {
-      console.error("Invitation verification failed:", err);
+      console.error("❌ SSR: Invitation verification failed:", err);
       return {
         props: {
           error: "Invalid or expired invitation link.",
@@ -122,11 +121,17 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
 
   // CASE: authenticated user with no token -> fetch profile and learners
   if (session?.user) {
+    console.log('👤 SSR: Fetching profile and learners for authenticated user');
     try {
       const [profile, learners] = await Promise.all([
         ParentService.getProfile(session.user.sub),
         ParentService.getLearners(session.user.sub),
       ]);
+
+      console.log('✅ SSR: Profile and learners fetched:', {
+        hasProfile: !!profile,
+        learnerCount: learners?.length || 0
+      });
 
       return {
         props: {
@@ -135,7 +140,7 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
         },
       };
     } catch (err) {
-      console.error("Error loading parent profile:", err);
+      console.error("❌ SSR: Error loading parent profile:", err);
       return {
         props: {
           error: "We could not load your parent profile. Please try again later.",
@@ -144,15 +149,13 @@ export const getServerSideProps: GetServerSideProps<ParentPageProps> = async (co
     }
   }
 
-  // CASE: no token, not logged in -> show login screen with no invitation
+  // CASE: no token, not logged in
+  console.log('ℹ️ SSR: No token, not logged in - showing login');
   return {
     props: {},
   };
 };
 
-// -----------------------
-// CLIENT-SIDE
-// -----------------------
 export default function ParentPage({
   invitationToken,
   invitationData,
@@ -161,9 +164,21 @@ export default function ParentPage({
   school,
   error: serverError,
 }: ParentPageProps) {
+  console.log('');
+  console.log('🎬 ═══════════════════════════════════════');
+  console.log('🎬 ParentPage Component Rendered');
+  console.log('🎬 ═══════════════════════════════════════');
+  console.log('📦 Props:', {
+    hasInvitationToken: !!invitationToken,
+    hasInvitationData: !!invitationData,
+    hasInitialProfile: !!initialProfile,
+    initialLearnersCount: initialLearners?.length || 0,
+    school,
+    hasServerError: !!serverError
+  });
+  
   const { isMobile } = useResponsive();
 
-  // Centralized onboarding hook receives any initial data
   const {
     user,
     isLoading,
@@ -173,18 +188,31 @@ export default function ParentPage({
     currentStep,
     error: clientError,
     retrySync,
-    setInvitationPrefill, // optional helper (see hook improvements below)
+    setInvitationPrefill,
   } = useParentOnboarding({
     initialProfile,
     initialLearners,
     invitationData,
   });
 
-  // Persist invitationData to sessionStorage so it survives client navigations/refreshes
-  // This helps when Auth0 redirects back and URL params might be lost client-side.
+  // Log state changes
+  useEffect(() => {
+    console.log('📊 State Update:', {
+      hasUser: !!user,
+      userEmail: user?.email,
+      isLoading,
+      isOnboardingComplete,
+      currentStep,
+      hasProfile: !!profile,
+      learnerCount: learners?.length || 0
+    });
+  }, [user, isLoading, isOnboardingComplete, currentStep, profile, learners]);
+
+  // Persist invitationData to sessionStorage
   useEffect(() => {
     try {
       if (invitationData) {
+        console.log('💾 Saving invitation to sessionStorage');
         sessionStorage.setItem("sho_invitation", JSON.stringify(invitationData));
         if (typeof setInvitationPrefill === "function") {
           setInvitationPrefill(invitationData);
@@ -193,21 +221,35 @@ export default function ParentPage({
         const raw = sessionStorage.getItem("sho_invitation");
         if (raw) {
           const parsed = JSON.parse(raw);
+          console.log('📥 Loaded invitation from sessionStorage');
           if (typeof setInvitationPrefill === "function") {
             setInvitationPrefill(parsed);
           }
         }
       }
     } catch (err) {
-      console.debug("invitation storage error", err);
+      console.debug("Invitation storage error:", err);
     }
   }, [invitationData, setInvitationPrefill]);
 
-  // 🧭 Main rendering logic - FIXED VERSION
-  // ALL content paths go through the layout wrapper
+  // Main rendering logic
   const renderContent = () => {
-    // Early returns for error and loading states - NO LAYOUT
+    console.log('');
+    console.log('🎨 ═══════════════════════════════════════');
+    console.log('🎨 RENDERING CONTENT');
+    console.log('🎨 ═══════════════════════════════════════');
+    console.log('🔍 Rendering decision factors:', {
+      hasServerError: !!serverError,
+      hasClientError: !!clientError,
+      isLoading,
+      hasUser: !!user,
+      isOnboardingComplete,
+      currentStep
+    });
+
+    // Error state - NO LAYOUT (global error screen)
     if (serverError || clientError) {
+      console.log('❌ Rendering error state');
       return (
         <>
           <SEOHead title="Parent Portal" />
@@ -230,16 +272,15 @@ export default function ParentPage({
       );
     }
 
+    // Loading state - NO LAYOUT (global loading screen)
     if (isLoading) {
+      console.log('⏳ Rendering loading state');
       return <LoadingScreen message="Loading parent portal..." />;
     }
 
-    // Determine inner content based on state
-    let innerContent;
-    let pageTitle = "Parent Portal";
-
+    // Not authenticated - NO LAYOUT (login/auth screen)
     if (!user) {
-      // Not authenticated → show AuthGate (NO LAYOUT)
+      console.log('🔐 Rendering AuthGate (user not authenticated)');
       const returnTo = invitationToken
         ? `/parent?token=${encodeURIComponent(invitationToken)}${school ? `&school=${encodeURIComponent(school)}` : ""}`
         : "/parent";
@@ -262,31 +303,38 @@ export default function ParentPage({
       );
     }
 
+    // ✅ KEY FIX: ALWAYS use layout for authenticated users
+    // This prevents layout switching between onboarding and dashboard
+    const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
+    let pageTitle = "Parent Portal";
+    let innerContent = null;
+
+    // ✅ KEY FIX: Check onboarding status INSIDE layout
     if (!isOnboardingComplete) {
-      // Onboarding flow
-      innerContent = <OnboardingFlow user={user} invitationData={invitationData} />;
+      console.log('📝 Rendering OnboardingFlow (onboarding not complete)');
+      console.log('   Current step:', currentStep);
+      console.log('   This will render INSIDE layout wrapper');
+      
       pageTitle = "Complete Your Registration";
+      innerContent = (
+        <OnboardingFlow 
+          user={user} 
+          invitationData={invitationData}
+          // Optional: Pass a prop to OnboardingFlow if it needs to know it's inside a layout
+          insideLayout={true}
+        />
+      );
     } else {
-      // Fully onboarded → show dashboard
-      innerContent = <ParentDashboard user={user} profile={profile} learners={learners} />;
-      pageTitle = `${profile?.first_name || "Parent"}'s Dashboard`;
+      console.log('🎉 Rendering Dashboard (onboarding complete)');
+      pageTitle = `${profile?.name || "Parent"}'s Dashboard`;
+      innerContent = (
+        <ParentDashboard user={user} profile={profile} learners={learners} />
+      );
     }
 
     // ✅ ALWAYS wrap authenticated content with layout
-    const LayoutComponent = isMobile ? FrontPageLayoutMobileView : FrontPageLayout;
-
-    // Optional: Add debugging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Layout Debug Info:', {
-        isMobile,
-        selectedLayout: isMobile ? 'Mobile' : 'Desktop',
-        hasLayoutComponent: !!LayoutComponent,
-        user: user?.email,
-        profile: profile?.first_name,
-        isOnboardingComplete
-      });
-    }
-
+    console.log('🏗️ Wrapping content with layout:', isMobile ? 'Mobile' : 'Desktop');
+    
     return (
       <ErrorBoundary>
         <LayoutComponent user={user} userRoles={["parent"]}>
@@ -297,13 +345,12 @@ export default function ParentPage({
     );
   };
 
-  // Simple return - all logic in renderContent
+  console.log('🎨 ═══════════════════════════════════════');
+  console.log('');
+
   return renderContent();
 }
 
-// -----------------------
-// Small SEO helper
-// -----------------------
 function SEOHead({ title }: { title: string }) {
   return (
     <Head>
