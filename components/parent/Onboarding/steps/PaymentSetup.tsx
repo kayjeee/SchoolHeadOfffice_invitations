@@ -37,43 +37,30 @@ interface PaymentSetupProps {
   supportedPaymentMethods?: string[];
 }
 
-// Validation schemas for different payment methods
-const creditCardSchema = z.object({
-  cardNumber: z
-    .string()
-    .min(13, 'Card number must be at least 13 digits')
-    .max(19, 'Card number must be at most 19 digits')
-    .regex(/^\d+$/, 'Card number must contain only digits'),
-  expiryDate: z
-    .string()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format must be MM/YY'),
-  cvv: z
-    .string()
-    .min(3, 'CVV must be 3 or 4 digits')
-    .max(4, 'CVV must be 3 or 4 digits')
-    .regex(/^\d+$/, 'CVV must contain only digits'),
-  cardholderName: z.string().min(3, 'Cardholder name is required'),
-  country: z.string().min(2, 'Country is required'),
-  postalCode: z.string().optional(),
-});
-
-const mobileMoneySchema = z.object({
-  provider: z.enum(['mpesa', 'mtn', 'airtel'], {
-    errorMap: () => ({ message: 'Please select a provider' }),
+// Unified validation schema
+const paymentSchema = z.discriminatedUnion('paymentMethod', [
+  z.object({
+    paymentMethod: z.literal('credit_card'),
+    cardNumber: z.string().min(13).max(19),
+    expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/),
+    cvv: z.string().min(3).max(4),
+    cardholderName: z.string().min(3),
+    country: z.string().min(2),
+    postalCode: z.string().optional(),
   }),
-  phoneNumber: z
-    .string()
-    .min(10, 'Phone number must be at least 10 digits')
-    .regex(/^\d+$/, 'Phone number must contain only digits'),
-});
+  z.object({
+    paymentMethod: z.literal('mobile_money'),
+    provider: z.enum(['mpesa', 'mtn', 'airtel']),
+    phoneNumber: z.string().min(10),
+  }),
+  z.object({
+    paymentMethod: z.literal('bank_transfer'),
+    accountNumber: z.string().min(8),
+    bankCode: z.string().min(3),
+  }),
+]);
 
-const bankTransferSchema = z.object({
-  accountNumber: z
-    .string()
-    .min(8, 'Account number must be at least 8 digits')
-    .regex(/^\d+$/, 'Account number must contain only digits'),
-  bankCode: z.string().min(3, 'Bank code is required'),
-});
+type PaymentFormData = z.infer<typeof paymentSchema>;
 
 type PaymentMethod = 'credit_card' | 'mobile_money' | 'bank_transfer';
 
@@ -100,20 +87,6 @@ export default function PaymentSetup({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Get the appropriate schema based on active tab
-  const getValidationSchema = () => {
-    switch (activeTab) {
-      case 'credit_card':
-        return creditCardSchema;
-      case 'mobile_money':
-        return mobileMoneySchema;
-      case 'bank_transfer':
-        return bankTransferSchema;
-      default:
-        return z.object({});
-    }
-  };
-
   const {
     register,
     handleSubmit,
@@ -122,7 +95,7 @@ export default function PaymentSetup({
     formState: { errors, isValid },
     reset,
   } = useForm({
-    resolver: zodResolver(getValidationSchema()),
+    resolver: zodResolver(paymentSchema),
     mode: 'onChange',
   });
 
@@ -157,7 +130,7 @@ export default function PaymentSetup({
     return cleaned;
   };
 
-  const handleFormSubmit = handleSubmit(async (data) => {
+  const handleFormSubmit = handleSubmit(async (data: PaymentFormData) => {
     console.log('');
     console.log('💰 ═══════════════════════════════════════');
     console.log('💰 PAYMENT FORM SUBMITTED');
@@ -178,7 +151,7 @@ export default function PaymentSetup({
         savePaymentMethod,
       };
 
-      if (activeTab === 'credit_card') {
+      if (data.paymentMethod === 'credit_card') {
         paymentData.details = {
           cardNumber: data.cardNumber,
           expiryDate: data.expiryDate,
@@ -189,12 +162,12 @@ export default function PaymentSetup({
           country: data.country,
           postalCode: data.postalCode,
         };
-      } else if (activeTab === 'mobile_money') {
+      } else if (data.paymentMethod === 'mobile_money') {
         paymentData.details = {
           provider: data.provider,
           phoneNumber: data.phoneNumber,
         };
-      } else if (activeTab === 'bank_transfer') {
+      } else if (data.paymentMethod === 'bank_transfer') {
         paymentData.details = {
           accountNumber: data.accountNumber,
           bankCode: data.bankCode,
@@ -218,6 +191,7 @@ export default function PaymentSetup({
 
   const renderCreditCardForm = () => (
     <div className="space-y-4">
+      <input type="hidden" {...register('paymentMethod')} value="credit_card" />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Card Number *
@@ -234,7 +208,7 @@ export default function PaymentSetup({
           }}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
-        {errors.cardNumber && (
+        {'cardNumber' in errors && errors.cardNumber && (
           <p className="text-red-500 text-xs mt-1">{errors.cardNumber.message as string}</p>
         )}
       </div>
@@ -256,7 +230,7 @@ export default function PaymentSetup({
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
-          {errors.expiryDate && (
+          {'expiryDate' in errors && errors.expiryDate && (
             <p className="text-red-500 text-xs mt-1">{errors.expiryDate.message as string}</p>
           )}
         </div>
@@ -270,7 +244,7 @@ export default function PaymentSetup({
             maxLength={4}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
-          {errors.cvv && (
+          {'cvv' in errors && errors.cvv && (
             <p className="text-red-500 text-xs mt-1">{errors.cvv.message as string}</p>
           )}
         </div>
@@ -286,7 +260,7 @@ export default function PaymentSetup({
           placeholder="John Doe"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
-        {errors.cardholderName && (
+        {'cardholderName' in errors && errors.cardholderName && (
           <p className="text-red-500 text-xs mt-1">
             {errors.cardholderName.message as string}
           </p>
@@ -307,7 +281,7 @@ export default function PaymentSetup({
             <option value="US">United States</option>
             <option value="GB">United Kingdom</option>
           </select>
-          {errors.country && (
+          {'country' in errors && errors.country && (
             <p className="text-red-500 text-xs mt-1">{errors.country.message as string}</p>
           )}
         </div>
@@ -329,6 +303,7 @@ export default function PaymentSetup({
 
   const renderMobileMoneyForm = () => (
     <div className="space-y-4">
+      <input type="hidden" {...register('paymentMethod')} value="mobile_money" />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Mobile Money Provider *
@@ -338,7 +313,7 @@ export default function PaymentSetup({
             <label
               key={provider}
               className={`flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                watchedValues.provider === provider
+                'provider' in watchedValues && watchedValues.provider === provider
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
@@ -355,7 +330,7 @@ export default function PaymentSetup({
             </label>
           ))}
         </div>
-        {errors.provider && (
+        {'provider' in errors && errors.provider && (
           <p className="text-red-500 text-xs mt-1">{errors.provider.message as string}</p>
         )}
       </div>
@@ -370,7 +345,7 @@ export default function PaymentSetup({
           placeholder="0712345678"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
-        {errors.phoneNumber && (
+        {'phoneNumber' in errors && errors.phoneNumber && (
           <p className="text-red-500 text-xs mt-1">
             {errors.phoneNumber.message as string}
           </p>
@@ -388,6 +363,7 @@ export default function PaymentSetup({
 
   const renderBankTransferForm = () => (
     <div className="space-y-4">
+      <input type="hidden" {...register('paymentMethod')} value="bank_transfer" />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Account Number *
@@ -398,7 +374,7 @@ export default function PaymentSetup({
           placeholder="12345678901"
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
-        {errors.accountNumber && (
+        {'accountNumber' in errors && errors.accountNumber && (
           <p className="text-red-500 text-xs mt-1">
             {errors.accountNumber.message as string}
           </p>
@@ -420,7 +396,7 @@ export default function PaymentSetup({
           <option value="STD">Standard Bank</option>
           <option value="CAP">Capitec Bank</option>
         </select>
-        {errors.bankCode && (
+        {'bankCode' in errors && errors.bankCode && (
           <p className="text-red-500 text-xs mt-1">{errors.bankCode.message as string}</p>
         )}
       </div>

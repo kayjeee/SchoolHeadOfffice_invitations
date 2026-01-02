@@ -6,8 +6,11 @@ export interface Learner {
   first_name: string;
   last_name: string;
   grade_name?: string;
-  learner_number?: string;
+  learner_number: string;
   school_id?: string;
+  school_name: string;
+  grade: string;
+  status: 'active' | 'inactive';
 }
 
 export interface ParentProfile {
@@ -18,6 +21,7 @@ export interface ParentProfile {
   phone_number?: string;
   roles: string[];
   school_ids: string[];
+  needsOnboarding?: boolean;
 }
 
 export interface UpdateProfileData {

@@ -9,7 +9,6 @@ import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
 import SubscriptionChoice from './steps/SubscriptionChoice';
 import PaymentSetup from './steps/PaymentSetup';
-import SocialShareGate from './steps/SocialShareGate';
 import ParentContactSummary from './steps/ParentContactSummary';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
@@ -61,7 +60,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   });
 
   const hasInvitation = !!onboardingData.invitation_id;
-  const subscriptionTier = onboardingData.SUBSCRIPTION_CHOICE?.tier;
 
   // Log hook state
   useEffect(() => {
@@ -71,10 +69,9 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
       completedSteps,
       isOnboardingComplete,
       totalSteps: steps?.length,
-      goBackAvailable: typeof goBack === 'function',
-      subscriptionTier
+      goBackAvailable: typeof goBack === 'function'
     });
-  }, [currentStep, progress, completedSteps, isOnboardingComplete, steps, goBack, subscriptionTier]);
+  }, [currentStep, progress, completedSteps, isOnboardingComplete, steps, goBack]);
 
   // Fetch existing user profile
   const fetchUserProfile = async () => {
@@ -231,7 +228,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
     console.log('🔒 Invitation locked:', isLocked);
     console.log('⬅️ Show back button:', showBackButton);
-    console.log('📊 Subscription tier:', subscriptionTier);
     console.log('🎨 ═══════════════════════════════════════');
     console.log('');
 
@@ -348,8 +344,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         console.log('💰 Payment details:', {
           billingCycle,
           billingAmount,
-          currency: 'ZAR',
-          tier: 'premium'
+          currency: 'ZAR'
         });
         
         return renderWithBackButton(
@@ -361,18 +356,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
             selectedTier="premium"
             billingAmount={billingCycle === 'monthly' ? billingAmount : Math.round(billingAmount / 12)}
             currency="ZAR"
-          />,
-          showBackButton
-        );
-
-      case 'SOCIAL_SHARE_GATE':
-        console.log('📢 Rendering SOCIAL_SHARE_GATE step');
-        return renderWithBackButton(
-          <SocialShareGate
-            onComplete={(data) => {
-              console.log('✅ SocialShareGate onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }}
           />,
           showBackButton
         );
@@ -394,14 +377,13 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         console.log('👤 Parent data:', parentData);
         console.log('🏫 School data:', schoolData);
         console.log('👥 Learners:', learners.length);
-        console.log('💳 Subscription tier:', subscriptionTier);
         
+        const subscriptionTier = onboardingData.SUBSCRIPTION_CHOICE?.tier;
         return renderWithBackButton(
           <ParentContactSummary
             parent={parentData}
             learners={learners}
             school={schoolData}
-            subscriptionTier={subscriptionTier}
             onComplete={() => {
               console.log('✅ ParentContactSummary onComplete called');
               completeStep('PARENT_CONTACT_SUMMARY', {});
@@ -492,21 +474,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           </div>
         )}
 
-        {/* Subscription info banner (when applicable) */}
-        {subscriptionTier && currentStep !== 'SUBSCRIPTION_CHOICE' && (
-          <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <div className="flex items-center">
-              <InformationCircleIcon className="h-6 w-6 text-indigo-500 mr-3" />
-              <p className="text-sm text-indigo-800">
-                <span className="font-semibold capitalize">{subscriptionTier} Plan</span> — 
-                {subscriptionTier === 'premium' 
-                  ? ' Includes full features and priority support' 
-                  : ' Free plan with basic features'}
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Debug info (development only) */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
@@ -519,11 +486,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
               <div>Is Complete: <span className="font-mono">{isOnboardingComplete ? '✅ Yes' : '❌ No'}</span></div>
               <div>goBack Available: <span className="font-mono">{typeof goBack === 'function' ? '✅ Yes' : '❌ No'}</span></div>
               <div>Has Invitation: <span className="font-mono">{hasInvitation ? '✅ Yes' : '❌ No'}</span></div>
-              <div>Subscription Tier: <span className="font-mono capitalize">{subscriptionTier || 'Not selected'}</span></div>
-              <div>Conditional Steps: <span className="font-mono">
-                {steps?.includes('PAYMENT_SETUP') ? 'PAYMENT_SETUP ✓' : ''}
-                {steps?.includes('SOCIAL_SHARE_GATE') ? 'SOCIAL_SHARE_GATE ✓' : ''}
-              </span></div>
             </div>
           </div>
         )}

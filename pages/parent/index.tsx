@@ -320,8 +320,6 @@ export default function ParentPage({
         <OnboardingFlow 
           user={user} 
           invitationData={invitationData}
-          // Optional: Pass a prop to OnboardingFlow if it needs to know it's inside a layout
-          insideLayout={true}
         />
       );
     } else {
