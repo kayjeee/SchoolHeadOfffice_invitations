@@ -42,6 +42,7 @@ interface BulkMessagesParams {
   schoolId: string;
   userEmail?: string;
   gradeIds?: string[];
+  personalizedMessages?: { to: string; message: string; gradeName: string; magicLink: string }[];
 }
 
 interface ScheduleMessageParams {
@@ -323,6 +324,75 @@ class WhatsAppBusinessService {
     }
 
     return { ...data, invitationToken: token };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Bulk & Scheduled Messages                                          */
+  /* ------------------------------------------------------------------ */
+
+  async sendBulkMessages(params: BulkMessagesParams): Promise<any> {
+    const personalizedMessages = await Promise.all(
+      params.recipientNumbers.map(async (to) => {
+        const token = await this.createInvitation({
+          phoneNumber: to,
+          schoolId: params.schoolId,
+          userEmail: params.userEmail,
+        });
+        return {
+          to,
+          magicLink: this.buildMagicLink({ token, schoolName: params.schoolName }),
+          gradeName: 'Selected Grade',
+        };
+      })
+    );
+
+    const payload = {
+      gradeIds: params.gradeIds,
+      schoolName: this.sanitizeSchoolName(params.schoolName),
+      personalizedMessages,
+    };
+
+    const res = await fetch(`${this.baseURL}/send-bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'WhatsApp bulk send failed');
+    }
+    return data;
+  }
+
+  async scheduleBulkMessage(params: ScheduleMessageParams): Promise<any> {
+    const payload = {
+      gradeIds: params.gradeIds,
+      message: params.message,
+      scheduledAt: params.scheduledAt,
+      timezone: params.timezone,
+      recipientNumbers: params.recipientNumbers,
+      schoolId: params.schoolId,
+      schoolName: this.sanitizeSchoolName(params.schoolName),
+    };
+
+    const res = await fetch(`${this.baseURL}/schedule-bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'WhatsApp schedule failed');
+    }
+    return data;
   }
 
   /* ------------------------------------------------------------------ */
