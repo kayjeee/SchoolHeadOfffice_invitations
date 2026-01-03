@@ -17,18 +17,20 @@ type OnboardingStep =
   | 'LINK_LEARNERS'
   | 'SUBSCRIPTION_CHOICE'
   | 'PAYMENT_SETUP'
+  | 'SOCIAL_SHARE_GATE'
   | 'PARENT_CONTACT_SUMMARY'
   | 'NOTIFICATION_PREFERENCES'
   | 'TERMS_ACCEPTANCE'
   | 'COMPLETE';
 
 // Define the actual onboarding flow (excluding conditional steps)
-const ONBOARDING_STEPS: OnboardingStep[] = [
+const CORE_ONBOARDING_STEPS: OnboardingStep[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
   'SUBSCRIPTION_CHOICE',
   // PAYMENT_SETUP is conditionally added if premium is selected
+  // SOCIAL_SHARE_GATE is conditionally added if standard is selected
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
@@ -84,8 +86,8 @@ export function useParentOnboarding({
       reason,
       timestamp: new Date().toISOString(),
       completedSteps: Array.from(completedSteps),
-      totalSteps: ONBOARDING_STEPS.length,
-      progress: `${completedSteps.size}/${ONBOARDING_STEPS.length}`
+      totalSteps: CORE_ONBOARDING_STEPS.length,
+      progress: `${completedSteps.size}/${CORE_ONBOARDING_STEPS.length}`
     });
   }, [completedSteps]);
 
@@ -272,6 +274,25 @@ export function useParentOnboarding({
     return currentStep;
   }, [profile, learners, onboardingStarted, currentStep]);
 
+  // Get current active steps based on subscription choice
+  const getActiveSteps = useCallback((): OnboardingStep[] => {
+    const subscriptionChoice = onboardingData.SUBSCRIPTION_CHOICE;
+    const activeSteps = [...CORE_ONBOARDING_STEPS];
+    
+    // Insert conditional steps based on subscription tier
+    const subscriptionIndex = activeSteps.indexOf('SUBSCRIPTION_CHOICE');
+    
+    if (subscriptionChoice?.tier === 'premium') {
+      // Insert PAYMENT_SETUP after SUBSCRIPTION_CHOICE
+      activeSteps.splice(subscriptionIndex + 1, 0, 'PAYMENT_SETUP');
+    } else if (subscriptionChoice?.tier === 'standard') {
+      // Insert SOCIAL_SHARE_GATE after SUBSCRIPTION_CHOICE
+      activeSteps.splice(subscriptionIndex + 1, 0, 'SOCIAL_SHARE_GATE');
+    }
+    
+    return activeSteps;
+  }, [onboardingData.SUBSCRIPTION_CHOICE]);
+
   // Initialize the onboarding flow
   useEffect(() => {
     if (!user || isProfileLoading || currentStep !== 'INITIALIZING') {
@@ -307,7 +328,7 @@ export function useParentOnboarding({
       setCompletedSteps(prev => {
         const updated = new Set(prev).add(step);
         console.log('✅ Completed steps:', Array.from(updated));
-        console.log(`📊 Progress: ${updated.size}/${ONBOARDING_STEPS.length} steps`);
+        console.log(`📊 Progress: ${updated.size}/${getActiveSteps().length} steps`);
         return updated;
       });
 
@@ -318,41 +339,41 @@ export function useParentOnboarding({
         console.log('✅ Profile API update complete');
       }
 
-      // Special handling for SUBSCRIPTION_CHOICE
+      // Determine next step based on subscription choice
+      const activeSteps = getActiveSteps();
+      const currentIndex = activeSteps.indexOf(step);
+      console.log(`📍 Current step index: ${currentIndex}/${activeSteps.length - 1}`);
+
+      // Special handling for SUBSCRIPTION_CHOICE - determine next step based on tier
       if (step === 'SUBSCRIPTION_CHOICE') {
-        if (data.tier === 'premium') {
+        const tier = data.tier;
+        
+        if (tier === 'premium') {
           console.log('💳 Premium selected - next step is PAYMENT_SETUP');
           logStepTransition(step, 'PAYMENT_SETUP', 'Premium subscription requires payment');
           setCurrentStep('PAYMENT_SETUP');
           return;
+        } else if (tier === 'standard') {
+          console.log('🆓 Standard (free) selected - next step is SOCIAL_SHARE_GATE');
+          logStepTransition(step, 'SOCIAL_SHARE_GATE', 'Standard subscription requires social sharing');
+          setCurrentStep('SOCIAL_SHARE_GATE');
+          return;
         } else {
-          console.log('🆓 Standard (free) selected - skipping PAYMENT_SETUP');
-          logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Standard subscription skips payment');
-          setCurrentStep('PARENT_CONTACT_SUMMARY');
+          console.error('❌ Unknown subscription tier:', tier);
+          setError('Invalid subscription selection');
           return;
         }
       }
 
-      // Special handling for PAYMENT_SETUP - always go to PARENT_CONTACT_SUMMARY
-      if (step === 'PAYMENT_SETUP') {
-        console.log('💰 Payment setup complete - moving to PARENT_CONTACT_SUMMARY');
-        logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Payment complete');
-        setCurrentStep('PARENT_CONTACT_SUMMARY');
-        return;
-      }
-
-      // Determine next step
-      const currentIndex = ONBOARDING_STEPS.indexOf(step);
-      console.log(`📍 Current step index: ${currentIndex}/${ONBOARDING_STEPS.length - 1}`);
-
-      if (currentIndex >= ONBOARDING_STEPS.length - 1) {
+      // Check if this was the last step
+      if (currentIndex >= activeSteps.length - 1) {
         // This was the last step
         console.log('🎉 ALL STEPS COMPLETED! Marking onboarding as COMPLETE');
         logStepTransition(step, 'COMPLETE', 'Final step completed');
         setCurrentStep('COMPLETE');
       } else {
         // Move to next step
-        const nextStep = ONBOARDING_STEPS[currentIndex + 1];
+        const nextStep = activeSteps[currentIndex + 1];
         console.log(`➡️ Moving to next step: ${nextStep}`);
         logStepTransition(step, nextStep, 'Step completed successfully');
         setCurrentStep(nextStep);
@@ -368,7 +389,7 @@ export function useParentOnboarding({
       console.error('');
       setError(error.message);
     }
-  }, [updateProfileMutation, logStepTransition]);
+  }, [updateProfileMutation, logStepTransition, getActiveSteps]);
 
   // ========================
   // NAVIGATION LOGIC
@@ -380,7 +401,8 @@ export function useParentOnboarding({
     console.log('🔙 GO BACK REQUESTED');
     console.log('═══════════════════════════════════════');
     
-    const currentIndex = ONBOARDING_STEPS.indexOf(currentStep);
+    const activeSteps = getActiveSteps();
+    const currentIndex = activeSteps.indexOf(currentStep);
     console.log(`📍 Current step: ${currentStep} (index ${currentIndex})`);
     
     if (currentIndex <= 0) {
@@ -390,7 +412,7 @@ export function useParentOnboarding({
       return;
     }
     
-    const previousStep = ONBOARDING_STEPS[currentIndex - 1];
+    const previousStep = activeSteps[currentIndex - 1];
     console.log(`⬅️ Going back to: ${previousStep}`);
     
     // Remove current step from completed steps
@@ -406,26 +428,29 @@ export function useParentOnboarding({
     
     console.log('═══════════════════════════════════════');
     console.log('');
-  }, [currentStep, logStepTransition]);
+  }, [currentStep, logStepTransition, getActiveSteps]);
 
   // ========================
   // COMPUTED VALUES
   // ========================
 
+  const activeSteps = useMemo(() => getActiveSteps(), [getActiveSteps]);
+
   const progress = useMemo(() => {
     const completedCount = completedSteps.size;
-    const totalSteps = ONBOARDING_STEPS.length;
+    const totalSteps = activeSteps.length;
     const progressPercent = Math.max(0, Math.min(100, (completedCount / totalSteps) * 100));
     
     console.log('📊 Progress calculation:', {
       completedCount,
       totalSteps,
+      activeSteps,
       progressPercent: progressPercent.toFixed(1) + '%',
       completedSteps: Array.from(completedSteps)
     });
     
     return progressPercent;
-  }, [completedSteps]);
+  }, [completedSteps, activeSteps]);
 
   const isOnboardingComplete = useMemo(() => {
     const complete = currentStep === 'COMPLETE';
@@ -433,10 +458,10 @@ export function useParentOnboarding({
       currentStep,
       isComplete: complete,
       completedStepsCount: completedSteps.size,
-      totalSteps: ONBOARDING_STEPS.length
+      totalSteps: activeSteps.length
     });
     return complete;
-  }, [currentStep, completedSteps]);
+  }, [currentStep, completedSteps, activeSteps]);
 
   // ========================
   // DEBUG: Log state changes
@@ -446,16 +471,29 @@ export function useParentOnboarding({
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Onboarding Hook State:', {
         currentStep,
+        activeSteps,
         completedSteps: Array.from(completedSteps),
         progress: `${progress.toFixed(1)}%`,
         isOnboardingComplete,
         hasUser: !!user,
         hasProfile: !!profile,
         learnerCount: learners?.length || 0,
-        onboardingStarted
+        onboardingStarted,
+        subscriptionTier: onboardingData.SUBSCRIPTION_CHOICE?.tier
       });
     }
-  }, [currentStep, completedSteps, progress, isOnboardingComplete, user, profile, learners, onboardingStarted]);
+  }, [
+    currentStep, 
+    activeSteps, 
+    completedSteps, 
+    progress, 
+    isOnboardingComplete, 
+    user, 
+    profile, 
+    learners, 
+    onboardingStarted,
+    onboardingData.SUBSCRIPTION_CHOICE
+  ]);
 
   // ========================
   // RETURN API
@@ -470,7 +508,7 @@ export function useParentOnboarding({
     
     // Step management
     currentStep,
-    steps: ONBOARDING_STEPS,
+    steps: activeSteps,
     completedSteps: Array.from(completedSteps),
     
     // State
@@ -492,8 +530,9 @@ export function useParentOnboarding({
       _debug: {
         logStepState,
         logStepTransition,
-        currentIndex: ONBOARDING_STEPS.indexOf(currentStep),
-        totalSteps: ONBOARDING_STEPS.length
+        currentIndex: activeSteps.indexOf(currentStep),
+        totalSteps: activeSteps.length,
+        activeSteps
       }
     })
   };
