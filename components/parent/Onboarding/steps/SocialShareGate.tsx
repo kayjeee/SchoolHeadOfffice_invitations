@@ -27,16 +27,16 @@ interface SocialShareGateProps {
   tier?: 'standard' | 'basic';
 }
 
+// Update the SocialPlatform interface
 interface SocialPlatform {
   id: keyof SocialShareState;
   name: string;
-  icon: React.ComponentType;
+  icon: React.ComponentType<{ className?: string }>; // Add this
   color: string;
   shareUrl: string;
   description: string;
   order: number;
 }
-
 interface SocialShareState {
   facebook: boolean;
   linkedin: boolean;
@@ -228,59 +228,59 @@ export default function SocialShareGate({
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {platforms
-            .sort((a, b) => a.order - b.order)
-            .map((platform) => {
-              const Icon = platform.icon;
-              const isShared = socialShares[platform.id];
-              
-              return (
-                <div 
-                  key={platform.id}
-                  className={`border-2 rounded-xl p-5 transition-all duration-300 hover:shadow-lg ${
-                    isShared
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 bg-white hover:border-blue-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center">
-                      <div className={`p-3 rounded-lg ${platform.color} mr-3`}>
-                        <Icon className="text-2xl text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">
-                          {platform.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">{platform.description}</p>
-                      </div>
-                    </div>
-                    
-                    {isShared && (
-                      <FaCheckCircle className="text-2xl text-green-600" />
-                    )}
-                  </div>
-                  
-                  <button
-                    onClick={() => !isShared && handleShare(platform)}
-                    disabled={isShared}
-                    className={`w-full py-2.5 px-4 rounded-lg font-medium transition-all ${
-                      isShared
-                        ? 'bg-green-100 text-green-700 cursor-default'
-                        : `${platform.color.split(' ')[0]} text-white`
-                    }`}
-                  >
-                    {isShared ? (
-                      <span className="flex items-center justify-center">
-                        <FaCheckCircle className="mr-2" />
-                        Shared Successfully
-                      </span>
-                    ) : (
-                      `Share on ${platform.name}`
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+  .sort((a, b) => a.order - b.order)
+  .map((platform) => {
+    const IconComponent = platform.icon;
+    const isShared = socialShares[platform.id];
+    
+    return (
+      <div 
+        key={platform.id}
+        className={`border-2 rounded-xl p-5 transition-all duration-300 hover:shadow-lg ${
+          isShared
+            ? 'border-green-500 bg-green-50'
+            : 'border-gray-200 bg-white hover:border-blue-300'
+        }`}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <div className={`p-3 rounded-lg ${platform.color} mr-3`}>
+              <IconComponent className="text-2xl text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">
+                {platform.name}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">{platform.description}</p>
+            </div>
+          </div>
+          
+          {isShared && (
+            <FaCheckCircle className="text-2xl text-green-600" />
+          )}
+        </div>
+        
+        <button
+          onClick={() => !isShared && handleShare(platform)}
+          disabled={isShared}
+          className={`w-full py-2.5 px-4 rounded-lg font-medium transition-all ${
+            isShared
+              ? 'bg-green-100 text-green-700 cursor-default'
+              : `${platform.color.split(' ')[0]} text-white`
+          }`}
+        >
+          {isShared ? (
+            <span className="flex items-center justify-center">
+              <FaCheckCircle className="mr-2" />
+              Shared Successfully
+            </span>
+          ) : (
+            `Share on ${platform.name}`
+          )}
+        </button>
+      </div>
+    );
+  })}
         </div>
       </div>
 
