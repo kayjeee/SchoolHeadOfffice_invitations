@@ -1,5 +1,6 @@
 // components/parent/Onboarding/OnboardingFlow.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationService } from '../../../lib/services/invitation.service';
@@ -9,11 +10,17 @@ import IdentityVerification from './steps/IdentityVerification';
 import LinkLearners from './steps/LinkLearners';
 import SubscriptionChoice from './steps/SubscriptionChoice';
 import PaymentSetup from './steps/PaymentSetup';
+import PaymentSuccess from './steps/PaymentSuccess';
+import SocialShareGate from './steps/SocialShareGate';
 import ParentContactSummary from './steps/ParentContactSummary';
 import NotificationPreferences from './steps/NotificationPreferences';
 import TermsAcceptance from './steps/TermsAcceptance';
 import LoadingScreen from '../../common/LoadingScreen';
-import { InformationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { 
+  InformationCircleIcon, 
+  ExclamationTriangleIcon,
+  CheckCircleIcon 
+} from '@heroicons/react/24/outline';
 import BackButton from './BackButton';
 
 interface OnboardingFlowProps {
@@ -21,27 +28,87 @@ interface OnboardingFlowProps {
   invitationData: any;
 }
 
+// Price configuration
+const PRICE_CONFIG = {
+  premium: {
+    monthly: 299, // ZAR
+    annualDiscount: 0.15, // 15% discount
+  }
+};
+
+// Safe helper functions
+const safeUserEmail = (user: any): string => {
+  if (!user) return '';
+  if (typeof user === 'object' && user.email) {
+    return String(user.email) || '';
+  }
+  return '';
+};
+
+const safeUserId = (user: any): string => {
+  if (!user) return '';
+  if (typeof user === 'object' && user.sub) {
+    return String(user.sub) || '';
+  }
+  return '';
+};
+
+const safeUserName = (user: any): string => {
+  if (!user) return '';
+  if (typeof user === 'object' && user.name) {
+    return String(user.name) || '';
+  }
+  return '';
+};
+
 export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
-  console.log('');
-  console.log('🎬 ═══════════════════════════════════════');
-  console.log('🎬 OnboardingFlow Component Rendered');
-  console.log('🎬 ═══════════════════════════════════════');
-  console.log('👤 User:', user?.email || user?.sub);
-  console.log('📨 Has invitation:', !!invitationData);
+  const router = useRouter();
   
-  // Invitation state
+  // Logging initialization with EXTREME null safety
+  useEffect(() => {
+    console.log('');
+    console.log('🎬 ═══════════════════════════════════════');
+    console.log('🎬 OnboardingFlow Component Mounted');
+    console.log('🎬 ═══════════════════════════════════════');
+    
+    // SAFE logging - no string concatenation that could cause toString() errors
+    const userEmail = safeUserEmail(user);
+    const userId = safeUserId(user);
+    
+    console.log('👤 User exists:', !!user);
+    console.log('👤 User email:', userEmail || '(no email)');
+    console.log('👤 User ID:', userId || '(no ID)');
+    console.log('📨 Has invitation:', !!invitationData);
+    
+    // Safe query params logging
+    try {
+      console.log('🔍 Query params:', router.query || {});
+    } catch (error) {
+      console.log('🔍 Query params: [Error reading query params]');
+    }
+  }, []);
+
+  // State management
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
-  
-  // Learners state
   const [learners, setLearners] = useState<Learner[]>([]);
   const [isLoadingLearners, setIsLoadingLearners] = useState(true);
   const [fetchLearnersError, setFetchLearnersError] = useState<string | null>(null);
-  
-  // User profile state
   const [existingProfile, setExistingProfile] = useState<any>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [paymentSuccessShown, setPaymentSuccessShown] = useState(false);
 
-  // Onboarding hook
+  // Onboarding hook - with safe user data
+  const safeUser = useMemo(() => {
+    if (!user) return null;
+    return {
+      sub: safeUserId(user),
+      email: safeUserEmail(user),
+      name: safeUserName(user),
+      ...user
+    };
+  }, [user]);
+
   const { 
     completeStep, 
     goBack,
@@ -52,41 +119,134 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     profile,
     steps,
     isOnboardingComplete,
-    _debug
   } = useParentOnboarding({
     initialProfile: null,
     initialLearners: [],
     invitationData,
   });
 
-  const hasInvitation = !!onboardingData.invitation_id;
+  const hasInvitation = !!onboardingData?.invitation_id;
+  const subscriptionChoice = onboardingData?.SUBSCRIPTION_CHOICE || {};
+  const selectedTier = subscriptionChoice?.tier || 'standard';
+  const billingCycle = subscriptionChoice?.billingCycle || 'monthly';
+  const paymentData = onboardingData?.PAYMENT_SETUP;
 
-  // Log hook state
+  // Calculate premium price based on billing cycle
+  const getPremiumPrice = useCallback(() => {
+    const { monthly, annualDiscount } = PRICE_CONFIG.premium;
+    
+    if (billingCycle === 'annual') {
+      const annualPrice = monthly * 12;
+      const discount = annualPrice * annualDiscount;
+      return {
+        monthly: Math.round((annualPrice - discount) / 12),
+        annual: Math.round(annualPrice - discount),
+        savings: Math.round(discount),
+      };
+    }
+    
+    return {
+      monthly: monthly,
+      annual: monthly * 12,
+      savings: 0,
+    };
+  }, [billingCycle]);
+
+  const premiumPrice = getPremiumPrice();
+
+  // Check if returning from PayFast - safely
+  const returningFromPayment = useMemo(() => {
+    try {
+      const transactionId = router.query?.transaction_id;
+      const cancelled = router.query?.cancelled === 'true';
+      const pendingTransaction = localStorage.getItem('pending_transaction_id');
+      
+      return !!(transactionId || cancelled || pendingTransaction);
+    } catch (error) {
+      console.error('Error checking payment return:', error);
+      return false;
+    }
+  }, [router.query]);
+
+  // Determine if we should show PaymentSuccess
+  const shouldShowPaymentSuccess = useCallback(() => {
+    const isPremium = selectedTier === 'premium';
+    
+    return (
+      isPremium && 
+      returningFromPayment && 
+      paymentData?.status === 'completed' &&
+      !paymentSuccessShown
+    );
+  }, [selectedTier, returningFromPayment, paymentData, paymentSuccessShown]);
+
+  // Handle payment completion return from PayFast
   useEffect(() => {
-    console.log('🔄 Hook State Update:', {
-      currentStep,
-      progress: `${progress.toFixed(1)}%`,
-      completedSteps,
-      isOnboardingComplete,
-      totalSteps: steps?.length,
-      goBackAvailable: typeof goBack === 'function'
-    });
-  }, [currentStep, progress, completedSteps, isOnboardingComplete, steps, goBack]);
+    const handlePaymentReturn = async () => {
+      try {
+        const transactionId = router.query?.transaction_id as string || 
+                             localStorage.getItem('pending_transaction_id');
+        
+        if (!transactionId) return;
+
+        console.log('💰 Checking payment status for transaction:', transactionId);
+
+        // Fetch transaction status
+        const response = await fetch(`http://localhost:4000/api/v1/transactions/${transactionId}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          console.log('📦 Transaction status:', result.data.status);
+
+          if (result.data.status === 'completed') {
+            console.log('✅ Payment completed! Completing PAYMENT_SETUP step');
+            
+            // Complete the payment step
+            completeStep('PAYMENT_SETUP', {
+              transaction_id: transactionId,
+              status: 'completed',
+              subscription_tier: result.data.subscription_tier,
+              subscription_billing_cycle: result.data.subscription_billing_cycle,
+              amount: result.data.amount,
+            });
+
+            // Clear from localStorage
+            localStorage.removeItem('pending_transaction_id');
+            setPaymentSuccessShown(true);
+            
+            // Clear query params
+            router.replace('/parent/onboarding', undefined, { shallow: true });
+          } else if (result.data.status === 'failed' || result.data.status === 'cancelled') {
+            console.log('❌ Payment failed or cancelled');
+            setOnboardingError('Payment was not completed. Please try again or choose the free plan.');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking payment status:', error);
+        setOnboardingError('Unable to verify payment status. Please contact support.');
+      }
+    };
+
+    if (returningFromPayment && currentStep === 'PAYMENT_SETUP') {
+      handlePaymentReturn();
+    }
+  }, [router.query, currentStep, completeStep, returningFromPayment, router]);
 
   // Fetch existing user profile
   const fetchUserProfile = async () => {
-    console.log('📥 Fetching user profile...', { userId: user?.sub });
-    
-    if (!user?.sub) {
+    const userId = safeUserId(safeUser);
+    if (!userId) {
       console.log('⏭️ Skipping profile fetch: no user ID');
       setIsLoadingProfile(false);
       return;
     }
     
+    console.log('📥 Fetching user profile...', { userId });
+    
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(user.sub)}`,
+        `http://localhost:4000/api/v1/users/${encodeURIComponent(userId)}`,
         {
           method: 'GET',
           headers: {
@@ -100,14 +260,13 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         if (result.success && result.data.user) {
           console.log('✅ User profile fetched:', result.data.user);
           setExistingProfile(result.data.user);
-        } else {
-          console.log('⚠️ Profile fetch succeeded but no user data');
         }
       } else {
-        console.warn('❌ Failed to fetch user profile:', response.status);
+        console.log('ℹ️ No existing profile found');
       }
     } catch (error) {
       console.error("❌ Error fetching user profile:", error);
+      setOnboardingError("Could not load your profile. Please refresh the page.");
     } finally {
       setIsLoadingProfile(false);
     }
@@ -115,356 +274,484 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // Fetch learners linked to this parent
   const fetchLearners = async () => {
-    console.log('📥 Fetching learners...', { userId: user?.sub });
-    
-    if (!user?.sub) {
-      console.log('⏭️ Skipping learners fetch: no user ID');
+    const userId = safeUserId(safeUser);
+    if (!userId) {
       setIsLoadingLearners(false);
       return;
     }
     
+    console.log('📥 Fetching learners...', { userId });
+    
     setIsLoadingLearners(true);
     setFetchLearnersError(null);
     try {
-      const response = await ParentAPI.getMyLearners(user.sub);
-      console.log('✅ Learners fetched:', {
-        count: response.learners?.length || 0,
-        learners: response.learners
-      });
-      setLearners(response.learners);
+      const response = await ParentAPI.getMyLearners(userId);
+      console.log('✅ Learners fetched:', response.learners?.length || 0);
+      setLearners(response.learners || []);
     } catch (error) {
       console.error("❌ Error fetching learners:", error);
-      setFetchLearnersError("We couldn't load your linked learners. Please try again later.");
+      setFetchLearnersError("We couldn't load your linked learners.");
     } finally {
       setIsLoadingLearners(false);
     }
   };
 
-  // Load initial data on mount
+  // Load initial data
   useEffect(() => {
-    console.log('🚀 OnboardingFlow mounted, loading initial data...');
-    fetchUserProfile();
-    fetchLearners();
-  }, [user]);
+    if (safeUser) {
+      fetchUserProfile();
+      fetchLearners();
+    } else {
+      setIsLoadingProfile(false);
+      setIsLoadingLearners(false);
+      setOnboardingError('User authentication required. Please log in.');
+    }
+  }, [safeUser]);
 
-  // Handle final step completion and invitation claiming
+  // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
-    console.log('');
-    console.log('🎊 ═══════════════════════════════════════');
-    console.log('🎊 FINAL STEP COMPLETION');
-    console.log('🎊 ═══════════════════════════════════════');
-    console.log('📦 Final step data:', data);
-    console.log('📨 Has invitation to claim:', hasInvitation);
+    console.log('🎊 Final step completion');
     
-    if (hasInvitation) {
+    const userId = safeUserId(safeUser);
+    if (hasInvitation && userId) {
       try {
-        console.log('🔗 Claiming invitation...', onboardingData.invitation_token);
-        await InvitationService.claim(onboardingData.invitation_token, user.sub);
-        console.log('✅ Invitation claimed successfully');
+        await InvitationService.claim(onboardingData.invitation_token, userId);
         sessionStorage.removeItem('sho_invitation');
-        console.log('🧹 Cleared invitation from sessionStorage');
+        console.log('✅ Invitation claimed successfully');
       } catch (error) {
         console.error("❌ Failed to claim invitation:", error);
       }
     }
     
-    console.log('➡️ Completing TERMS_ACCEPTANCE step...');
     completeStep('TERMS_ACCEPTANCE', data);
-    console.log('🎊 ═══════════════════════════════════════');
-    console.log('');
   };
 
   // Enhanced back button handler
   const handleGoBack = () => {
-    console.log('');
-    console.log('🔙 ═══════════════════════════════════════');
-    console.log('🔙 BACK BUTTON CLICKED');
-    console.log('🔙 ═══════════════════════════════════════');
-    console.log('📍 Current step:', currentStep);
-    console.log('🔍 goBack function available:', typeof goBack === 'function');
-    
+    console.log('🔙 Go back clicked from step:', currentStep);
     if (goBack && typeof goBack === 'function') {
-      console.log('✅ Calling hook goBack function');
       goBack();
-    } else {
-      console.error('❌ goBack function not available from hook!');
-      console.error('⚠️ This should not happen - check useParentOnboarding hook');
     }
-    
-    console.log('🔙 ═══════════════════════════════════════');
-    console.log('');
   };
 
   // Render content with optional back button
-  const renderWithBackButton = (content: React.ReactNode, showBack: boolean) => {
-    if (!showBack) {
-      console.log('ℹ️ Not showing back button for this step');
-      return content;
-    }
+  const renderWithBackButton = useCallback((content: React.ReactNode, showBack: boolean) => {
+    if (!showBack) return content;
     
-    console.log('✅ Showing back button for this step');
     return (
       <div className="space-y-6">
         <div className="flex justify-start">
-          <BackButton 
-            onBack={handleGoBack} 
-            disabled={false}
-          />
+          <BackButton onBack={handleGoBack} disabled={false} />
         </div>
         {content}
       </div>
     );
-  };
+  }, [handleGoBack]);
+
+  // Show loading if user is null
+  if (!safeUser) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Loading User Information
+          </h2>
+          <p className="text-gray-600">
+            Please wait while we load your account details...
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Render the current step
-  const renderStep = () => {
-    console.log('');
-    console.log('🎨 ═══════════════════════════════════════');
-    console.log('🎨 RENDERING STEP:', currentStep);
-    console.log('🎨 ═══════════════════════════════════════');
-    
+  const renderStep = useCallback(() => {
     const isLocked = hasInvitation && isInvitationPrefillLocked;
     const showBackButton = currentStep !== 'PROFILE_SETUP' && currentStep !== 'INITIALIZING';
 
-    console.log('🔒 Invitation locked:', isLocked);
-    console.log('⬅️ Show back button:', showBackButton);
-    console.log('🎨 ═══════════════════════════════════════');
-    console.log('');
-
     switch (currentStep) {
       case 'PROFILE_SETUP':
-        console.log('📝 Rendering PROFILE_SETUP step');
-        
         if (isLoadingProfile) {
           return <LoadingScreen message="Loading your profile..." />;
         }
         
         const existingName = existingProfile?.name || '';
         const nameParts = existingName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        console.log('📋 Profile prefill data:', {
-          firstName,
-          lastName,
-          email: existingProfile?.email || user?.email,
-          phone: hasInvitation ? onboardingData.parent_phone : existingProfile?.phone_number
-        });
         
         return (
           <ProfileSetup
-            onComplete={(data) => {
-              console.log('✅ ProfileSetup onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }}
+            onComplete={(data) => completeStep(currentStep, data)}
             prefillData={{
-              first_name: firstName,
-              last_name: lastName,
-              email: existingProfile?.email || user?.email || '',
+              first_name: nameParts[0] || '',
+              last_name: nameParts.slice(1).join(' ') || '',
+              email: existingProfile?.email || safeUserEmail(safeUser) || '',
               phone: hasInvitation 
-                ? (onboardingData.parent_phone || existingProfile?.phone_number || '')
+                ? (onboardingData?.parent_phone || existingProfile?.phone_number || '')
                 : (existingProfile?.phone_number || ''),
             }}
             isLocked={isLocked}
-            user={user}
+            user={safeUser}
           />
         );
 
       case 'IDENTITY_VERIFICATION':
-        console.log('🆔 Rendering IDENTITY_VERIFICATION step');
         return renderWithBackButton(
           <IdentityVerification 
-            onComplete={(data) => {
-              console.log('✅ IdentityVerification onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }} 
+            onComplete={(data) => completeStep(currentStep, data)} 
           />,
           showBackButton
         );
 
       case 'LINK_LEARNERS':
-        console.log('👨‍👩‍👧‍👦 Rendering LINK_LEARNERS step');
-        
         if (isLoadingLearners) {
           return <LoadingScreen message="Fetching your learners..." />;
         }
         
-        if (fetchLearnersError) {
-          return renderWithBackButton(
-            <div className="text-center p-8 bg-white rounded-lg shadow-md">
-              <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-red-700">Error</h3>
-              <p className="text-gray-600 mt-2">{fetchLearnersError}</p>
-            </div>,
-            showBackButton
-          );
-        }
-        
-        console.log('👥 Existing learners count:', learners.length);
         return renderWithBackButton(
           <LinkLearners
             existingLearners={learners}
-            onLearnerLinked={() => {
-              console.log('🔄 Learner linked, refreshing learner list...');
-              fetchLearners();
-            }}
-            onComplete={() => {
-              console.log('✅ LinkLearners onComplete called');
-              completeStep('LINK_LEARNERS', {});
-            }}
-            user={user}
+            onLearnerLinked={() => fetchLearners()}
+            onComplete={() => completeStep('LINK_LEARNERS', {})}
+            user={safeUser}
           />,
           showBackButton
         );
 
       case 'SUBSCRIPTION_CHOICE':
-        console.log('💳 Rendering SUBSCRIPTION_CHOICE step');
         return renderWithBackButton(
           <SubscriptionChoice
-            onComplete={(data) => {
-              console.log('✅ SubscriptionChoice onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }}
-            initialSelection={onboardingData.SUBSCRIPTION_CHOICE?.tier}
+            onComplete={(data) => completeStep(currentStep, data)}
+            initialSelection={subscriptionChoice?.tier}
           />,
           showBackButton
         );
 
       case 'PAYMENT_SETUP':
-        console.log('💰 Rendering PAYMENT_SETUP step');
+        console.log('');
+        console.log('💳 ═══════════════════════════════════════════');
+        console.log('💳 RENDERING PAYMENT_SETUP STEP');
+        console.log('💳 ═══════════════════════════════════════════');
+        console.log('📊 State Check:');
+        console.log('  ✓ Current Step:', currentStep);
+        console.log('  ✓ Selected Tier:', selectedTier);
+        console.log('  ✓ Has Subscription Choice:', !!subscriptionChoice);
+        console.log('  ✓ Subscription Choice Data:', subscriptionChoice);
+        console.log('  ✓ Billing Cycle:', billingCycle);
+        console.log('  ✓ Payment Data:', paymentData);
+        console.log('  ✓ Returning from Payment:', returningFromPayment);
+        console.log('  ✓ Should Show Success:', shouldShowPaymentSuccess());
+        console.log('💳 ═══════════════════════════════════════════');
+        console.log('');
+
+        // 1. Check if returning from successful PayFast payment
+        if (shouldShowPaymentSuccess()) {
+          console.log('✅ Case 1: Showing PaymentSuccess component');
+          return (
+            <PaymentSuccess
+              transactionId={paymentData?.transaction_id}
+              onContinue={() => {
+                completeStep('PAYMENT_SETUP', paymentData);
+              }}
+            />
+          );
+        }
+
+        // 2. Safety check - ensure subscription choice exists
+        if (!subscriptionChoice?.tier) {
+          console.log('⚠️ Case 2: No subscription tier selected - showing error');
+          return (
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8 text-center max-w-2xl mx-auto">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-yellow-900 mb-3">
+                Subscription Selection Required
+              </h3>
+              <p className="text-yellow-700 mb-6 text-lg">
+                Please select a subscription plan before proceeding to payment.
+              </p>
+              <div className="bg-white rounded-lg p-4 mb-6 text-left">
+                <p className="text-sm text-gray-600 font-mono">
+                  Debug Info:<br/>
+                  subscriptionChoice: {JSON.stringify(subscriptionChoice)}<br/>
+                  selectedTier: {selectedTier || 'undefined'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  console.log('🔙 User clicking back from error state');
+                  goBack();
+                }}
+                className="px-8 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold text-lg"
+              >
+                ← Go Back to Plan Selection
+              </button>
+            </div>
+          );
+        }
+
+        // 3. STANDARD TIER - Show Social Share Gate
+        if (selectedTier === 'standard') {
+          console.log('🆓 Case 3: Rendering STANDARD tier → SocialShareGate');
+          console.log('   Component: SocialShareGate');
+          console.log('   Shows: Optional social sharing');
+          console.log('   Back button:', showBackButton);
+          
+          return renderWithBackButton(
+            <div>
+              {/* Debug Banner */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+                  <strong>Debug:</strong> Rendering SocialShareGate for STANDARD tier
+                </div>
+              )}
+              
+              <SocialShareGate
+                onComplete={(shareData) => {
+                  console.log('');
+                  console.log('📱 ═══════════════════════════════════');
+                  console.log('📱 SOCIAL SHARING COMPLETED');
+                  console.log('📱 ═══════════════════════════════════');
+                  console.log('📦 Share Data:', shareData);
+                  console.log('📱 ═══════════════════════════════════');
+                  console.log('');
+                  
+                  // Complete payment step with social share data
+                  completeStep('PAYMENT_SETUP', {
+                    tier: 'standard',
+                    paymentMethod: 'free',
+                    socialShares: shareData,
+                    status: 'completed',
+                  });
+                }}
+                tier="standard"
+              />
+            </div>,
+            showBackButton
+          );
+        }
+
+        // 4. PREMIUM TIER - Show PayFast Payment
+        if (selectedTier === 'premium') {
+          console.log('💰 Case 4: Rendering PREMIUM tier → PaymentSetup (PayFast)');
+          console.log('   Component: PaymentSetup');
+          console.log('   Shows: PayFast payment form');
+          console.log('   Billing Cycle:', billingCycle);
+          console.log('   Amount:', billingCycle === 'monthly' ? premiumPrice.monthly : premiumPrice.annual);
+          console.log('   Back button:', showBackButton);
+          
+          return renderWithBackButton(
+            <div>
+              {/* Debug Banner */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm">
+                  <strong>Debug:</strong> Rendering PaymentSetup for PREMIUM tier
+                  <br/>
+                  Billing: {billingCycle} - R{billingCycle === 'monthly' ? premiumPrice.monthly : premiumPrice.annual}
+                </div>
+              )}
+              
+              <PaymentSetup
+                onComplete={(data) => {
+                  console.log('');
+                  console.log('💰 ═══════════════════════════════════');
+                  console.log('💰 PAYMENT SETUP CALLBACK');
+                  console.log('💰 ═══════════════════════════════════');
+                  console.log('📦 Data:', data);
+                  
+                  if (data.error) {
+                    console.error('❌ Payment error:', data.error);
+                    setOnboardingError(data.error);
+                  } else {
+                    console.log('✅ Payment initiated successfully');
+                  }
+                  
+                  console.log('💰 ═══════════════════════════════════');
+                  console.log('');
+                }}
+                selectedTier="premium"
+                billingCycle={billingCycle}
+                billingAmount={billingCycle === 'monthly' ? premiumPrice.monthly : premiumPrice.annual}
+                currency="ZAR"
+                user={safeUser}
+              />
+            </div>,
+            showBackButton
+          );
+        }
+
+        // 5. FALLBACK - Unknown tier
+        console.log('❌ Case 5: UNKNOWN TIER - Showing error');
+        console.log('   Selected Tier:', selectedTier);
+        console.log('   Expected: "standard" or "premium"');
         
-        // Get billing amount from subscription choice
-        const subscriptionData = onboardingData.SUBSCRIPTION_CHOICE || {};
-        const billingCycle = subscriptionData.billingCycle || 'monthly';
-        const baseAmount = 99; // Base premium price
-        const billingAmount = billingCycle === 'monthly' 
-          ? baseAmount 
-          : Math.round((baseAmount * 12) * 0.85); // 15% discount for annual
-        
-        console.log('💰 Payment details:', {
-          billingCycle,
-          billingAmount,
-          currency: 'ZAR'
-        });
-        
-        return renderWithBackButton(
-          <PaymentSetup
-            onComplete={(data) => {
-              console.log('✅ PaymentSetup onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }}
-            selectedTier="premium"
-            billingAmount={billingCycle === 'monthly' ? billingAmount : Math.round(billingAmount / 12)}
-            currency="ZAR"
-          />,
-          showBackButton
+        return (
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-8 text-center max-w-2xl mx-auto">
+            <div className="text-6xl mb-4">❌</div>
+            <h3 className="text-2xl font-bold text-red-900 mb-3">
+              Invalid Subscription Tier
+            </h3>
+            <p className="text-red-700 mb-6 text-lg">
+              The selected subscription tier is not recognized.
+            </p>
+            <div className="bg-white rounded-lg p-4 mb-6 text-left">
+              <p className="text-sm text-gray-600 font-mono">
+                Debug Info:<br/>
+                selectedTier: "{selectedTier}"<br/>
+                subscriptionChoice: {JSON.stringify(subscriptionChoice)}<br/>
+                Expected: "standard" or "premium"
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                console.log('🔙 User clicking back from error state');
+                goBack();
+              }}
+              className="px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-lg"
+            >
+              ← Go Back and Try Again
+            </button>
+          </div>
         );
 
       case 'PARENT_CONTACT_SUMMARY':
-        console.log('📋 Rendering PARENT_CONTACT_SUMMARY step');
-        
         const parentData = {
-          name: profile?.name || user?.name || '',
-          email: profile?.email || user?.email || '',
-          phone: profile?.phone_number || onboardingData.parent_phone || '',
+          name: profile?.name || safeUserName(safeUser) || '',
+          email: profile?.email || safeUserEmail(safeUser) || '',
+          phone: profile?.phone_number || onboardingData?.parent_phone || '',
         };
-        
-        const schoolData = {
-          name: onboardingData.school_name || 'the school',
-          whatsappNumber: onboardingData.school_whatsapp_number || null,
-        };
-        
-        console.log('👤 Parent data:', parentData);
-        console.log('🏫 School data:', schoolData);
-        console.log('👥 Learners:', learners.length);
         
         return renderWithBackButton(
           <ParentContactSummary
             parent={parentData}
             learners={learners}
-            school={schoolData}
-            onComplete={() => {
-              console.log('✅ ParentContactSummary onComplete called');
-              completeStep('PARENT_CONTACT_SUMMARY', {});
-            }}
+            school={{ name: onboardingData?.school_name || 'the school' }}
+            onComplete={() => completeStep('PARENT_CONTACT_SUMMARY', {})}
           />,
           showBackButton
         );
 
       case 'NOTIFICATION_PREFERENCES':
-        console.log('🔔 Rendering NOTIFICATION_PREFERENCES step');
         return renderWithBackButton(
           <NotificationPreferences 
-            onComplete={(data) => {
-              console.log('✅ NotificationPreferences onComplete called with data:', data);
-              completeStep(currentStep, data);
-            }} 
+            onComplete={(data) => completeStep(currentStep, data)} 
           />,
           showBackButton
         );
 
       case 'TERMS_ACCEPTANCE':
-        console.log('📜 Rendering TERMS_ACCEPTANCE step (FINAL STEP)');
         return renderWithBackButton(
           <TermsAcceptance 
-            onComplete={(data) => {
-              console.log('✅ TermsAcceptance onComplete called (FINAL!)');
-              handleFinalStepComplete(data);
-            }} 
+            onComplete={(data) => handleFinalStepComplete(data)} 
           />,
           showBackButton
         );
 
       case 'INITIALIZING':
-        console.log('⏳ Rendering INITIALIZING state');
         return <LoadingScreen message="Initializing onboarding..." />;
 
       case 'COMPLETE':
-        console.log('🎉 Onboarding marked as COMPLETE - should not render this');
         return (
           <div className="text-center p-8 bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold text-green-600 mb-4">Onboarding Complete!</h2>
-            <p className="text-gray-600">Redirecting to dashboard...</p>
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircleIcon className="w-10 h-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-green-600 mb-2">
+              Onboarding Complete! 🎉
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Your account is now fully set up. Redirecting to dashboard...
+            </p>
+            <button
+              onClick={() => router.push('/parent/dashboard')}
+              className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Go to Dashboard Now
+            </button>
           </div>
         );
 
       default:
-        console.error('❌ Unknown step:', currentStep);
         return (
           <div className="text-center p-8 bg-red-50 rounded-lg border border-red-200">
             <h3 className="text-xl font-bold text-red-700">Unknown Step</h3>
-            <p className="text-gray-600 mt-2">Step: {currentStep}</p>
+            <p className="text-gray-600 mt-2">Step: {currentStep || 'Unknown'}</p>
+            <button
+              onClick={() => router.push('/parent/dashboard')}
+              className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Go to Dashboard
+            </button>
           </div>
         );
     }
-  };
+  }, [
+    currentStep,
+    hasInvitation,
+    isInvitationPrefillLocked,
+    isLoadingProfile,
+    existingProfile,
+    safeUser,
+    onboardingData,
+    completeStep,
+    renderWithBackButton,
+    isLoadingLearners,
+    learners,
+    fetchLearners,
+    subscriptionChoice,
+    shouldShowPaymentSuccess,
+    paymentData,
+    selectedTier,
+    billingCycle,
+    premiumPrice,
+    setOnboardingError,
+    goBack,
+    profile,
+    handleFinalStepComplete,
+    router
+  ]);
+
+  // Show cancellation notice
+  const showCancellationNotice = router.query?.cancelled === 'true';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Progress indicator */}
+        {/* Progress Bar */}
         <OnboardingProgress 
           currentStep={currentStep} 
-          progress={progress}
-          completedSteps={completedSteps}
-          steps={steps}
+          progress={progress || 0}
+          completedSteps={completedSteps || []}
+          steps={steps || []}
         />
 
-        {/* Invitation banner */}
+        {/* Onboarding Error */}
+        {onboardingError && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3" />
+              <p className="text-sm text-red-700">{onboardingError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Invitation Notice */}
         {hasInvitation && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
             <div className="flex items-center">
               <InformationCircleIcon className="h-6 w-6 text-blue-500 mr-3" />
               <p className="text-sm text-blue-800">
-                <span className="font-semibold">Invitation detected</span> — we've pre-filled some fields for you.
+                <span className="font-semibold">Invitation detected</span> — we've pre-filled some fields.
               </p>
             </div>
             {isInvitationPrefillLocked && (
               <button
-                onClick={() => {
-                  console.log('🔓 Unlocking invitation prefill');
-                  setInvitationPrefillLocked(false);
-                }}
+                onClick={() => setInvitationPrefillLocked(false)}
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
                 Edit
@@ -473,24 +760,73 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
           </div>
         )}
 
-        {/* Debug info (development only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
-            <div className="font-semibold text-yellow-800 mb-1">OnboardingFlow Debug:</div>
-            <div className="text-yellow-700 space-y-1">
-              <div>Current Step: <span className="font-mono font-semibold">{currentStep}</span></div>
-              <div>Progress: <span className="font-mono">{progress.toFixed(1)}%</span></div>
-              <div>Completed: <span className="font-mono">[{completedSteps.join(', ')}]</span></div>
-              <div>Total Steps: <span className="font-mono">{steps?.length || 0}</span></div>
-              <div>Is Complete: <span className="font-mono">{isOnboardingComplete ? '✅ Yes' : '❌ No'}</span></div>
-              <div>goBack Available: <span className="font-mono">{typeof goBack === 'function' ? '✅ Yes' : '❌ No'}</span></div>
-              <div>Has Invitation: <span className="font-mono">{hasInvitation ? '✅ Yes' : '❌ No'}</span></div>
+        {/* Payment Cancellation Notice */}
+        {showCancellationNotice && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 mr-3" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-800 mb-1">
+                  Payment Cancelled
+                </p>
+                <p className="text-sm text-yellow-700">
+                  You can try again or continue without payment.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Current step content */}
-        <div className="mt-8">{renderStep()}</div>
+        {/* Learners Fetch Error */}
+        {fetchLearnersError && currentStep === 'LINK_LEARNERS' && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700">{fetchLearnersError}</p>
+            <button
+              onClick={fetchLearners}
+              className="mt-2 text-sm font-semibold text-red-600 hover:text-red-800"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Current Step Content */}
+        <div className="mt-8">
+          {renderStep()}
+        </div>
+
+        {/* Debug Panel (Development Only) - Safe version */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 bg-gray-800 text-white rounded-lg text-xs font-mono">
+            <div className="font-bold mb-2">📊 Onboarding Debug Info</div>
+            <div className="space-y-1">
+              <div><span className="text-gray-400">User exists:</span> {!!safeUser ? 'Yes' : 'No'}</div>
+              <div><span className="text-gray-400">User ID:</span> {safeUserId(safeUser) || '(no ID)'}</div>
+              <div><span className="text-gray-400">User Email:</span> {safeUserEmail(safeUser) || '(no email)'}</div>
+              <div><span className="text-gray-400">Current Step:</span> {currentStep || '(no step)'}</div>
+              <div><span className="text-gray-400">Selected Tier:</span> {selectedTier || '(no tier)'}</div>
+              <div><span className="text-gray-400">Billing Cycle:</span> {billingCycle || '(no cycle)'}</div>
+              <div><span className="text-gray-400">Completed Steps:</span> {(completedSteps || []).length}</div>
+              <div><span className="text-gray-400">Progress:</span> {Math.round(progress || 0)}%</div>
+              <div><span className="text-gray-400">Learners:</span> {learners.length}</div>
+              <div><span className="text-gray-400">Returning from Payment:</span> {returningFromPayment ? 'Yes' : 'No'}</div>
+              <div><span className="text-gray-400">Payment Success Shown:</span> {paymentSuccessShown.toString()}</div>
+              <div className="pt-2 border-t border-gray-700">
+                <button
+                  onClick={() => {
+                    console.log('🧪 Safe User:', safeUser);
+                    console.log('🧪 Onboarding Data:', onboardingData);
+                    console.log('🧪 Profile:', profile);
+                    console.log('🧪 Subscription Choice:', subscriptionChoice);
+                  }}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                >
+                  Log Safe State
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

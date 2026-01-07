@@ -1,5 +1,5 @@
 // lib/api/parent-api.ts
-const API_BASE_URL = 'http://localhost:4000/api/v1';
+const API_BASE_URL = 'shobackendv2-production.up.railway.app/api/v1';
 
 export interface Learner {
   id: string;

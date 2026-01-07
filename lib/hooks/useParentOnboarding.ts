@@ -22,13 +22,13 @@ type OnboardingStep =
   | 'TERMS_ACCEPTANCE'
   | 'COMPLETE';
 
-// Define the actual onboarding flow (excluding conditional steps)
+// Define the actual onboarding flow INCLUDING PAYMENT_SETUP
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
   'SUBSCRIPTION_CHOICE',
-  // PAYMENT_SETUP is conditionally added if premium is selected
+  'PAYMENT_SETUP', // Always include this in the flow
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
@@ -234,10 +234,6 @@ export function useParentOnboarding({
   // STEP DETERMINATION LOGIC
   // ========================
 
-  /**
-   * Determines the initial step based on profile and learner data
-   * This only runs once when the component initializes
-   */
   const determineInitialStep = useCallback((): OnboardingStep => {
     console.log('🎯 Determining initial step...', {
       hasProfile: !!profile,
@@ -247,9 +243,7 @@ export function useParentOnboarding({
       onboardingStarted
     });
 
-    // If user explicitly needs onboarding or hasn't started yet
     if (!onboardingStarted) {
-      // Check if profile exists and is complete
       const hasCompleteProfile = profile && profile.name && profile.phone_number;
       
       if (!hasCompleteProfile) {
@@ -257,18 +251,15 @@ export function useParentOnboarding({
         return 'PROFILE_SETUP';
       }
       
-      // Profile exists, check learners
       if (!learners || learners.length === 0) {
         console.log('➡️ Starting at LINK_LEARNERS (no learners)');
         return 'LINK_LEARNERS';
       }
       
-      // Has profile and learners, but needs onboarding
       console.log('➡️ Starting at PARENT_CONTACT_SUMMARY (has basics)');
       return 'PARENT_CONTACT_SUMMARY';
     }
 
-    // Default to current step if already started
     return currentStep;
   }, [profile, learners, onboardingStarted, currentStep]);
 
@@ -319,18 +310,12 @@ export function useParentOnboarding({
       }
 
       // Special handling for SUBSCRIPTION_CHOICE
+      // Always go to PAYMENT_SETUP regardless of tier chosen
       if (step === 'SUBSCRIPTION_CHOICE') {
-        if (data.tier === 'premium') {
-          console.log('💳 Premium selected - next step is PAYMENT_SETUP');
-          logStepTransition(step, 'PAYMENT_SETUP', 'Premium subscription requires payment');
-          setCurrentStep('PAYMENT_SETUP');
-          return;
-        } else {
-          console.log('🆓 Standard (free) selected - skipping PAYMENT_SETUP');
-          logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Standard subscription skips payment');
-          setCurrentStep('PARENT_CONTACT_SUMMARY');
-          return;
-        }
+        console.log('💳 Subscription selected - next step is PAYMENT_SETUP');
+        logStepTransition(step, 'PAYMENT_SETUP', 'Subscription choice made');
+        setCurrentStep('PAYMENT_SETUP');
+        return;
       }
 
       // Special handling for PAYMENT_SETUP - always go to PARENT_CONTACT_SUMMARY
@@ -341,17 +326,15 @@ export function useParentOnboarding({
         return;
       }
 
-      // Determine next step
+      // Determine next step for all other cases
       const currentIndex = ONBOARDING_STEPS.indexOf(step);
       console.log(`📍 Current step index: ${currentIndex}/${ONBOARDING_STEPS.length - 1}`);
 
       if (currentIndex >= ONBOARDING_STEPS.length - 1) {
-        // This was the last step
         console.log('🎉 ALL STEPS COMPLETED! Marking onboarding as COMPLETE');
         logStepTransition(step, 'COMPLETE', 'Final step completed');
         setCurrentStep('COMPLETE');
       } else {
-        // Move to next step
         const nextStep = ONBOARDING_STEPS[currentIndex + 1];
         console.log(`➡️ Moving to next step: ${nextStep}`);
         logStepTransition(step, nextStep, 'Step completed successfully');
