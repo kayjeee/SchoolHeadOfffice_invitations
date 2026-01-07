@@ -1,13 +1,27 @@
-// components/auth/AuthGate.js
-import React, { useMemo } from "react";
+// components/auth/AuthGate.tsx
+import React, { useMemo, CSSProperties } from "react";
 
-export default function AuthGate({ invitationData, returnTo = "/parent" }) {
+interface InvitationData {
+  token?: string;
+  school_name?: string;
+  learner_name?: string;
+}
+
+interface AuthGateProps {
+  invitationData?: InvitationData | null;
+  returnTo?: string; // default: "/parent"
+}
+
+export default function AuthGate({
+  invitationData,
+  returnTo = "/parent",
+}: AuthGateProps) {
   const hasInvitation = Boolean(invitationData?.token);
 
   const safeReturnTo = useMemo(() => {
     if (hasInvitation) {
       const separator = returnTo.includes('?') ? '&' : '?';
-      return `${returnTo}${separator}token=${invitationData.token}`;
+      return `${returnTo}${separator}token=${invitationData!.token}`;
     }
     return returnTo;
   }, [invitationData, returnTo, hasInvitation]);
@@ -96,8 +110,8 @@ export default function AuthGate({ invitationData, returnTo = "/parent" }) {
   );
 }
 
-// Inline styles for simplicity
-const styles = {
+// Inline styles with proper TypeScript types
+const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f9fafb',
@@ -113,7 +127,7 @@ const styles = {
     borderRadius: '16px',
     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     padding: '32px',
-    textAlign: 'center',
+    textAlign: 'center' as const,
     border: '1px solid #f3f4f6'
   },
   title: {
@@ -125,13 +139,13 @@ const styles = {
   subtitle: {
     color: '#4b5563',
     marginBottom: '24px',
-    lineHeight: '1.75'
+    lineHeight: 1.75
   },
   invitationText: {
     marginBottom: '12px'
   },
   schoolName: {
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#111827',
     fontSize: '18px',
     marginTop: '8px',
@@ -142,7 +156,7 @@ const styles = {
     fontSize: '16px'
   },
   learnerHighlight: {
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#111827'
   },
   invitationDetails: {
@@ -151,20 +165,20 @@ const styles = {
     padding: '24px',
     marginBottom: '24px',
     border: '1px solid #e2e8f0',
-    textAlign: 'left'
+    textAlign: 'left' as const
   },
   detailSection: {
     width: '100%'
   },
   audience: {
     fontSize: '20px',
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#111827',
     marginBottom: '8px'
   },
   eventTitle: {
     fontSize: '18px',
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#374151',
     marginBottom: '20px'
   },
@@ -177,7 +191,7 @@ const styles = {
     alignItems: 'flex-start'
   },
   detailLabel: {
-    fontWeight: '600',
+    fontWeight: 600,
     color: '#4b5563',
     width: '70px',
     flexShrink: 0
@@ -203,7 +217,7 @@ const styles = {
     backgroundColor: '#2563eb',
     color: 'white',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: 600,
     borderRadius: '8px',
     textDecoration: 'none',
     border: 'none',
