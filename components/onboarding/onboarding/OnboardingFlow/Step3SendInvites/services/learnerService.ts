@@ -18,7 +18,28 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
     const data = await res.json();
 
     if (data.data?.learners) {
-      allLearners.push(...data.data.learners);
+      const learnersData = data.data.learners;
+      const transformedLearners = learnersData.map((l: any): Learner => ({
+        id: l.id,
+        first_name: l.first_name || "",
+        last_name: l.last_name || "",
+        full_name: l.full_name || `${l.first_name || ""} ${l.last_name || ""}`.trim() || "Unnamed Learner",
+        gender: l.gender_text || "Unknown",
+        gender_text: l.gender_text || "Unknown",
+        accession_number: l.accession_number || "",
+        status: l.status_text || "Unknown",
+        status_text: l.status_text || "Unknown",
+        grade_id: l.grade_id || gradeId,
+        grade_name: l.grade_name || "Unknown Grade",
+        school_id: l.school_id,
+        school_name: l.school_name || "Unknown School",
+        email: l.email || l.contact?.email || "",
+        phone: l.contact?.phone || l.phone || l.contact?.whatsapp || "",
+        created_at: l.created_at || "",
+        updated_at: l.updated_at || "",
+        contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
+      }));
+      allLearners.push(...transformedLearners);
     }
 
     totalPages = data.pagination?.total_pages || 1;
