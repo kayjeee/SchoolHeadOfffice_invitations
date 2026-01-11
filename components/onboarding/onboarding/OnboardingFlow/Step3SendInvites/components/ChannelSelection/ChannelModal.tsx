@@ -287,68 +287,268 @@ Click here to join: ${schoolLink}`;
   };
 
   // Handle bulk message sending (all learners)
-  const handleSendBulk = async () => {
-    if (!messageContent.trim()) {
-      setTestResult({
-        success: false,
-        message: 'Message content is required for bulk send'
-      });
-      return;
-    }
+// PROPER SOLUTION: Batch invitation creation with retry logic and fallback
 
-    if (learnersWithWhatsApp.length === 0) {
-      setTestResult({
-        success: false,
-        message: 'No WhatsApp numbers available for bulk send'
-      });
-      return;
-    }
+const handleSendBulk = async () => {
+  console.log('\n' + '='.repeat(80));
+  console.log('🚀 [handleSendBulk] Starting bulk send with batch invitation creation');
+  console.log('='.repeat(80));
 
-    setIsSendingBulk(true);
-    setTestResult(null);
+  // Step 1: Validate message content
+  console.log('1️⃣ [STEP 1] Validating message content...');
+  
+  if (!messageContent.trim()) {
+    console.error('❌ Message content is empty');
+    setTestResult({
+      success: false,
+      message: 'Message content is required for bulk send'
+    });
+    return;
+  }
+  console.log('   ✅ Message content is valid');
 
-    try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
+  // Step 2: Check learners with WhatsApp
+  console.log('\n2️⃣ [STEP 2] Checking learners with WhatsApp...');
+  console.log('   Total learners:', learners.length);
+  console.log('   Learners with WhatsApp:', learnersWithWhatsApp.length);
+  
+  if (learnersWithWhatsApp.length === 0) {
+    console.error('❌ No WhatsApp numbers available');
+    setTestResult({
+      success: false,
+      message: 'No WhatsApp numbers available for bulk send'
+    });
+    return;
+  }
+  console.log('   ✅ Found', learnersWithWhatsApp.length, 'WhatsApp contacts');
+
+  // Step 3: Get recipient numbers
+  console.log('\n3️⃣ [STEP 3] Getting recipient numbers...');
+  const recipientNumbers = getRecipientNumbers();
+  console.log('   Total recipients:', recipientNumbers.length);
+
+  setIsSendingBulk(true);
+  setTestResult(null);
+
+  try {
+    // Step 4: Create invitations in parallel batches (faster + handles failures)
+    console.log('\n4️⃣ [STEP 4] Creating invitations in parallel batches...');
+    
+    const BATCH_SIZE = 20; // Process 20 invitations at a time
+    const personalizedMessages = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    // Helper function to create single invitation with retry
+    const createInvitationWithRetry = async (recipient, retries = 2) => {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          console.log(`      [Attempt ${attempt}] Creating invitation for ${recipient.name || 'Unnamed'}`);
+          
+          const token = await WhatsAppBusinessService.createInvitation({
+            phoneNumber: recipient.phone,
+            schoolId: schoolId,
+            userEmail: school?.userEmail,
+            countryCode: '27'
+          });
+
+          // Handle different response formats
+          const tokenString = typeof token === 'string' ? token : 
+                             (token?.token || token?.invitation?.token);
+
+          if (!tokenString) {
+            throw new Error('No token in response');
+          }
+
+          return tokenString;
+        } catch (error) {
+          console.error(`      ❌ Attempt ${attempt} failed:`, error.message);
+          if (attempt === retries) {
+            throw error; // Last attempt failed
+          }
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    };
+
+    // Process in batches
+    for (let i = 0; i < recipientNumbers.length; i += BATCH_SIZE) {
+      const batch = recipientNumbers.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(recipientNumbers.length / BATCH_SIZE);
       
-      const recipientNumbers = getRecipientNumbers();
-      
-      const result = await WhatsAppBusinessService.sendBulkMessages({
-        gradeIds: selectedGrades.map(g => g.id),
-        schoolName: schoolName,
-        recipientNumbers: recipientNumbers.map(r => r.phone),
-        schoolId: schoolId,
-        userEmail: school?.userEmail
-      });
+      console.log(`\n   📦 [Batch ${batchNum}/${totalBatches}] Processing ${batch.length} invitations...`);
 
-      setTestResult({
-        success: true,
-        message: `Bulk messages sent successfully!`,
-        bulkResult: {
-          sentCount: result.sentCount,
-          failedCount: result.failedCount,
-          totalCount: recipientNumbers.length
+      // Create invitations in parallel for this batch
+      const batchPromises = batch.map(async (recipient) => {
+        try {
+          const token = await createInvitationWithRetry(recipient);
+          const magicLink = `?token=${token}&school=${encodeURIComponent(schoolName.trim())}`;
+          
+          return {
+            success: true,
+            data: {
+              to: recipient.phone,
+              message: messageContent,
+              gradeName: recipient.grade,
+              magicLink: magicLink,
+              recipientName: recipient.name
+            }
+          };
+        } catch (error) {
+          console.error(`      ❌ Failed to create invitation for ${recipient.phone}:`, error.message);
+          return {
+            success: false,
+            phone: recipient.phone,
+            error: error.message
+          };
         }
       });
 
-      // Log bulk send results
-      logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
-        sentCount: result.sentCount,
-        failedCount: result.failedCount,
-        totalRecipients: recipientNumbers.length,
-        gradeIds: selectedGrades.map(g => g.id)
+      // Wait for entire batch to complete
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Process batch results
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value.success) {
+          personalizedMessages.push(result.value.data);
+          successCount++;
+          console.log(`      ✅ Success: ${successCount}/${recipientNumbers.length}`);
+        } else {
+          failCount++;
+          console.error(`      ❌ Failed: ${failCount}/${recipientNumbers.length}`);
+        }
       });
 
-    } catch (error: any) {
-      setTestResult({
-        success: false,
-        error: error.message || 'An unknown error occurred.',
-        message: 'Failed to send bulk messages. Please try again.'
-      });
-    } finally {
-      setIsSendingBulk(false);
+      // Small delay between batches to avoid overwhelming the API
+      if (i + BATCH_SIZE < recipientNumbers.length) {
+        console.log(`      ⏳ Waiting 500ms before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
-  };
 
+    console.log('\n   📊 Invitation Creation Summary:');
+    console.log('      Total attempted:', recipientNumbers.length);
+    console.log('      ✅ Successful:', successCount);
+    console.log('      ❌ Failed:', failCount);
+    console.log('      📨 Ready to send:', personalizedMessages.length);
+
+    // Check if we have any valid invitations
+    if (personalizedMessages.length === 0) {
+      throw new Error(
+        `Failed to create any invitations. ${failCount} attempts failed. ` +
+        'This may be due to database connection issues. Please check your MongoDB connection and try again.'
+      );
+    }
+
+    // Warn if some failed
+    if (failCount > 0) {
+      console.warn(`   ⚠️ Warning: ${failCount} invitations could not be created. Proceeding with ${successCount} valid invitations.`);
+    }
+
+    // Step 5: Validate personalized messages
+    console.log('\n5️⃣ [STEP 5] Sample messages (first 3):');
+    personalizedMessages.slice(0, 3).forEach((msg, i) => {
+      console.log(`   ${i + 1}.`, {
+        to: msg.to,
+        gradeName: msg.gradeName,
+        hasUniqueToken: msg.magicLink.includes('?token='),
+        recipientName: msg.recipientName
+      });
+    });
+
+    // Step 6: Prepare API payload
+    console.log('\n6️⃣ [STEP 6] Preparing API payload...');
+    const apiPayload = {
+      gradeIds: selectedGrades.map(g => g.id),
+      schoolName: schoolName,
+      personalizedMessages: personalizedMessages,
+      schoolId: schoolId,
+      userEmail: school?.userEmail,
+      defaultCountryCode: '27'
+    };
+    
+    console.log('   Payload ready with', personalizedMessages.length, 'unique invitations');
+
+    // Step 7: Send to WhatsApp API
+    console.log('\n7️⃣ [STEP 7] Sending to WhatsApp bulk API...');
+    
+    const response = await fetch('/api/whatsapp-business/send-bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(apiPayload)
+    });
+
+    console.log('   Response Status:', response.status, response.statusText);
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('   ❌ API Error:', result.error);
+      throw new Error(result.error || 'Bulk send failed');
+    }
+    
+    console.log('\n   ✅ WhatsApp API Success!');
+    console.log('      Sent:', result.results?.sentCount);
+    console.log('      Failed:', result.results?.failedCount);
+    console.log('      Invalid:', result.results?.invalidCount);
+
+    // Step 8: Set final result
+    setTestResult({
+      success: true,
+      message: failCount > 0 
+        ? `Bulk send complete! ${result.results.sentCount} sent, ${failCount} invitations failed to create.`
+        : `Bulk messages sent successfully to ${result.results.sentCount} recipients!`,
+      bulkResult: {
+        sentCount: result.results.sentCount,
+        failedCount: result.results.failedCount + failCount,
+        totalCount: recipientNumbers.length,
+        invitationFailures: failCount
+      }
+    });
+
+    console.log('\n' + '='.repeat(80));
+    console.log('🎉 [SUCCESS] Bulk send completed');
+    console.log('   Total recipients:', recipientNumbers.length);
+    console.log('   Invitations created:', successCount);
+    console.log('   Invitations failed:', failCount);
+    console.log('   WhatsApp sent:', result.results.sentCount);
+    console.log('   WhatsApp failed:', result.results.failedCount);
+    console.log('='.repeat(80));
+
+    logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
+      sentCount: result.results.sentCount,
+      failedCount: result.results.failedCount,
+      invitationFailures: failCount,
+      totalRecipients: recipientNumbers.length,
+      gradeIds: selectedGrades.map(g => g.id)
+    });
+
+  } catch (error: any) {
+    console.error('\n' + '='.repeat(80));
+    console.error('💥 [ERROR] Bulk send failed');
+    console.error('='.repeat(80));
+    console.error('   Error:', error.message);
+    console.error('   Stack:', error.stack);
+    console.error('='.repeat(80));
+
+    setTestResult({
+      success: false,
+      error: error.message,
+      message: 'Failed to send bulk messages. ' + 
+               (error.message.includes('database') || error.message.includes('MongoDB')
+                 ? 'Database connection issue detected. Please check MongoDB Atlas connection.'
+                 : 'Please try again.')
+    });
+  } finally {
+    console.log('\n🏁 [FINALLY] Complete');
+    setIsSendingBulk(false);
+  }
+};
   // Enhanced schedule handler
   const handleScheduleMessage = async (scheduleData: ScheduleData) => {
     setIsScheduling(true);

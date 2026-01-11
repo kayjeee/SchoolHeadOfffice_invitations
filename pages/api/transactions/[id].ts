@@ -1,3 +1,4 @@
+// pages/api/transactions/[id].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const RAILS_API_URL = process.env.RAILS_API_URL || 'http://localhost:4000';

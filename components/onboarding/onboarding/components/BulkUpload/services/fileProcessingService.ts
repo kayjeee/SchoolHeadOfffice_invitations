@@ -13,6 +13,9 @@ import {
 import * as helpers from '../utils/helpers';
 import { validateLearnerData } from './validationService';
 
+/* ======================================================
+   TYPES
+====================================================== */
 export interface ProcessedFileResult {
   totalRows: number;
   validRows: number;
@@ -24,276 +27,391 @@ export interface ProcessedFileResult {
   dataToUpload: any[];
 }
 
-// Process phone numbers - handle different data types
-const getPhoneValue = (rawValue: any): string => {
-  if (rawValue === null || rawValue === undefined) return '';
+/* ======================================================
+   RAW PHONE NORMALIZATION
+   - Handles Excel scientific notation
+====================================================== */
+const normalizeRawPhone = (raw: any): string => {
+  if (raw === null || raw === undefined) return '';
 
-  const stringValue = String(rawValue).trim();
+  const str = String(raw).trim();
 
-  // If it's a number in scientific notation or a very large number, handle it.
-  if (!isNaN(rawValue) && stringValue.includes('e')) {
+  // Excel scientific notation (e.g. 2.781234567E10)
+  if (!isNaN(raw) && /e/i.test(str)) {
     try {
-      // Convert scientific notation to full number string
-      return BigInt(Math.round(rawValue)).toString();
-    } catch (e) {
-      console.warn(`BigInt conversion failed for rawValue: ${rawValue}. Falling back to string.`);
-      return stringValue;
+      const converted = BigInt(Math.round(raw)).toString();
+      console.log('[PHONE] Scientific notation:', raw, '→', converted);
+      return converted;
+    } catch {
+      console.warn('[PHONE] Failed scientific conversion:', raw);
+      return str;
     }
   }
 
-  return stringValue;
+  return str;
 };
 
+/* ======================================================
+   DIGIT SANITIZER
+====================================================== */
+const sanitizeDigits = (value: string): string => {
+  return value ? value.replace(/\D/g, '') : '';
+};
+
+/* ======================================================
+   EXTRACT + NORMALIZE SA PHONE NUMBERS
+   - Accepts 10 or 11 digits
+   - Converts 27xxxxxxxxx → 0xxxxxxxxx
+====================================================== */
+const extractValidPhoneNumbers = (value: string): string[] => {
+  if (!value) return [];
+
+  const digits = sanitizeDigits(value);
+  const results: string[] = [];
+
+  // SA numbers with country code (27xxxxxxxxx)
+  const countryMatches = digits.match(/27\d{9}/g) || [];
+  countryMatches.forEach(n => {
+    results.push('0' + n.substring(2));
+  });
+
+  // Local format (0xxxxxxxxx)
+  const localMatches = digits.match(/0\d{9}/g) || [];
+  localMatches.forEach(n => results.push(n));
+
+  if (results.length) {
+    console.log('[PHONE] Normalized numbers:', results, 'from:', value);
+  }
+
+  return Array.from(new Set(results));
+};
+
+/* ======================================================
+   PARSE TEL NUMBER (H)OME (E)MERGENCY FIELD
+   - Extracts labeled phone numbers from combined field
+   - Format: "(H) 0821234567 (E) 0829876543 WhatsApp 0827778888"
+====================================================== */
+const parseCombinedTelField = (raw: string): {
+  home: string;
+  emergency: string;
+  whatsapp: string;
+  allNumbers: string[];
+} => {
+  if (!raw) {
+    return { home: '', emergency: '', whatsapp: '', allNumbers: [] };
+  }
+
+  console.log('[TEL PARSE] Raw input:', raw);
+
+  const result = {
+    home: '',
+    emergency: '',
+    whatsapp: '',
+    allNumbers: [] as string[]
+  };
+
+  // Extract all valid phone numbers first
+  const allNumbers = extractValidPhoneNumbers(raw);
+  result.allNumbers = allNumbers;
+
+  if (allNumbers.length === 0) {
+    console.log('[TEL PARSE] No valid numbers found');
+    return result;
+  }
+
+  // Check for WhatsApp keyword
+  const hasWhatsApp = /whatsapp/i.test(raw);
+  
+  if (hasWhatsApp) {
+    console.log('[TEL PARSE] WhatsApp keyword detected');
+    
+    // Try to find the number after "WhatsApp"
+    const whatsappMatch = raw.match(/whatsapp[:\s]*([0-9\s\+\(\)\-]+)/i);
+    if (whatsappMatch) {
+      const whatsappNumbers = extractValidPhoneNumbers(whatsappMatch[1]);
+      if (whatsappNumbers.length > 0) {
+        result.whatsapp = whatsappNumbers[0];
+        console.log('[TEL PARSE] WhatsApp number extracted:', result.whatsapp);
+      }
+    }
+    
+    // If still no WhatsApp number, take the last number in the field
+    if (!result.whatsapp && allNumbers.length > 0) {
+      result.whatsapp = allNumbers[allNumbers.length - 1];
+      console.log('[TEL PARSE] WhatsApp fallback (last number):', result.whatsapp);
+    }
+  }
+
+  // Extract Home number (marked with (H) or H: or Home)
+  const homeMatch = raw.match(/\(h\)[:\s]*([0-9\s\+\(\)\-]+?)(?=\(e\)|whatsapp|$)/i) ||
+                    raw.match(/h[:\s]+([0-9\s\+\(\)\-]+?)(?=\(e\)|whatsapp|e:|$)/i) ||
+                    raw.match(/home[:\s]*([0-9\s\+\(\)\-]+?)(?=emergency|whatsapp|$)/i);
+  
+  if (homeMatch) {
+    const homeNumbers = extractValidPhoneNumbers(homeMatch[1]);
+    if (homeNumbers.length > 0) {
+      result.home = homeNumbers[0];
+      console.log('[TEL PARSE] Home number extracted:', result.home);
+    }
+  }
+
+  // Extract Emergency number (marked with (E) or E: or Emergency)
+  const emergencyMatch = raw.match(/\(e\)[:\s]*([0-9\s\+\(\)\-]+?)(?=whatsapp|$)/i) ||
+                         raw.match(/e[:\s]+([0-9\s\+\(\)\-]+?)(?=whatsapp|$)/i) ||
+                         raw.match(/emergency[:\s]*([0-9\s\+\(\)\-]+?)(?=whatsapp|$)/i);
+  
+  if (emergencyMatch) {
+    const emergencyNumbers = extractValidPhoneNumbers(emergencyMatch[1]);
+    if (emergencyNumbers.length > 0) {
+      result.emergency = emergencyNumbers[0];
+      console.log('[TEL PARSE] Emergency number extracted:', result.emergency);
+    }
+  }
+
+  // Fallback: if no labeled numbers found, assign sequentially
+  if (!result.home && !result.emergency && !result.whatsapp) {
+    console.log('[TEL PARSE] No labels found, using sequential assignment');
+    result.home = allNumbers[0] || '';
+    result.emergency = allNumbers[1] || '';
+  }
+
+  console.log('[TEL PARSE] Final result:', result);
+  return result;
+};
+
+/* ======================================================
+   MAIN PROCESSOR
+====================================================== */
 export const processExcelFile = async (
-  file: File, 
-  schoolInfo: any, 
+  file: File,
+  schoolInfo: any,
   selectedGrade: any
 ): Promise<ProcessedFileResult> => {
+  console.group('📂 PROCESS EXCEL FILE');
+  console.log('File:', file.name, file.type);
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    // =======================================================
-    // 🔥 NEW HELPER: Split a 20-digit number into two 10-digit numbers
-    // =======================================================
-    const split20DigitNumber = (sanitizedValue: string): string[] => {
-        // Ensure the value is exactly 20 characters (digits) long
-        if (sanitizedValue.length === 20) {
-            const phone1 = sanitizedValue.substring(0, 10);
-            const phone2 = sanitizedValue.substring(10, 20);
-            return [phone1, phone2];
-        }
-        // Otherwise, return the value as a single item array (if not empty)
-        return [sanitizedValue].filter(p => p.length > 0);
-    };
-    // =======================================================
-
-    reader.onload = async (e) => {
+    reader.onload = async e => {
       try {
-        let data: any;
-        
-        if (file.type === 'text/csv') {
-          data = e.target?.result as string;
-        } else {
-          data = new Uint8Array(e.target?.result as ArrayBuffer);
-        }
+        const data =
+          file.type === 'text/csv'
+            ? (e.target?.result as string)
+            : new Uint8Array(e.target?.result as ArrayBuffer);
 
-        let workbook;
-        
-        if (file.type === 'text/csv') {
-          workbook = XLSX.read(data, { type: 'string' });
-        } else {
-          workbook = XLSX.read(data, { type: 'array' });
-        }
+        const workbook = XLSX.read(data, {
+          type: file.type === 'text/csv' ? 'string' : 'array'
+        });
 
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
 
-        if (jsonData.length === 0) {
-          throw new Error('The uploaded file is empty.');
-        }
+        const rawRows = XLSX.utils.sheet_to_json<any[]>(worksheet, {
+          header: 1,
+          blankrows: false
+        });
 
+        /* ======================================================
+           FIND HEADER ROW
+        ====================================================== */
         let headerRowIndex = -1;
-        for (let i = 0; i < jsonData.length; i++) {
-          const row = (jsonData[i] as any[]).map(cell => (cell ? String(cell).trim() : ''));
-          if (helpers.headerExists(row, FIRST_NAME_HEADERS) && helpers.headerExists(row, LAST_NAME_HEADERS)) {
+
+        for (let i = 0; i < rawRows.length; i++) {
+          const row = rawRows[i].map(c => (c ? String(c).trim() : ''));
+          if (
+            helpers.headerExists(row, FIRST_NAME_HEADERS) &&
+            helpers.headerExists(row, LAST_NAME_HEADERS)
+          ) {
             headerRowIndex = i;
             break;
           }
         }
 
         if (headerRowIndex === -1) {
-          throw new Error('Could not find valid header row. Please ensure your file contains columns for first name and last name.');
+          throw new Error('Header row not found');
         }
 
-        const headers = (jsonData[headerRowIndex] as any[]).map(h => (h ? String(h).trim() : ''));
-        const rows = jsonData.slice(headerRowIndex + 1) as any[][];
+        const headers = rawRows[headerRowIndex].map(h =>
+          h ? String(h).trim() : ''
+        );
 
-        // Find column indexes
-        const colIndexes: { [key: string]: number } = {
+        const rows = rawRows.slice(headerRowIndex + 1);
+
+        /* ======================================================
+           COLUMN MAPPING
+        ====================================================== */
+        
+        // Find the combined Tel Number field (handles line breaks in header)
+        const telNumberColIndex = headers.findIndex(h => {
+          const normalized = h.replace(/[\r\n\s]+/g, ' ').toLowerCase();
+          return /tel.*number.*\(h\).*\(e\)|tel.*number.*home.*emergency/i.test(normalized);
+        });
+
+        const col = {
           firstName: helpers.findHeaderIndex(headers, FIRST_NAME_HEADERS),
           lastName: helpers.findHeaderIndex(headers, LAST_NAME_HEADERS),
           gender: helpers.findHeaderIndex(headers, GENDER_HEADERS),
-          cellPhone: helpers.findHeaderIndex(headers, CELL_PHONE_HEADERS),
-          telHome: helpers.findHeaderIndex(headers, TEL_HOME_HEADERS),
-          telEmergency: helpers.findHeaderIndex(headers, TEL_EMERGENCY_HEADERS),
+          telNumber: telNumberColIndex, // Combined field
+          cell: helpers.findHeaderIndex(headers, CELL_PHONE_HEADERS),
+          home: helpers.findHeaderIndex(headers, TEL_HOME_HEADERS),
+          emergency: helpers.findHeaderIndex(headers, TEL_EMERGENCY_HEADERS),
           whatsapp: helpers.findHeaderIndex(headers, WHATSAPP_HEADERS),
           telegram: helpers.findHeaderIndex(headers, TELEGRAM_HEADERS),
-          accessionNumber: helpers.findHeaderIndex(headers, ACCESSION_NUMBER_HEADERS),
+          accession: helpers.findHeaderIndex(headers, ACCESSION_NUMBER_HEADERS)
         };
 
-        // Handle the combined Home/Emergency phone column
-        let telCombinedIndex = headers.findIndex(h => h.includes('Tel Number') && h.includes('(H)'));
+        console.group('📊 COLUMN INDEXES');
+        console.table(col);
+        console.groupEnd();
 
-        if (telCombinedIndex !== -1) {
-            if (colIndexes.telHome === -1) colIndexes.telHome = telCombinedIndex;
-            if (colIndexes.telEmergency === -1) colIndexes.telEmergency = telCombinedIndex;
-        }
-        
         let totalRows = 0;
         let validRows = 0;
         let invalidRows = 0;
-        let errors: Array<{ row: number; messages: string }> = [];
-        let warnings: Array<{ row: number; field: string; message: string }> = [];
-        let preview: any[] = [];
-        const processedData: any[] = [];
 
-        // Process each row
+        const errors: any[] = [];
+        const warnings: any[] = [];
+        const processed: any[] = [];
+
+        /* ======================================================
+           ROW PROCESSING
+        ====================================================== */
         rows.forEach((row, i) => {
-          if (row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
+          if (row.every(c => !c || String(c).trim() === '')) return;
+
+          totalRows++;
+          const rowNumber = headerRowIndex + i + 2;
+
+          console.group(`👤 Row ${rowNumber}`);
+
+          // Get the combined Tel Number field
+          const telNumberRaw = col.telNumber !== -1 
+            ? normalizeRawPhone(row[col.telNumber]) 
+            : '';
+
+          // Also check individual columns as fallback
+          const cellRaw = col.cell !== -1 ? normalizeRawPhone(row[col.cell]) : '';
+          const homeRaw = col.home !== -1 ? normalizeRawPhone(row[col.home]) : '';
+          const emergencyRaw = col.emergency !== -1 ? normalizeRawPhone(row[col.emergency]) : '';
+          const whatsappRaw = col.whatsapp !== -1 ? normalizeRawPhone(row[col.whatsapp]) : '';
+
+          console.log('📞 Raw Input:', { telNumberRaw, cellRaw, homeRaw, emergencyRaw, whatsappRaw });
+
+          let primaryPhone = '';
+          let whatsappNumber = '';
+
+          // Parse the combined Tel Number field
+          if (telNumberRaw) {
+            const parsed = parseCombinedTelField(telNumberRaw);
+            
+            // Priority: use labeled numbers
+            primaryPhone = parsed.home || parsed.emergency || parsed.allNumbers[0] || '';
+            whatsappNumber = parsed.whatsapp;
+            
+            // If no explicit WhatsApp found
+            if (!whatsappNumber) {
+              if (parsed.allNumbers.length === 1) {
+                // Single number: use it for both phone and WhatsApp
+                whatsappNumber = parsed.allNumbers[0];
+                console.log('[ASSIGNMENT] Single number, using for both phone and WhatsApp');
+              } else if (parsed.allNumbers.length > 1) {
+                // Multiple numbers: use second number as WhatsApp (don't duplicate primary)
+                whatsappNumber = parsed.allNumbers.find(n => n !== primaryPhone) || '';
+                console.log('[ASSIGNMENT] Multiple numbers, using second for WhatsApp');
+              }
+            }
+          }
+
+          // Fallback to individual columns if combined field is empty
+          if (!telNumberRaw) {
+            const allNumbers = Array.from(new Set([
+              ...extractValidPhoneNumbers(cellRaw),
+              ...extractValidPhoneNumbers(homeRaw),
+              ...extractValidPhoneNumbers(emergencyRaw)
+            ]));
+
+            primaryPhone = allNumbers[0] || '';
+            
+            // Check for explicit WhatsApp column
+            if (whatsappRaw) {
+              whatsappNumber = extractValidPhoneNumbers(whatsappRaw)[0] || '';
+            }
+            
+            // Fallback to second number
+            if (!whatsappNumber && allNumbers.length > 1) {
+              whatsappNumber = allNumbers[1];
+            }
+          }
+
+          const learner = {
+            firstName:
+              col.firstName !== -1
+                ? String(row[col.firstName] || '').trim()
+                : '',
+            lastName:
+              col.lastName !== -1
+                ? String(row[col.lastName] || '').trim()
+                : '',
+            gender:
+              col.gender !== -1
+                ? String(row[col.gender] || '').trim()
+                : '',
+            accessionNumber:
+              col.accession !== -1
+                ? String(row[col.accession] || '').trim()
+                : '',
+            ...schoolInfo,
+            gradeId: selectedGrade?.id || null,
+            phone: primaryPhone,
+            whatsapp: whatsappNumber
+          };
+
+          console.log('📞 Final Assignment:', {
+            phone: learner.phone,
+            whatsapp: learner.whatsapp
+          });
+
+          const validation = validateLearnerData(learner);
+
+          if (validation.errors.length) {
+            invalidRows++;
+            errors.push({
+              row: rowNumber,
+              messages: validation.errors.join('; ')
+            });
+            console.error('❌ Validation failed:', validation.errors);
+            console.groupEnd();
             return;
           }
 
-          totalRows++;
-          const currentRowNumber = headerRowIndex + 2 + i;
-
-          const learner: any = {
-            firstName: colIndexes.firstName !== -1 ? (row[colIndexes.firstName] || '').toString().trim() : '',
-            lastName: colIndexes.lastName !== -1 ? (row[colIndexes.lastName] || '').toString().trim() : '',
-            gender: colIndexes.gender !== -1 ? (row[colIndexes.gender] || '').toString().trim() : '',
-            accessionNumber: colIndexes.accessionNumber !== -1 ? (row[colIndexes.accessionNumber] || '').toString().trim() : '',
-            ...schoolInfo,
-            gradeId: selectedGrade?.id || null
-          };
-
-          // === START OF UPDATED PHONE NUMBER LOGIC ===
-          const cellPhoneRaw = colIndexes.cellPhone !== -1 ? getPhoneValue(row[colIndexes.cellPhone]) : '';
-          
-          const homeIndex = colIndexes.telHome;
-          const emerIndex = colIndexes.telEmergency;
-          
-          const rawCombinedTelValue = homeIndex !== -1 ? getPhoneValue(row[homeIndex]) : '';
-
-          let telHomeRaw = rawCombinedTelValue;
-          let telEmerRaw = (emerIndex !== -1 && emerIndex !== homeIndex) 
-                         ? getPhoneValue(row[emerIndex])
-                         : rawCombinedTelValue;
-
-          const whatsappRaw = colIndexes.whatsapp !== -1 ? getPhoneValue(row[colIndexes.whatsapp]) : '';
-          const telegramRaw = colIndexes.telegram !== -1 ? getPhoneValue(row[colIndexes.telegram]) : '';
-
-          // Clean phone prefixes 
-          telHomeRaw = helpers.cleanPhonePrefix(telHomeRaw, '\\(H\\)');
-          telEmerRaw = helpers.cleanPhonePrefix(telEmerRaw, '\\(E\\)');
-
-          // 1. Sanitize all primary numbers
-          const sanitizedCellPhone = helpers.sanitizePhoneNumber(cellPhoneRaw);
-          const sanitizedTelHome = helpers.sanitizePhoneNumber(telHomeRaw);
-          const sanitizedTelEmer = helpers.sanitizePhoneNumber(telEmerRaw);
-
-          // 2. Apply splitting logic and aggregate all potential phone numbers
-          const allNumbers = [
-              ...split20DigitNumber(sanitizedCellPhone),
-              ...split20DigitNumber(sanitizedTelHome),
-              ...split20DigitNumber(sanitizedTelEmer)
-          ];
-
-          // 3. Filter for unique, 10-digit numbers
-          // We filter by length 10 because a 20-digit number was already split into two 10-digit numbers.
-          const uniquePrimaryNumbers = Array.from(new Set(allNumbers))
-              .filter(p => p.length === 10); 
-
-          const mainPhone = uniquePrimaryNumbers[0] || '';
-          const secondPhone = uniquePrimaryNumbers[1] || '';
-          
-          // 4. Assign Main Phone
-          learner.phone = mainPhone;
-
-          // 5. Assign Specific Phone Fields (These are for logging source data)
-          // Since the main number for telHome/telEmergency could be the 1st or 2nd part of a split number,
-          // we use the first 10 digits found in the respective split array.
-          learner.telHome = split20DigitNumber(sanitizedTelHome)[0] || '';
-          learner.telEmergency = split20DigitNumber(sanitizedTelEmer)[0] || '';
-          learner.telegram = helpers.sanitizePhoneNumber(telegramRaw);
-
-          // 6. Assign WhatsApp: Prioritize explicit column, then use the second unique number
-          const explicitWhatsapp = helpers.sanitizePhoneNumber(whatsappRaw);
-          
-          if (explicitWhatsapp && explicitWhatsapp.length === 10) {
-              // Priority 1: Use the 10-digit number from the explicit WhatsApp column
-              learner.whatsapp = explicitWhatsapp;
-          } else if (secondPhone) {
-              // Priority 2: Use the second unique number found from cell/home/emergency
-              learner.whatsapp = secondPhone;
-          } else {
-              learner.whatsapp = '';
-          }
-
-          // === END OF UPDATED PHONE NUMBER LOGIC ===
-
-          // --- DEBUG CONSOLE LOG ADDITION ---
-          console.log(`--- Row ${currentRowNumber}: Learner ${learner.firstName} ${learner.lastName} ---`);
-          console.log('Processed Phone Numbers:');
-          console.log(`  Main Phone (Cell/First Available - 10 digits): ${learner.phone}`);
-          console.log(`  Home Phone (telHome - 10 digits): ${learner.telHome}`);
-          console.log(`  Emergency Phone (telEmergency - 10 digits): ${learner.telEmergency}`);
-          console.log(`  WhatsApp (10 digits): ${learner.whatsapp}`);
-          console.log(`  Telegram: ${learner.telegram}`);
-          console.log('----------------------------------------------------');
-          // ----------------------------------
-
-          // Validate learner data
-          const validation = validateLearnerData(learner);
-
-          if (validation.errors.length > 0) {
-            invalidRows++;
-            errors.push({ 
-              row: currentRowNumber, 
-              messages: validation.errors.join('; ') 
-            });
-          } else {
-            validRows++;
-            
-            if (validation.warnings.length > 0) {
-              validation.warnings.forEach(warning => {
-                warnings.push({ 
-                  row: currentRowNumber, 
-                  field: 'phone', 
-                  message: warning 
-                });
-              });
-            }
-
-            if (preview.length < 3) {
-              preview.push({
-                firstName: learner.firstName,
-                lastName: learner.lastName,
-                email: '', 
-                phone: learner.phone,
-                whatsapp: learner.whatsapp,
-                telegram: learner.telegram,
-                parentName: '', 
-              });
-            }
-
-            processedData.push(learner);
-          }
+          validRows++;
+          processed.push(learner);
+          console.log('✅ Row valid');
+          console.groupEnd();
         });
+
+        console.groupEnd();
 
         resolve({
           totalRows,
           validRows,
           invalidRows,
-          duplicates: 0, 
+          duplicates: 0,
           errors,
           warnings,
-          preview,
-          dataToUpload: processedData,
+          preview: processed.slice(0, 3),
+          dataToUpload: processed
         });
-
-      } catch (error) {
-        reject(error);
+      } catch (err) {
+        console.error('🔥 Processing failed:', err);
+        reject(err);
       }
     };
 
-    reader.onerror = () => {
-      reject(new Error('Failed to read file.'));
-    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
 
-    if (file.type === 'text/csv') {
-      reader.readAsText(file);
-    } else {
-      reader.readAsArrayBuffer(file);
-    }
+    file.type === 'text/csv'
+      ? reader.readAsText(file)
+      : reader.readAsArrayBuffer(file);
   });
 };
