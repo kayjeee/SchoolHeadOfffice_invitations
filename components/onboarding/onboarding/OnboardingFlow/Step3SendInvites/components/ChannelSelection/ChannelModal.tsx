@@ -317,7 +317,8 @@ Click here to join: ${schoolLink}`;
         schoolName: schoolName,
         recipientNumbers: recipientNumbers.map(r => r.phone),
         schoolId: schoolId,
-        userEmail: school?.userEmail
+        userEmail: school?.userEmail,
+        countryCode: school?.country,
       });
 
       setTestResult({
