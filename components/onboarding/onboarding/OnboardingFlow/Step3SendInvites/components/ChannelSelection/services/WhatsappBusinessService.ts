@@ -43,6 +43,7 @@ interface BulkMessagesParams {
   userEmail?: string;
   gradeIds?: string[];
   personalizedMessages?: { to: string; message: string; gradeName: string; magicLink: string }[];
+  countryCode?: string;
 }
 
 interface ScheduleMessageParams {
@@ -333,23 +334,37 @@ class WhatsAppBusinessService {
   async sendBulkMessages(params: BulkMessagesParams): Promise<any> {
     const personalizedMessages = await Promise.all(
       params.recipientNumbers.map(async (to) => {
+        const validation = this.validatePhoneNumber(to, params.countryCode);
+
+        if (!validation.isValid) {
+          logger.warn('sendBulkMessages', 'Skipping invalid phone number', {
+            number: to,
+            error: validation.error,
+          });
+          return null;
+        }
+
         const token = await this.createInvitation({
-          phoneNumber: to,
+          phoneNumber: validation.formattedNumber,
           schoolId: params.schoolId,
           userEmail: params.userEmail,
+          countryCode: validation.country?.code,
         });
+
         return {
-          to,
+          to: validation.formattedNumber,
           magicLink: this.buildMagicLink({ token, schoolName: params.schoolName }),
           gradeName: 'Selected Grade',
         };
       })
     );
 
+    const validMessages = personalizedMessages.filter(Boolean);
+
     const payload = {
       gradeIds: params.gradeIds,
       schoolName: this.sanitizeSchoolName(params.schoolName),
-      personalizedMessages,
+      personalizedMessages: validMessages,
     };
 
     const res = await fetch(`${this.baseURL}/send-bulk`, {
