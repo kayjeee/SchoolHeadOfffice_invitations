@@ -11,7 +11,7 @@ import { useAudienceData } from './hooks/useAudienceData';
 // NEW WHATSAPP IMPORTS
 import { WhatsAppTesterSection } from './WhatsAppTesterSection';
 import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
-import WhatsAppBusinessService from './services/WhatsappBusinessService';
+import WhatsAppBusinessService from '../../../../../../../../lib/services/WhatsAppBusinessService';
 import { EmailModalContent } from './EmailModalContent';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
