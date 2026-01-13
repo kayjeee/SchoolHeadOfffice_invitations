@@ -187,6 +187,7 @@ Click here to join: ${schoolLink}`;
     return learnersWithWhatsApp.map(learner => ({
       phone: getBestWhatsAppNumber(learner),
       name: learner.full_name,
+      learner_number: learner.accessionNumber,
       grade: grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'
     }));
   };
@@ -315,10 +316,11 @@ Click here to join: ${schoolLink}`;
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
         schoolName: schoolName,
-        recipientNumbers: recipientNumbers.map(r => r.phone),
+        recipientNumbers: recipientNumbers,
         schoolId: schoolId,
         userEmail: school?.userEmail,
         countryCode: school?.country,
+        senderId: user?.sub,
       });
 
       setTestResult({

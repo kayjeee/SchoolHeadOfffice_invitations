@@ -1,5 +1,6 @@
 // services/WhatsAppBusinessService.ts
 import { nasaLog as logger } from '../nasaLogger';
+import InvitationService from './invitationService';
 
 interface InvitationParams {
   phoneNumber: string;
@@ -273,137 +274,84 @@ throw error;
 * 🔹 Step 6: Send bulk messages with personalized links
 * ENHANCED: Better error handling and progress tracking
 */
-async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail }) {
-try {
-logger('INFO', 'WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
-recipientCount: recipientNumbers.length,
-schoolName,
-schoolId,
-gradeIds
-});
+async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail, senderId }) {
+    try {
+      logger('INFO', 'WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
+        recipientCount: recipientNumbers.length,
+        schoolName,
+        schoolId,
+        gradeIds,
+      });
 
-// Validate inputs
-if (!schoolId || !schoolName) {
-throw new Error('schoolId and schoolName are required for bulk messages');
-}
+      if (!schoolId || !schoolName) {
+        throw new Error('schoolId and schoolName are required for bulk messages');
+      }
 
-if (!recipientNumbers || recipientNumbers.length === 0) {
-throw new Error('recipientNumbers cannot be empty');
-}
+      if (!recipientNumbers || recipientNumbers.length === 0) {
+        throw new Error('recipientNumbers cannot be empty');
+      }
 
-const personalizedMessages = [];
-const errors = [];
+      const invitationsData = recipientNumbers.map(recipient => ({
+        phone_number: recipient.phone,
+        parent_name: recipient.name,
+        learner_number: recipient.learner_number,
+      }));
 
-// Generate individual tokens and messages per recipient
-for (let i = 0; i < recipientNumbers.length; i++) {
-const number = recipientNumbers[i];
+      const bulkResult = await InvitationService.createBulkInvitations({
+        invitations: invitationsData,
+        school_id: schoolId,
+        sender_id: senderId,
+        userEmail,
+      });
 
-try {
-console.log(`🔄 [WhatsAppBusinessService] Processing recipient ${i + 1}/${recipientNumbers.length}: ${number}`);
+      const personalizedMessages = bulkResult.invitations.map(invitation => {
+        const magicLink = this.buildMagicLink({ token: invitation.token, schoolName });
+        const message = this.buildMagicLinkMessage({
+          schoolName,
+          gradeName: 'your child\'s class',
+          magicLink,
+        });
+        return {
+          to: invitation.phone_number,
+          message,
+          magicLink,
+          token: invitation.token,
+        };
+      });
 
-const token = await this.createInvitation({
-  phoneNumber: number,
-  schoolId,
-  learnerNumbers: [],
-  parentName: null,
-  gradeId: undefined, // Cannot determine a single grade from gradeIds array
-  sender: userEmail || 'kagiso.killagram@gmail.com',
-  userEmail,
-});
+      const response = await fetch(`${this.baseURL}/send-bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify({
+          gradeIds,
+          schoolName,
+          schoolId,
+          campaignType: 'MAGIC_LINK_INVITES',
+          personalizedMessages,
+          totalRecipients: personalizedMessages.length,
+        }),
+      });
 
-const magicLink = this.buildMagicLink({ token, schoolName });
-const message = this.buildMagicLinkMessage({
-schoolName,
-gradeName: 'your child\'s class',
-magicLink,
-});
+      const data = await response.json();
 
-this.validateMessageTemplate(message);
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
+      }
 
-personalizedMessages.push({
-to: number,
-message,
-magicLink,
-token // Include token for reference
-});
-
-// Small delay to avoid overwhelming the API
-if (i < recipientNumbers.length - 1) {
-await new Promise(resolve => setTimeout(resolve, 100));
-}
-
-} catch (error) {
-console.error(`❌ [WhatsAppBusinessService] Failed to process recipient ${number}:`, error.message);
-errors.push({
-phoneNumber: number,
-error: error.message
-});
-}
-}
-
-// Log any errors that occurred during token generation
-if (errors.length > 0) {
-logger('WARN', 'WhatsAppBusinessService', 'Some invitations failed during token generation', {
-failedCount: errors.length,
-successfulCount: personalizedMessages.length,
-errors: errors.slice(0, 5) // Log first 5 errors
-});
-}
-
-if (personalizedMessages.length === 0) {
-throw new Error('No messages could be generated. All invitations failed.');
-}
-
-console.log(`📤 [WhatsAppBusinessService] Sending ${personalizedMessages.length} bulk messages`);
-
-// Send bulk messages
-const response = await fetch(`${this.baseURL}/send-bulk`, {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json',
-Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-},
-body: JSON.stringify({
-gradeIds,
-schoolName,
-schoolId, // Include schoolId in bulk payload
-campaignType: 'MAGIC_LINK_INVITES',
-personalizedMessages,
-totalRecipients: personalizedMessages.length,
-failedDuringGeneration: errors.length,
-}),
-});
-
-const data = await response.json();
-
-if (!response.ok) {
-throw new Error(data.error || `HTTP ${response.status}: Failed to send bulk messages`);
-}
-
-const result = {
-...data,
-generationErrors: errors,
-totalProcessed: personalizedMessages.length + errors.length
-};
-
-logger('INFO', 'WhatsAppBusinessService', 'Bulk magic link messages sent successfully', {
-sentCount: data.sentCount,
-failedCount: data.failedCount,
-generationErrors: errors.length,
-totalRecipients: recipientNumbers.length
-});
-
-return result;
-} catch (error) {
-logger('ERROR', 'WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
-error: error.message,
-schoolName,
-schoolId,
-recipientCount: recipientNumbers?.length
-});
-throw error;
-}
-}
+      return { ...data, generationErrors: [], totalProcessed: personalizedMessages.length };
+    } catch (error) {
+      logger('ERROR', 'WhatsAppBusinessService', 'Failed to send bulk magic link messages', {
+        error: error.message,
+        schoolName,
+        schoolId,
+        recipientCount: recipientNumbers?.length,
+      });
+      throw error;
+    }
+  }
 
 /**
 * 🔹 NEW: Schedule bulk messages for later delivery
