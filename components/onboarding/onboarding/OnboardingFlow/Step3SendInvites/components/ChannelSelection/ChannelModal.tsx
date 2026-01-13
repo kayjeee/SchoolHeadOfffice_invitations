@@ -11,7 +11,7 @@ import { useAudienceData } from './hooks/useAudienceData';
 // NEW WHATSAPP IMPORTS
 import { WhatsAppTesterSection } from './WhatsAppTesterSection';
 import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
-import WhatsAppBusinessService from '../../../../../../../../lib/services/WhatsAppBusinessService';
+import WhatsAppBusinessService from '../../../../../../../lib/services/WhatsAppBusinessService';
 import { EmailModalContent } from './EmailModalContent';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
@@ -187,7 +187,7 @@ Click here to join: ${schoolLink}`;
     return learnersWithWhatsApp.map(learner => ({
       phone: getBestWhatsAppNumber(learner),
       name: learner.full_name,
-      learner_number: learner.accessionNumber,
+      learner_number: learner.accession_number,
       grade: grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'
     }));
   };
@@ -269,6 +269,7 @@ Click here to join: ${schoolLink}`;
         parentName,
         invitedVia,
         sender_id: user?.sub,
+        grade: selectedGrade,
       });
 
       setTestResult({

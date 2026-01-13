@@ -1,6 +1,4 @@
 
-import { logger } from '../utils/logger';
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 interface BulkInvitationParams {
@@ -12,6 +10,7 @@ interface BulkInvitationParams {
   school_id: string;
   sender_id?: string;
   userEmail?: string;
+  countryCode?: string;
 }
 
 class InvitationService {
@@ -22,7 +21,7 @@ class InvitationService {
   }
 
   async createBulkInvitations(params: BulkInvitationParams): Promise<any> {
-    const { invitations, school_id, sender_id, userEmail } = params;
+    const { invitations, school_id, sender_id, userEmail, countryCode } = params;
 
     if (!invitations || invitations.length === 0) {
       throw new Error('Invitations array cannot be empty.');
@@ -34,6 +33,7 @@ class InvitationService {
       sender_id,
       role: 'parent',
       invited_via: 'whatsapp',
+      country_code: countryCode,
     };
 
     try {
@@ -54,9 +54,7 @@ class InvitationService {
 
       return data;
     } catch (error) {
-      logger.error('createBulkInvitations', 'Error creating bulk invitations', {
-        error,
-      });
+      console.error('Error creating bulk invitations', error);
       throw error;
     }
   }

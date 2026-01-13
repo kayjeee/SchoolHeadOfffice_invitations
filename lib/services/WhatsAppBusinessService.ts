@@ -184,7 +184,7 @@ return `https://portal.${domain}.com/join?token=${token}`;
 * 🔹 Step 5: Send a single test message
 * ENHANCED: Better error handling and validation
 */
-async sendTestMessage({ to, schoolName, grade, schoolId, userEmail }) {
+async sendTestMessage({ to, schoolName, grade, schoolId, userEmail, learnerNumber, parentName, invitedVia, sender_id }) {
 try {
 logger('INFO', 'WhatsAppBusinessService', 'Preparing to send test message', {
 to,
@@ -202,10 +202,10 @@ throw new Error('Missing required fields: to, schoolName, and schoolId are requi
 const token = await this.createInvitation({
   phoneNumber: to,
   schoolId,
-  learnerNumbers: [],
-  parentName: 'Test Parent',
-  gradeId: undefined,
-  sender: userEmail || 'kagiso.killagram@gmail.com',
+  learnerNumbers: learnerNumber ? [learnerNumber] : [],
+  parentName: parentName || 'Test Parent',
+  gradeId: grade?.id,
+  sender: sender_id || userEmail || 'system@schoolheadoffice.com',
   userEmail,
 });
 
@@ -274,7 +274,7 @@ throw error;
 * 🔹 Step 6: Send bulk messages with personalized links
 * ENHANCED: Better error handling and progress tracking
 */
-async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail, senderId }) {
+async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userEmail, senderId, countryCode }) {
     try {
       logger('INFO', 'WhatsAppBusinessService', 'Preparing to send bulk magic link messages', {
         recipientCount: recipientNumbers.length,
@@ -302,6 +302,7 @@ async sendBulkMessages({ gradeIds, schoolName, recipientNumbers, schoolId, userE
         school_id: schoolId,
         sender_id: senderId,
         userEmail,
+        countryCode,
       });
 
       const personalizedMessages = bulkResult.invitations.map(invitation => {
