@@ -159,7 +159,7 @@ export const useSchoolForm = (user) => {
 
 🛠 Example Service schoolService.js
 export const createSchool = async (formData, user) => {
-  const response = await fetch("https://shobackendv2-production.up.railway.app/api/v1/schools", {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/schools`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...formData, user_id: user.sub, user_email: user.email }),
@@ -179,7 +179,7 @@ export const syncUserRole = async (user) => {
 };
 
 export const addSchoolToUser = async (user, schoolId) => {
-  const res = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/users/${user.sub}/add_school`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/${user.sub}/add_school`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ schoolId }),

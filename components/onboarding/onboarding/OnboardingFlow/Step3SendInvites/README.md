@@ -49,7 +49,7 @@ This is a component, not a standalone application. To run this, you would integr
 1.  **Install dependencies**: `npm install` or `yarn install`
 2.  **Start your React application**: `npm start` or `yarn start`
 
-Ensure your backend API is running at `https://shobackendv2-production.up.railway.app/` as the services are configured to fetch data from there.
+Ensure your backend API is running and the `NEXT_PUBLIC_API_BASE_URL` environment variable is set to the correct URL (e.g., `http://localhost:4000`).
 
 ## Key Features
 

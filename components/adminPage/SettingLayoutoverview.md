@@ -70,7 +70,7 @@ Technical Implementation
 API Integration
 javascript
 const fetchGrades = async () => {
-  // Fetches grades from: https://shobackendv2-production.up.railway.app/api/v1/schools/${schoolId}/grades
+  // Fetches grades from: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/schools/${schoolId}/grades`
   // Uses Bearer token authentication
   // Handles multiple response structures
 };
