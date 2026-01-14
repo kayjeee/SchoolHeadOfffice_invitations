@@ -177,7 +177,7 @@ return true;
 */
 buildMagicLink({ token, schoolName }) {
 const domain = schoolName.toLowerCase().replace(/\s+/g, '');
-return `https://portal.${domain}.com/join?token=${token}`;
+return `?token=${token}`;
 }
 
 /**
