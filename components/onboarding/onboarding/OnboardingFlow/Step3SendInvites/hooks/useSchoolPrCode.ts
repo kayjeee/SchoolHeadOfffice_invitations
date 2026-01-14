@@ -1,7 +1,7 @@
 // hooks/useSchoolPrCode.ts
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const useSchoolPrCode = (schoolId: string, schoolName: string) => {
   const [prCode, setPrCode] = useState<string | null>(null);

@@ -192,7 +192,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         console.log('💰 Checking payment status for transaction:', transactionId);
 
         // Fetch transaction status
-        const response = await fetch(`http://localhost:4000/api/v1/transactions/${transactionId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/transactions/${transactionId}`);
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -246,7 +246,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(userId)}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/${encodeURIComponent(userId)}`,
         {
           method: 'GET',
           headers: {

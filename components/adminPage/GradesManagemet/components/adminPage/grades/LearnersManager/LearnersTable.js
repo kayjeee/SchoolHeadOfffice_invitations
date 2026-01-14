@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiEdit, FiTrash2, FiEye, FiMail, FiPhone, FiUser, FiCalendar, FiMoreVertical } from 'react-icons/fi';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const LearnersTable = ({ selectedGrade, onSelectLearner, onOpenInvitationModal }) => {
   const [sortField, setSortField] = useState('name');
