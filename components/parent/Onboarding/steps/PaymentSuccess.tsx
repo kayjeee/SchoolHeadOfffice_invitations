@@ -44,7 +44,7 @@ export default function PaymentSuccess({ transactionId, onContinue }: PaymentSuc
           return;
         }
 
-        const response = await fetch(`http://localhost:4000/api/v1/transactions/${id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/transactions/${id}`);
         console.log('📡 Response status:', response.status);
         
         const result = await response.json();

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // We will use inline SVG for the icons instead.
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCreated }) => {
   // Log the schools prop to the console

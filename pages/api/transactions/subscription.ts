@@ -1,7 +1,7 @@
 // pages/api/transactions/subscription.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const RAILS_API_URL = process.env.RAILS_API_URL || 'http://localhost:4000';
+const RAILS_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default async function handler(
   req: NextApiRequest,

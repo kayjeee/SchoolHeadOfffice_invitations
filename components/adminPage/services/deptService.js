@@ -1,5 +1,5 @@
 // services/debtService.js
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const fetchDebtSummary = async (schoolId) => {
   const response = await fetch(`${API_BASE_URL}/api/v1/schools/${schoolId}/debt_summary`);
