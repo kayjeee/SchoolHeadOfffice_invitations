@@ -24,13 +24,27 @@ export async function syncUserWithRails(
   auth0User: UserProfile,
   invitationToken?: string | null
 ): Promise<RailsUser> {
+  console.log('🚀 [UserSyncService] Starting user synchronization process');
+  console.log('📝 [UserSyncService] Auth0 user received:', {
+    hasSub: !!auth0User?.sub,
+    sub: auth0User?.sub?.substring(0, 10) + '...',
+    email: auth0User?.email,
+    name: auth0User?.name,
+    fullUserObject: auth0User
+  });
+
   if (!auth0User || !auth0User.sub) {
+    console.error('❌ [UserSyncService] Invalid Auth0 user - missing sub:', auth0User);
     throw new Error('Auth0 user with a subject ID is required for synchronization.');
   }
 
+  // Extract Auth0 ID without the "auth0|" prefix if present
+  const rawAuth0Id = auth0User.sub;
+  const cleanAuth0Id = rawAuth0Id.includes('|') ? rawAuth0Id.split('|')[1] : rawAuth0Id;
+  
   const payload = {
     user: {
-      auth0_id: auth0User.sub,
+      auth0_id: cleanAuth0Id,
       email: auth0User.email,
       name: auth0User.name,
       invitation_token: invitationToken,
@@ -38,8 +52,28 @@ export async function syncUserWithRails(
     },
   };
 
+  console.log('📦 [UserSyncService] Payload to send:', {
+    auth0_id: cleanAuth0Id,
+    auth0_id_full: cleanAuth0Id.length > 20 ? cleanAuth0Id.substring(0, 20) + '...' : cleanAuth0Id,
+    email: payload.user.email,
+    name: payload.user.name,
+    hasInvitationToken: !!invitationToken,
+    invitationTokenLength: invitationToken?.length || 0,
+    roles: payload.user.roles
+  });
+
+  const url = `https://${RAILS_API_URL}/api/v1/users`;
+  console.log('🌐 [UserSyncService] Calling Rails API:', {
+    url,
+    method: 'POST',
+    fullUrl: url
+  });
+
   try {
-    const response = await fetch(`shobackendv2-production.up.railway.app/api/v1/users`, {
+    console.log('⏳ [UserSyncService] Sending request to Rails backend...');
+    const startTime = Date.now();
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,24 +81,105 @@ export async function syncUserWithRails(
       body: JSON.stringify(payload),
     });
 
+    const endTime = Date.now();
+    console.log('⏱️ [UserSyncService] Request completed in', endTime - startTime, 'ms');
+    console.log('📊 [UserSyncService] Response status:', response.status, response.statusText);
+
+    // Log response headers for debugging
+    console.log('📋 [UserSyncService] Response headers:', {
+      'content-type': response.headers.get('content-type'),
+      'content-length': response.headers.get('content-length'),
+    });
+
+    const responseText = await response.text();
+    console.log('📄 [UserSyncService] Raw response text:', {
+      length: responseText.length,
+      first500Chars: responseText.substring(0, 500),
+      isJson: response.headers.get('content-type')?.includes('application/json')
+    });
+
+    let errorData = {};
+    let railsUser = null;
+
+    if (response.headers.get('content-type')?.includes('application/json')) {
+      try {
+        errorData = JSON.parse(responseText);
+        console.log('🔍 [UserSyncService] Parsed error data:', errorData);
+      } catch (parseError) {
+        console.warn('⚠️ [UserSyncService] Failed to parse error response as JSON:', parseError);
+      }
+    }
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Failed to sync user with Rails API:', {
+      console.error('❌ [UserSyncService] Rails API returned error:', {
         status: response.status,
         statusText: response.statusText,
         errorData,
+        rawResponse: responseText,
+        url,
+        payload
       });
-      throw new Error(errorData.message || 'User synchronization with the backend failed.');
+      
+      const errorMessage = errorData?.message 
+        || errorData?.error 
+        || `User synchronization failed with status ${response.status}`;
+      
+      throw new Error(errorMessage);
     }
 
-    const railsUser: RailsUser = await response.json();
-    return railsUser;
+    // Parse successful response
+    try {
+      railsUser = JSON.parse(responseText);
+      console.log('✅ [UserSyncService] Successfully parsed Rails user response:', {
+        userId: railsUser.id,
+        auth0Id: railsUser.auth0_id,
+        email: railsUser.email,
+        name: railsUser.name,
+        roles: railsUser.roles,
+        fullResponse: railsUser
+      });
+    } catch (parseError) {
+      console.error('❌ [UserSyncService] Failed to parse successful response:', parseError);
+      throw new Error('Invalid JSON response from Rails API');
+    }
+
+    console.log('🎉 [UserSyncService] User synchronization completed successfully');
+    return railsUser as RailsUser;
+
   } catch (error) {
-    console.error('An unexpected error occurred during user synchronization:', error);
-    throw error;
+    console.error('💥 [UserSyncService] Unexpected error during synchronization:', {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      timestamp: new Date().toISOString(),
+      userEmail: auth0User.email,
+      auth0Id: auth0User.sub
+    });
+    
+    // Re-throw with additional context
+    if (error instanceof Error) {
+      throw new Error(`User synchronization failed: ${error.message}`);
+    } else {
+      throw new Error('An unexpected error occurred during user synchronization');
+    }
   }
 }
 
 export const UserSyncService = {
   syncUserWithRails,
 };
+
+// Utility function to log sync status (optional)
+export function logSyncStatus(status: 'started' | 'success' | 'failed', details?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    status,
+    details
+  };
+  
+  console.log(`📊 [UserSyncService:${status.toUpperCase()}]`, logEntry);
+  
+  // You could also send this to a logging service in production
+  // Example: sendToLoggingService('user-sync', logEntry);
+}
