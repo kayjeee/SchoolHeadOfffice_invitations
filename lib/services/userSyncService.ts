@@ -39,7 +39,7 @@ export async function syncUserWithRails(
   };
 
   try {
-    const response = await fetch(`${RAILS_API_URL}/api/v1/users`, {
+    const response = await fetch(`shobackendv2-production.up.railway.app/api/v1/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
