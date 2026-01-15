@@ -12,6 +12,13 @@ export interface RailsUser {
   // Add any other fields that your Rails API returns for a user
 }
 
+interface RailsError {
+  message?: string;
+  error?: string;
+  errors?: Record<string, string[]> | string[];
+  [key: string]: any; // Allow other properties
+}
+
 /**
  * Synchronizes the Auth0 user with the Rails backend.
  * This function will create a new user or update an existing one.
@@ -98,12 +105,12 @@ export async function syncUserWithRails(
       isJson: response.headers.get('content-type')?.includes('application/json')
     });
 
-    let errorData = {};
+    let errorData: RailsError = {};
     let railsUser = null;
 
     if (response.headers.get('content-type')?.includes('application/json')) {
       try {
-        errorData = JSON.parse(responseText);
+        errorData = JSON.parse(responseText) as RailsError;
         console.log('🔍 [UserSyncService] Parsed error data:', errorData);
       } catch (parseError) {
         console.warn('⚠️ [UserSyncService] Failed to parse error response as JSON:', parseError);
@@ -120,9 +127,14 @@ export async function syncUserWithRails(
         payload
       });
       
-      const errorMessage = errorData?.message 
-        || errorData?.error 
-        || `User synchronization failed with status ${response.status}`;
+      // Safely extract error message from various possible formats
+      const errorMessage = 
+        (errorData as any)?.message || 
+        (errorData as any)?.error || 
+        (typeof errorData === 'string' ? errorData : 
+        (errorData.errors && typeof errorData.errors === 'object' ? 
+          Object.values(errorData.errors).flat().join(', ') : 
+          `User synchronization failed with status ${response.status}`));
       
       throw new Error(errorMessage);
     }
@@ -148,9 +160,9 @@ export async function syncUserWithRails(
 
   } catch (error) {
     console.error('💥 [UserSyncService] Unexpected error during synchronization:', {
-      errorName: error.name,
-      errorMessage: error.message,
-      errorStack: error.stack,
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
       userEmail: auth0User.email,
       auth0Id: auth0User.sub
@@ -158,9 +170,9 @@ export async function syncUserWithRails(
     
     // Re-throw with additional context
     if (error instanceof Error) {
-      throw new Error(`User synchronization failed: ${error.message}`);
+      throw error; // Keep the original error
     } else {
-      throw new Error('An unexpected error occurred during user synchronization');
+      throw new Error(`An unexpected error occurred during user synchronization: ${String(error)}`);
     }
   }
 }
@@ -179,7 +191,4 @@ export function logSyncStatus(status: 'started' | 'success' | 'failed', details?
   };
   
   console.log(`📊 [UserSyncService:${status.toUpperCase()}]`, logEntry);
-  
-  // You could also send this to a logging service in production
-  // Example: sendToLoggingService('user-sync', logEntry);
 }
