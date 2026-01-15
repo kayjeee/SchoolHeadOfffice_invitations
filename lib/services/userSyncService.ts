@@ -69,7 +69,7 @@ export async function syncUserWithRails(
     roles: payload.user.roles
   });
 
-  const url = `https://shobackendv2-production.up.railway.app/api/v1/users/twp`;
+  const url = `https://shobackendv2-production.up.railway.app/api/v1/users`;
   console.log('🌐 [UserSyncService] Calling Rails API:', {
     url,
     method: 'POST',
