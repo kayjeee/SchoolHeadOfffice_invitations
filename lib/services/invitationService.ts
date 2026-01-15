@@ -1,5 +1,6 @@
+import { API_CONFIG } from '../config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = API_CONFIG.CLIENT_API_BASE;
 
 interface BulkInvitationParams {
   invitations: {

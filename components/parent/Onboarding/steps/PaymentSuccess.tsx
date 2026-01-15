@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
+import { API_CONFIG } from '../../../../lib/config/api';
 
 interface PaymentSuccessProps {
   transactionId?: string;
@@ -44,7 +45,7 @@ export default function PaymentSuccess({ transactionId, onContinue }: PaymentSuc
           return;
         }
 
-        const response = await fetch(`http://localhost:4000/api/v1/transactions/${id}`);
+        const response = await fetch(`${API_CONFIG.FULL_CLIENT_API_URL}/transactions/${id}`);
         console.log('📡 Response status:', response.status);
         
         const result = await response.json();

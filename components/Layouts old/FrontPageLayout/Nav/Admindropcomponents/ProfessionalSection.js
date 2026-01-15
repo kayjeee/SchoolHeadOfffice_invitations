@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { API_CONFIG } from "../../../../../lib/config/api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = API_CONFIG.CLIENT_API_BASE;
 
 export default function ProfessionalSection({ user }) {
   const [isExpanded, setIsExpanded] = useState(false);

@@ -1,8 +1,9 @@
 import { CreateLearnerData, BulkUploadResult } from '../types';
 import { Learner } from './../OnboardingFlow/Step3SendInvites/types';
+import { API_CONFIG } from '../../../../lib/config/api';
 
 // ✅ Use environment variable for flexibility
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = API_CONFIG.CLIENT_API_BASE;
 
 /**
  * Service for handling learner-related operations

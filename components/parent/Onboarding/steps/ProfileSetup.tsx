@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { API_CONFIG } from '../../../../lib/config/api';
 
 // Match the exact field names your backend expects
 const profileSchema = z.object({
@@ -114,7 +115,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       
       // Save to backend - match the exact format from your working curl command
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodedUserId}/update_profile`,
+        `${API_CONFIG.FULL_CLIENT_API_URL}/users/${encodedUserId}/update_profile`,
         {
           method: 'PATCH',
           headers: {

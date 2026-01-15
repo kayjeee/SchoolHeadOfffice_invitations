@@ -1,5 +1,7 @@
 // services/accountService.js
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+import { API_CONFIG } from "../../../lib/config/api";
+
+const API_BASE_URL = API_CONFIG.CLIENT_API_BASE;
 
 export const fetchAccounts = async (schoolId, filters = {}) => {
   try {

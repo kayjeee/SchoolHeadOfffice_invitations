@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 // Removed react-icons/fi as it's causing a resolution error.
 // We will use inline SVG for the icons instead.
 import axios from 'axios';
+import { API_CONFIG } from '../../../../../../../lib/config/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = API_CONFIG.CLIENT_API_BASE;
 
 const CreateGradeModal = ({ isOpen, onClose, selectedSchool, schools, onGradeCreated }) => {
   // Log the schools prop to the console
