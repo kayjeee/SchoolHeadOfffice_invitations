@@ -1,5 +1,5 @@
 // lib/api/parent-api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app/api/v1';
+import { API_CONFIG } from '../config/api';
 
 export interface Learner {
   id: string;
@@ -40,7 +40,7 @@ export class ParentAPI {
   static async getProfile(auth0Id: string): Promise<ParentProfile | null> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/users/${encodeURIComponent(auth0Id)}`,
+        `${API_CONFIG.FULL_CLIENT_API_URL}/users/${encodeURIComponent(auth0Id)}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -74,7 +74,9 @@ export class ParentAPI {
       };
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${encodeURIComponent(auth0Id)}/update_profile`,
+        `${API_CONFIG.FULL_CLIENT_API_URL}/users/${encodeURIComponent(
+          auth0Id
+        )}/update_profile`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -114,7 +116,9 @@ static async getMyLearners(auth0Id: string): Promise<{
 }> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/parents/${encodeURIComponent(auth0Id)}/my_learners`,
+      `${API_CONFIG.FULL_CLIENT_API_URL}/parents/${encodeURIComponent(
+        auth0Id
+      )}/my_learners`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
