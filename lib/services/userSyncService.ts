@@ -1,5 +1,6 @@
 // lib/services/userSyncService.ts
 import { UserProfile } from '@auth0/nextjs-auth0/client';
+import { API_CONFIG } from '../config/api';
 
 export interface RailsUser {
   id: string;
@@ -67,12 +68,8 @@ export async function syncUserWithRails(
     roles: payload.user.roles
   });
 
-  const url = `https://shobackendv2-production.up.railway.app/api/v1/users`;
-  console.log('🌐 [UserSyncService] Calling Rails API:', {
-    url,
-    method: 'POST',
-    fullUrl: url
-  });
+  const url = `${API_CONFIG.FULL_CLIENT_API_URL}/users`;
+  console.log('🌐 [UserSyncService] Using API URL from config:', url);
 
   try {
     console.log('⏳ [UserSyncService] Sending request to Rails backend...');

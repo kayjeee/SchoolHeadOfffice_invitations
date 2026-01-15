@@ -1,10 +1,10 @@
 // lib/api/api-client.ts
 import { z } from 'zod';
+import { API_CONFIG } from '../config/api';
 
 // ========================
 // API CLIENT CONFIGURATION
 // ========================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app/api/v1';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -35,7 +35,7 @@ class ApiClient {
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+        const response = await fetch(`${API_CONFIG.FULL_CLIENT_API_URL}${endpoint}`, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
