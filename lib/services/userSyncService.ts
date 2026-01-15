@@ -23,7 +23,7 @@ export async function syncUserWithRails(
     throw new Error('Auth0 user with a subject ID is required for synchronization.');
   }
 
-  const url = `${RAILS_API_URL}/api/v1/users`;
+  const url = `${RAILS_API_URL}/api/v1/users2`;
 
   const payload = {
     user: {
