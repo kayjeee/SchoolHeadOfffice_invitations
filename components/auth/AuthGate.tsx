@@ -1,4 +1,3 @@
-// components/auth/AuthGate.tsx
 import React, { useMemo, CSSProperties } from "react";
 
 interface InvitationData {
@@ -9,7 +8,7 @@ interface InvitationData {
 
 interface AuthGateProps {
   invitationData?: InvitationData | null;
-  returnTo?: string; // default: "/parent"
+  returnTo?: string;
 }
 
 export default function AuthGate({
@@ -31,75 +30,46 @@ export default function AuthGate({
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* TITLE */}
-        <h1 style={styles.title}>
-          {hasInvitation ? "Welcome! You've Been Invited" : "Welcome"}
-        </h1>
+        {/* GREETING */}
+        <h1 style={styles.title}>Good Day Parents</h1>
 
-        {/* SUBTITLE */}
-        <div style={styles.subtitle}>
-          {hasInvitation ? (
-            <div>
-              <p style={styles.invitationText}>
-                You've been invited to join <br />
-                <span style={styles.schoolName}>
-                  {invitationData?.school_name || "Far North Secondary School"}
-                </span>
-              </p>
+        {/* MAIN MESSAGE */}
+        <div style={styles.messageBox}>
+          <p style={styles.requestText}>
+            Parents are requested to come and collect the following items{" "}
+            <strong style={styles.highlight}>Tomorrow 17th January</strong>
+          </p>
 
-              {invitationData?.learner_name && (
-                <p style={styles.learnerName}>
-                  This invitation is for{" "}
-                  <span style={styles.learnerHighlight}>
-                    {invitationData.learner_name}
-                  </span>
-                </p>
-              )}
-            </div>
-          ) : (
-            <p>Log in to access your Parent Portal.</p>
-          )}
+          {/* ITEMS LIST */}
+          <div style={styles.itemsList}>
+            <div style={styles.item}>1. Pants</div>
+            <div style={styles.item}>2. Shirts</div>
+            <div style={styles.item}>3. Skirts</div>
+          </div>
+
+          {/* TIME */}
+          <div style={styles.timeSection}>
+            <span style={styles.timeLabel}>Time:</span>
+            <span style={styles.timeValue}>08h00 - 12h00</span>
+          </div>
+
+          {/* IMPORTANT NOTE */}
+          <div style={styles.note}>
+            <strong>NB:</strong> BRING UNIFORM LIST AND POP to clear payment
+          </div>
         </div>
 
-        {/* INVITATION DETAILS - Only shown when hasInvitation is true */}
-        {hasInvitation && (
-          <div style={styles.invitationDetails}>
-            <div style={styles.detailSection}>
-              <h3 style={styles.audience}>Parents/Guardians</h3>
-              <h4 style={styles.eventTitle}>Induction for Grade 8 2026</h4>
-              
-              <div style={styles.detailsList}>
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Date:</span>
-                  <span style={styles.detailValue}>8th January 2026</span>
-                </div>
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Time:</span>
-                  <span style={styles.detailValue}>08H00</span>
-                </div>
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Venue:</span>
-                  <span style={styles.detailValue}>Far North Secondary School</span>
-                </div>
-              </div>
-              
-              <div style={styles.note}>
-                <strong>NB:</strong> Please come with the required documents to further 
-                the admission process if you have not done so.
-              </div>
-            </div>
-          </div>
-        )}
+        {/* SIGNATURE */}
+        <div style={styles.signature}>
+          <p style={styles.regards}>Kind regards</p>
+          <p style={styles.name}>Mr Maropeng PS</p>
+        </div>
 
         {/* CTA BUTTON */}
-        <a
-          href={loginUrl}
-          style={styles.button}
-        >
+        <a href={loginUrl} style={styles.button}>
           {hasInvitation ? "Accept & Continue" : "Log In"}
         </a>
 
-        {/* Footer note */}
         {hasInvitation && (
           <p style={styles.footerNote}>
             You will be asked to log in or create an account.
@@ -110,7 +80,6 @@ export default function AuthGate({
   );
 }
 
-// Inline styles with proper TypeScript types
 const styles: Record<string, CSSProperties> = {
   container: {
     minHeight: '100vh',
@@ -122,44 +91,21 @@ const styles: Record<string, CSSProperties> = {
   },
   card: {
     width: '100%',
-    maxWidth: '448px',
+    maxWidth: '500px',
     backgroundColor: 'white',
     borderRadius: '16px',
     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    padding: '32px',
-    textAlign: 'center' as const,
+    padding: '40px',
     border: '1px solid #f3f4f6'
   },
   title: {
-    fontSize: '30px',
+    fontSize: '28px',
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: '12px'
-  },
-  subtitle: {
-    color: '#4b5563',
     marginBottom: '24px',
-    lineHeight: 1.75
+    textAlign: 'center' as const
   },
-  invitationText: {
-    marginBottom: '12px'
-  },
-  schoolName: {
-    fontWeight: 600,
-    color: '#111827',
-    fontSize: '18px',
-    marginTop: '8px',
-    display: 'inline-block'
-  },
-  learnerName: {
-    marginTop: '8px',
-    fontSize: '16px'
-  },
-  learnerHighlight: {
-    fontWeight: 600,
-    color: '#111827'
-  },
-  invitationDetails: {
+  messageBox: {
     backgroundColor: '#f8fafc',
     borderRadius: '12px',
     padding: '24px',
@@ -167,38 +113,42 @@ const styles: Record<string, CSSProperties> = {
     border: '1px solid #e2e8f0',
     textAlign: 'left' as const
   },
-  detailSection: {
-    width: '100%'
-  },
-  audience: {
-    fontSize: '20px',
-    fontWeight: 600,
-    color: '#111827',
-    marginBottom: '8px'
-  },
-  eventTitle: {
-    fontSize: '18px',
-    fontWeight: 600,
+  requestText: {
+    fontSize: '16px',
     color: '#374151',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    lineHeight: 1.6
   },
-  detailsList: {
-    marginBottom: '20px'
+  highlight: {
+    color: '#2563eb',
+    fontWeight: 700
   },
-  detailItem: {
-    marginBottom: '12px',
-    display: 'flex',
-    alignItems: 'flex-start'
+  itemsList: {
+    marginBottom: '20px',
+    paddingLeft: '8px'
   },
-  detailLabel: {
+  item: {
+    fontSize: '16px',
+    color: '#111827',
+    marginBottom: '8px',
+    fontWeight: 500
+  },
+  timeSection: {
+    marginBottom: '20px',
+    padding: '12px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    border: '1px solid #e5e7eb'
+  },
+  timeLabel: {
     fontWeight: 600,
     color: '#4b5563',
-    width: '70px',
-    flexShrink: 0
+    marginRight: '8px'
   },
-  detailValue: {
+  timeValue: {
     color: '#111827',
-    flex: 1
+    fontWeight: 600,
+    fontSize: '16px'
   },
   note: {
     backgroundColor: '#fef3c7',
@@ -206,7 +156,23 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: '8px',
     fontSize: '15px',
     color: '#78350f',
-    borderLeft: '4px solid #f59e0b'
+    borderLeft: '4px solid #f59e0b',
+    lineHeight: 1.6
+  },
+  signature: {
+    textAlign: 'left' as const,
+    marginBottom: '24px',
+    paddingLeft: '8px'
+  },
+  regards: {
+    fontSize: '16px',
+    color: '#4b5563',
+    marginBottom: '4px'
+  },
+  name: {
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#111827'
   },
   button: {
     width: '100%',
@@ -227,6 +193,7 @@ const styles: Record<string, CSSProperties> = {
   footerNote: {
     fontSize: '14px',
     color: '#6b7280',
-    marginTop: '16px'
+    marginTop: '16px',
+    textAlign: 'center' as const
   }
 };
