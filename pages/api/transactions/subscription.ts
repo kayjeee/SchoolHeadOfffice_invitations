@@ -1,7 +1,7 @@
 // pages/api/transactions/subscription.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const RAILS_API_URL = process.env.RAILS_API_URL || 'http://localhost:4000';
+const RAILS_API_URL = process.env.RAILS_API_URL || 'https://shobackendv2-production.up.railway.app';
 
 export default async function handler(
   req: NextApiRequest,

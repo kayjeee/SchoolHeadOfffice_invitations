@@ -23,8 +23,8 @@ export default async function linkLearners(req: NextApiRequest, res: NextApiResp
   }
 
   try {
-    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
-    const response = await fetch(`${internalApiUrl}/parents/link-learners`, {
+    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
+    const response = await fetch(`${internalApiUrl}/api/v1/parents/link-learners`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
