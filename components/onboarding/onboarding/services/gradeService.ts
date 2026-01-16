@@ -1,7 +1,7 @@
 // components/onboarding/services/gradeService.ts
 import { Grade, CreateGradeData, UpdateGradeData } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
 
 /**
  * Service for handling grade-related operations
