@@ -13,7 +13,7 @@ import { OnboardingGuard } from "../../components/onboarding/onboarding";
 import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext"; 
 
 // ✅ Environment-based API URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
 
 export default function Home() {
   const { user } = useUser();

@@ -64,8 +64,8 @@ export default function PricingPage() {
         const roles = await fetchUserRoles(accessToken, encodeURIComponent(userId));
         setState((prev) => ({ ...prev, userRoles: roles }));
 
-        const checkUserUrl = `http://localhost:4000/api/v1/users/${userId}`;
-        const postUserUrl = `http://localhost:4000/api/v1/users/`;
+        const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
+        const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
 
         const userResponse = await fetch(checkUserUrl, {
           headers: { Authorization: `Bearer ${accessToken}` },

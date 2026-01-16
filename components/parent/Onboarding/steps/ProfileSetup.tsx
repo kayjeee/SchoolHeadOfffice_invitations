@@ -114,7 +114,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       
       // Save to backend - match the exact format from your working curl command
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodedUserId}/update_profile`,
+        `https://shobackendv2-production.up.railway.app/api/v1/users/${encodedUserId}/update_profile`,
         {
           method: 'PATCH',
           headers: {
