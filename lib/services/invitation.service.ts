@@ -1,5 +1,6 @@
 // lib/services/invitation.service.ts
 import { z } from 'zod';
+import { API_V1_URL } from '../config/api';
 
 // Define the schema for the expected API response
 const InvitationDataSchema = z.object({
@@ -22,9 +23,7 @@ type InvitationData = z.infer<typeof InvitationDataSchema>;
 
 export class InvitationService {
   static async verifyToken(token: string): Promise<InvitationData> {
-    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app/api/v1';
-
-    const response = await fetch(`${internalApiUrl}/invitations/${token}/verify_with_details`, {
+    const response = await fetch(`${API_V1_URL}/invitations/${token}/verify_with_details`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -50,9 +49,7 @@ export class InvitationService {
   }
 
   static async claim(token: string, userId: string): Promise<{ success: boolean }> {
-    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
-
-    const response = await fetch(`${internalApiUrl}/invitations/claim`, {
+    const response = await fetch(`${API_V1_URL}/invitations/claim`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

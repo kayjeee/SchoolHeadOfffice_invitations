@@ -13,9 +13,7 @@ const MODULE_TAG = "THEME_CONTEXT";
 const DEFAULT_PRIMARY = "white";
 const DEFAULT_SECONDARY = "white";
 
-// Add your Rails API base URL here
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
+import { API_BASE_URL } from "../lib/config/api";
 
 /**
  * Enhanced NASA-style logger with high visibility terminal output

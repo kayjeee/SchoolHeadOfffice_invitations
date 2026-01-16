@@ -1,5 +1,5 @@
 // lib/api/parent-api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app/api/v1';
+import { API_V1_URL as API_BASE_URL } from '../config/api';
 
 export interface Learner {
   id: string;

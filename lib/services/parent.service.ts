@@ -1,15 +1,14 @@
 // lib/services/parent.service.ts
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
-
-const internalApiUrl = 'shobackendv2-production.up.railway.app/api/v1';
+import { API_V1_URL } from '../config/api';
 
 // ========================
 // SERVER-SIDE API CLIENT
 // ========================
 
 async function fetchFromInternalApi(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${internalApiUrl}${endpoint}`, {
+  const response = await fetch(`${API_V1_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

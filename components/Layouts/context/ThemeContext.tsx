@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { School } from '../shared/types/School';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { API_BASE_URL } from '../../../lib/config/api';
 
 // Color type definitions
 interface ColorObject {
@@ -31,9 +32,6 @@ interface AppThemeContextType {
 }
 
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
-
-// Add your Rails API base URL here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
 const DEFAULT_PRIMARY = 'white';
