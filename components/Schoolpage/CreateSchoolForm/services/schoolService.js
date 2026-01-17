@@ -3,7 +3,7 @@
 // --- Config ---
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
 const AUTH0_DOMAIN =
-  process.env.NEXT_PUBLIC_AUTH0_DOMAIN || "dev-q3l2f3kyx1zmv3iq.us.auth0.com";
+  process.env.NEXT_PUBLIC_AUTH0_DOMAIN || process.env.AUTH0_DOMAIN;
 
 // -------------------------------------------------
 // 0. Auth0 Helpers

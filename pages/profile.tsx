@@ -27,9 +27,9 @@ const ProfileCard = () => {
 
   const checkAndSaveUser = async (token) => {
     try {
-      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID vdfdf
-      const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
-      const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}api/v1/users/`;
+      const userId = encodeURIComponent(user.sub); // Auth0's unique user ID
+      const checkUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/${userId}`;
+      const postUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/`;
       // Check if user exists
       const response = await fetch(checkUserUrl, {
         headers: {

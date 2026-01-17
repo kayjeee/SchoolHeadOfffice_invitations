@@ -7,9 +7,9 @@ export default function handler(req, res) {
             merchant_key: process.env.PAYFAST_MERCHANT_KEY, // Use environment variable
             amount,
             item_name,
-            return_url: 'http://localhost:3000/success',
-            cancel_url: 'http://localhost:3000/cancel',
-            notify_url: 'http://localhost:3000/api/notify',
+            return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success`,
+            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancel`,
+            notify_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/notify`,
         };
 
         // Build the PayFast URL with query parameters
