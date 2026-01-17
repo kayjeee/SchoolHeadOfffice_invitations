@@ -67,7 +67,7 @@ export default function SettingsLayout({ user, schools }) {
       setError(null);
 
       const token = localStorage.getItem('authToken');
-      const apiUrl = `https://3ddf3987485e.ngrok-free.app/api/v1/schools/${schoolId}/grades`;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/schools/${schoolId}/grades`;
 
       console.log('Fetching grades from:', apiUrl);
 
@@ -142,7 +142,7 @@ export default function SettingsLayout({ user, schools }) {
         {schoolId ? (
           <>
             {/* QR Code */}
-            <QRCodeCanvas value={`https://www.schoolheadoffice.com/invite/${schoolId}`} size={180} />
+            <QRCodeCanvas value={`${process.env.NEXT_PUBLIC_BASE_URL}/invite/${schoolId}`} size={180} />
 
             {/* Info text */}
             <p className="text-sm text-gray-500 text-center">
@@ -151,17 +151,17 @@ export default function SettingsLayout({ user, schools }) {
 
             {/* Live clickable link */}
             <a
-              href={`https://www.schoolheadoffice.com//invite/${schoolId}`}
+              href={`${process.env.NEXT_PUBLIC_BASE_URL}/invite/${schoolId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline break-all text-center"
             >
-              https://your-app.com/invite/{schoolId}
+              {process.env.NEXT_PUBLIC_BASE_URL}/invite/{schoolId}
             </a>
 
             {/* Copy button */}
             <button
-              onClick={() => navigator.clipboard.writeText(`https://www.schoolheadoffice.com/invite/${schoolId}`)}
+              onClick={() => navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_BASE_URL}/invite/${schoolId}`)}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Copy Invite Link

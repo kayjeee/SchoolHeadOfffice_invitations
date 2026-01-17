@@ -23,8 +23,8 @@ export default function DataDeletion() {
           To delete your personal data, please send an email to:
         </p>
         <p className="text-blue-600 font-medium mb-4">
-          <a href="mailto:support@schoolheadoffice.co.za" className="underline">
-            support@schoolheadoffice.co.za
+          <a href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL}`} className="underline">
+            {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
           </a>
         </p>
 
@@ -50,10 +50,10 @@ export default function DataDeletion() {
         <p className="text-gray-700">
           For further assistance, please contact us at{" "}
           <a
-            href="mailto:support@schoolheadoffice.co.za"
+            href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL}`}
             className="text-blue-600 underline"
           >
-            support@schoolheadoffice.co.za
+            {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
           </a>.
         </p>
       </div>

@@ -8,13 +8,13 @@ export default async function handler(req, res) {
 
   try {
     // Step 1: Get management token securely
-    const tokenRes = await fetch("https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/oauth/token", {
+    const tokenRes = await fetch("https://${process.env.AUTH0_DOMAIN}/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         client_id: process.env.AUTH0_CLIENT_ID,
         client_secret: process.env.AUTH0_CLIENT_SECRET,
-        audience: `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/`,
+        audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
         grant_type: "client_credentials",
       }),
     });
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // Step 2: Call roles endpoint (server-side)
     const decodedUserId = decodeURIComponent(userId);
     const rolesRes = await fetch(
-      `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${decodedUserId}/roles`,
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${decodedUserId}/roles`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,

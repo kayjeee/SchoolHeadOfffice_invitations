@@ -12,25 +12,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Configure nodemailer with ExitDNS SMTP details
+    // Configure nodemailer with SMTP details
     const transporter = nodemailer.createTransport({
-      host: "relay.dnsexit.com", // Replace with ExitDNS SMTP host
-      port: 587, // Usually 587 for TLS
-      secure: false, // true for 465, false for other ports
+      host: process.env.SMTP_HOST || "relay.dnsexit.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true",
       auth: {
-        user: process.env.SMTP_USER, // Your ExitDNS SMTP username
-        pass: process.env.SMTP_PASSWORD, // Your ExitDNS SMTP password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
     // Send the email
     const mailOptions = {
-      from: '"schoolheadoffice" <info@schoolheadoffice.co.za>', // Sender address
+      from: `"schoolheadoffice" <${process.env.SMTP_FROM_EMAIL}>`, // Sender address
       to: email, // Recipient's email
       subject: "You're invited!", // Email subject
-      text: `Hi, you've been invited by ${inviterName} to join our app! Click here to sign up: https://schoolheadoffice.co.za/`, // Plain text
+      text: `Hi, you've been invited by ${inviterName} to join our app! Click here to sign up: ${process.env.NEXT_PUBLIC_BASE_URL}/`, // Plain text
       html: `<p>Hi, you've been invited by <strong>${inviterName}</strong> to join our app!</p>
-             <p>Click here to sign up: <a href="https://schoolheadoffice.co.za/">Join Now</a></p>`, // HTML version
+             <p>Click here to sign up: <a href="${process.env.NEXT_PUBLIC_BASE_URL}/">Join Now</a></p>`, // HTML version
     };
 
     await transporter.sendMail(mailOptions);

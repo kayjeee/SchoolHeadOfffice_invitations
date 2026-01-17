@@ -35,8 +35,8 @@ const Home = ({ schools }) => {
   // ✅ Step 1: Check and Save User should work
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
-    const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
-    const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
+    const checkUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/${userId}`;
+    const postUserUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/`;
 
     console.log("[checkAndSaveUser] Checking user:", userId);
 
@@ -83,7 +83,7 @@ const Home = ({ schools }) => {
 
   // ✅ Step 2: Fetch user roles from Auth0
   const fetchUserRoles = async (accessToken, userId) => {
-    const rolesUrl = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${userId}/roles`;
+    const rolesUrl = `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${userId}/roles`;
     const response = await fetch(rolesUrl, {
       method: "GET",
       headers: {
