@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { completeStep } from "../services/onboardingService";
 
 // ----------------------
@@ -48,6 +48,12 @@ const Step1CreateGrades = ({
   onUpdateData,
 }) => {
   console.log("🏫 [Step1CreateGrades] Component mounted");
+  // In Step1CreateGrades.tsx, at the beginning of the component
+useEffect(() => {
+  console.log("🔍 [Step1CreateGrades] School object:", school);
+  console.log("🔍 [Step1CreateGrades] School ID:", school?.id || school?._id);
+  console.log("🔍 [Step1CreateGrades] User:", user);
+}, [school, user]);
   console.log("📦 [Step1CreateGrades] Props received:", {
     user: user ? { id: user._id || user.id, sub: user.sub } : 'No user',
     school: school,
@@ -96,37 +102,47 @@ const Step1CreateGrades = ({
   };
 
   const handleCreateGrades = async () => {
-    console.log("🚀 [Step1CreateGrades] handleCreateGrades called");
+  console.log("🚀 [Step1CreateGrades] handleCreateGrades called");
 
-    if (!user?.sub) {
-      console.error("❌ [Step1CreateGrades] No user sub found");
-      alert("User not found. Please log in.");
-      return;
+  if (!user?.sub) {
+    console.error("❌ [Step1CreateGrades] No user sub found");
+    alert("User not found. Please log in.");
+    return;
+  }
+
+  // Get the actual school ID
+  const schoolId = school?.id || school?._id;
+  
+  if (!schoolId) {
+    console.error("❌ [Step1CreateGrades] No school ID found");
+    alert("School information is missing. Please try again.");
+    return;
+  }
+
+  try {
+    console.log("📝 [Step1CreateGrades] Calling onUpdateData with grades");
+    if (onUpdateData) {
+      onUpdateData({ grades });
     }
 
-    try {
-      console.log("📝 [Step1CreateGrades] Calling onUpdateData with grades");
-      if (onUpdateData) {
-        onUpdateData({ grades });
-      }
+    // ✅ Send schoolId instead of schoolName
+    await completeStep(user.sub, "create_grades", {
+      grades,
+      schoolId: schoolId,  // Changed from school?.id || school?._id
+      schoolName: schoolName  // Optional, keep for reference
+    });
 
-      await completeStep(user.sub, "create_grades", {
-        grades,
-        schoolId: school?.id || school?._id,
-        schoolName: schoolName
-      });
+    console.log("✅ [Step1CreateGrades] completeStep API call successful");
 
-      console.log("✅ [Step1CreateGrades] completeStep API call successful");
-
-      if (onNext) {
-        await onNext({ grades });
-        console.log("🎉 [Step1CreateGrades] onNext completed");
-      }
-    } catch (error) {
-      console.error("❌ [Step1CreateGrades] Failed to save grades:", error);
-      alert("Something went wrong saving your grades. Please try again.");
+    if (onNext) {
+      await onNext({ grades });
+      console.log("🎉 [Step1CreateGrades] onNext completed");
     }
-  };
+  } catch (error) {
+    console.error("❌ [Step1CreateGrades] Failed to save grades:", error);
+    alert("Something went wrong saving your grades. Please try again.");
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
