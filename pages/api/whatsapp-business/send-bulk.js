@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN } = process.env;
 
   const log = {
-    request: { method: req.method, headers: req.headers, body: req.body, query: req.query },
+    request: { method: req.method, headers: req.headers, body: req.body },
     metrics: { total: 0, sent: 0, failed: 0, retried: 0, deduplicated: 0 },
     results: [],
     errors: [],
@@ -33,9 +33,9 @@ export default async function handler(req, res) {
     log.metrics.total = personalizedMessages.length;
 
     // ------------------ HELPERS ------------------
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-    const normalizeNumber = num => {
+    const normalizeNumber = (num) => {
       if (!num) return null;
       num = num.replace(/\D/g, "");
       if (num.startsWith("0") && num.length === 10) return "27" + num.slice(1);
@@ -83,17 +83,11 @@ export default async function handler(req, res) {
 
     // ------------------ MAIN LOOP ------------------
     for (const msg of dedupedMessages) {
-      const { to, schoolName, magicLink } = msg;
+      const { to, magicLink } = msg;
 
       if (!to || !magicLink) {
         log.metrics.failed++;
         log.results.push({ to, status: "failed", reason: "Missing to or magicLink" });
-        continue;
-      }
-
-      if (magicLink.includes("school=undefined")) {
-        log.metrics.failed++;
-        log.results.push({ to, status: "failed", reason: "Invalid magicLink: school=undefined" });
         continue;
       }
 
@@ -104,23 +98,20 @@ export default async function handler(req, res) {
         continue;
       }
 
+      // ------------------ PAYLOAD FOR WHATSAPP ------------------
       const payload = {
         messaging_product: "whatsapp",
         to: number,
         type: "template",
         template: {
-          name: "parent_invite", // ✅ working template
+          name: "parent_invite", // approved template with 0 body params
           language: { code: "en_US" },
           components: [
-            {
-              type: "body",
-              parameters: [{ type: "text", text: schoolName || "Parent" }]
-            },
             {
               type: "button",
               sub_type: "url",
               index: "0",
-              parameters: [{ type: "text", text: magicLink }]
+              url: magicLink // directly assign the GitHub Pages URL here
             }
           ]
         }
@@ -151,14 +142,9 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    log.errors.push({
-      code: "SERVER_ERROR",
-      message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
-    });
+    log.errors.push({ code: "SERVER_ERROR", message: error.message, stack: process.env.NODE_ENV === "development" ? error.stack : undefined });
     log.timings.end = Date.now();
     log.timings.duration = log.timings.end - log.timings.start;
-    console.error("❌ SYSTEM ERROR", error);
 
     return res.status(500).json({ error: "Internal server error", details: process.env.NODE_ENV === "development" ? log : null });
   } finally {
