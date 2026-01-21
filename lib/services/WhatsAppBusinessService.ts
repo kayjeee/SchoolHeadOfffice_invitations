@@ -11,6 +11,16 @@ interface InvitationParams {
   userEmail?: string;
 }
 
+interface ScheduleBulkParams {
+  gradeIds: string[];
+  message: string;
+  scheduledAt: string | Date;
+  timezone?: string;
+  recipientNumbers: string[];
+  schoolId: string;
+  schoolName: string;
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   'https://shobackendv2-production.up.railway.app';
@@ -22,6 +32,52 @@ class WhatsAppBusinessService {
   constructor() {
     this.baseURL = '/api/whatsapp-business';
     this.invitationsURL = `${API_BASE_URL}/api/v1/invitations`;
+  }
+
+  /* ============================================================
+   🔹 STEP 7 – SCHEDULE BULK SEND
+  ============================================================ */
+
+  async scheduleBulkMessage({
+    gradeIds,
+    message,
+    scheduledAt,
+    timezone,
+    recipientNumbers,
+    schoolId,
+    schoolName,
+  }: ScheduleBulkParams) {
+    try {
+      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify({
+          gradeIds,
+          message,
+          scheduledAt,
+          timezone,
+          recipientNumbers,
+          schoolId,
+          schoolName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Schedule bulk message failed');
+      }
+
+      return data;
+    } catch (error: any) {
+      logger('ERROR', 'WhatsAppService', 'Schedule bulk failed', {
+        error: error.message,
+      });
+      throw error;
+    }
   }
 
   /* ============================================================
@@ -57,8 +113,6 @@ class WhatsAppBusinessService {
         sender,
       };
 
-      logger('INFO', 'WhatsAppService', 'Sending invitation payload', payload);
-
       const response = await fetch(this.invitationsURL, {
         method: 'POST',
         headers: {
@@ -70,12 +124,6 @@ class WhatsAppBusinessService {
 
       const data = await response.json();
 
-      logger('INFO', 'WhatsAppService', 'Invitation response received', {
-        status: response.status,
-        success: data.success,
-        hasToken: !!data.invitation?.token
-      });
-
       if (!response.ok || !data.success) {
         throw new Error(data.message || `HTTP ${response.status}`);
       }
@@ -86,7 +134,7 @@ class WhatsAppBusinessService {
         throw new Error('No token returned from API');
       }
 
-      logger('INFO', 'WhatsAppService', 'Token created successfully', {
+      logger('INFO', 'WhatsAppService', 'Token created', {
         token: token.slice(0, 8) + '...',
       });
 
@@ -100,45 +148,59 @@ class WhatsAppBusinessService {
   }
 
   /* ============================================================
-   🔹 STEP 2 – BUILD MAGIC LINK (VALIDATED)
+   🔹 STEP 2 – BUILD MAGIC LINK (UPDATED FOR GITHUB PAGES)
   ============================================================ */
 
   buildMagicLink({ token, schoolName }: { token: string; schoolName: string }) {
-    if (!token) {
-      throw new Error('Token is required for magic link');
-    }
-    if (!schoolName) {
-      throw new Error('School name is required for magic link');
-    }
-
-    // Validate that neither parameter is 'undefined' string
-    if (token === 'undefined' || schoolName === 'undefined') {
-      throw new Error('Invalid parameters: token or schoolName is undefined');
-    }
+    if (!token) throw new Error('Token missing');
+    if (!schoolName) throw new Error('School name missing');
 
     const encodedSchool = encodeURIComponent(schoolName);
+
+    // ✅ UPDATED: Points to your GitHub Pages URL
     const baseUrl = 'https://kayjeee.github.io/Far-North-school/';
 
-    const magicLink = `${baseUrl}?token=${token}&school=${encodedSchool}`;
-
-    logger('INFO', 'WhatsAppService', 'Magic link built', {
-      token: token.slice(0, 8) + '...',
-      schoolName,
-      linkLength: magicLink.length
-    });
-
-    // Final validation
-    if (magicLink.includes('undefined')) {
-      throw new Error('Magic link contains undefined value');
-    }
-
-    return magicLink;
+    // Return the complete URL with token and school parameters
+    return `${baseUrl}?token=${token}&school=${encodedSchool}`;
   }
 
   /* ============================================================
-   🔹 STEP 3 – BUILD MESSAGE (REMOVED - NOT NEEDED)
+   🔹 STEP 3 – BUILD MESSAGE
   ============================================================ */
-  // The template is handled by WhatsApp, no need to build message here
+
+  buildMagicLinkMessage({
+    schoolName,
+    gradeName,
+    magicLink,
+  }: {
+    schoolName: string;
+    gradeName: string;
+    magicLink: string;
+  }) {
+    return `🏫 ${schoolName} - Important Notice
+
+Dear Parent,
+
+Please collect the following uniform items tomorrow:
+
+📅 Date: 17th January 2025
+⏰ Time: 08h00 - 12h00
+
+Items to collect:
+✓ Pants
+✓ Shirts
+✓ Skirts
+
+⚠️ IMPORTANT: Please bring:
+• Uniform list
+• Proof of Payment (POP)
+
+🔗 View full details: ${magicLink}
+
+Kind Regards,
+Mr Maropeng PS
+${schoolName}`;
+  }
 
   /* ============================================================
    🔹 STEP 4 – VALIDATE MESSAGE
@@ -154,11 +216,11 @@ class WhatsAppBusinessService {
     }
 
     if (message.length > 4096) {
-      throw new Error('Message too long (max 4096 characters)');
+      throw new Error('Message too long');
     }
 
     if (message.match(/[<>]/g)) {
-      throw new Error('Invalid characters found in message');
+      throw new Error('Invalid characters found');
     }
 
     return true;
@@ -179,18 +241,10 @@ class WhatsAppBusinessService {
     sender_id,
   }: any) {
     try {
-      // Validate required fields
       if (!to || !schoolName || !schoolId) {
-        throw new Error('Missing required fields: to, schoolName, or schoolId');
+        throw new Error('Missing required fields');
       }
 
-      logger('INFO', 'WhatsAppService', 'Starting test message send', {
-        to,
-        schoolName,
-        schoolId
-      });
-
-      // Step 1: Create invitation and get token
       const token = await this.createInvitation({
         phoneNumber: to,
         schoolId,
@@ -201,17 +255,19 @@ class WhatsAppBusinessService {
         userEmail,
       });
 
-      // Step 2: Build magic link
       const magicLink = this.buildMagicLink({
         token,
         schoolName,
       });
 
-      logger('INFO', 'WhatsAppService', 'Magic link created', {
-        magicLink: magicLink.substring(0, 50) + '...'
+      const message = this.buildMagicLinkMessage({
+        schoolName,
+        gradeName: grade?.name || "your child's class",
+        magicLink,
       });
 
-      // Step 3: Send via WhatsApp API
+      this.validateMessageTemplate(message);
+
       const response = await fetch(`${this.baseURL}/test-message`, {
         method: 'POST',
         headers: {
@@ -220,7 +276,7 @@ class WhatsAppBusinessService {
         },
         body: JSON.stringify({
           to,
-          schoolName,
+          message,
           magicLink,
           testType: 'MAGIC_LINK',
         }),
@@ -229,16 +285,8 @@ class WhatsAppBusinessService {
       const data = await response.json();
 
       if (!response.ok) {
-        logger('ERROR', 'WhatsAppService', 'Test send failed', {
-          status: response.status,
-          error: data
-        });
-        throw new Error(data.error || 'Failed to send test message');
+        throw new Error(data.error || 'Failed to send test');
       }
-
-      logger('INFO', 'WhatsAppService', 'Test message sent successfully', {
-        messageId: data.messageId
-      });
 
       return { ...data, token, magicLink };
     } catch (error: any) {
@@ -266,12 +314,6 @@ class WhatsAppBusinessService {
         throw new Error('schoolId & schoolName required');
       }
 
-      logger('INFO', 'WhatsAppService', 'Starting bulk send', {
-        recipientCount: recipientNumbers.length,
-        schoolName
-      });
-
-      // Create bulk invitations
       const invitations = recipientNumbers.map((r: any) => ({
         phone_number: r.phone,
         parent_name: r.name,
@@ -285,11 +327,6 @@ class WhatsAppBusinessService {
         userEmail,
       });
 
-      logger('INFO', 'WhatsAppService', 'Bulk invitations created', {
-        count: bulk.invitations.length
-      });
-
-      // Build personalized messages with magic links
       const personalized = bulk.invitations.map((inv: any) => {
         const magicLink = this.buildMagicLink({
           token: inv.token,
@@ -303,7 +340,6 @@ class WhatsAppBusinessService {
         };
       });
 
-      // Send bulk messages
       const response = await fetch(`${this.baseURL}/send-bulk`, {
         method: 'POST',
         headers: {
@@ -321,60 +357,9 @@ class WhatsAppBusinessService {
         throw new Error(data.error || 'Bulk send failed');
       }
 
-      logger('INFO', 'WhatsAppService', 'Bulk send completed', {
-        sent: data.sentCount,
-        failed: data.failedCount
-      });
-
       return data;
     } catch (error: any) {
       logger('ERROR', 'WhatsAppService', 'Bulk send failed', {
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /* ============================================================
-   🔹 STEP 7 – SCHEDULE BULK SEND
-  ============================================================ */
-
-  async scheduleBulkMessage({
-    gradeIds,
-    message,
-    scheduledAt,
-    timezone,
-    recipientNumbers,
-    schoolId,
-    schoolName,
-  }: any) {
-    try {
-      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          gradeIds,
-          message,
-          scheduledAt,
-          timezone,
-          recipientNumbers,
-          schoolId,
-          schoolName,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Schedule bulk message failed');
-      }
-
-      return data;
-    } catch (error: any) {
-      logger('ERROR', 'WhatsAppService', 'Schedule bulk failed', {
         error: error.message,
       });
       throw error;
