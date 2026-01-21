@@ -25,6 +25,52 @@ class WhatsAppBusinessService {
   }
 
   /* ============================================================
+   🔹 STEP 7 – SCHEDULE BULK SEND
+  ============================================================ */
+
+  async scheduleBulkMessage({
+    gradeIds,
+    message,
+    scheduledAt,
+    timezone,
+    recipientNumbers,
+    schoolId,
+    schoolName,
+  }: any) {
+    try {
+      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify({
+          gradeIds,
+          message,
+          scheduledAt,
+          timezone,
+          recipientNumbers,
+          schoolId,
+          schoolName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Schedule bulk message failed');
+      }
+
+      return data;
+    } catch (error: any) {
+      logger('ERROR', 'WhatsAppService', 'Schedule bulk failed', {
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /* ============================================================
    🔹 STEP 1 – CREATE INVITATION (GET TOKEN)
   ============================================================ */
 
