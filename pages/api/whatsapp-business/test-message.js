@@ -4,52 +4,40 @@ export default async function handler(req, res) {
   console.log("📥 Incoming test-message request");
 
   const { WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN } = process.env;
-  const { to, schoolName } = req.body || {};
+  const { to, schoolName, token, firstName } = req.body || {};
 
-  /* ------------------------------------------------------------------
-   * Basic validation
-   * ------------------------------------------------------------------ */
   if (req.method !== "POST") {
-    console.warn("⚠️ Invalid HTTP method:", req.method);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
-    console.error("❌ Missing WhatsApp environment variables");
-    return res.status(500).json({
-      error: "WhatsApp configuration missing on server"
-    });
-  }
-
-  if (!to) {
-    console.warn("⚠️ Missing phone number");
+  if (!to || !token || !schoolName) {
     return res.status(400).json({
-      error: "Phone number (to) is required"
+      error: "Missing required fields: to, token, schoolName"
     });
   }
 
-  /* ------------------------------------------------------------------
-   * Normalize phone number
-   * ------------------------------------------------------------------ */
   const formattedNumber = to.replace(/\D/g, "");
-  console.log("📞 Normalized phone number:", formattedNumber);
+  console.log("📞 Normalized phone:", formattedNumber);
+  console.log("🔑 Token:", token);
+  console.log("👤 First Name:", firstName);
+  console.log("🏫 School Name:", schoolName);
 
-  /* ------------------------------------------------------------------
-   * WhatsApp endpoint
-   * ------------------------------------------------------------------ */
   const whatsappUrl = `https://graph.facebook.com/v22.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-  /* ------------------------------------------------------------------
-   * IMPORTANT:
-   * This template has a STATIC URL button.
-   * DO NOT include button components in the payload.
-   * ------------------------------------------------------------------ */
+  /**
+   * ✅ ACCOUNT VERIFICATION TEMPLATE PAYLOAD
+   * Template: account_verification
+   * Body: "Hello {{1}}'s Parent/Guardian 
+   *        Your child has been inducted into {{2}}. You are welcome 
+   *        to follow their progress on SchoolHeadOffice."
+   * Button: Dynamic URL with token
+   */
   const payload = {
     messaging_product: "whatsapp",
     to: formattedNumber,
     type: "template",
     template: {
-      name: "account_creation_confirmation_3",
+      name: "account_verification",
       language: { code: "en_US" },
       components: [
         {
@@ -57,28 +45,33 @@ export default async function handler(req, res) {
           parameters: [
             {
               type: "text",
-              text: schoolName || "Parent"
+              text: firstName || "Student"  // {{1}} - Child's first name
+            },
+            {
+              type: "text",
+              text: schoolName  // {{2}} - School name
+            }
+          ]
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: 0,
+          parameters: [
+            {
+              type: "text",
+              text: token   // This gets appended to the base URL
             }
           ]
         }
-        // 🚫 NO BUTTON COMPONENT
       ]
     }
   };
 
-  console.log(
-    "📤 Final WhatsApp payload:",
-    JSON.stringify(payload, null, 2)
-  );
-
-  /* ------------------------------------------------------------------
-   * Send request to Meta
-   * ------------------------------------------------------------------ */
-  let apiResponse;
-  let responseData;
+  console.log("📤 FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
 
   try {
-    apiResponse = await fetch(whatsappUrl, {
+    const response = await fetch(whatsappUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
@@ -87,32 +80,28 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
-    responseData = await apiResponse.json();
-  } catch (error) {
-    console.error("❌ Network / fetch error:", error);
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("❌ WhatsApp API error:", data);
+      return res.status(response.status).json({
+        success: false,
+        error: data?.error?.message,
+        details: data
+      });
+    }
+
+    console.log("✅ Message sent:", data);
+    return res.status(200).json({
+      success: true,
+      messageId: data.messages?.[0]?.id,
+      sentTo: formattedNumber
+    });
+  } catch (err) {
+    console.error("❌ Network error:", err);
     return res.status(500).json({
       success: false,
       error: "Failed to reach WhatsApp API"
     });
   }
-
-  /* ------------------------------------------------------------------
-   * Handle Meta response
-   * ------------------------------------------------------------------ */
-  if (!apiResponse.ok) {
-    console.error("❌ WhatsApp API Error Response:", responseData);
-
-    return res.status(apiResponse.status).json({
-      success: false,
-      error: responseData?.error?.message || "WhatsApp API error",
-      details: responseData
-    });
-  }
-
-  console.log("✅ WhatsApp message sent successfully:", responseData);
-
-  return res.status(200).json({
-    success: true,
-    messageId: responseData?.messages?.[0]?.id
-  });
 }
