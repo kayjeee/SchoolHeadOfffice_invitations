@@ -9,6 +9,8 @@ interface WhatsAppTesterSectionProps {
   onLearnerNumberChange: (value: string) => void;
   parentName: string;
   onParentNameChange: (value: string) => void;
+  firstName: string; // ✅ NEW
+  onFirstNameChange: (value: string) => void; // ✅ NEW
   invitedVia: string;
   onInvitedViaChange: (value: string) => void;
   messageContent: string;
@@ -32,6 +34,8 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
   onLearnerNumberChange,
   parentName,
   onParentNameChange,
+  firstName, // ✅ NEW
+  onFirstNameChange, // ✅ NEW
   invitedVia,
   onInvitedViaChange,
   messageContent,
@@ -53,6 +57,24 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ✅ NEW: First Name Input */}
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+            Child's First Name *
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            value={firstName}
+            onChange={(e) => onFirstNameChange(e.target.value)}
+            placeholder="e.g., John"
+            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Will appear as "Hello John's Parent/Guardian"
+          </p>
+        </div>
+
         {/* Parent Name Input */}
         <div>
           <label htmlFor="parentName" className="block text-sm font-medium text-gray-700 mb-2">
@@ -129,44 +151,21 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
         </select>
       </div>
 
-      {/* Message Preview */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Message Preview
-        </label>
-        <textarea
-          value={messageContent}
-          onChange={(e) => onMessageChange(e.target.value)}
-          rows={8}
-          placeholder="Enter your WhatsApp message here..."
-          className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
-            validationErrors?.message ? "border-red-300" : "border-gray-300"
-          }`}
-        />
-        {validationErrors?.message && (
-          <p className="mt-1 text-sm text-red-600 flex items-center">
-            <AlertCircle size={14} className="mr-1" /> {validationErrors.message}
+      {/* ✅ UPDATED: Template Preview */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-blue-900 mb-2">📋 WhatsApp Template Preview</h4>
+        <div className="text-sm text-blue-800 space-y-2">
+          <p className="font-semibold">account_verification template:</p>
+          <div className="bg-white p-3 rounded border border-blue-200">
+            <p>Hello <strong>{firstName || "Student"}</strong>'s Parent/Guardian</p>
+            <p className="mt-2">Your child has been inducted into <strong>{schoolName}</strong>. You are welcome to follow their progress on SchoolHeadOffice.</p>
+            <button className="mt-3 px-4 py-2 bg-blue-600 text-white rounded text-sm">
+              ✓ Verify Account
+            </button>
+          </div>
+          <p className="text-xs text-blue-600 mt-2">
+            The "Verify Account" button will include your unique token
           </p>
-        )}
-        <div className="mt-2 flex justify-between text-xs text-gray-500">
-          <span>
-            {messageContent.split(/\s+/).filter(Boolean).length} words
-          </span>
-          <span
-            className={messageContent.length > 4000 ? "text-orange-600" : ""}
-          >
-            {messageContent.length}/4096 characters
-          </span>
-        </div>
-      </div>
-
-      {/* Template Variables Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">📋 Template Variables</h4>
-        <div className="text-xs text-blue-800 space-y-1">
-          <p><strong>Available variables:</strong> {"{{1}}"}, {"{{2}}"}, {"{{3}}"}, etc.</p>
-          <p><strong>Example usage:</strong> &quot;Hi {"{{1}}"}, your account {"{{2}}"} has been created.&quot;</p>
-          <p><strong>Current template:</strong> &quot;Hi {"{{1}}"}, your account has been created. Please verify {"{{2}}"} to complete your profile.&quot;</p>
         </div>
       </div>
 
@@ -180,9 +179,9 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
           disabled={
             isSending ||
             !testPhoneNumber.trim() ||
-            !messageContent.trim() ||
             !parentName.trim() ||
-            !learnerNumber.trim()
+            !learnerNumber.trim() ||
+            !firstName.trim() // ✅ NEW: Require firstName
           }
           className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -203,7 +202,7 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
             onClick={() => {
               onSendBulk();
             }}
-            disabled={isSendingBulk || !messageContent.trim()}
+            disabled={isSendingBulk}
             className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSendingBulk ? (
@@ -251,20 +250,6 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
             {testResult.message}
           </p>
 
-          {testResult.success && testResult.magicLink && (
-            <p className="text-xs text-green-600 mt-1 break-all">
-              Magic Link:{" "}
-              <a
-                href={testResult.magicLink}
-                className="underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {testResult.magicLink}
-              </a>
-            </p>
-          )}
-
           {testResult.error && (
             <p className="text-xs text-red-600 mt-1">
               Error: {testResult.error}
@@ -286,16 +271,16 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
         <h4 className="text-sm font-medium text-gray-900 mb-2">💡 How to Use</h4>
         <div className="text-xs text-gray-700 space-y-2">
           <div>
+            <strong className="text-gray-900">New Template:</strong>
+            <p className="mt-1">We're using the approved "account_verification" template with personalized child's name and school name.</p>
+          </div>
+          <div>
             <strong className="text-gray-900">Test Message:</strong>
-            <p className="mt-1">Send to a single phone number to verify your message template works correctly before sending to all contacts.</p>
+            <p className="mt-1">Send to a single phone number to verify the template works correctly.</p>
           </div>
           <div>
             <strong className="text-gray-900">Bulk Send:</strong>
-            <p className="mt-1">Send the same message to all {totalRecipients} WhatsApp contacts at once. Make sure to test first!</p>
-          </div>
-          <div>
-            <strong className="text-gray-900">Template Variables:</strong>
-            <p className="mt-1">Use {"{{1}}"}, {"{{2}}"}, etc. as placeholders that will be automatically replaced with actual data for each contact.</p>
+            <p className="mt-1">Send to all {totalRecipients} WhatsApp contacts. Each message will include the learner's first name.</p>
           </div>
         </div>
       </div>

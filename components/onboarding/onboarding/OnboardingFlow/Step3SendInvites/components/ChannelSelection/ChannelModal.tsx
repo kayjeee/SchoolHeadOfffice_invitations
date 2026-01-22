@@ -47,6 +47,8 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   // =======================================================
   // 🔥 ENHANCED WHATSAPP STATES
   // =======================================================
+  // ✅ NEW: Add firstName state
+  const [firstName, setFirstName] = useState('');
   const [activeTab, setActiveTab] = useState<'test' | 'schedule' | 'contacts'>('contacts');
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [learnerNumber, setLearnerNumber] = useState('');
@@ -252,41 +254,40 @@ Click here to join: ${schoolLink}`;
 
   // Handle test message sending (single number)
   const handleSendTest = async () => {
-    if (!validateTestInputs()) return;
+  if (!validateTestInputs()) return;
 
-    setIsSendingTest(true);
-    setTestResult(null);
+  setIsSendingTest(true);
+  setTestResult(null);
 
-    try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
-      const result = await WhatsAppBusinessService.sendTestMessage({
-        to: testPhoneNumber.replace(/\s+/g, ''),
-        schoolId: schoolId,
-        userEmail: school?.userEmail,
-        schoolName: schoolName,
-        learnerNumber,
-        parentName,
-        invitedVia,
-        sender_id: user?.sub,
-        grade: selectedGrade,
-      });
+  try {
+    const result = await WhatsAppBusinessService.sendTestMessage({
+      to: testPhoneNumber.replace(/\s+/g, ''),
+      schoolId: schoolId,
+      userEmail: school?.userEmail,
+      schoolName: schoolName,
+      learnerNumber,
+      parentName,
+      firstName, // ✅ NEW: Pass firstName
+      invitedVia,
+      sender_id: user?.sub,
+      grade: selectedGrade,
+    });
 
-      setTestResult({
-        success: true,
-        messageId: result.messageId,
-        message: 'Test message sent successfully! Check your WhatsApp.'
-      });
-    } catch (error: any) {
-      setTestResult({
-        success: false,
-        error: error.message || 'An unknown error occurred.',
-        message: 'Failed to send test message. Please try again.'
-      });
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
+    setTestResult({
+      success: true,
+      messageId: result.messageId,
+      message: 'Test message sent successfully! Check your WhatsApp.'
+    });
+  } catch (error: any) {
+    setTestResult({
+      success: false,
+      error: error.message || 'An unknown error occurred.',
+      message: 'Failed to send test message. Please try again.'
+    });
+  } finally {
+    setIsSendingTest(false);
+  }
+};
 
   // Handle bulk message sending (all learners)
   const handleSendBulk = async () => {
@@ -549,30 +550,33 @@ Click here to join: ${schoolLink}`;
         {/* Tab Content */}
         {activeTab === 'contacts' && renderWhatsAppContactsTab()}
 
-        {activeTab === 'test' && (
-          <WhatsAppTesterSection
-            testPhoneNumber={testPhoneNumber}
-            onPhoneNumberChange={setTestPhoneNumber}
-            learnerNumber={learnerNumber}
-            onLearnerNumberChange={setLearnerNumber}
-            parentName={parentName}
-            onParentNameChange={setParentName}
-            invitedVia={invitedVia}
-            onInvitedViaChange={setInvitedVia}
-            messageContent={messageContent}
-            onMessageChange={setCustomMessage}
-            onSendTest={handleSendTest}
-            onSendBulk={handleSendBulk}
-            isSending={isSendingTest}
-            isSendingBulk={isSendingBulk}
-            testResult={testResult}
-            validationErrors={validationErrors}
-            schoolName={schoolName}
-            selectedGrade={selectedGrade}
-            totalRecipients={learnersWithWhatsApp.length}
-            canSendBulk={learnersWithWhatsApp.length > 0}
-          />
-        )}
+        // Update WhatsAppTesterSection props (around line 450)
+{activeTab === 'test' && (
+  <WhatsAppTesterSection
+    testPhoneNumber={testPhoneNumber}
+    onPhoneNumberChange={setTestPhoneNumber}
+    learnerNumber={learnerNumber}
+    onLearnerNumberChange={setLearnerNumber}
+    parentName={parentName}
+    onParentNameChange={setParentName}
+    firstName={firstName} // ✅ NEW
+    onFirstNameChange={setFirstName} // ✅ NEW
+    invitedVia={invitedVia}
+    onInvitedViaChange={setInvitedVia}
+    messageContent={messageContent}
+    onMessageChange={setCustomMessage}
+    onSendTest={handleSendTest}
+    onSendBulk={handleSendBulk}
+    isSending={isSendingTest}
+    isSendingBulk={isSendingBulk}
+    testResult={testResult}
+    validationErrors={validationErrors}
+    schoolName={schoolName}
+    selectedGrade={selectedGrade}
+    totalRecipients={learnersWithWhatsApp.length}
+    canSendBulk={learnersWithWhatsApp.length > 0}
+  />
+)}
 
         {activeTab === 'schedule' && (
           <WhatsAppScheduler
