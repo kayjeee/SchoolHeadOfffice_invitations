@@ -501,146 +501,287 @@ ${schoolName}`;
     }
   }
 
-  /* ============================================================
-   🔹 STEP 6 – BULK SEND
+ /* ============================================================
+   🔹 STEP 6 – BULK SEND (WITH DETAILED LOGGING)
   ============================================================ */
 
-  async sendBulkMessages({
-    gradeIds,
-    schoolName,
-    recipientNumbers,
+async sendBulkMessages({
+  gradeIds,
+  schoolName,
+  recipientNumbers,
+  schoolId,
+  userEmail,
+  senderId,
+  countryCode = '27', // ✅ ADD THIS - defaults to South Africa
+}: BulkMessagesParams): Promise<any> {
+  console.log('🚀 ========================================');
+  console.log('🚀 BULK SEND INITIATED');
+  console.log('🚀 ========================================');
+  console.log('📋 Input Parameters:', {
     schoolId,
+    schoolName,
+    recipientCount: recipientNumbers.length,
+    gradeIds,
     userEmail,
     senderId,
-  }: BulkMessagesParams): Promise<any> {
-    try {
-      logger('INFO', 'WhatsAppService', 'Starting bulk send', {
-        schoolId,
-        recipientCount: recipientNumbers.length,
-      });
+    countryCode, // ✅ LOG IT
+    timestamp: new Date().toISOString()
+  });
 
-      if (!schoolId || !schoolName) {
-        throw new Error('schoolId & schoolName are required');
-      }
+  try {
+    logger('INFO', 'WhatsAppService', 'Starting bulk send', {
+      schoolId,
+      recipientCount: recipientNumbers.length,
+      countryCode, // ✅ LOG IT
+    });
 
-      // Prepare invitations for bulk creation
-      const invitations = recipientNumbers.map((recipient: any) => ({
-        phone_number: recipient.phone,
-        parent_name: recipient.name || 'Parent',
-        learner_number: recipient.learner_number,
-      }));
+    // Validation
+    if (!schoolId || !schoolName) {
+      console.error('❌ Missing required fields:', { schoolId, schoolName });
+      throw new Error('schoolId & schoolName are required');
+    }
 
-      // Create bulk invitations
-      const bulk = await InvitationService.createBulkInvitations({
-        invitations,
-        school_id: schoolId,
-        sender_id: senderId,
-        userEmail,
-      });
+    // Prepare invitations
+    const invitations = recipientNumbers.map((recipient: any) => ({
+      phone_number: recipient.phone,
+      parent_name: recipient.name || 'Parent',
+      learner_number: recipient.learner_number,
+    }));
 
-      if (!bulk.success || !bulk.invitations) {
-        throw new Error('Bulk invitation creation failed');
-      }
+    console.log('📞 Prepared invitations:', {
+      count: invitations.length,
+      sample: invitations.slice(0, 2),
+      allPhones: invitations.map(i => i.phone_number)
+    });
 
-      // Create personalized messages with magic links
-      const personalizedMessages = await Promise.all(
-        bulk.invitations.map(async (inv: any) => {
-          try {
-            // Validate each phone number
-            const phoneValidation = this.validatePhoneNumber(inv.phone_number);
-            
-            if (!phoneValidation.isValid) {
-              logger('WARN', 'WhatsAppService', 'Invalid phone in bulk', {
-                phone: inv.phone_number,
-                error: phoneValidation.error,
-              });
-              return null;
-            }
+    // Create bulk invitations
+    console.log('🔄 Creating bulk invitations...');
+    const bulk = await InvitationService.createBulkInvitations({
+      invitations,
+      school_id: schoolId,
+      sender_id: senderId,
+      userEmail,
+    });
 
-            const token = inv.token;
-            if (!token) {
-              logger('WARN', 'WhatsAppService', 'Missing token for invitation', {
-                phone: inv.phone_number,
-              });
-              return null;
-            }
+    console.log('✅ Bulk invitations response:', {
+      success: bulk.success,
+      invitationCount: bulk.invitations?.length || 0,
+      stats: bulk.stats,
+      sample: bulk.invitations?.[0]
+    });
 
-            const magicLink = this.buildMagicLink({
-              token,
-              schoolName,
-            });
+    if (!bulk.success || !bulk.invitations) {
+      console.error('❌ Bulk invitation creation failed:', bulk);
+      throw new Error('Bulk invitation creation failed');
+    }
 
-            return {
-              to: phoneValidation.formattedNumber,
-              message: this.buildMagicLinkMessage({
-                schoolName,
-                gradeName: 'Selected Grade',
-                magicLink,
-              }),
-              magicLink,
-              country: phoneValidation.country?.name,
-              parentName: inv.parent_name,
-              learnerNumber: inv.learner_number,
-            };
-          } catch (error: any) {
-            logger('ERROR', 'WhatsAppService', 'Failed to process invitation', {
+    // Process invitations into personalized messages
+    console.log('🔄 Processing invitations into messages...');
+    const personalizedMessages = await Promise.all(
+      bulk.invitations.map(async (inv: any, index: number) => {
+        console.log(`📝 Processing invitation ${index + 1}/${bulk.invitations.length}:`, {
+          phone: inv.phone_number,
+          name: inv.parent_name,
+          token: inv.token?.substring(0, 10) + '...',
+          hasToken: !!inv.token
+        });
+
+        try {
+          // ✅ FIX: Pass countryCode to validation
+          const phoneValidation = this.validatePhoneNumber(inv.phone_number, countryCode);
+          
+          console.log(`📱 Phone validation result for ${inv.phone_number}:`, {
+            isValid: phoneValidation.isValid,
+            formattedNumber: phoneValidation.formattedNumber,
+            country: phoneValidation.country?.name,
+            error: phoneValidation.error
+          });
+
+          if (!phoneValidation.isValid) {
+            logger('WARN', 'WhatsAppService', 'Invalid phone in bulk', {
               phone: inv.phone_number,
-              error: error.message,
+              error: phoneValidation.error,
             });
             return null;
           }
-        })
-      );
 
-      // Filter out failed invitations
-      const validMessages = personalizedMessages.filter(msg => msg !== null);
+          const token = inv.token;
+          if (!token) {
+            console.error('❌ Missing token for:', inv.phone_number);
+            logger('WARN', 'WhatsAppService', 'Missing token for invitation', {
+              phone: inv.phone_number,
+            });
+            return null;
+          }
 
-      if (validMessages.length === 0) {
-        throw new Error('No valid messages to send');
-      }
+          // Build magic link
+          const magicLink = this.buildMagicLink({
+            token,
+            schoolName,
+          });
 
-      const response = await fetch(`${this.baseURL}/send-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-        },
-        body: JSON.stringify({
-          gradeIds,
-          schoolName,
-          personalizedMessages: validMessages,
-          totalRecipients: validMessages.length,
-          failedRecipients: personalizedMessages.length - validMessages.length,
-        }),
-      });
+          console.log(`🔗 Magic link created for ${inv.phone_number}:`, {
+            link: magicLink.substring(0, 60) + '...',
+            fullLength: magicLink.length
+          });
 
-      const data = await response.json();
+          const message = {
+            to: phoneValidation.formattedNumber,
+            message: this.buildMagicLinkMessage({
+              schoolName,
+              gradeName: 'Selected Grade',
+              magicLink,
+            }),
+            magicLink,
+            country: phoneValidation.country?.name,
+            parentName: inv.parent_name,
+            learnerNumber: inv.learner_number,
+          };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Bulk send failed');
-      }
+          console.log(`✅ Message created for ${phoneValidation.formattedNumber}`);
+          return message;
 
-      logger('INFO', 'WhatsAppService', 'Bulk send completed', {
-        successCount: validMessages.length,
-        failedCount: personalizedMessages.length - validMessages.length,
-      });
+        } catch (error: any) {
+          console.error(`❌ Failed to process invitation for ${inv.phone_number}:`, {
+            error: error.message,
+            stack: error.stack
+          });
+          logger('ERROR', 'WhatsAppService', 'Failed to process invitation', {
+            phone: inv.phone_number,
+            error: error.message,
+          });
+          return null;
+        }
+      })
+    );
 
-      return {
-        ...data,
-        stats: {
-          total: personalizedMessages.length,
-          successful: validMessages.length,
-          failed: personalizedMessages.length - validMessages.length,
-        },
-      };
-    } catch (error: any) {
-      logger('ERROR', 'WhatsAppService', 'Bulk send failed', {
-        error: error.message,
-        schoolId,
-      });
-      throw error;
+    // Filter valid messages
+    const validMessages = personalizedMessages.filter(msg => msg !== null);
+
+    console.log('📊 Message processing results:', {
+      total: personalizedMessages.length,
+      valid: validMessages.length,
+      invalid: personalizedMessages.length - validMessages.length,
+      validMessages: validMessages.map(m => ({
+        to: m?.to,
+        hasLink: !!m?.magicLink,
+        hasMessage: !!m?.message
+      }))
+    });
+
+    if (validMessages.length === 0) {
+      console.error('❌ No valid messages to send');
+      throw new Error('No valid messages to send. Check that phone numbers include country code or pass countryCode parameter.');
     }
+
+    // Prepare API request
+    const endpoint = `${this.baseURL}/send-bulk`;
+    const requestBody = {
+      gradeIds,
+      schoolName,
+      personalizedMessages: validMessages,
+      totalRecipients: validMessages.length,
+      failedRecipients: personalizedMessages.length - validMessages.length,
+    };
+
+    console.log('🌐 ========================================');
+    console.log('🌐 CALLING WHATSAPP API ENDPOINT');
+    console.log('🌐 ========================================');
+    console.log('📍 Endpoint:', endpoint);
+    console.log('📦 Request body:', {
+      gradeIds: requestBody.gradeIds,
+      schoolName: requestBody.schoolName,
+      messageCount: requestBody.personalizedMessages.length,
+      totalRecipients: requestBody.totalRecipients,
+      failedRecipients: requestBody.failedRecipients,
+      firstMessage: requestBody.personalizedMessages[0]
+    });
+
+    // Make the API call
+    console.log('⏳ Fetching endpoint...');
+    const fetchStartTime = Date.now();
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const fetchDuration = Date.now() - fetchStartTime;
+    console.log(`⏱️ Fetch completed in ${fetchDuration}ms`);
+
+    console.log('📥 Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      duration: fetchDuration + 'ms'
+    });
+
+    const data = await response.json();
+
+    console.log('📄 Response data:', {
+      success: data.success,
+      stats: data.stats,
+      message: data.message,
+      error: data.error,
+    });
+
+    if (!response.ok) {
+      console.error('❌ API returned error:', {
+        status: response.status,
+        error: data.error,
+        message: data.message,
+      });
+      throw new Error(data.error || data.message || 'Bulk send failed');
+    }
+
+    console.log('✅ ========================================');
+    console.log('✅ BULK SEND COMPLETED SUCCESSFULLY');
+    console.log('✅ ========================================');
+    console.log('📊 Final stats:', {
+      sent: data.stats?.sent || 0,
+      failed: data.stats?.failed || 0,
+      total: personalizedMessages.length
+    });
+
+    logger('INFO', 'WhatsAppService', 'Bulk send completed', {
+      successCount: data.stats?.sent || 0,
+      failedCount: data.stats?.failed || 0,
+    });
+
+    return {
+      success: true,
+      ...data,
+      stats: {
+        total: personalizedMessages.length,
+        successful: data.stats?.sent || 0,
+        failed: data.stats?.failed || 0,
+        invalidNumbers: data.stats?.invalidNumbers || 0,
+      },
+      sentCount: data.stats?.sent || 0,
+      failedCount: data.stats?.failed || 0,
+    };
+
+  } catch (error: any) {
+    console.error('💥 ========================================');
+    console.error('💥 BULK SEND FAILED');
+    console.error('💥 ========================================');
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+
+    logger('ERROR', 'WhatsAppService', 'Bulk send failed', {
+      error: error.message,
+      schoolId,
+    });
+    throw error;
   }
+}
 
   /* ============================================================
    🔹 STEP 7 – SCHEDULE BULK MESSAGE

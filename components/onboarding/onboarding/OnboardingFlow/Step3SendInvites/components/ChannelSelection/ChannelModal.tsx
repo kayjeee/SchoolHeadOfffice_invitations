@@ -64,6 +64,49 @@ Please verify {{2}} to complete your profile.`);
   const [validationErrors, setValidationErrors] = useState<any>({});
   // =======================================================
 
+  // Country code helper function
+  const getCountryCode = (country?: string): string => {
+    if (!country) return '27'; // Default to South Africa
+    
+    // Map country names to country codes
+    const countryMap: { [key: string]: string } = {
+      'South Africa': '27',
+      'ZA': '27',
+      'Uganda': '256',
+      'UG': '256',
+      'Kenya': '254',
+      'KE': '254',
+      'Botswana': '267',
+      'BW': '267',
+      'Nigeria': '234',
+      'NG': '234',
+    };
+    
+    // Try exact match first
+    if (countryMap[country]) {
+      return countryMap[country];
+    }
+    
+    // Try case-insensitive match
+    const normalizedCountry = country.trim();
+    const match = Object.keys(countryMap).find(
+      key => key.toLowerCase() === normalizedCountry.toLowerCase()
+    );
+    
+    if (match) {
+      return countryMap[match];
+    }
+    
+    // If it's already a number, return it
+    if (/^\d+$/.test(country)) {
+      return country;
+    }
+    
+    // Default to South Africa
+    console.warn('Unknown country, defaulting to SA (27):', country);
+    return '27';
+  };
+
   const handleSelectChannel = () => {
     logger.info('ChannelModal', 'Channel selected', {
       channelId: channel.id,
@@ -260,6 +303,15 @@ Click here to join: ${schoolLink}`;
     try {
       WhatsAppBusinessService.validateMessageTemplate(messageContent);
       
+      // ✅ Use the same country code helper
+      const countryCode = getCountryCode(school?.country);
+      
+      console.log('📞 Test send with country code:', {
+        originalCountry: school?.country,
+        countryCode,
+        phoneNumber: testPhoneNumber
+      });
+      
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
         schoolId: schoolId,
@@ -270,6 +322,7 @@ Click here to join: ${schoolLink}`;
         invitedVia,
         sender_id: user?.sub,
         grade: selectedGrade,
+        countryCode: countryCode, // ✅ Now passing numeric code
       });
 
       setTestResult({
@@ -314,13 +367,22 @@ Click here to join: ${schoolLink}`;
       
       const recipientNumbers = getRecipientNumbers();
       
+      // ✅ FIX: Convert country name to country code
+      const countryCode = getCountryCode(school?.country);
+      
+      console.log('📞 Bulk send with country code:', {
+        originalCountry: school?.country,
+        countryCode,
+        recipientCount: recipientNumbers.length
+      });
+      
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
         schoolName: schoolName,
         recipientNumbers: recipientNumbers,
         schoolId: schoolId,
         userEmail: school?.userEmail,
-        countryCode: school?.country,
+        countryCode: countryCode, // ✅ Now passing numeric code like '27'
         senderId: user?.sub,
       });
 
@@ -334,7 +396,6 @@ Click here to join: ${schoolLink}`;
         }
       });
 
-      // Log bulk send results
       logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
         sentCount: result.sentCount,
         failedCount: result.failedCount,

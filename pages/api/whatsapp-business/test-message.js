@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     to: formattedNumber,
     type: "template",
     template: {
-      name: "account_creation_confirmation_3",
+      name: "parent_invite",
       language: { code: "en_US" },
       components: [
         {
