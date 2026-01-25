@@ -7,15 +7,29 @@ interface InvitationParams {
   learnerNumbers?: string[];
   parentName?: string;
   gradeId?: string;
-  sender: string; // ⚠️ TEMPORARY – remove once backend auth is enforced
+  sender: string;
   userEmail?: string;
 }
 
 interface SmsParams {
   to: string;
   message: string;
-  supplier: 'winsms' | 'bulksms';
+  supplier?: 'winsms' | 'bulksms';
   schoolId: string;
+  testType?: string;
+  scheduledTime?: string;
+}
+
+interface BulkSmsParams {
+  recipients: Array<{
+    phone: string;
+    name?: string;
+    [key: string]: any;
+  }> | string[];
+  message: string;
+  schoolId: string;
+  supplier?: 'winsms' | 'bulksms';
+  scheduledTime?: string;
   testType?: string;
 }
 
@@ -65,7 +79,7 @@ class SmsService {
         parent_name: parentName ?? null,
         grade_id: gradeId ?? null,
         invited_via: 'sms',
-        sender, // ⚠️ TEMPORARY
+        sender,
       };
 
       console.log('📤 [SmsService] Creating invitation with payload:', payload);
@@ -123,15 +137,19 @@ class SmsService {
   }
 
   /**
-   * 🔹 Step 4: Send SMS (Test & Bulk)
+   * 🔹 Step 4: Send SMS - Single or Bulk
    */
-  async sendSms({ to, message, supplier, schoolId, testType, userEmail }: SmsParams & { userEmail?: string }) {
+  async sendSms(params: SmsParams & { userEmail?: string }) {
     try {
+      const { to, message, supplier = 'winsms', schoolId, testType, scheduledTime, userEmail } = params;
+
       logger('INFO', 'SmsService', 'Sending SMS', {
         to,
         supplier,
         schoolId,
         testType,
+        scheduledTime,
+        type: 'SINGLE',
         userEmail
       });
 
@@ -140,10 +158,12 @@ class SmsService {
         message,
         supplier,
         schoolId,
-        testType
+        testType,
+        scheduledTime,
+        isBulk: false
       };
 
-      console.log('📤 [SmsService] Sending SMS with payload:', payload);
+      console.log('📤 [SmsService] Sending single SMS with payload:', payload);
 
       const response = await fetch(`${this.baseURL}/send`, {
         method: 'POST',
@@ -170,22 +190,96 @@ class SmsService {
     } catch (error: any) {
       logger('ERROR', 'SmsService', 'Failed to send SMS', {
         error: error.message,
-        to,
-        supplier
+        to: params.to,
+        supplier: params.supplier
       });
       throw error;
     }
   }
 
   /**
-   * Higher-level method to send a test SMS with magic link
+   * 🔹 Send Bulk SMS
    */
-  async sendTestMessage({ to, schoolName, schoolId, userEmail, supplier = 'winsms' }: {
+  async sendBulkSms(params: BulkSmsParams & { userEmail?: string }) {
+    try {
+      const { recipients, message, supplier = 'winsms', schoolId, testType, scheduledTime, userEmail } = params;
+
+      logger('INFO', 'SmsService', 'Sending bulk SMS', {
+        recipientCount: recipients.length,
+        supplier,
+        schoolId,
+        testType,
+        scheduledTime,
+        type: 'BULK',
+        userEmail
+      });
+
+      // Format recipients array
+      const formattedRecipients = recipients.map(recipient => {
+        if (typeof recipient === 'string') {
+          return { phone: recipient };
+        }
+        return recipient;
+      });
+
+      const payload = {
+        recipients: formattedRecipients,
+        message,
+        supplier,
+        schoolId,
+        testType,
+        scheduledTime,
+        isBulk: true
+      };
+
+      console.log('📤 [SmsService] Sending bulk SMS with payload:', {
+        ...payload,
+        recipients: `${formattedRecipients.length} recipients`
+      });
+
+      const response = await fetch(`${this.baseURL}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail || 'kagiso.killagram@gmail.com',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      console.log('📥 [SmsService] Send bulk SMS response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP ${response.status}: Failed to send bulk SMS`);
+      }
+
+      logger('INFO', 'SmsService', 'Bulk SMS sent successfully', {
+        messageId: data.messageId,
+        sentCount: data.sentCount,
+        failedCount: data.failedCount
+      });
+
+      return data;
+    } catch (error: any) {
+      logger('ERROR', 'SmsService', 'Failed to send bulk SMS', {
+        error: error.message,
+        recipientCount: params.recipients.length,
+        supplier: params.supplier
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 🔹 Higher-level method to send a test SMS with magic link (Single)
+   */
+  async sendTestMessage({ to, schoolName, schoolId, userEmail, supplier = 'winsms', scheduledTime }: {
     to: string;
     schoolName: string;
     schoolId: string;
     userEmail?: string;
-    supplier?: 'winsms' | 'bulksms'
+    supplier?: 'winsms' | 'bulksms';
+    scheduledTime?: string;
   }) {
     const token = await this.createInvitation({
       phoneNumber: to,
@@ -203,59 +297,107 @@ class SmsService {
       supplier,
       schoolId,
       testType: 'MAGIC_LINK',
+      scheduledTime,
       userEmail,
     });
   }
 
   /**
-   * Higher-level method for bulk SMS
+   * 🔹 Higher-level method for bulk SMS with magic links
    */
-  async sendBulkMessages({ gradeIds, schoolName, recipients, schoolId, userEmail, supplier = 'winsms' }: {
-    gradeIds: string[];
+  async sendBulkTestMessages({ schoolName, recipients, schoolId, userEmail, supplier = 'winsms', scheduledTime }: {
     schoolName: string;
     recipients: { phone: string; name: string }[];
     schoolId: string;
     userEmail?: string;
     supplier?: 'winsms' | 'bulksms';
+    scheduledTime?: string;
   }) {
-    logger('INFO', 'SmsService', 'Sending bulk SMS', {
+    logger('INFO', 'SmsService', 'Sending bulk test SMS with magic links', {
       recipientCount: recipients.length,
-      schoolId
+      schoolId,
+      scheduledTime
     });
 
-    const results = [];
-    const errors = [];
+    // First, create invitations for all recipients
+    const invitations = [];
+    const invitationErrors = [];
 
     for (const recipient of recipients) {
       try {
-        const result = await this.sendTestMessage({
-          to: recipient.phone,
-          schoolName,
+        const token = await this.createInvitation({
+          phoneNumber: recipient.phone,
           schoolId,
+          parentName: recipient.name,
+          sender: userEmail || 'kagiso.killagram@gmail.com',
           userEmail,
-          supplier
         });
-        results.push(result);
+
+        const magicLink = this.buildMagicLink({ token, schoolName });
+        const message = this.buildInductionMessage({ schoolName, magicLink });
+
+        invitations.push({
+          ...recipient,
+          message,
+          token
+        });
       } catch (error: any) {
-        errors.push({
-          phone: recipient.phone,
+        invitationErrors.push({
+          ...recipient,
           error: error.message
         });
       }
     }
 
-    return {
-      sentCount: results.length,
-      failedCount: errors.length,
-      errors
-    };
+    if (invitations.length === 0) {
+      return {
+        sentCount: 0,
+        failedCount: recipients.length,
+        errors: invitationErrors
+      };
+    }
+
+    // Send bulk SMS
+    try {
+      const bulkResult = await this.sendBulkSms({
+        recipients: invitations.map(inv => ({
+          phone: inv.phone,
+          name: inv.name,
+          message: inv.message
+        })),
+        message: invitations[0].message, // All messages are the same structure
+        schoolId,
+        supplier,
+        scheduledTime,
+        testType: 'MAGIC_LINK_BULK',
+        userEmail,
+      });
+
+      // Combine invitation errors with bulk send errors
+      return {
+        ...bulkResult,
+        invitationErrors: invitationErrors.length > 0 ? invitationErrors : undefined
+      };
+    } catch (error: any) {
+      logger('ERROR', 'SmsService', 'Failed to send bulk test messages', {
+        error: error.message,
+        invitationCount: invitations.length,
+        errorCount: invitationErrors.length
+      });
+      
+      throw {
+        message: error.message,
+        invitationErrors,
+        invitationsSent: invitations.length
+      };
+    }
   }
 
   /**
-   * Schedule bulk messages for later delivery
+   * 🔹 Schedule bulk messages for later delivery
    */
-  async scheduleBulkMessage({ gradeIds, message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName, supplier = 'winsms' }: {
-    gradeIds: string[];
+  async scheduleBulkMessage({ gradeIds, message, scheduledAt, timezone, recipientNumbers, schoolId, schoolName, supplier = 'winsms', userEmail }: {
+    gradeIds?: string[];
     message: string;
     scheduledAt: string;
     timezone: string;
@@ -263,40 +405,28 @@ class SmsService {
     schoolId: string;
     schoolName: string;
     supplier?: 'winsms' | 'bulksms';
+    userEmail?: string;
   }) {
     try {
       logger('INFO', 'SmsService', 'Scheduling bulk SMS', {
         scheduledAt,
         recipientCount: recipientNumbers.length,
-        schoolName
+        schoolName,
+        timezone
       });
 
-      const response = await fetch(`${this.baseURL}/schedule-bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Email': userEmail || 'kagiso.killagram@gmail.com',
-        },
-        body: JSON.stringify({
-          gradeIds,
-          message,
-          scheduledAt,
-          timezone,
-          recipientNumbers,
-          schoolId,
-          schoolName,
-          supplier,
-          campaignType: 'SCHEDULED_INVITES',
-        }),
+      // Convert scheduled time to WinSMS format
+      const scheduledTime = new Date(scheduledAt).toISOString();
+
+      return await this.sendBulkSms({
+        recipients: recipientNumbers,
+        message,
+        schoolId,
+        supplier,
+        scheduledTime,
+        testType: 'SCHEDULED_BULK',
+        userEmail,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: Failed to schedule SMS`);
-      }
-
-      return data;
     } catch (error: any) {
       logger('ERROR', 'SmsService', 'Failed to schedule bulk SMS', { error: error.message });
       throw error;
