@@ -12,6 +12,7 @@ import { useAudienceData } from './hooks/useAudienceData';
 import { WhatsAppTesterSection } from './WhatsAppTesterSection';
 import { WhatsAppScheduler, ScheduleData } from './WhatsAppScheduler';
 import WhatsAppBusinessService from '../../../../../../../lib/services/WhatsAppBusinessService';
+import SmsService from '../../../../../../../lib/services/SmsService';
 import { EmailModalContent } from './EmailModalContent';
 
 export const ChannelModal: React.FC<ChannelModalProps> = ({
@@ -56,6 +57,7 @@ export const ChannelModal: React.FC<ChannelModalProps> = ({
   const [isSendingBulk, setIsSendingBulk] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [smsSupplier, setSmsSupplier] = useState<'winsms' | 'bulksms'>('winsms');
   const [customMessage, setCustomMessage] = useState(`Hi {{1}},
 
 Your new account has been created successfully. 
@@ -194,6 +196,12 @@ Click here to join: ${schoolLink}`;
     return whatsappNumbers.length > 0;
   });
 
+  // SMS-specific: Filter learners with valid phone numbers (reusing same logic)
+  const learnersWithSms = learners.filter(learner => {
+    const numbers = getWhatsAppNumbers(learner);
+    return numbers.length > 0;
+  });
+
   // Get the best WhatsApp number for a learner (prioritize WhatsApp-specific fields)
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);
@@ -227,7 +235,8 @@ Click here to join: ${schoolLink}`;
 
   // Get recipient numbers for bulk send
   const getRecipientNumbers = () => {
-    return learnersWithWhatsApp.map(learner => ({
+    const targetLearners = channel.id === 'sms' ? learnersWithSms : learnersWithWhatsApp;
+    return targetLearners.map(learner => ({
       phone: getBestWhatsAppNumber(learner),
       name: learner.full_name,
       learner_number: learner.accession_number,
@@ -301,35 +310,50 @@ Click here to join: ${schoolLink}`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
-      // ✅ Use the same country code helper
-      const countryCode = getCountryCode(school?.country);
-      
-      console.log('📞 Test send with country code:', {
-        originalCountry: school?.country,
-        countryCode,
-        phoneNumber: testPhoneNumber
-      });
-      
-      const result = await WhatsAppBusinessService.sendTestMessage({
-        to: testPhoneNumber.replace(/\s+/g, ''),
-        schoolId: schoolId,
-        userEmail: school?.userEmail,
-        schoolName: schoolName,
-        learnerNumber,
-        parentName,
-        invitedVia,
-        sender_id: user?.sub,
-        grade: selectedGrade,
-        countryCode: countryCode, // ✅ Now passing numeric code
-      });
+      if (channel.id === 'sms') {
+        const result = await SmsService.sendTestMessage({
+          to: testPhoneNumber.replace(/\s+/g, ''),
+          schoolName,
+          schoolId,
+          userEmail: school?.userEmail,
+          supplier: smsSupplier,
+        });
 
-      setTestResult({
-        success: true,
-        messageId: result.messageId,
-        message: 'Test message sent successfully! Check your WhatsApp.'
-      });
+        setTestResult({
+          success: true,
+          messageId: result.messageId,
+          message: 'Test SMS sent successfully!'
+        });
+      } else {
+        WhatsAppBusinessService.validateMessageTemplate(messageContent);
+
+        // ✅ Use the same country code helper
+        const countryCode = getCountryCode(school?.country);
+
+        console.log('📞 Test send with country code:', {
+          originalCountry: school?.country,
+          countryCode,
+          phoneNumber: testPhoneNumber
+        });
+
+        const result = await WhatsAppBusinessService.sendTestMessage({
+          to: testPhoneNumber.replace(/\s+/g, ''),
+          schoolId: schoolId,
+          userEmail: school?.userEmail,
+          schoolName: schoolName,
+          learnerNumber,
+          parentName,
+          sender_id: user?.sub,
+          grade: selectedGrade,
+          countryCode: countryCode, // ✅ Now passing numeric code
+        });
+
+        setTestResult({
+          success: true,
+          messageId: result.messageId,
+          message: 'Test message sent successfully! Check your WhatsApp.'
+        });
+      }
     } catch (error: any) {
       setTestResult({
         success: false,
@@ -351,10 +375,12 @@ Click here to join: ${schoolLink}`;
       return;
     }
 
-    if (learnersWithWhatsApp.length === 0) {
+    const targetLearners = channel.id === 'sms' ? learnersWithSms : learnersWithWhatsApp;
+
+    if (targetLearners.length === 0) {
       setTestResult({
         success: false,
-        message: 'No WhatsApp numbers available for bulk send'
+        message: `No ${channel.name} numbers available for bulk send`
       });
       return;
     }
@@ -363,46 +389,67 @@ Click here to join: ${schoolLink}`;
     setTestResult(null);
 
     try {
-      WhatsAppBusinessService.validateMessageTemplate(messageContent);
-      
-      const recipientNumbers = getRecipientNumbers();
-      
-      // ✅ FIX: Convert country name to country code
-      const countryCode = getCountryCode(school?.country);
-      
-      console.log('📞 Bulk send with country code:', {
-        originalCountry: school?.country,
-        countryCode,
-        recipientCount: recipientNumbers.length
-      });
-      
-      const result = await WhatsAppBusinessService.sendBulkMessages({
-        gradeIds: selectedGrades.map(g => g.id),
-        schoolName: schoolName,
-        recipientNumbers: recipientNumbers,
-        schoolId: schoolId,
-        userEmail: school?.userEmail,
-        countryCode: countryCode, // ✅ Now passing numeric code like '27'
-        senderId: user?.sub,
-      });
+      if (channel.id === 'sms') {
+        const recipientNumbers = getRecipientNumbers();
+        const result = await SmsService.sendBulkMessages({
+          gradeIds: selectedGrades.map(g => g.id),
+          schoolName: schoolName,
+          recipients: recipientNumbers,
+          schoolId: schoolId,
+          userEmail: school?.userEmail,
+          supplier: smsSupplier
+        });
 
-      setTestResult({
-        success: true,
-        message: `Bulk messages sent successfully!`,
-        bulkResult: {
+        setTestResult({
+          success: true,
+          message: `Bulk SMS sent successfully!`,
+          bulkResult: {
+            sentCount: result.sentCount,
+            failedCount: result.failedCount,
+            totalCount: recipientNumbers.length
+          }
+        });
+      } else {
+        WhatsAppBusinessService.validateMessageTemplate(messageContent);
+
+        const recipientNumbers = getRecipientNumbers();
+
+        // ✅ FIX: Convert country name to country code
+        const countryCode = getCountryCode(school?.country);
+
+        console.log('📞 Bulk send with country code:', {
+          originalCountry: school?.country,
+          countryCode,
+          recipientCount: recipientNumbers.length
+        });
+
+        const result = await WhatsAppBusinessService.sendBulkMessages({
+          gradeIds: selectedGrades.map(g => g.id),
+          schoolName: schoolName,
+          recipientNumbers: recipientNumbers,
+          schoolId: schoolId,
+          userEmail: school?.userEmail,
+          countryCode: countryCode, // ✅ Now passing numeric code like '27'
+          senderId: user?.sub,
+        });
+
+        setTestResult({
+          success: true,
+          message: `Bulk messages sent successfully!`,
+          bulkResult: {
+            sentCount: result.sentCount,
+            failedCount: result.failedCount,
+            totalCount: recipientNumbers.length
+          }
+        });
+
+        logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
           sentCount: result.sentCount,
           failedCount: result.failedCount,
-          totalCount: recipientNumbers.length
-        }
-      });
-
-      logger.info('ChannelModal', 'Bulk WhatsApp messages sent', {
-        sentCount: result.sentCount,
-        failedCount: result.failedCount,
-        totalRecipients: recipientNumbers.length,
-        gradeIds: selectedGrades.map(g => g.id)
-      });
-
+          totalRecipients: recipientNumbers.length,
+          gradeIds: selectedGrades.map(g => g.id)
+        });
+      }
     } catch (error: any) {
       setTestResult({
         success: false,
@@ -421,17 +468,31 @@ Click here to join: ${schoolLink}`;
     try {
       const recipientNumbers = getRecipientNumbers();
       
-      const result = await WhatsAppBusinessService.scheduleBulkMessage({
-        gradeIds: selectedGrades.map(g => g.id),
-        message: scheduleData.message,
-        scheduledAt: scheduleData.scheduledAt,
-        timezone: scheduleData.timezone,
-        recipientNumbers: recipientNumbers.map(r => r.phone),
-        schoolId: schoolId,
-        schoolName: schoolName
-      });
+      if (channel.id === 'sms') {
+        const result = await SmsService.scheduleBulkMessage({
+          gradeIds: selectedGrades.map(g => g.id),
+          message: scheduleData.message,
+          scheduledAt: scheduleData.scheduledAt,
+          timezone: scheduleData.timezone,
+          recipientNumbers: recipientNumbers.map(r => r.phone),
+          schoolId: schoolId,
+          schoolName: schoolName,
+          supplier: smsSupplier
+        });
+        console.log('SMS scheduled:', result);
+      } else {
+        const result = await WhatsAppBusinessService.scheduleBulkMessage({
+          gradeIds: selectedGrades.map(g => g.id),
+          message: scheduleData.message,
+          scheduledAt: scheduleData.scheduledAt,
+          timezone: scheduleData.timezone,
+          recipientNumbers: recipientNumbers.map(r => r.phone),
+          schoolId: schoolId,
+          schoolName: schoolName
+        });
+        console.log('Message scheduled:', result);
+      }
 
-      console.log('Message scheduled:', result);
       alert(`Message scheduled successfully for ${new Date(scheduleData.scheduledAt).toLocaleString()} to ${recipientNumbers.length} recipients`);
 
     } catch (error: any) {
@@ -647,6 +708,156 @@ Click here to join: ${schoolLink}`;
     );
   };
 
+  // SMS-specific: Render contacts tab
+  const renderSmsContactsTab = () => (
+    <>
+      {learnersWithSms.length > 0 && !isLoading ? (
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+          <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+            💬 SMS Contacts ({learnersWithSms.length})
+          </h4>
+
+          <div className="max-h-60 overflow-y-auto border border-blue-200 rounded-lg bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-blue-100 sticky top-0">
+                <tr>
+                  <th className="text-left p-2 text-blue-800 font-medium border-b border-blue-200">Learner Name</th>
+                  <th className="text-left p-2 text-blue-800 font-medium border-b border-blue-200">Phone Number</th>
+                  <th className="text-left p-2 text-blue-800 font-medium border-b border-blue-200">Grade</th>
+                </tr>
+              </thead>
+              <tbody>
+                {learnersWithSms.map((learner, index) => {
+                  const grade = grades.find(g => g.id === learner.grade_id);
+                  const bestNumber = getBestWhatsAppNumber(learner);
+                  return (
+                    <tr key={learner.id} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                      <td className="p-2 border-b border-blue-100 text-gray-700">{learner.full_name}</td>
+                      <td className="p-2 border-b border-blue-100 font-mono text-blue-700">{bestNumber}</td>
+                      <td className="p-2 border-b border-blue-100 text-gray-600">{grade?.name || 'Unknown'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        learnersWithSms.length === 0 && !isLoading && totalLearners > 0 && (
+          <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+            <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">⚠️ No Phone Numbers Found</h4>
+            <p className="text-sm text-yellow-700">No valid phone numbers found for the selected learners.</p>
+          </div>
+        )
+      )}
+    </>
+  );
+
+  // Main SMS Tab Renderer
+  const renderSmsContent = () => {
+    if (channel.id !== 'sms') return null;
+
+    return (
+      <div className="mt-6 border-t pt-6">
+        {/* SMS Supplier Selection */}
+        <div className="mb-6 p-4 bg-gray-50 border rounded-lg">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select SMS Supplier</label>
+          <div className="flex gap-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="smsSupplier"
+                value="winsms"
+                checked={smsSupplier === 'winsms'}
+                onChange={() => setSmsSupplier('winsms')}
+                className="mr-2"
+              />
+              WinSMS
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="smsSupplier"
+                value="bulksms"
+                checked={smsSupplier === 'bulksms'}
+                onChange={() => setSmsSupplier('bulksms')}
+                className="mr-2"
+              />
+              BulkSMS
+            </label>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'contacts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            disabled={isLoading}
+          >
+            👥 Contacts ({isLoading ? '...' : learnersWithSms.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('test')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'test' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🧪 Test Message
+          </button>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'schedule' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+            disabled={isLoading || learnersWithSms.length === 0}
+          >
+            📅 Schedule
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'contacts' && renderSmsContactsTab()}
+
+        {activeTab === 'test' && (
+          <WhatsAppTesterSection
+            testPhoneNumber={testPhoneNumber}
+            onPhoneNumberChange={setTestPhoneNumber}
+            learnerNumber={learnerNumber}
+            onLearnerNumberChange={setLearnerNumber}
+            parentName={parentName}
+            onParentNameChange={setParentName}
+            invitedVia="sms"
+            onInvitedViaChange={() => {}}
+            messageContent={messageContent}
+            onMessageChange={setCustomMessage}
+            onSendTest={handleSendTest}
+            onSendBulk={handleSendBulk}
+            isSending={isSendingTest}
+            isSendingBulk={isSendingBulk}
+            testResult={testResult}
+            validationErrors={validationErrors}
+            schoolName={schoolName}
+            selectedGrade={selectedGrade}
+            totalRecipients={learnersWithSms.length}
+            canSendBulk={learnersWithSms.length > 0}
+          />
+        )}
+
+        {activeTab === 'schedule' && (
+          <WhatsAppScheduler
+            onSchedule={handleScheduleMessage}
+            isScheduling={isScheduling}
+            messageContent={messageContent}
+            totalRecipients={learnersWithSms.length}
+          />
+        )}
+      </div>
+    );
+  };
+
   // Debug: Log phone number sources for troubleshooting
   React.useEffect(() => {
     if (channel.id === 'whatsapp' && learners.length > 0 && !isLoading) {
@@ -801,6 +1012,7 @@ Click here to join: ${schoolLink}`;
 
         {/* Enhanced WhatsApp Content with Bulk Send */}
         {channel.id === 'whatsapp' && renderWhatsAppContent()}
+        {channel.id === 'sms' && renderSmsContent()}
         {channel.id === 'email' && (
           <EmailModalContent
             learners={learners}

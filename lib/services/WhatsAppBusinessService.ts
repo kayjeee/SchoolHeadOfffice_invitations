@@ -47,6 +47,7 @@ interface BulkMessagesParams {
   schoolId: string;
   userEmail?: string;
   senderId?: string;
+  countryCode?: string;
 }
 
 interface BuildMagicLinkParams {
