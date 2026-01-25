@@ -33,7 +33,7 @@ interface AppThemeContextType {
 const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined);
 
 // Add your Rails API base URL here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'shobackendv2-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
 const DEFAULT_PRIMARY = 'white';
@@ -166,26 +166,28 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [setPrimaryColor]);
 
-  // Fetch user data from Rails API using Auth0 ID
+  // ✅ FIXED: Fetch user data using query params (Auth0-safe)
   const fetchUserData = useCallback(async (auth0Id: string) => {
     try {
+      const endpoint = `${API_BASE_URL}/api/v1/users/show?auth0_id=${encodeURIComponent(auth0Id)}`;
+      
       nasaLog('INFO', MODULE_TAG, 'Fetching user data from Rails API', {
         auth0Id,
-        endpoint: `${API_BASE_URL}/api/v1/users/${encodeURIComponent(auth0Id)}`,
+        endpoint,
       });
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/users/${encodeURIComponent(auth0Id)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.errors?.[0] || `HTTP error! status: ${response.status}`
+        );
       }
 
       const data = await response.json();
@@ -204,23 +206,62 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Fetch school data from Rails API
-  const fetchSchoolData = useCallback(async (schoolId: string): Promise<School | null> => {
+  // ✅ FIXED: Fetch schools using query params (Auth0-safe)
+  const fetchUserSchools = useCallback(async (auth0Id: string) => {
     try {
-      nasaLog('DEBUG', MODULE_TAG, 'Fetching school data', {
-        schoolId,
-        endpoint: `${API_BASE_URL}/api/v1/schools/${schoolId}`,
+      const endpoint = `${API_BASE_URL}/api/v1/users/schools?auth0_id=${encodeURIComponent(auth0Id)}`;
+      
+      nasaLog('INFO', MODULE_TAG, 'Fetching user schools from Rails API', {
+        auth0Id,
+        endpoint,
       });
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/schools/${schoolId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.errors?.[0] || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error('Invalid schools data structure received');
+      }
+
+      return data.data.schools || [];
+    } catch (err: any) {
+      nasaLog('ERROR', MODULE_TAG, 'Failed to fetch user schools', {
+        auth0Id,
+        errorMessage: err.message,
+      });
+      throw err;
+    }
+  }, []);
+
+  // Fetch school data from Rails API (this uses internal ID, so it's fine)
+  const fetchSchoolData = useCallback(async (schoolId: string): Promise<School | null> => {
+    try {
+      const endpoint = `${API_BASE_URL}/api/v1/schools/${schoolId}`;
+      
+      nasaLog('DEBUG', MODULE_TAG, 'Fetching school data', {
+        schoolId,
+        endpoint,
+      });
+
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -242,9 +283,9 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Main function to fetch user schools from Rails API
-  const fetchUserSchools = useCallback(async () => {
-    nasaLog('INFO', MODULE_TAG, 'Starting school fetch process', {
+  // ✅ IMPROVED: Main function to fetch and initialize schools
+  const initializeSchools = useCallback(async () => {
+    nasaLog('INFO', MODULE_TAG, 'Starting school initialization process', {
       auth0Id: auth0User?.sub || 'none',
       triggerCount: refreshTrigger,
     });
@@ -261,18 +302,12 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Fetch user data first
-      const userData = await fetchUserData(auth0User.sub);
+      // ✅ Use the new schools endpoint that returns schools directly
+      const userSchools = await fetchUserSchools(auth0User.sub);
 
-      if (!userData) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const schoolIds = userData.school_ids || [];
-
-      if (schoolIds.length === 0) {
-        nasaLog('WARN', MODULE_TAG, 'User has no school_ids', {
-          userId: userData._id,
+      if (userSchools.length === 0) {
+        nasaLog('WARN', MODULE_TAG, 'User has no schools', {
+          userId: auth0User.sub,
         });
         setSchools([]);
         setCurrentSchool(null);
@@ -280,33 +315,18 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Fetch all schools in parallel
-      const schoolPromises = schoolIds.map((schoolId: string) =>
-        fetchSchoolData(schoolId)
-      );
-      const schoolResults = await Promise.all(schoolPromises);
-
-      // Filter out null results (failed fetches)
-      const validSchools = schoolResults.filter(
-        (school): school is School => school !== null
-      );
-
-      if (validSchools.length === 0) {
-        throw new Error('No valid schools could be fetched');
-      }
-
-      setSchools(validSchools);
+      setSchools(userSchools);
 
       // Select current school
       const lastSchoolId = localStorage.getItem('lastSelectedSchool');
       let selected: School | null = null;
 
       if (lastSchoolId) {
-        selected = validSchools.find((s) => s._id === lastSchoolId) || null;
+        selected = userSchools.find((s) => s._id === lastSchoolId) || null;
       }
 
-      if (!selected && validSchools.length > 0) {
-        selected = validSchools[0];
+      if (!selected && userSchools.length > 0) {
+        selected = userSchools[0];
       }
 
       if (selected) {
@@ -321,8 +341,13 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setCurrentSchool(null);
       }
+
+      nasaLog('INFO', MODULE_TAG, 'School initialization completed successfully', {
+        schoolCount: userSchools.length,
+        selectedSchoolId: selected?._id,
+      });
     } catch (err: any) {
-      nasaLog('ERROR', MODULE_TAG, 'Failed to fetch schools', {
+      nasaLog('ERROR', MODULE_TAG, 'Failed to initialize schools', {
         errorMessage: err.message,
       });
       setError(`Failed to load school information: ${err.message}`);
@@ -331,20 +356,19 @@ export const AppThemeProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [auth0User?.sub, refreshTrigger, fetchUserData, fetchSchoolData, setPrimaryColor]);
+  }, [auth0User?.sub, refreshTrigger, fetchUserSchools, setPrimaryColor]);
 
-  const refreshSchools = useCallback(() => {
+  const refreshSchools = useCallback(async () => {
     nasaLog('INFO', MODULE_TAG, 'Manual refresh triggered');
     setRefreshTrigger((prev) => prev + 1);
-    return Promise.resolve();
   }, []);
 
   // Watch for user to be defined before fetching schools
   useEffect(() => {
     if (auth0User?.sub) {
-      fetchUserSchools();
+      initializeSchools();
     }
-  }, [auth0User?.sub, fetchUserSchools]);
+  }, [auth0User?.sub, initializeSchools]);
 
   const handleSetCurrentSchool = useCallback((school: School | null) => {
     setCurrentSchool(school);
