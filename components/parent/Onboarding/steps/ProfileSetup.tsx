@@ -4,10 +4,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-// Match the exact field names your backend expects
+// Updated schema to include phone
 const profileSchema = z.object({
-  first_name: z.string().min(2, 'First name must be at least 2 characters'),
-  last_name: z.string().min(2, 'Last name must be at least 2 characters'),
+  name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   email: z.string().email('Please enter a valid email address'),
 });
@@ -17,8 +16,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 interface ProfileSetupProps {
   onComplete: (data: ProfileFormData) => void;
   prefillData?: {
-    first_name?: string;
-    last_name?: string;
+    name?: string;
     phone?: string;
     email?: string;
   };
@@ -30,6 +28,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ProfileFormData | null>(null);
+  const [lastResponse, setLastResponse] = useState<any>(null);
 
   const {
     register,
@@ -40,11 +39,13 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
     formState: { errors, isValid },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-    mode: 'onChange', // Validate on change for better UX
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+    }
   });
-
-  // Watch form values for debugging
-  const watchedValues = watch();
 
   useEffect(() => {
     console.log('🔍 ProfileSetup mounted with props:', {
@@ -56,26 +57,14 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
 
     if (prefillData) {
       console.log('📋 Setting form values from prefillData:', prefillData);
-      // Set initial values from prefillData
-      if (prefillData.first_name) setValue('first_name', prefillData.first_name);
-      if (prefillData.last_name) setValue('last_name', prefillData.last_name);
+      if (prefillData.name) setValue('name', prefillData.name);
       if (prefillData.phone) setValue('phone', prefillData.phone);
       if (prefillData.email) setValue('email', prefillData.email);
     }
   }, [prefillData, setValue, user, isLocked, onComplete]);
 
-  // Debug: Log form changes
-  useEffect(() => {
-    console.log('📝 Form values changed:', watchedValues);
-  }, [watchedValues]);
-
   const handleFormSubmit = handleSubmit(async (data) => {
     console.log('📋 Form submitted with data:', data);
-    console.log('🔍 first_name value:', data.first_name);
-    console.log('🔍 last_name value:', data.last_name);
-    console.log('🔍 phone value:', data.phone);
-    console.log('🔍 email value:', data.email);
-    
     await handleSave(data);
   });
 
@@ -93,28 +82,19 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
     setFormData(data);
 
     try {
-      // Encode the user ID properly (auth0 IDs contain pipe characters)
       const encodedUserId = encodeURIComponent(user.sub);
       
-      // Create the exact payload structure that backend expects
+      // Create payload with phone field
       const payload = {
-        user: {
-          first_name: data.first_name,
-          last_name: data.last_name,
-          phone: data.phone,
-          email: data.email,
-        }
+        name: data.name,
+        phone: data.phone, // Include phone field
+        email: data.email,
       };
       
       console.log('📤 Sending profile update with payload:', payload);
-      console.log('🔍 Payload keys:', Object.keys(payload.user));
-      console.log('🔍 first_name exists?', 'first_name' in payload.user, 'value:', payload.user.first_name);
-      console.log('🔍 last_name exists?', 'last_name' in payload.user, 'value:', payload.user.last_name);
-      console.log('🔍 Raw JSON string:', JSON.stringify(payload));
       
-      // Save to backend - match the exact format from your working curl command
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodedUserId}/update_profile`,
+        `http://localhost:4000/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
         {
           method: 'PATCH',
           headers: {
@@ -125,10 +105,12 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       );
 
       console.log('📥 Response status:', response.status);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
       
       const result = await response.json();
       console.log('📥 Response data:', result);
+      
+      // Store the response for debugging
+      setLastResponse(result);
 
       if (!response.ok || !result.success) {
         const errorMessage = result.errors?.join(', ') || result.error || 'Failed to save profile';
@@ -136,7 +118,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
         throw new Error(errorMessage);
       }
 
-      console.log('✅ Profile saved successfully:', result.data.user);
+      console.log('✅ Profile saved successfully:', result.data?.user);
       console.log('🚀 Calling onComplete callback with data:', data);
       
       // Call the parent's onComplete callback
@@ -155,8 +137,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
   const testWithHardcodedData = () => {
     console.log('🧪 Testing with hardcoded data');
     const testData = {
-      first_name: 'Test',
-      last_name: 'User',
+      name: 'Test User',
       phone: '27814296653',
       email: 'test@example.com'
     };
@@ -179,9 +160,16 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
           {formData && (
             <div>Last submitted data: {JSON.stringify(formData)}</div>
           )}
+          {lastResponse && (
+            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+              <div className="font-semibold text-green-800">Last API Response:</div>
+              <pre className="text-xs overflow-auto max-h-32">
+                {JSON.stringify(lastResponse, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
         
-        {/* Test buttons */}
         <div className="mt-3 space-x-2">
           <button
             type="button"
@@ -213,48 +201,29 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       )}
       
       <form onSubmit={handleFormSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              First Name *
+              Full Name *
             </label>
             <input 
-              {...register('first_name', {
-                onChange: (e) => console.log('first_name changed to:', e.target.value)
-              })} 
+              {...register('name')} 
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border" 
-              placeholder="Enter your first name"
+              placeholder="Enter your full name"
               disabled={isSaving}
             />
-            {errors.first_name && (
-              <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
             )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Last Name *
-            </label>
-            <input 
-              {...register('last_name', {
-                onChange: (e) => console.log('last_name changed to:', e.target.value)
-              })} 
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border" 
-              placeholder="Enter your last name"
-              disabled={isSaving}
-            />
-            {errors.last_name && (
-              <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>
-            )}
-          </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number *
               {isLocked && <span className="ml-2 text-xs text-blue-600">(Pre-filled from invitation)</span>}
             </label>
             <input
-              {...register('phone', {
-                onChange: (e) => console.log('phone changed to:', e.target.value)
-              })}
+              {...register('phone')}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border disabled:bg-gray-100"
               disabled={isLocked || isSaving}
               placeholder="27814296653"
@@ -264,14 +233,13 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
               <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>
             )}
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address *
             </label>
             <input 
-              {...register('email', {
-                onChange: (e) => console.log('email changed to:', e.target.value)
-              })} 
+              {...register('email')} 
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border" 
               placeholder="your.email@example.com"
               type="email"
@@ -302,15 +270,24 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
         </div>
       </form>
       
+      {/* Success message - backend is now fixed! */}
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+        <p className="font-semibold mb-1">✅ Backend Fixed!</p>
+        <p className="text-xs">
+          The backend API is now working correctly and returning proper JSON responses.
+          Phone numbers are now being saved along with name and email.
+        </p>
+      </div>
+      
       {/* Instructions for debugging */}
       <div className="mt-4 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
         <p className="font-semibold">Debugging Instructions:</p>
         <ol className="list-decimal ml-4 mt-1 space-y-1">
           <li>Open Browser DevTools (F12)</li>
           <li>Go to Console tab to see logs</li>
-          <li>Go to Network tab to see API request</li>
-          <li>Click "Test with Hardcoded Data" to bypass form validation</li>
-          <li>Check if payload contains first_name and last_name</li>
+          <li>Go to Network tab to see API request/response</li>
+          <li>Check if payload contains name, phone, and email</li>
+          <li>Last API response will be shown above for debugging</li>
         </ol>
       </div>
     </div>

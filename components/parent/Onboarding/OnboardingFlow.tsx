@@ -233,44 +233,46 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   }, [router.query, currentStep, completeStep, returningFromPayment, router]);
 
   // Fetch existing user profile
-  const fetchUserProfile = async () => {
-    const userId = safeUserId(safeUser);
-    if (!userId) {
-      console.log('⏭️ Skipping profile fetch: no user ID');
-      setIsLoadingProfile(false);
-      return;
-    }
-    
-    console.log('📥 Fetching user profile...', { userId });
-    
-    setIsLoadingProfile(true);
-    try {
-      const response = await fetch(
-        `http://localhost:4000/api/v1/users/${encodeURIComponent(userId)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data.user) {
-          console.log('✅ User profile fetched:', result.data.user);
-          setExistingProfile(result.data.user);
-        }
-      } else {
-        console.log('ℹ️ No existing profile found');
+// In OnboardingFlow.tsx, update the fetchUserProfile function
+const fetchUserProfile = async () => {
+  const userId = safeUserId(safeUser);
+  if (!userId) {
+    console.log('⏭️ Skipping profile fetch: no user ID');
+    setIsLoadingProfile(false);
+    return;
+  }
+  
+  console.log('📥 Fetching user profile...', { userId });
+  
+  setIsLoadingProfile(true);
+  try {
+    // ✅ FIXED: Use query parameter instead of path parameter
+    const response = await fetch(
+      `http://localhost:4000/api/v1/users/profile?auth0_id=${encodeURIComponent(userId)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }
-    } catch (error) {
-      console.error("❌ Error fetching user profile:", error);
-      setOnboardingError("Could not load your profile. Please refresh the page.");
-    } finally {
-      setIsLoadingProfile(false);
+    );
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data.user) {
+        console.log('✅ User profile fetched:', result.data.user);
+        setExistingProfile(result.data.user);
+      }
+    } else {
+      console.log('ℹ️ No existing profile found');
     }
-  };
+  } catch (error) {
+    console.error("❌ Error fetching user profile:", error);
+    setOnboardingError("Could not load your profile. Please refresh the page.");
+  } finally {
+    setIsLoadingProfile(false);
+  }
+};
 
   // Fetch learners linked to this parent
   const fetchLearners = async () => {
