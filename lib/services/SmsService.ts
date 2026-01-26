@@ -1,5 +1,6 @@
 // lib/services/SmsService.ts
 import { nasaLog as logger } from '../nasaLogger';
+import InvitationService from './invitationService';
 
 interface InvitationParams {
   phoneNumber: string;
@@ -273,19 +274,37 @@ class SmsService {
   /**
    * 🔹 Higher-level method to send a test SMS with magic link (Single)
    */
-  async sendTestMessage({ to, schoolName, schoolId, userEmail, supplier = 'winsms', scheduledTime }: {
+  async sendTestMessage({
+    to,
+    schoolName,
+    schoolId,
+    userEmail,
+    supplier = 'winsms',
+    scheduledTime,
+    learnerNumber,
+    parentName,
+    gradeId,
+    sender_id,
+  }: {
     to: string;
     schoolName: string;
     schoolId: string;
     userEmail?: string;
     supplier?: 'winsms' | 'bulksms';
     scheduledTime?: string;
+    learnerNumber?: string;
+    parentName?: string;
+    gradeId?: string;
+    sender_id?: string;
   }) {
     const token = await this.createInvitation({
       phoneNumber: to,
       schoolId,
-      sender: userEmail || 'kagiso.killagram@gmail.com',
+      sender: sender_id || userEmail || 'kagiso.killagram@gmail.com',
       userEmail,
+      learnerNumbers: learnerNumber ? [learnerNumber] : [],
+      parentName,
+      gradeId,
     });
 
     const magicLink = this.buildMagicLink({ token, schoolName });
@@ -305,67 +324,81 @@ class SmsService {
   /**
    * 🔹 Higher-level method for bulk SMS with magic links
    */
-  async sendBulkTestMessages({ schoolName, recipients, schoolId, userEmail, supplier = 'winsms', scheduledTime }: {
+  async sendBulkMessages({
+    schoolName,
+    recipients,
+    schoolId,
+    userEmail,
+    supplier = 'winsms',
+    scheduledTime,
+    gradeIds,
+    senderId,
+  }: {
     schoolName: string;
-    recipients: { phone: string; name: string }[];
+    recipients: {
+      phone: string;
+      name: string;
+      learner_number?: string;
+      grade?: string;
+    }[];
     schoolId: string;
     userEmail?: string;
     supplier?: 'winsms' | 'bulksms';
     scheduledTime?: string;
+    gradeIds?: string[];
+    senderId?: string;
   }) {
-    logger('INFO', 'SmsService', 'Sending bulk test SMS with magic links', {
+    logger('INFO', 'SmsService', 'Sending bulk SMS with magic links', {
       recipientCount: recipients.length,
       schoolId,
-      scheduledTime
+      scheduledTime,
     });
 
-    // First, create invitations for all recipients
-    const invitations = [];
-    const invitationErrors = [];
+    try {
+      // 1. Create bulk invitations
+      const bulkInvitations = recipients.map((r) => ({
+        phone_number: r.phone,
+        parent_name: r.name,
+        learner_numbers: r.learner_number ? [r.learner_number] : [],
+        grade_id: gradeIds && gradeIds.length > 0 ? gradeIds[0] : undefined,
+      }));
 
-    for (const recipient of recipients) {
-      try {
-        const token = await this.createInvitation({
-          phoneNumber: recipient.phone,
-          schoolId,
-          parentName: recipient.name,
-          sender: userEmail || 'kagiso.killagram@gmail.com',
-          userEmail,
-        });
+      const bulkResponse = await InvitationService.createBulkInvitations({
+        invitations: bulkInvitations,
+        school_id: schoolId,
+        sender_id: senderId,
+        userEmail,
+        invitedVia: 'sms',
+      });
+
+      if (!bulkResponse.success || !bulkResponse.invitations) {
+        throw new Error('Bulk invitation creation failed');
+      }
+
+      // 2. Process invitations into messages
+      const personalizedMessages = bulkResponse.invitations.map((inv: any) => {
+        const token = inv.token;
+        if (!token) return null;
 
         const magicLink = this.buildMagicLink({ token, schoolName });
         const message = this.buildInductionMessage({ schoolName, magicLink });
 
-        invitations.push({
-          ...recipient,
-          message,
-          token
-        });
-      } catch (error: any) {
-        invitationErrors.push({
-          ...recipient,
-          error: error.message
-        });
+        return {
+          phone: inv.phone_number,
+          name: inv.parent_name,
+          message: message,
+          token: token,
+        };
+      }).filter((msg: any) => msg !== null);
+
+      if (personalizedMessages.length === 0) {
+        throw new Error('No valid invitations created');
       }
-    }
 
-    if (invitations.length === 0) {
-      return {
-        sentCount: 0,
-        failedCount: recipients.length,
-        errors: invitationErrors
-      };
-    }
-
-    // Send bulk SMS
-    try {
+      // 3. Send bulk SMS via provider
       const bulkResult = await this.sendBulkSms({
-        recipients: invitations.map(inv => ({
-          phone: inv.phone,
-          name: inv.name,
-          message: inv.message
-        })),
-        message: invitations[0].message, // All messages are the same structure
+        recipients: personalizedMessages,
+        message: personalizedMessages[0].message,
         schoolId,
         supplier,
         scheduledTime,
@@ -373,23 +406,17 @@ class SmsService {
         userEmail,
       });
 
-      // Combine invitation errors with bulk send errors
       return {
         ...bulkResult,
-        invitationErrors: invitationErrors.length > 0 ? invitationErrors : undefined
+        totalCount: recipients.length,
+        processedCount: personalizedMessages.length,
       };
     } catch (error: any) {
-      logger('ERROR', 'SmsService', 'Failed to send bulk test messages', {
+      logger('ERROR', 'SmsService', 'Failed to send bulk SMS', {
         error: error.message,
-        invitationCount: invitations.length,
-        errorCount: invitationErrors.length
+        schoolId,
       });
-      
-      throw {
-        message: error.message,
-        invitationErrors,
-        invitationsSent: invitations.length
-      };
+      throw error;
     }
   }
 
