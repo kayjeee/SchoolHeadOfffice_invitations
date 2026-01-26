@@ -546,7 +546,8 @@ async sendBulkMessages({
     const invitations = recipientNumbers.map((recipient: any) => ({
       phone_number: recipient.phone,
       parent_name: recipient.name || 'Parent',
-      learner_number: recipient.learner_number,
+      learner_numbers: recipient.learner_number ? [recipient.learner_number] : [],
+      grade_id: gradeIds && gradeIds.length > 0 ? gradeIds[0] : undefined,
     }));
 
     console.log('📞 Prepared invitations:', {
