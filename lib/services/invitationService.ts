@@ -5,12 +5,14 @@ interface BulkInvitationParams {
   invitations: {
     phone_number: string;
     parent_name?: string;
-    learner_number?: string;
+    learner_numbers?: string[];
+    grade_id?: string;
   }[];
   school_id: string;
   sender_id?: string;
   userEmail?: string;
   countryCode?: string;
+  invitedVia?: string;
 }
 
 class InvitationService {
@@ -21,7 +23,7 @@ class InvitationService {
   }
 
   async createBulkInvitations(params: BulkInvitationParams): Promise<any> {
-    const { invitations, school_id, sender_id, userEmail, countryCode } = params;
+    const { invitations, school_id, sender_id, userEmail, countryCode, invitedVia } = params;
 
     if (!invitations || invitations.length === 0) {
       throw new Error('Invitations array cannot be empty.');
@@ -31,8 +33,9 @@ class InvitationService {
       invitations,
       school_id,
       sender_id,
+      sender: userEmail,
       role: 'parent',
-      invited_via: 'whatsapp',
+      invited_via: invitedVia || 'whatsapp',
       country_code: countryCode,
     };
 

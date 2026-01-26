@@ -1,8 +1,8 @@
-// components/onboarding/onboarding/OnboardingFlow/Step3SendInvites/components/ChannelSelection/WhatsAppTesterSection.tsx
+// components/onboarding/onboarding/OnboardingFlow/Step3SendInvites/components/ChannelSelection/MessageTesterSection.tsx
 import React from "react";
 import { Send, Loader, AlertCircle, CheckCircle, Users } from "lucide-react";
 
-interface WhatsAppTesterSectionProps {
+interface MessageTesterSectionProps {
   testPhoneNumber: string;
   onPhoneNumberChange: (value: string) => void;
   learnerNumber: string;
@@ -25,7 +25,7 @@ interface WhatsAppTesterSectionProps {
   canSendBulk: boolean;
 }
 
-export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
+export const MessageTesterSection: React.FC<MessageTesterSectionProps> = ({
   testPhoneNumber,
   onPhoneNumberChange,
   learnerNumber,
@@ -138,7 +138,7 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
           value={messageContent}
           onChange={(e) => onMessageChange(e.target.value)}
           rows={8}
-          placeholder="Enter your WhatsApp message here..."
+          placeholder={`Enter your ${invitedVia} message here...`}
           className={`w-full px-3 py-2 border rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-black placeholder-gray-500 ${
             validationErrors?.message ? "border-red-300" : "border-gray-300"
           }`}
@@ -291,7 +291,7 @@ export const WhatsAppTesterSection: React.FC<WhatsAppTesterSectionProps> = ({
           </div>
           <div>
             <strong className="text-gray-900">Bulk Send:</strong>
-            <p className="mt-1">Send the same message to all {totalRecipients} WhatsApp contacts at once. Make sure to test first!</p>
+            <p className="mt-1">Send the same message to all {totalRecipients} {invitedVia} contacts at once. Make sure to test first!</p>
           </div>
           <div>
             <strong className="text-gray-900">Template Variables:</strong>

@@ -1,8 +1,8 @@
-// WhatsAppScheduler.tsx
+// MessageScheduler.tsx
 import React, { useState } from 'react';
 import { Calendar, Clock, Send, AlertCircle } from 'lucide-react';
 
-interface WhatsAppSchedulerProps {
+interface MessageSchedulerProps {
   onSchedule: (scheduleData: ScheduleData) => void;
   isScheduling: boolean;
   messageContent: string;
@@ -16,7 +16,7 @@ export interface ScheduleData {
   recipientCount: number;
 }
 
-export const WhatsAppScheduler: React.FC<WhatsAppSchedulerProps> = ({
+export const MessageScheduler: React.FC<MessageSchedulerProps> = ({
   onSchedule,
   isScheduling,
   messageContent,
