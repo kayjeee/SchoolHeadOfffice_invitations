@@ -384,15 +384,13 @@ const fetchUserProfile = async () => {
           return <LoadingScreen message="Loading your profile..." />;
         }
         
-        const existingName = existingProfile?.name || '';
-        const nameParts = existingName.split(' ');
+        const existingName = existingProfile?.name || safeUserName(safeUser) || '';
         
         return (
           <ProfileSetup
             onComplete={(data) => completeStep(currentStep, data)}
             prefillData={{
-              first_name: nameParts[0] || '',
-              last_name: nameParts.slice(1).join(' ') || '',
+              name: existingName,
               email: existingProfile?.email || safeUserEmail(safeUser) || '',
               phone: hasInvitation 
                 ? (onboardingData?.parent_phone || existingProfile?.phone_number || '')
