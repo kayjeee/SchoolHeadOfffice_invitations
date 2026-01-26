@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import FrontPageLayout from "../components/Layouts/FrontPageLayout";
-import FrontPageLayoutMobileView from "../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
 import DesktopHome from "../components/FrontPageComponents/DesktopHome";
-import MobileHome from "../components/FrontPageComponents/MobileHome";
 import LoadingSpinner from "../components/spinners/LoadingSpinner";
 import clientPromise from "../lib/mongodb";
 
 const Home = ({ schools }) => {
   const { user, isLoading: authLoading } = useUser();
-  const dropdownRef = useRef(null);
 
   const [state, setState] = useState({
-    isMobile: false,
-    chatOpen: false,
-    dropdownOpen: false,
     userData: null,
     userRoles: [],
     error: null,
-    isProcessing: true, // 🔹 controls "Loading..." state
+    isProcessing: true,
   });
 
   // ✅ Helper: get Management API access token
@@ -32,7 +26,7 @@ const Home = ({ schools }) => {
     return accessToken;
   };
 
-  // ✅ Step 1: Check and Save User should work
+  // ✅ Step 1: Check and Save User
   const checkAndSaveUser = async (token, authUser) => {
     const userId = encodeURIComponent(authUser.sub);
     const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
@@ -41,8 +35,10 @@ const Home = ({ schools }) => {
     console.log("[checkAndSaveUser] Checking user:", userId);
 
     const response = await fetch(checkUserUrl, {
-      headers: { Authorization: `Bearer ${token}`,
-    "ngrok-skip-browser-warning": "true" },
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true" 
+      },
     });
 
     if (response.status === 404) {
@@ -101,7 +97,7 @@ const Home = ({ schools }) => {
   // ✅ Step 3: Initialization flow
   useEffect(() => {
     const initializeUser = async () => {
-      if (authLoading) return; // Wait until Auth0 finishes
+      if (authLoading) return;
       if (!user) {
         console.log("[initializeUser] No Auth0 user yet.");
         setState((prev) => ({ ...prev, isProcessing: false }));
@@ -114,9 +110,7 @@ const Home = ({ schools }) => {
         const token = await getAccessTokenFromAPI();
         console.log("[initializeUser] Got access token.");
 
-        // Step 1: Check or create user in backend
         const userRecord = await checkAndSaveUser(token, user);
-        // Step 2: Fetch roles from Auth0
         const roles = await fetchUserRoles(token, encodeURIComponent(user.sub));
 
         setState((prev) => ({
@@ -138,38 +132,14 @@ const Home = ({ schools }) => {
     initializeUser();
   }, [user, authLoading]);
 
-  // ✅ Handle screen resize for mobile/desktop detection
-  useEffect(() => {
-    const handleResize = () => {
-      setState((prev) => ({ ...prev, isMobile: window.innerWidth < 768 }));
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const { isMobile, chatOpen, dropdownOpen, error, userRoles, isProcessing } =
-    state;
+  const { error, userRoles, isProcessing } = state;
 
   // ✅ Show loading spinner while processing user setup
   if (authLoading || isProcessing) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
-  // ✅ Render final layouts
-  return isMobile ? (
-    <FrontPageLayoutMobileView user={user} schools={schools} userRoles={userRoles}>
-      <MobileHome
-        handleSearchClick={() =>
-          setState((prev) => ({ ...prev, dropdownOpen: !dropdownOpen }))
-        }
-        handleChatClick={() =>
-          setState((prev) => ({ ...prev, chatOpen: !chatOpen }))
-        }
-        dropdownOpen={dropdownOpen}
-        schools={schools}
-      />
-    </FrontPageLayoutMobileView>
-  ) : (
+  // ✅ Render desktop layout only
+  return (
     <FrontPageLayout user={user} schools={schools} userRoles={userRoles}>
       <DesktopHome schools={schools} />
     </FrontPageLayout>
@@ -196,4 +166,3 @@ export async function getServerSideProps() {
 }
 
 export default Home;
-
