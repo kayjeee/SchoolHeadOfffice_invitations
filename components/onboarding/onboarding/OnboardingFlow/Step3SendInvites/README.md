@@ -13,7 +13,19 @@ Step3SendInvites/
 │   │   ├── LearnerCard.tsx           # Individual learner card
 │   │   └── GradeFilter.tsx           # Grade filtering component (placeholder)
 │   ├── ChannelSelection/
-│   │   └── index.tsx                 # Communication channel selection
+│   │       ├─ ChannelModal.tsx
+            ├─ ChannelSelection.tsx
+            ├─ EmailModalContent.tsx
+            ├─ EmailScheduler.tsx
+            ├─ EmailTesterSection.tsx
+            ├─ index.tsx
+            ├─ InvitationComposer.tsx
+            ├─ QrCodeWithCopy.tsx
+            ├─ ReadMe.md
+            ├─ SchoolInfoHeader.tsx
+            ├─ WhatsAppMessageTester.js
+            ├─ WhatsAppScheduler.tsx
+            ├─ WhatsAppTesterSection.tsx
 │   ├── MessageComposer/
 │   │   └── index.tsx                 # Message composition interface
 │   ├── InviteResults/

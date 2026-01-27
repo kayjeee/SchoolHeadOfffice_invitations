@@ -25,7 +25,7 @@
     "additional.d.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "pages/api/whatsapp-business/send-bulk.js"  ],
   "exclude": [
     "node_modules"
   ]
