@@ -1,104 +1,72 @@
 // components/Schoolpage/CreateSchoolForm/services/schoolService.js
 
-// --- Config ---
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
+// -------------------------------------------------
+// Config
+// -------------------------------------------------
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://shobackendv2-production.up.railway.app";
+
 const AUTH0_DOMAIN =
-  process.env.NEXT_PUBLIC_AUTH0_DOMAIN || "dev-q3l2f3kyx1zmv3iq.us.auth0.com";
+  process.env.NEXT_PUBLIC_AUTH0_DOMAIN ||
+  "dev-q3l2f3kyx1zmv3iq.us.auth0.com";
 
 // -------------------------------------------------
 // 0. Auth0 Helpers
 // -------------------------------------------------
 
-/**
- * Fetches Auth0 management API access token
- * @returns {Promise<string>} Access token for Auth0 Management API
- */
 export const getAccessToken = async () => {
-  try {
-    const response = await fetch("/api/getAccessToken", { method: "POST" });
-    if (!response.ok) throw new Error("Failed to fetch access token");
+  const res = await fetch("/api/getAccessToken", { method: "POST" });
+  if (!res.ok) throw new Error("Failed to fetch Auth0 access token");
 
-    const data = await response.json();
-    if (!data.accessToken) {
-      throw new Error("No accessToken returned from API route");
-    }
-console.log("🎟️ Access token response:", data);
-
-    return data.accessToken.trim();
-  } catch (error) {
-    console.error("💥 Error in getAccessToken:", error);
-    throw error;
+  const data = await res.json();
+  if (!data?.accessToken) {
+    throw new Error("No accessToken returned from API route");
   }
+
+  return data.accessToken.trim();
 };
 
-/**
- * Fetch all roles from Auth0 Management API
- */
 export const fetchAuth0Roles = async (token) => {
-  if (!AUTH0_DOMAIN) {
-    throw new Error("❌ AUTH0_DOMAIN environment variable is not set");
-  }
-  if (!token || typeof token !== "string") {
-    throw new Error("❌ Invalid token passed to fetchAuth0Roles");
-  }
-
-  const cleanToken = token.trim();
-  console.log(
-    "🔑 Using token for fetchAuth0Roles:",
-    cleanToken.slice(0, 20) + "..."
-  );
+  if (!token) throw new Error("No token provided to fetchAuth0Roles");
 
   const res = await fetch(`https://${AUTH0_DOMAIN}/api/v2/roles`, {
-    headers: { Authorization: `Bearer ${cleanToken}` },
+    headers: { Authorization: `Bearer ${token.trim()}` },
   });
 
   if (!res.ok) {
-    throw new Error(
-      `❌ Failed to fetch Auth0 roles: ${res.status} ${await res.text()}`
-    );
+    throw new Error(`Failed to fetch Auth0 roles: ${await res.text()}`);
   }
 
   return res.json();
 };
 
-/**
- * Assigns roles to a user in Auth0
- */
 export const assignAuth0Role = async (userId, token, roleIds) => {
-  if (!AUTH0_DOMAIN) {
-    throw new Error("❌ AUTH0_DOMAIN environment variable is not set");
-  }
-  if (!token) {
-    throw new Error("❌ No token provided for assignAuth0Role");
-  }
-
-  const url = `https://${AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
-    userId
-  )}/roles`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token.trim()}`,
-    },
-    body: JSON.stringify({ roles: roleIds }),
-  });
+  const res = await fetch(
+    `https://${AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
+      userId
+    )}/roles`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.trim()}`,
+      },
+      body: JSON.stringify({ roles: roleIds }),
+    }
+  );
 
   if (!res.ok) {
-    throw new Error(
-      `❌ Failed to assign Auth0 role: ${res.status} ${await res.text()}`
-    );
+    throw new Error(`Failed to assign Auth0 role: ${await res.text()}`);
   }
 
-  // Auth0 returns 204 No Content → just return true
-  return true;
+  return true; // Auth0 returns 204
 };
 
+// -------------------------------------------------
+// 1. Cloudinary Upload
+// -------------------------------------------------
 
-// -------------------------------------------------
-// 1. Upload file to Cloudinary
-// -------------------------------------------------
 export const uploadFileToCloudinary = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -107,57 +75,61 @@ export const uploadFileToCloudinary = async (file) => {
     process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "w1ofo4vi"
   );
 
-  const url = `https://api.cloudinary.com/v1_1/${
-    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "chameleon-techie"
-  }/image/upload`;
+  const cloudName =
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "chameleon-techie";
 
-  console.log("🌐 Uploading to Cloudinary:", url);
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    { method: "POST", body: formData }
+  );
 
-  const res = await fetch(url, { method: "POST", body: formData });
   if (!res.ok) {
-    const errorText = await res.text();
-    console.error("❌ Cloudinary response:", errorText);
-    throw new Error(`❌ Failed to upload file to Cloudinary: ${errorText}`);
+    throw new Error(`Cloudinary upload failed: ${await res.text()}`);
   }
 
   const data = await res.json();
-  console.log("✅ Cloudinary upload success:", data);
   return data.secure_url;
 };
 
 // -------------------------------------------------
-// 2. Create School in Backend
+// 2. School Payload (SINGLE SOURCE OF TRUTH)
 // -------------------------------------------------
+
 const buildSchoolPayload = (formData, user, logoUrl) => ({
   schoolName: formData.schoolName,
-  logo: logoUrl || formData.logo || "",
   schoolEmail: formData.schoolEmail,
+  logo: logoUrl || "",
 
-  line1: formData.addressLine1 ?? formData.line1 ?? "",
-  line2: formData.addressLine2 ?? formData.line2 ?? "",
+  line1: formData.addressLine1 ?? "",
+  line2: formData.addressLine2 ?? "",
 
-  country: formData.country,
-  province: formData.province,
   city: formData.city,
+  province: formData.province,
+  country: formData.country,
   postalCode: formData.postalCode,
-  theme: formData.theme || { mode: 'white', value: '#c7f8e9ff' }, // ✅ keep object structure
 
-  latitude: formData.location?.lat ?? formData.latitude ?? null,
-  longitude: formData.location?.lng ?? formData.longitude ?? null,
+  latitude: formData.location?.lat ?? null,
+  longitude: formData.location?.lng ?? null,
 
-  website: formData.website,
-  facebook: formData.facebook,
-  tiktok: formData.tiktok,
-  linkedin: formData.linkedin,
+  website: formData.website || "",
+  facebook: formData.facebook || "",
+  linkedin: formData.linkedin || "",
+  tiktok: formData.tiktok || "",
 
-  status: formData.status || "active",
+  theme: formData.theme, // backend expects Hash
+  status: "active",
 
+  adminUsers: formData.adminUsers || [],
+
+  // ✅ ownership & audit (ALWAYS present)
   user_id: user?.sub,
   user_email: user?.email,
   school_created_by: user?.email,
-   // 👇 include admins
-  adminUsers: formData.adminUsers || [],
 });
+
+// -------------------------------------------------
+// 3. Create School
+// -------------------------------------------------
 
 export const createSchool = async (formData, user, logoUrl) => {
   const payload = buildSchoolPayload(formData, user, logoUrl);
@@ -169,25 +141,25 @@ export const createSchool = async (formData, user, logoUrl) => {
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`School creation failed: ${res.status} ${text}`);
+    throw new Error(`School creation failed: ${await res.text()}`);
   }
 
   const json = await res.json();
   const school = json?.data?.school || json?.school || json?.data;
 
-  if (!school || !school._id) {
-    console.error("Unexpected school response:", json);
-    throw new Error("School ID not found in response");
+  if (!school?._id) {
+    throw new Error("School ID missing from response");
   }
+
   return school;
 };
 
 // -------------------------------------------------
-// 3. User Management Helpers
+// 4. Backend User Helpers
 // -------------------------------------------------
+
 export const syncBackendRole = async (auth0Id, roles) => {
-  const normalized = (roles || []).map(
+  const normalized = roles.map(
     (r) => r.charAt(0).toUpperCase() + r.slice(1).toLowerCase()
   );
 
@@ -201,9 +173,9 @@ export const syncBackendRole = async (auth0Id, roles) => {
   );
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Backend role sync failed: ${res.status} ${text}`);
+    throw new Error(`Backend role sync failed: ${await res.text()}`);
   }
+
   return res.json();
 };
 
@@ -218,81 +190,56 @@ export const addSchoolToUser = async (auth0Id, schoolId) => {
   );
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Add school to user failed: ${res.status} ${text}`);
+    throw new Error(`Add school failed: ${await res.text()}`);
   }
+
   return res.json();
 };
 
 // -------------------------------------------------
-// 4. Full Orchestration
+// 5. Full Provisioning Flow
 // -------------------------------------------------
+
 export const provisionNewSchool = async (formData, user, token) => {
-  try {
-    // 1) Upload logo
-    console.log("🖼️ Step 1: Uploading school logo...");
-    let logoUrl = "";
-    if (formData.logo) {
-      logoUrl = await uploadFileToCloudinary(formData.logo);
-      console.log("✅ Logo uploaded:", logoUrl);
-    }
-
-    // 2) Create school
-    console.log("🏫 Step 2: Creating school...");
-    const school = await createSchool(formData, user, logoUrl);
-    console.log("✅ School created:", school);
-
-    // 3) Ensure user exists in backend
-    console.log("👤 Step 3: Ensuring user exists in backend...");
-    const createUserRes = await fetch(`${API_BASE}/api/v1/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user: {
-          name: user.name,
-          email: user.email,
-          auth0_id: user.sub,
-          roles: [],
-        },
-      }),
-    });
-
-    if (!createUserRes.ok && createUserRes.status !== 422) {
-      throw new Error(await createUserRes.text());
-    }
-    console.log("✅ User ensured in backend");
-
-    // 4) Assign Auth0 role + sync backend
-    console.log("👥 Step 4: Assigning Admin role in Auth0...");
-
-    const userId = encodeURIComponent(user.sub);
-    console.log("👤 Encoded user ID:", userId);
-
-    // use the management token passed in
-    const accessToken = token || (await getAccessToken());
-    console.log("🔐 Access token retrieved for role assignment");
-
-    // get all roles from Auth0 and find Admin
-    const roles = await fetchAuth0Roles(accessToken);
-    const adminRole = roles.find((r) => r.name === "Admin");
-    if (!adminRole) throw new Error("❌ Admin role not found in Auth0");
-
-    // assign role in Auth0
-    await assignAuth0Role(user.sub, accessToken, [adminRole.id]);
-    console.log("✅ Auth0 role assigned successfully");
-
-    // sync backend role
-    await syncBackendRole(user.sub, ["admin"]);
-    console.log("✅ Backend role synchronized successfully");
-
-    // 5) Attach school to user
-    console.log("🔗 Step 5: Attaching school to user...");
-    await addSchoolToUser(user.sub, school._id);
-    console.log("✅ School attached to user");
-
-    return school;
-  } catch (err) {
-    console.error("❌ Error in provisioning flow:", err);
-    throw err;
+  // 1. Upload logo
+  let logoUrl = "";
+  if (formData.logo) {
+    logoUrl = await uploadFileToCloudinary(formData.logo);
   }
+
+  // 2. Create school
+  const school = await createSchool(formData, user, logoUrl);
+
+  // 3. Ensure user exists
+  const userRes = await fetch(`${API_BASE}/api/v1/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user: {
+        name: user.name,
+        email: user.email,
+        auth0_id: user.sub,
+        roles: [],
+      },
+    }),
+  });
+
+  if (!userRes.ok && userRes.status !== 422) {
+    throw new Error(await userRes.text());
+  }
+
+  // 4. Assign Admin role
+  const accessToken = token || (await getAccessToken());
+  const roles = await fetchAuth0Roles(accessToken);
+  const adminRole = roles.find((r) => r.name === "Admin");
+
+  if (!adminRole) throw new Error("Admin role not found in Auth0");
+
+  await assignAuth0Role(user.sub, accessToken, [adminRole.id]);
+  await syncBackendRole(user.sub, ["admin"]);
+
+  // 5. Attach school
+  await addSchoolToUser(user.sub, school._id);
+
+  return school;
 };

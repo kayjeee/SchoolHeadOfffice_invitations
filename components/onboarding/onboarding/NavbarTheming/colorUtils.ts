@@ -1,15 +1,51 @@
+// ============================================
+// UPDATED COLOR UTILITIES WITH ERROR HANDLING
+// ============================================
+
+/**
+ * Normalizes hex color to 6-character format
+ * Handles: #RGB, #RRGGBB, #RRGGBBAA formats
+ */
+export const normalizeHexColor = (hex: string): string => {
+  if (!hex) return '#000000';
+  
+  // Remove # if present
+  hex = hex.replace('#', '');
+  
+  // Handle 8-character hex (RGBA) - strip alpha channel
+  if (hex.length === 8) {
+    hex = hex.slice(0, 6);
+  }
+  
+  // Handle 3-character hex - expand it
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  
+  // Validate and return
+  if (!/^[a-f0-9]{6}$/i.test(hex)) {
+    console.warn(`Invalid hex color: #${hex}, using fallback #000000`);
+    return '#000000';
+  }
+  
+  return `#${hex}`;
+};
 
 export const hexToRgb = (hex: string): [number, number, number] | null => {
-  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
-    : null;
+  try {
+    hex = normalizeHexColor(hex);
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? [
+          parseInt(result[1], 16),
+          parseInt(result[2], 16),
+          parseInt(result[3], 16),
+        ]
+      : null;
+  } catch (error) {
+    console.error('Error in hexToRgb:', error);
+    return null;
+  }
 };
 
 export const rgbToHsl = (r: number, g: number, b: number): [number, number, number] => {
@@ -20,12 +56,10 @@ export const rgbToHsl = (r: number, g: number, b: number): [number, number, numb
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h = 0;
-  let s;
+  let s = 0;
   const l = (max + min) / 2;
 
-  if (max === min) {
-    h = 0; // achromatic
-  } else {
+  if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
@@ -42,7 +76,7 @@ export const rgbToHsl = (r: number, g: number, b: number): [number, number, numb
     h /= 6;
   }
 
-  return [h * 360, s ? s * 100 : 0, l * 100];
+  return [h * 360, s * 100, l * 100];
 };
 
 export const hslToRgb = (h: number, s: number, l: number): [number, number, number] => {
@@ -73,106 +107,142 @@ export const hslToRgb = (h: number, s: number, l: number): [number, number, numb
 };
 
 export const getComplementaryColor = (hex: string): string | null => {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
-  const [h, s, l] = rgbToHsl(r, g, b);
-  const complementaryH = (h + 180) % 360;
-  const [cr, cg, cb] = hslToRgb(complementaryH, s, l);
-  return `#${((1 << 24) + (cr << 16) + (cg << 8) + cb).toString(16).slice(1)}`;
+  try {
+    hex = normalizeHexColor(hex);
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
+    const [h, s, l] = rgbToHsl(r, g, b);
+    const complementaryH = (h + 180) % 360;
+    const [cr, cg, cb] = hslToRgb(complementaryH, s, l);
+    return `#${((1 << 24) + (cr << 16) + (cg << 8) + cb).toString(16).slice(1)}`;
+  } catch (error) {
+    console.error('Error in getComplementaryColor:', error);
+    return null;
+  }
 };
 
 export const getTriadicColors = (hex: string): string[] | null => {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
-  const [h, s, l] = rgbToHsl(r, g, b);
+  try {
+    hex = normalizeHexColor(hex);
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
+    const [h, s, l] = rgbToHsl(r, g, b);
 
-  const h1 = h;
-  const h2 = (h + 120) % 360;
-  const h3 = (h + 240) % 360;
+    const h1 = h;
+    const h2 = (h + 120) % 360;
+    const h3 = (h + 240) % 360;
 
-  const [r1, g1, b1] = hslToRgb(h1, s, l);
-  const [r2, g2, b2] = hslToRgb(h2, s, l);
-  const [r3, g3, b3] = hslToRgb(h3, s, l);
+    const [r1, g1, b1] = hslToRgb(h1, s, l);
+    const [r2, g2, b2] = hslToRgb(h2, s, l);
+    const [r3, g3, b3] = hslToRgb(h3, s, l);
 
-  const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
-  const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
-  const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
+    const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
+    const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
+    const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
 
-  return [hex1, hex2, hex3];
+    return [hex1, hex2, hex3];
+  } catch (error) {
+    console.error('Error in getTriadicColors:', error);
+    return null;
+  }
 };
 
 export const getAnalogousColors = (hex: string): string[] | null => {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
-  const [h, s, l] = rgbToHsl(r, g, b);
+  try {
+    hex = normalizeHexColor(hex);
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
+    const [h, s, l] = rgbToHsl(r, g, b);
 
-  const h1 = (h - 30 + 360) % 360;
-  const h2 = h;
-  const h3 = (h + 30) % 360;
+    const h1 = (h - 30 + 360) % 360;
+    const h2 = h;
+    const h3 = (h + 30) % 360;
 
-  const [r1, g1, b1] = hslToRgb(h1, s, l);
-  const [r2, g2, b2] = hslToRgb(h2, s, l);
-  const [r3, g3, b3] = hslToRgb(h3, s, l);
+    const [r1, g1, b1] = hslToRgb(h1, s, l);
+    const [r2, g2, b2] = hslToRgb(h2, s, l);
+    const [r3, g3, b3] = hslToRgb(h3, s, l);
 
-  const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
-  const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
-  const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
+    const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
+    const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
+    const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
 
-  return [hex1, hex2, hex3];
+    return [hex1, hex2, hex3];
+  } catch (error) {
+    console.error('Error in getAnalogousColors:', error);
+    return null;
+  }
 };
 
 export const getTetradicColors = (hex: string): string[] | null => {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
-  const [h, s, l] = rgbToHsl(r, g, b);
+  try {
+    hex = normalizeHexColor(hex);
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
+    const [h, s, l] = rgbToHsl(r, g, b);
 
-  const h1 = h;
-  const h2 = (h + 90) % 360;
-  const h3 = (h + 180) % 360;
-  const h4 = (h + 270) % 360;
+    const h1 = h;
+    const h2 = (h + 90) % 360;
+    const h3 = (h + 180) % 360;
+    const h4 = (h + 270) % 360;
 
-  const [r1, g1, b1] = hslToRgb(h1, s, l);
-  const [r2, g2, b2] = hslToRgb(h2, s, l);
-  const [r3, g3, b3] = hslToRgb(h3, s, l);
-  const [r4, g4, b4] = hslToRgb(h4, s, l);
+    const [r1, g1, b1] = hslToRgb(h1, s, l);
+    const [r2, g2, b2] = hslToRgb(h2, s, l);
+    const [r3, g3, b3] = hslToRgb(h3, s, l);
+    const [r4, g4, b4] = hslToRgb(h4, s, l);
 
-  const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
-  const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
-  const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
-  const hex4 = `#${((1 << 24) + (r4 << 16) + (g4 << 8) + b4).toString(16).slice(1)}`;
+    const hex1 = `#${((1 << 24) + (r1 << 16) + (g1 << 8) + b1).toString(16).slice(1)}`;
+    const hex2 = `#${((1 << 24) + (r2 << 16) + (g2 << 8) + b2).toString(16).slice(1)}`;
+    const hex3 = `#${((1 << 24) + (r3 << 16) + (g3 << 8) + b3).toString(16).slice(1)}`;
+    const hex4 = `#${((1 << 24) + (r4 << 16) + (g4 << 8) + b4).toString(16).slice(1)}`;
 
-  return [hex1, hex2, hex3, hex4];
+    return [hex1, hex2, hex3, hex4];
+  } catch (error) {
+    console.error('Error in getTetradicColors:', error);
+    return null;
+  }
 };
 
 export const getMonochromaticColors = (hex: string, count: number = 5): string[] | null => {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
-  const [h, s, l] = rgbToHsl(r, g, b);
+  try {
+    hex = normalizeHexColor(hex);
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
+    const [h, s, l] = rgbToHsl(r, g, b);
 
-  const colors: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const newL = Math.max(0, Math.min(100, l + (i - Math.floor(count / 2)) * (100 / count)));
-    const [cr, cg, cb] = hslToRgb(h, s, newL);
-    colors.push(`#${((1 << 24) + (cr << 16) + (cg << 8) + cb).toString(16).slice(1)}`);
+    const colors: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const newL = Math.max(0, Math.min(100, l + (i - Math.floor(count / 2)) * (100 / count)));
+      const [cr, cg, cb] = hslToRgb(h, s, newL);
+      colors.push(`#${((1 << 24) + (cr << 16) + (cg << 8) + cb).toString(16).slice(1)}`);
+    }
+    return colors;
+  } catch (error) {
+    console.error('Error in getMonochromaticColors:', error);
+    return null;
   }
-  return colors;
 };
 
 export const getLogoColor = (backgroundColor: string): string | null => {
-  const rgb = hexToRgb(backgroundColor);
-  if (!rgb) return null;
-  const [r, g, b] = rgb;
+  try {
+    backgroundColor = normalizeHexColor(backgroundColor);
+    const rgb = hexToRgb(backgroundColor);
+    if (!rgb) return null;
+    const [r, g, b] = rgb;
 
-  // Calculate luminance (perceived brightness)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    // Calculate luminance (perceived brightness)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-  // Return black for light backgrounds, white for dark backgrounds
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+    // Return black for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  } catch (error) {
+    console.error('Error in getLogoColor:', error);
+    return '#000000';
+  }
 };
 
 export type ColorPalette = {
@@ -183,44 +253,79 @@ export type ColorPalette = {
   logo: string;
 };
 
-export const generateColorPalette = (baseColor: string): ColorPalette | null => {
-  const primary = baseColor;
-  const complementary = getComplementaryColor(baseColor);
-  const triadic = getTriadicColors(baseColor);
-  const analogous = getAnalogousColors(baseColor);
-  const tetradic = getTetradicColors(baseColor);
-  const monochromatic = getMonochromaticColors(baseColor);
+/**
+ * Generates a color palette from a base color
+ * Now with comprehensive error handling
+ */
+export const generateColorPalette = (baseColor: string): ColorPalette => {
+  const fallbackPalette: ColorPalette = {
+    primary: '#3b82f6',
+    logo: '#000000',
+  };
 
-  const logoColor = getLogoColor(baseColor);
+  try {
+    if (!baseColor) {
+      console.warn('generateColorPalette: no base color provided, using fallback');
+      return fallbackPalette;
+    }
 
-  if (!logoColor) return null;
+    const normalizedColor = normalizeHexColor(baseColor);
+    const triadic = getTriadicColors(normalizedColor);
+    const logoColor = getLogoColor(normalizedColor) || '#000000';
 
-  // For simplicity, let's use a triadic palette if available, otherwise complementary, otherwise monochromatic
-  if (triadic && triadic.length >= 3) {
+    if (triadic && triadic.length >= 3) {
+      return {
+        primary: normalizedColor,
+        secondary: triadic[1],
+        tertiary: triadic[2],
+        logo: logoColor,
+      };
+    }
+
+    const complementary = getComplementaryColor(normalizedColor);
+    if (complementary) {
+      return {
+        primary: normalizedColor,
+        secondary: complementary,
+        logo: logoColor,
+      };
+    }
+
+    const monochromatic = getMonochromaticColors(normalizedColor);
+    if (monochromatic && monochromatic.length >= 2) {
+      return {
+        primary: normalizedColor,
+        secondary: monochromatic[1],
+        logo: logoColor,
+      };
+    }
+
     return {
-      primary: primary,
-      secondary: triadic[1],
-      tertiary: triadic[2],
+      primary: normalizedColor,
       logo: logoColor,
     };
-  } else if (complementary) {
-    return {
-      primary: primary,
-      secondary: complementary,
-      logo: logoColor,
-    };
-  } else if (monochromatic && monochromatic.length >= 2) {
-    return {
-      primary: primary,
-      secondary: monochromatic[1],
-      logo: logoColor,
-    };
-  } else {
-    return {
-      primary: primary,
-      logo: logoColor,
-    };
+  } catch (error) {
+    console.error('Error generating color palette:', error);
+    return fallbackPalette;
   }
 };
 
-
+/**
+ * Helper to extract color from backend theme object
+ */
+export const extractColorFromTheme = (theme: any): string => {
+  if (!theme) return '#3b82f6';
+  
+  // If it's already a string
+  if (typeof theme === 'string') {
+    return normalizeHexColor(theme);
+  }
+  
+  // If it's an object with value property
+  if (typeof theme === 'object') {
+    const value = theme.value || theme.mode || '#3b82f6';
+    return normalizeHexColor(value);
+  }
+  
+  return '#3b82f6';
+};
