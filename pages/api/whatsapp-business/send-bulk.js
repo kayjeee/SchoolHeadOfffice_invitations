@@ -66,7 +66,7 @@ export default async function handler(req, res) {
 
   /* -------------------- send loop -------------------- */
 
-  for (const msg of unique.values()) {
+  for (const msg of Array.from(unique.values())) {
     const displayName =
       msg.parentName ||
       msg.name ||
