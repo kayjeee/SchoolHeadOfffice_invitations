@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MessageTesterSection } from './MessageTesterSection';
 import { MessageScheduler, ScheduleData } from './MessageScheduler';
 import WhatsAppBusinessService from '../../../../../../../lib/services/WhatsAppBusinessService';
@@ -34,6 +34,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   getCountryCode,
   school,
 }) => {
+  /* ──────────────────────────── STATE ──────────────────────────── */
   const [activeTab, setActiveTab] = useState<'contacts' | 'test' | 'schedule'>('contacts');
   const [testPhoneNumber, setTestPhoneNumber] = useState('');
   const [learnerNumber, setLearnerNumber] = useState('');
@@ -44,176 +45,220 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   const [testResult, setTestResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<any>({});
 
-  const getWhatsAppNumbers = (learner: any) => {
-    const phoneFields = [
+  /* ──────────────────────────── HELPERS ──────────────────────────── */
+
+  const getAccessionNumber = (learner: any): string | null => {
+    const fields = [
+      learner.accession_number,
+      learner.accessionNumber,
+      learner.AccessionNumber,
+      learner.learner_number,
+      learner.learnerNumber,
+      learner.student_number,
+      learner.studentNumber,
+    ];
+
+    const value = fields.find(v => v && String(v).trim().length > 0);
+    return value ? String(value).trim() : null;
+  };
+
+  const getWhatsAppNumbers = (learner: any): string[] => {
+    const fields = [
       learner.phone,
       learner.whatsapp,
       learner.contact?.phone,
       learner.contact?.whatsapp,
       learner.contact?.tel_home,
       learner.contact?.tel_emergency,
-      learner.contact?.telegram
+      learner.contact?.telegram,
     ];
 
-    return phoneFields.filter(phone => {
+    return fields.filter(phone => {
       if (!phone || typeof phone !== 'string') return false;
-      const cleanPhone = phone.trim();
-      if (cleanPhone === '' || cleanPhone.startsWith('011')) return false;
-      const digitCount = (cleanPhone.match(/\d/g) || []).length;
-      return digitCount >= 7;
+      const cleaned = phone.trim();
+      if (!cleaned || cleaned.startsWith('011')) return false;
+      return (cleaned.match(/\d/g) || []).length >= 7;
     });
   };
-
-  const learnersWithWhatsApp = learners.filter(learner => getWhatsAppNumbers(learner).length > 0);
 
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);
     return numbers[0] || 'No number';
   };
 
+  const learnersWithWhatsApp = useMemo(
+    () => learners.filter(l => getWhatsAppNumbers(l).length > 0),
+    [learners]
+  );
+
+  /* ──────────────────────────── DEBUG ──────────────────────────── */
+
+  useEffect(() => {
+    if (!learners.length) return;
+
+    logger.info('🔍 Learner Structure Check', {
+      sample: learners[0],
+      keys: Object.keys(learners[0]),
+    });
+
+    learners.slice(0, 3).forEach((l, i) => {
+      logger.info(`Learner ${i + 1}`, {
+        name: l.full_name,
+        accession: getAccessionNumber(l) || l.id,
+      });
+    });
+  }, [learners]);
+
+  /* ──────────────────────────── ACTIONS ──────────────────────────── */
+
   const handleSendTest = async () => {
     setIsSendingTest(true);
     setTestResult(null);
+
     try {
       WhatsAppBusinessService.validateMessageTemplate(customMessage);
-      const countryCode = getCountryCode(school?.country);
+
       const result = await WhatsAppBusinessService.sendTestMessage({
         to: testPhoneNumber.replace(/\s+/g, ''),
         schoolId,
-        userEmail,
         schoolName,
+        userEmail,
         learnerNumber,
         parentName,
         sender_id: senderId,
         grade: selectedGrade || undefined,
-        countryCode,
+        countryCode: getCountryCode(school?.country),
       });
-      setTestResult({ success: true, message: 'Test message sent successfully! Check your WhatsApp.', ...result });
+
+      setTestResult({
+        success: true,
+        message: 'Test message sent successfully!',
+        ...result,
+      });
     } catch (error: any) {
-      setTestResult({ success: false, message: 'Failed to send test message.', error: error.message });
+      setTestResult({
+        success: false,
+        message: 'Failed to send test message',
+        error: error.message,
+      });
     }
+
     setIsSendingTest(false);
   };
 
   const handleSendBulk = async () => {
     setIsSendingBulk(true);
     setTestResult(null);
+
     try {
       WhatsAppBusinessService.validateMessageTemplate(customMessage);
-      const countryCode = getCountryCode(school?.country);
+
       const recipientNumbers = learnersWithWhatsApp.map(l => ({
         phone: getBestWhatsAppNumber(l),
         name: l.full_name,
-        learner_number: l.accession_number,
+        learner_number: getAccessionNumber(l) || l.id,
       }));
+
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
         schoolName,
         recipientNumbers,
         schoolId,
         userEmail,
-        countryCode,
+        countryCode: getCountryCode(school?.country),
         senderId,
       });
+
       setTestResult({
         success: true,
-        message: 'Bulk messages sent successfully!',
-        bulkResult: {
-          sentCount: result.sentCount,
-          failedCount: result.failedCount,
-          totalCount: recipientNumbers.length
-        }
+        message: `Bulk messages sent successfully`,
+        bulkResult: result,
       });
     } catch (error: any) {
-      setTestResult({ success: false, message: 'Failed to send bulk messages.', error: error.message });
+      setTestResult({
+        success: false,
+        message: 'Bulk send failed',
+        error: error.message,
+      });
     }
+
     setIsSendingBulk(false);
   };
 
-  const handleSchedule = async (scheduleData: ScheduleData) => {
+  const handleSchedule = async (schedule: ScheduleData) => {
     setIsScheduling(true);
+
     try {
-      const recipientNumbers = learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l));
       await WhatsAppBusinessService.scheduleBulkMessage({
         gradeIds: selectedGrades.map(g => g.id),
-        message: scheduleData.message,
-        scheduledAt: scheduleData.scheduledAt,
-        timezone: scheduleData.timezone,
-        recipientNumbers,
+        message: schedule.message,
+        scheduledAt: schedule.scheduledAt,
+        timezone: schedule.timezone,
+        recipientNumbers: learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l)),
         schoolId,
         schoolName,
       });
-      alert('WhatsApp message scheduled successfully!');
+
+      alert('WhatsApp message scheduled successfully');
     } catch (error: any) {
-      alert(`Failed to schedule WhatsApp message: ${error.message}`);
+      alert(error.message);
     }
+
     setIsScheduling(false);
   };
 
   const handleCopyWhatsAppNumbers = async () => {
-    const numbers = learnersWithWhatsApp.map(l => `${l.full_name}: ${getBestWhatsAppNumber(l)}`).join('\n');
-    await navigator.clipboard.writeText(numbers);
+    const text = learnersWithWhatsApp
+      .map(l => `${l.full_name}: ${getBestWhatsAppNumber(l)} (${getAccessionNumber(l) || l.id})`)
+      .join('\n');
+
+    await navigator.clipboard.writeText(text);
   };
 
   const handleCopyPhoneNumbersOnly = async () => {
-    const numbers = learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l)).join('\n');
-    await navigator.clipboard.writeText(numbers);
+    const text = learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l)).join('\n');
+    await navigator.clipboard.writeText(text);
   };
+
+  /* ──────────────────────────── UI ──────────────────────────── */
 
   return (
     <div className="mt-6 border-t pt-6">
-      <div className="flex border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setActiveTab('contacts')}
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'contacts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-        >
-          👥 Contacts ({learnersWithWhatsApp.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('test')}
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'test' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-        >
-          🧪 Test Message
-        </button>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'schedule' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-          disabled={learnersWithWhatsApp.length === 0}
-        >
-          📅 Schedule
-        </button>
+      {/* Tabs */}
+      <div className="flex border-b mb-6">
+        {(['contacts', 'test', 'schedule'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            disabled={tab === 'schedule' && !learnersWithWhatsApp.length}
+            className={`px-4 py-2 border-b-2 text-sm font-medium ${
+              activeTab === tab
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500'
+            }`}
+          >
+            {tab === 'contacts' && `👥 Contacts (${learnersWithWhatsApp.length})`}
+            {tab === 'test' && '🧪 Test Message'}
+            {tab === 'schedule' && '📅 Schedule'}
+          </button>
+        ))}
       </div>
 
+      {/* Contacts */}
       {activeTab === 'contacts' && (
-        <div className="border border-green-200 rounded-lg p-4 bg-green-50">
-          <h4 className="font-semibold text-green-900 mb-3 flex items-center">💚 WhatsApp Contacts ({learnersWithWhatsApp.length})</h4>
+        <div className="bg-green-50 border rounded-lg p-4">
           <div className="flex gap-2 mb-4">
-            <button onClick={handleCopyWhatsAppNumbers} className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">📋 Copy Names & Numbers</button>
-            <button onClick={handleCopyPhoneNumbersOnly} className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">📞 Copy Numbers Only</button>
-          </div>
-          <div className="max-h-60 overflow-y-auto border border-green-200 rounded-lg bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-green-100 sticky top-0">
-                <tr>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Learner Name</th>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">WhatsApp Number</th>
-                  <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {learnersWithWhatsApp.map((learner, index) => (
-                  <tr key={learner.id} className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}>
-                    <td className="p-2 border-b border-green-100 text-gray-700">{learner.full_name}</td>
-                    <td className="p-2 border-b border-green-100 font-mono text-green-700">{getBestWhatsAppNumber(learner)}</td>
-                    <td className="p-2 border-b border-green-100 text-gray-600">{grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <button onClick={handleCopyWhatsAppNumbers} className="btn-green">
+              📋 Copy Names & Numbers
+            </button>
+            <button onClick={handleCopyPhoneNumbersOnly} className="btn-green-light">
+              📞 Copy Numbers Only
+            </button>
           </div>
         </div>
       )}
 
+      {/* Test */}
       {activeTab === 'test' && (
         <MessageTesterSection
           testPhoneNumber={testPhoneNumber}
@@ -239,6 +284,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         />
       )}
 
+      {/* Schedule */}
       {activeTab === 'schedule' && (
         <MessageScheduler
           onSchedule={handleSchedule}
