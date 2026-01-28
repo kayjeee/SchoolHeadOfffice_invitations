@@ -3,7 +3,6 @@ import { MessageTesterSection } from './MessageTesterSection';
 import { MessageScheduler, ScheduleData } from './MessageScheduler';
 import WhatsAppBusinessService from '../../../../../../../lib/services/WhatsAppBusinessService';
 import { Grade, Learner } from '../../types';
-import { logger } from './utils/logger';
 
 interface WhatsAppModalContentProps {
   learners: Learner[];
@@ -28,6 +27,15 @@ interface BulkRecipient {
   learner_number: string;
 }
 
+interface ContactRow {
+  learner: Learner;
+  whatsappNumber: string | null;
+  accessionNumber: string;
+  hasWhatsApp: boolean;
+}
+
+/* ───────────────────────── COMPONENT ───────────────────────── */
+
 export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   learners,
   grades,
@@ -42,22 +50,26 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   getCountryCode,
   school,
 }) => {
-  /* ─────────────────────────── STATE ─────────────────────────── */
+  /* ───────────────────────── STATE ───────────────────────── */
 
-  const [activeTab, setActiveTab] = useState<'contacts' | 'test' | 'schedule'>('contacts');
-  const [testPhoneNumber, setTestPhoneNumber] = useState<string>('');
-  const [learnerNumber, setLearnerNumber] = useState<string>('');
-  const [parentName, setParentName] = useState<string>('');
-  const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
-  const [isSendingBulk, setIsSendingBulk] = useState<boolean>(false);
-  const [isScheduling, setIsScheduling] = useState<boolean>(false);
+  const [activeTab, setActiveTab] =
+    useState<'contacts' | 'test' | 'schedule'>('contacts');
+
+  const [testPhoneNumber, setTestPhoneNumber] = useState('');
+  const [learnerNumber, setLearnerNumber] = useState('');
+  const [parentName, setParentName] = useState('');
+
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+
   const [testResult, setTestResult] = useState<unknown>(null);
   const [validationErrors] = useState<Record<string, string>>({});
 
   /* ───────────────────────── HELPERS ───────────────────────── */
 
-  const getAccessionNumber = (learner: Learner): string | null => {
-    const candidates: Array<unknown> = [
+  const getAccessionNumber = (learner: Learner): string => {
+    const candidates = [
       (learner as any).accession_number,
       (learner as any).accessionNumber,
       (learner as any).learner_number,
@@ -67,16 +79,16 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     ];
 
     for (const value of candidates) {
-      if (typeof value === 'string' && value.trim().length > 0) {
+      if (typeof value === 'string' && value.trim()) {
         return value.trim();
       }
     }
 
-    return null;
+    return learner.id;
   };
 
   const getWhatsAppNumbers = (learner: Learner): string[] => {
-    const possibleNumbers: Array<unknown> = [
+    const rawValues: unknown[] = [
       (learner as any).phone,
       (learner as any).whatsapp,
       (learner as any).contact?.phone,
@@ -85,36 +97,40 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       (learner as any).contact?.tel_emergency,
     ];
 
-    return possibleNumbers.filter((value): value is string => {
+    return rawValues.filter((value): value is string => {
       if (typeof value !== 'string') return false;
+
       const cleaned = value.trim();
-      if (!cleaned || cleaned.startsWith('011')) return false;
-      return (cleaned.match(/\d/g) || []).length >= 7;
+      if (!cleaned) return false;
+      if (cleaned.startsWith('011')) return false; // landline heuristic
+      return (cleaned.match(/\d/g) ?? []).length >= 7;
     });
   };
 
-  const getBestWhatsAppNumber = (learner: Learner): string => {
+  const getBestWhatsAppNumber = (learner: Learner): string | null => {
     const numbers = getWhatsAppNumbers(learner);
-    return numbers.length > 0 ? numbers[0] : '';
+    return numbers.length ? numbers[0] : null;
   };
 
   /* ─────────────────────── DERIVED DATA ─────────────────────── */
 
-  const learnersWithWhatsApp = useMemo<Learner[]>(
-    () => learners.filter(l => getWhatsAppNumbers(l).length > 0),
-    [learners]
-  );
+  const contacts: ContactRow[] = useMemo(() => {
+    return learners.map(learner => {
+      const whatsappNumber = getBestWhatsAppNumber(learner);
 
-  /* ───────────────────────── DEBUG ───────────────────────── */
-
-  useEffect(() => {
-    if (!learners.length) return;
-
-  
-    learners.slice(0, 3).forEach((l, index) => {
-    
+      return {
+        learner,
+        whatsappNumber,
+        accessionNumber: getAccessionNumber(learner),
+        hasWhatsApp: Boolean(whatsappNumber),
+      };
     });
   }, [learners]);
+
+  const learnersWithWhatsApp = useMemo(
+    () => contacts.filter(c => c.hasWhatsApp),
+    [contacts]
+  );
 
   /* ───────────────────────── ACTIONS ───────────────────────── */
 
@@ -139,8 +155,10 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
 
       setTestResult({ success: true, result });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setTestResult({ success: false, message });
+      setTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsSendingTest(false);
     }
@@ -153,10 +171,10 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     try {
       WhatsAppBusinessService.validateMessageTemplate(customMessage);
 
-      const recipients: BulkRecipient[] = learnersWithWhatsApp.map(learner => ({
-        phone: getBestWhatsAppNumber(learner),
-        name: learner.full_name,
-        learner_number: getAccessionNumber(learner) ?? learner.id,
+      const recipients: BulkRecipient[] = learnersWithWhatsApp.map(c => ({
+        phone: c.whatsappNumber!,
+        name: c.learner.full_name,
+        learner_number: c.accessionNumber,
       }));
 
       const result = await WhatsAppBusinessService.sendBulkMessages({
@@ -171,8 +189,10 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
 
       setTestResult({ success: true, result });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setTestResult({ success: false, message });
+      setTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsSendingBulk(false);
     }
@@ -187,15 +207,14 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         message: data.message,
         scheduledAt: data.scheduledAt,
         timezone: data.timezone,
-        recipientNumbers: learnersWithWhatsApp.map(getBestWhatsAppNumber),
+        recipientNumbers: learnersWithWhatsApp.map(c => c.whatsappNumber!),
         schoolId,
         schoolName,
       });
 
       alert('WhatsApp message scheduled successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      alert(message);
+      alert(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsScheduling(false);
     }
@@ -204,10 +223,8 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   const handleCopyWhatsAppNumbers = async (): Promise<void> => {
     const text = learnersWithWhatsApp
       .map(
-        l =>
-          `${l.full_name}: ${getBestWhatsAppNumber(l)} (${
-            getAccessionNumber(l) ?? l.id
-          })`
+        c =>
+          `${c.learner.full_name}: ${c.whatsappNumber} (${c.accessionNumber})`
       )
       .join('\n');
 
@@ -216,7 +233,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
 
   const handleCopyPhoneNumbersOnly = async (): Promise<void> => {
     const text = learnersWithWhatsApp
-      .map(l => getBestWhatsAppNumber(l))
+      .map(c => c.whatsappNumber)
       .join('\n');
 
     await navigator.clipboard.writeText(text);
@@ -226,6 +243,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
 
   return (
     <div className="mt-6 border-t pt-6">
+      {/* Tabs */}
       <div className="flex border-b mb-6">
         {(['contacts', 'test', 'schedule'] as const).map(tab => (
           <button
@@ -238,15 +256,17 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
                 : 'border-transparent text-gray-500'
             }`}
           >
-            {tab === 'contacts' && `👥 Contacts (${learnersWithWhatsApp.length})`}
+            {tab === 'contacts' &&
+              `👥 Contacts (${learners.length})`}
             {tab === 'test' && '🧪 Test Message'}
             {tab === 'schedule' && '📅 Schedule'}
           </button>
         ))}
       </div>
 
+      {/* CONTACTS TAB */}
       {activeTab === 'contacts' && (
-        <div className="bg-green-50 border rounded-lg p-4">
+        <div className="space-y-4">
           <div className="flex gap-2">
             <button onClick={handleCopyWhatsAppNumbers} className="btn-green">
               📋 Copy Names & Numbers
@@ -255,9 +275,48 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
               📞 Copy Numbers Only
             </button>
           </div>
+
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 text-left">
+                <tr>
+                  <th className="p-2">Learner</th>
+                  <th className="p-2">Accession</th>
+                  <th className="p-2">WhatsApp</th>
+                  <th className="p-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map(c => (
+                  <tr key={c.learner.id} className="border-t">
+                    <td className="p-2">{c.learner.full_name}</td>
+                    <td className="p-2">{c.accessionNumber}</td>
+                    <td className="p-2">
+                      {c.whatsappNumber ?? '—'}
+                    </td>
+                    <td className="p-2">
+                      {c.hasWhatsApp ? (
+                        <span className="text-green-600">✔ Ready</span>
+                      ) : (
+                        <span className="text-red-500">✖ No WhatsApp</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {contacts.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-gray-500">
+                      No learners found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
+      {/* TEST TAB */}
       {activeTab === 'test' && (
         <MessageTesterSection
           testPhoneNumber={testPhoneNumber}
@@ -283,6 +342,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         />
       )}
 
+      {/* SCHEDULE TAB */}
       {activeTab === 'schedule' && (
         <MessageScheduler
           onSchedule={handleSchedule}
