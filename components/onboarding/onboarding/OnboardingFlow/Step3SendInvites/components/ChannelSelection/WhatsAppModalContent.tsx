@@ -17,7 +17,15 @@ interface WhatsAppModalContentProps {
   selectedGrade: Grade | null;
   selectedGrades: Grade[];
   getCountryCode: (country?: string) => string;
-  school?: any;
+  school?: {
+    country?: string;
+  };
+}
+
+interface BulkRecipient {
+  phone: string;
+  name: string;
+  learner_number: string;
 }
 
 export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
@@ -34,84 +42,83 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   getCountryCode,
   school,
 }) => {
-  /* ──────────────────────────── STATE ──────────────────────────── */
+  /* ─────────────────────────── STATE ─────────────────────────── */
+
   const [activeTab, setActiveTab] = useState<'contacts' | 'test' | 'schedule'>('contacts');
-  const [testPhoneNumber, setTestPhoneNumber] = useState('');
-  const [learnerNumber, setLearnerNumber] = useState('');
-  const [parentName, setParentName] = useState('');
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [isSendingBulk, setIsSendingBulk] = useState(false);
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
-  const [validationErrors, setValidationErrors] = useState<any>({});
+  const [testPhoneNumber, setTestPhoneNumber] = useState<string>('');
+  const [learnerNumber, setLearnerNumber] = useState<string>('');
+  const [parentName, setParentName] = useState<string>('');
+  const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
+  const [isSendingBulk, setIsSendingBulk] = useState<boolean>(false);
+  const [isScheduling, setIsScheduling] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<unknown>(null);
+  const [validationErrors] = useState<Record<string, string>>({});
 
-  /* ──────────────────────────── HELPERS ──────────────────────────── */
+  /* ───────────────────────── HELPERS ───────────────────────── */
 
-  const getAccessionNumber = (learner: any): string | null => {
-    const fields = [
-      learner.accession_number,
-      learner.accessionNumber,
-      learner.AccessionNumber,
-      learner.learner_number,
-      learner.learnerNumber,
-      learner.student_number,
-      learner.studentNumber,
+  const getAccessionNumber = (learner: Learner): string | null => {
+    const candidates: Array<unknown> = [
+      (learner as any).accession_number,
+      (learner as any).accessionNumber,
+      (learner as any).learner_number,
+      (learner as any).learnerNumber,
+      (learner as any).student_number,
+      (learner as any).studentNumber,
     ];
 
-    const value = fields.find(v => v && String(v).trim().length > 0);
-    return value ? String(value).trim() : null;
+    for (const value of candidates) {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+
+    return null;
   };
 
-  const getWhatsAppNumbers = (learner: any): string[] => {
-    const fields = [
-      learner.phone,
-      learner.whatsapp,
-      learner.contact?.phone,
-      learner.contact?.whatsapp,
-      learner.contact?.tel_home,
-      learner.contact?.tel_emergency,
-      learner.contact?.telegram,
+  const getWhatsAppNumbers = (learner: Learner): string[] => {
+    const possibleNumbers: Array<unknown> = [
+      (learner as any).phone,
+      (learner as any).whatsapp,
+      (learner as any).contact?.phone,
+      (learner as any).contact?.whatsapp,
+      (learner as any).contact?.tel_home,
+      (learner as any).contact?.tel_emergency,
     ];
 
-    return fields.filter(phone => {
-      if (!phone || typeof phone !== 'string') return false;
-      const cleaned = phone.trim();
+    return possibleNumbers.filter((value): value is string => {
+      if (typeof value !== 'string') return false;
+      const cleaned = value.trim();
       if (!cleaned || cleaned.startsWith('011')) return false;
       return (cleaned.match(/\d/g) || []).length >= 7;
     });
   };
 
-  const getBestWhatsAppNumber = (learner: any): string => {
+  const getBestWhatsAppNumber = (learner: Learner): string => {
     const numbers = getWhatsAppNumbers(learner);
-    return numbers[0] || 'No number';
+    return numbers.length > 0 ? numbers[0] : '';
   };
 
-  const learnersWithWhatsApp = useMemo(
+  /* ─────────────────────── DERIVED DATA ─────────────────────── */
+
+  const learnersWithWhatsApp = useMemo<Learner[]>(
     () => learners.filter(l => getWhatsAppNumbers(l).length > 0),
     [learners]
   );
 
-  /* ──────────────────────────── DEBUG ──────────────────────────── */
+  /* ───────────────────────── DEBUG ───────────────────────── */
 
   useEffect(() => {
     if (!learners.length) return;
 
-    logger.info('🔍 Learner Structure Check', {
-      sample: learners[0],
-      keys: Object.keys(learners[0]),
-    });
-
-    learners.slice(0, 3).forEach((l, i) => {
-      logger.info(`Learner ${i + 1}`, {
-        name: l.full_name,
-        accession: getAccessionNumber(l) || l.id,
-      });
+  
+    learners.slice(0, 3).forEach((l, index) => {
+    
     });
   }, [learners]);
 
-  /* ──────────────────────────── ACTIONS ──────────────────────────── */
+  /* ───────────────────────── ACTIONS ───────────────────────── */
 
-  const handleSendTest = async () => {
+  const handleSendTest = async (): Promise<void> => {
     setIsSendingTest(true);
     setTestResult(null);
 
@@ -126,111 +133,105 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         learnerNumber,
         parentName,
         sender_id: senderId,
-        grade: selectedGrade || undefined,
+        grade: selectedGrade ?? undefined,
         countryCode: getCountryCode(school?.country),
       });
 
-      setTestResult({
-        success: true,
-        message: 'Test message sent successfully!',
-        ...result,
-      });
-    } catch (error: any) {
-      setTestResult({
-        success: false,
-        message: 'Failed to send test message',
-        error: error.message,
-      });
+      setTestResult({ success: true, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setTestResult({ success: false, message });
+    } finally {
+      setIsSendingTest(false);
     }
-
-    setIsSendingTest(false);
   };
 
-  const handleSendBulk = async () => {
+  const handleSendBulk = async (): Promise<void> => {
     setIsSendingBulk(true);
     setTestResult(null);
 
     try {
       WhatsAppBusinessService.validateMessageTemplate(customMessage);
 
-      const recipientNumbers = learnersWithWhatsApp.map(l => ({
-        phone: getBestWhatsAppNumber(l),
-        name: l.full_name,
-        learner_number: getAccessionNumber(l) || l.id,
+      const recipients: BulkRecipient[] = learnersWithWhatsApp.map(learner => ({
+        phone: getBestWhatsAppNumber(learner),
+        name: learner.full_name,
+        learner_number: getAccessionNumber(learner) ?? learner.id,
       }));
 
       const result = await WhatsAppBusinessService.sendBulkMessages({
         gradeIds: selectedGrades.map(g => g.id),
         schoolName,
-        recipientNumbers,
+        recipientNumbers: recipients,
         schoolId,
         userEmail,
         countryCode: getCountryCode(school?.country),
         senderId,
       });
 
-      setTestResult({
-        success: true,
-        message: `Bulk messages sent successfully`,
-        bulkResult: result,
-      });
-    } catch (error: any) {
-      setTestResult({
-        success: false,
-        message: 'Bulk send failed',
-        error: error.message,
-      });
+      setTestResult({ success: true, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setTestResult({ success: false, message });
+    } finally {
+      setIsSendingBulk(false);
     }
-
-    setIsSendingBulk(false);
   };
 
-  const handleSchedule = async (schedule: ScheduleData) => {
+  const handleSchedule = async (data: ScheduleData): Promise<void> => {
     setIsScheduling(true);
 
     try {
       await WhatsAppBusinessService.scheduleBulkMessage({
         gradeIds: selectedGrades.map(g => g.id),
-        message: schedule.message,
-        scheduledAt: schedule.scheduledAt,
-        timezone: schedule.timezone,
-        recipientNumbers: learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l)),
+        message: data.message,
+        scheduledAt: data.scheduledAt,
+        timezone: data.timezone,
+        recipientNumbers: learnersWithWhatsApp.map(getBestWhatsAppNumber),
         schoolId,
         schoolName,
       });
 
       alert('WhatsApp message scheduled successfully');
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      alert(message);
+    } finally {
+      setIsScheduling(false);
     }
-
-    setIsScheduling(false);
   };
 
-  const handleCopyWhatsAppNumbers = async () => {
+  const handleCopyWhatsAppNumbers = async (): Promise<void> => {
     const text = learnersWithWhatsApp
-      .map(l => `${l.full_name}: ${getBestWhatsAppNumber(l)} (${getAccessionNumber(l) || l.id})`)
+      .map(
+        l =>
+          `${l.full_name}: ${getBestWhatsAppNumber(l)} (${
+            getAccessionNumber(l) ?? l.id
+          })`
+      )
       .join('\n');
 
     await navigator.clipboard.writeText(text);
   };
 
-  const handleCopyPhoneNumbersOnly = async () => {
-    const text = learnersWithWhatsApp.map(l => getBestWhatsAppNumber(l)).join('\n');
+  const handleCopyPhoneNumbersOnly = async (): Promise<void> => {
+    const text = learnersWithWhatsApp
+      .map(l => getBestWhatsAppNumber(l))
+      .join('\n');
+
     await navigator.clipboard.writeText(text);
   };
 
-  /* ──────────────────────────── UI ──────────────────────────── */
+  /* ───────────────────────── RENDER ───────────────────────── */
 
   return (
     <div className="mt-6 border-t pt-6">
-      {/* Tabs */}
       <div className="flex border-b mb-6">
         {(['contacts', 'test', 'schedule'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            disabled={tab === 'schedule' && !learnersWithWhatsApp.length}
+            disabled={tab === 'schedule' && learnersWithWhatsApp.length === 0}
             className={`px-4 py-2 border-b-2 text-sm font-medium ${
               activeTab === tab
                 ? 'border-blue-500 text-blue-600'
@@ -244,10 +245,9 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         ))}
       </div>
 
-      {/* Contacts */}
       {activeTab === 'contacts' && (
         <div className="bg-green-50 border rounded-lg p-4">
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2">
             <button onClick={handleCopyWhatsAppNumbers} className="btn-green">
               📋 Copy Names & Numbers
             </button>
@@ -258,7 +258,6 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         </div>
       )}
 
-      {/* Test */}
       {activeTab === 'test' && (
         <MessageTesterSection
           testPhoneNumber={testPhoneNumber}
@@ -284,7 +283,6 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
         />
       )}
 
-      {/* Schedule */}
       {activeTab === 'schedule' && (
         <MessageScheduler
           onSchedule={handleSchedule}
