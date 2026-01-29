@@ -24,7 +24,12 @@ interface ProfileSetupProps {
   user?: any;
 }
 
-export default function ProfileSetup({ onComplete, prefillData, isLocked, user }: ProfileSetupProps) {
+export default function ProfileSetup({
+  onComplete,
+  prefillData,
+  isLocked,
+  user,
+}: ProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ProfileFormData | null>(null);
@@ -44,7 +49,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       name: '',
       phone: '',
       email: '',
-    }
+    },
   });
 
   useEffect(() => {
@@ -70,7 +75,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
 
   const handleSave = async (data: ProfileFormData) => {
     console.log('💾 Save button clicked with form data:', data);
-    
+
     if (!user?.sub) {
       console.error('❌ No user.sub available');
       setSaveError('User authentication required');
@@ -83,16 +88,15 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
 
     try {
       const encodedUserId = encodeURIComponent(user.sub);
-      
-      // Create payload with phone field
+
       const payload = {
         name: data.name,
-        phone: data.phone, // Include phone field
+        phone: data.phone,
         email: data.email,
       };
-      
+
       console.log('📤 Sending profile update with payload:', payload);
-      
+
       const response = await fetch(
         `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
         {
@@ -105,29 +109,33 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       );
 
       console.log('📥 Response status:', response.status);
-      
+
       const result = await response.json();
       console.log('📥 Response data:', result);
-      
-      // Store the response for debugging
+
       setLastResponse(result);
 
       if (!response.ok || !result.success) {
-        const errorMessage = result.errors?.join(', ') || result.error || 'Failed to save profile';
+        const errorMessage =
+          result.errors?.join(', ') ||
+          result.error ||
+          'Failed to save profile';
+
         console.error('❌ Backend returned error:', errorMessage);
-        throw new Error(errorMessage);https://www.msn.com/en-za/news/other/prince-william-of-gloucester-a-royal-tragedy/vi-AA1Rgs8h
+        throw new Error(errorMessage);
       }
 
       console.log('✅ Profile saved successfully:', result.data?.user);
       console.log('🚀 Calling onComplete callback with data:', data);
-      
-      // Call the parent's onComplete callback
+
       onComplete(data);
-      
+
       console.log('🎯 onComplete callback was called successfully');
     } catch (error: any) {
       console.error('❌ Failed to save profile:', error);
-      setSaveError(error.message || 'Failed to save profile. Please try again.');
+      setSaveError(
+        error?.message || 'Failed to save profile. Please try again.'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -139,7 +147,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
     const testData = {
       name: 'Test User',
       phone: '27814296653',
-      email: 'test@example.com'
+      email: 'test@example.com',
     };
     console.log('Test data:', testData);
     handleSave(testData);
@@ -148,7 +156,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-xl font-bold mb-4">Setup Your Profile</h3>
-      
+
       {/* Debug Info Panel */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="font-semibold text-blue-800 mb-2">Debug Info:</div>
@@ -157,19 +165,23 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
           <div>Form is valid: {isValid ? '✅ Yes' : '❌ No'}</div>
           <div>Is saving: {isSaving ? '⏳ Yes' : '✅ No'}</div>
           <div>Current form values: {JSON.stringify(getValues())}</div>
+
           {formData && (
             <div>Last submitted data: {JSON.stringify(formData)}</div>
           )}
+
           {lastResponse && (
             <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-              <div className="font-semibold text-green-800">Last API Response:</div>
+              <div className="font-semibold text-green-800">
+                Last API Response:
+              </div>
               <pre className="text-xs overflow-auto max-h-32">
                 {JSON.stringify(lastResponse, null, 2)}
               </pre>
             </div>
           )}
         </div>
-        
+
         <div className="mt-3 space-x-2">
           <button
             type="button"
@@ -178,20 +190,23 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
           >
             Test with Hardcoded Data
           </button>
+
           <button
             type="button"
-            onClick={() => console.log('Current form state:', {
-              values: getValues(),
-              errors,
-              isValid
-            })}
+            onClick={() =>
+              console.log('Current form state:', {
+                values: getValues(),
+                errors,
+                isValid,
+              })
+            }
             className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
           >
             Log Form State
           </button>
         </div>
       </div>
-      
+
       {saveError && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700">
@@ -199,28 +214,34 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
           </p>
         </div>
       )}
-      
+
       <form onSubmit={handleFormSubmit}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Full Name *
             </label>
-            <input 
-              {...register('name')} 
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border" 
+            <input
+              {...register('name')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
               placeholder="Enter your full name"
               disabled={isSaving}
             />
             {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.name.message}
+              </p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number *
-              {isLocked && <span className="ml-2 text-xs text-blue-600">(Pre-filled from invitation)</span>}
+              {isLocked && (
+                <span className="ml-2 text-xs text-blue-600">
+                  (Pre-filled from invitation)
+                </span>
+              )}
             </label>
             <input
               {...register('phone')}
@@ -230,27 +251,31 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
               type="tel"
             />
             {errors.phone && (
-              <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.phone.message}
+              </p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address *
             </label>
-            <input 
-              {...register('email')} 
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border" 
+            <input
+              {...register('email')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
               placeholder="your.email@example.com"
               type="email"
               disabled={isSaving}
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.email.message}
+              </p>
             )}
           </div>
         </div>
-        
+
         <div className="mt-6 text-right">
           <button
             type="submit"
@@ -259,27 +284,45 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
           >
             {isSaving ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 Saving...
               </>
-            ) : 'Save & Continue'}
+            ) : (
+              'Save & Continue'
+            )}
           </button>
         </div>
       </form>
-      
-      {/* Success message - backend is now fixed! */}
+
+      {/* Success message */}
       <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
         <p className="font-semibold mb-1">✅ Backend Fixed!</p>
         <p className="text-xs">
-          The backend API is now working correctly and returning proper JSON responses.
-          Phone numbers are now being saved along with name and email.
+          The backend API is now working correctly and returning proper JSON
+          responses. Phone numbers are now being saved along with name and email.
         </p>
       </div>
-      
-      {/* Instructions for debugging */}
+
+      {/* Debug instructions */}
       <div className="mt-4 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
         <p className="font-semibold">Debugging Instructions:</p>
         <ol className="list-decimal ml-4 mt-1 space-y-1">
