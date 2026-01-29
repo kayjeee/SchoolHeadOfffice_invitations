@@ -94,7 +94,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       console.log('📤 Sending profile update with payload:', payload);
       
       const response = await fetch(
-        `http://localhost:4000/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
+        `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
         {
           method: 'PATCH',
           headers: {
@@ -115,7 +115,7 @@ export default function ProfileSetup({ onComplete, prefillData, isLocked, user }
       if (!response.ok || !result.success) {
         const errorMessage = result.errors?.join(', ') || result.error || 'Failed to save profile';
         console.error('❌ Backend returned error:', errorMessage);
-        throw new Error(errorMessage);
+        throw new Error(errorMessage);https://www.msn.com/en-za/news/other/prince-william-of-gloucester-a-royal-tragedy/vi-AA1Rgs8h
       }
 
       console.log('✅ Profile saved successfully:', result.data?.user);

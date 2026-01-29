@@ -1,7 +1,7 @@
 // lib/services/userSyncService.ts
 import { UserProfile } from '@auth0/nextjs-auth0/client';
 
-const RAILS_API_URL = 'https://shobackendv2-production.up.railway.app/';
+const RAILS_API_URL = 'https://shobackendv2-production.up.railway.app';
 
 export interface RailsUser {
   id: string;
