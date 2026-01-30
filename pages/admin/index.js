@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 
 import FrontPageLayout from "../../components/Layouts/FrontPageLayout";
-import FrontPageLayoutMobileView from "../../components/Layouts/FrontPageLayoutMobile/FrontPageLayoutMobileView";
 import SettingsLayout from "../../components/adminPage/SettingsLayout";
 import LoadingSpinner from "../../components/spinners/LoadingSpinner";
 
@@ -15,12 +14,12 @@ import { OnboardingGuard } from "../../components/onboarding/onboarding";
 import { AppThemeProvider } from "../../components/Layouts/context/ThemeContext";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://shobackendv2-production.up.railway.app";
 
 export default function Home() {
   const { user, isLoading: authLoading } = useUser();
 
-  const [isMobile, setIsMobile] = useState(false);
   const [schools, setSchools] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
 
@@ -34,16 +33,6 @@ export default function Home() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
   /* ---------------------------------------------------
-   * Screen size detection
-   * --------------------------------------------------- */
-  useEffect(() => {
-    const resize = () => setIsMobile(window.innerWidth <= 768);
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  /* ---------------------------------------------------
    * Initial data load (Auth0-safe)
    * --------------------------------------------------- */
   useEffect(() => {
@@ -55,7 +44,7 @@ export default function Home() {
   }, [user?.sub]);
 
   /* ---------------------------------------------------
-   * Fetch user roles (internal API)
+   * Fetch user roles
    * --------------------------------------------------- */
   const fetchUserRoles = async () => {
     try {
@@ -71,7 +60,7 @@ export default function Home() {
   };
 
   /* ---------------------------------------------------
-   * Fetch schools (Auth0-safe query param)
+   * Fetch schools
    * --------------------------------------------------- */
   const fetchSchools = async () => {
     setLoadingSchools(true);
@@ -117,7 +106,7 @@ export default function Home() {
   };
 
   /* ---------------------------------------------------
-   * Onboarding status (Auth0-safe query param)
+   * Onboarding status
    * --------------------------------------------------- */
   const checkOnboardingStatus = async () => {
     setCheckingOnboarding(true);
@@ -147,7 +136,7 @@ export default function Home() {
   };
 
   /* ---------------------------------------------------
-   * Stepper UI (unchanged UX)
+   * Stepper UI
    * --------------------------------------------------- */
   const renderStepper = () => (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -157,7 +146,9 @@ export default function Home() {
         </h1>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          {step === 1 && <CreateSchoolForm user={user} onComplete={fetchSchools} />}
+          {step === 1 && (
+            <CreateSchoolForm user={user} onComplete={fetchSchools} />
+          )}
           {step === 2 && <ValidateSchoolStep />}
           {step === 3 && <ReviewSchoolStep />}
 
@@ -184,16 +175,17 @@ export default function Home() {
   );
 
   /* ---------------------------------------------------
-   * Main render decision tree
+   * Main render logic
    * --------------------------------------------------- */
   const renderContent = () => {
-    if (authLoading || loadingSchools || checkingOnboarding)
+    if (authLoading || loadingSchools || checkingOnboarding) {
       return <LoadingSpinner />;
+    }
 
     if (!schools.length) {
-      return message ? renderStepper() : (
-        <CreateSchoolForm user={user} onComplete={fetchSchools} />
-      );
+      return message
+        ? renderStepper()
+        : <CreateSchoolForm user={user} onComplete={fetchSchools} />;
     }
 
     if (!isOnboardingComplete) {
@@ -214,15 +206,11 @@ export default function Home() {
   };
 
   /* ---------------------------------------------------
-   * Layout switch (desktop / mobile)
+   * Single layout (no mobile split)
    * --------------------------------------------------- */
-  const Layout = isMobile
-    ? FrontPageLayoutMobileView
-    : FrontPageLayout;
-
   return (
-    <Layout user={user} schools={schools} userRoles={userRoles}>
+    <FrontPageLayout user={user} schools={schools} userRoles={userRoles}>
       {renderContent()}
-    </Layout>
+    </FrontPageLayout>
   );
 }

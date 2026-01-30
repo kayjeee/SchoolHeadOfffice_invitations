@@ -244,6 +244,12 @@ export function useParentOnboarding({
     });
 
     if (!onboardingStarted) {
+      // ✅ Check if onboarding is already marked as complete in the profile
+      if (profile && profile.needsOnboarding === false) {
+        console.log('➡️ Onboarding already complete according to profile');
+        return 'COMPLETE';
+      }
+
       const hasCompleteProfile = profile && profile.name && profile.phone_number;
       
       if (!hasCompleteProfile) {

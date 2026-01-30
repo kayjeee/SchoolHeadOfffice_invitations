@@ -44,7 +44,8 @@ export default function PaymentSuccess({ transactionId, onContinue }: PaymentSuc
           return;
         }
 
-        const response = await fetch(`http://localhost:4000/api/v1/transactions/${id}`);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
+        const response = await fetch(`${API_BASE_URL}/transactions/${id}`);
         console.log('📡 Response status:', response.status);
         
         const result = await response.json();
@@ -103,7 +104,8 @@ export default function PaymentSuccess({ transactionId, onContinue }: PaymentSuc
     if (onContinue) {
       onContinue();
     } else {
-      router.push('/parent/dashboard');
+      // Use full reload to ensure dashboard state is correctly initialized
+      window.location.href = '/parent';
     }
   };
 

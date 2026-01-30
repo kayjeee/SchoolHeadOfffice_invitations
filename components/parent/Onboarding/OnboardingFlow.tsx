@@ -310,6 +310,20 @@ const fetchUserProfile = async () => {
     }
   }, [safeUser]);
 
+  // Automatically redirect to dashboard when onboarding is complete
+  useEffect(() => {
+    if (currentStep === 'COMPLETE') {
+      const timer = setTimeout(() => {
+        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
+        // Force a full page reload to ensure ParentPage re-initializes its hook
+        // and fetches the updated profile from the server
+        window.location.href = '/parent';
+      }, 3000); // Give them 3 seconds to see the success message
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
     console.log('🎊 Final step completion');
@@ -668,7 +682,7 @@ const fetchUserProfile = async () => {
               Your account is now fully set up. Redirecting to dashboard...
             </p>
             <button
-              onClick={() => router.push('/parent/dashboard')}
+              onClick={() => window.location.href = '/parent'}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now
@@ -682,7 +696,7 @@ const fetchUserProfile = async () => {
             <h3 className="text-xl font-bold text-red-700">Unknown Step</h3>
             <p className="text-gray-600 mt-2">Step: {currentStep || 'Unknown'}</p>
             <button
-              onClick={() => router.push('/parent/dashboard')}
+              onClick={() => window.location.href = '/parent'}
               className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
             >
               Go to Dashboard
