@@ -17,12 +17,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "personalizedMessages[] required" });
   }
 
+  // ⏱️ Set timeout safety margin (e.g., Vercel = 10s hobby, 60s pro)
+  const FUNCTION_TIMEOUT = 8000; // 8 seconds for safety
+  const startTime = Date.now();
+
   const log = {
     total: personalizedMessages.length,
     sent: 0,
     failed: 0,
     deduplicated: 0,
     invalidNumbers: 0,
+    timedOut: false,
     results: []
   };
 
@@ -64,74 +69,98 @@ export default async function handler(req, res) {
     }
   }
 
-  /* -------------------- send loop -------------------- */
+  const messages = Array.from(unique.values());
 
-  for (const msg of Array.from(unique.values())) {
-    const displayName =
-      msg.parentName ||
-      msg.name ||
-      schoolName ||
-      "Parent";
+  /* -------------------- batch sending -------------------- */
 
-    const payload = {
-      messaging_product: "whatsapp",
-      to: msg.to,
-      type: "template",
-      template: {
-        name: "parent_invite",
-        language: { code: "en_US" },
-        components: [
-          {
-            type: "body",
-            parameters: [
+  const BATCH_SIZE = 5; // Send 5 messages concurrently
+  const DELAY_BETWEEN_BATCHES = 300; // 300ms between batches
+
+  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+    // ⏱️ Check if we're running out of time
+    if (Date.now() - startTime > FUNCTION_TIMEOUT) {
+      log.timedOut = true;
+      break;
+    }
+
+    const batch = messages.slice(i, i + BATCH_SIZE);
+
+    // Send batch concurrently
+    await Promise.all(
+      batch.map(async (msg) => {
+        const displayName =
+          msg.parentName ||
+          msg.name ||
+          schoolName ||
+          "Parent";
+
+        const payload = {
+          messaging_product: "whatsapp",
+          to: msg.to,
+          type: "template",
+          template: {
+            name: "parent_invite",
+            language: { code: "en_US" },
+            components: [
               {
-                type: "text",
-                text: displayName
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: displayName
+                  }
+                ]
               }
             ]
           }
-          // 🚫 NO BUTTON — template has STATIC URL
-        ]
-      }
-    };
+        };
 
-    try {
-      const r = await fetch(whatsappUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+        try {
+          const r = await fetch(whatsappUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
 
-      const data = await r.json();
+          const data = await r.json();
 
-      if (!r.ok) {
-        throw new Error(data?.error?.message || "WhatsApp API error");
-      }
+          if (!r.ok) {
+            throw new Error(data?.error?.message || "WhatsApp API error");
+          }
 
-      log.sent++;
-      log.results.push({
-        to: msg.to,
-        status: "sent",
-        messageId: data.messages?.[0]?.id
-      });
+          log.sent++;
+          log.results.push({
+            to: msg.to,
+            status: "sent",
+            messageId: data.messages?.[0]?.id
+          });
 
-    } catch (err) {
-      log.failed++;
-      log.results.push({
-        to: msg.to,
-        status: "failed",
-        error: err.message
-      });
+        } catch (err) {
+          log.failed++;
+          log.results.push({
+            to: msg.to,
+            status: "failed",
+            error: err.message
+          });
+        }
+      })
+    );
+
+    // Delay between batches (except after the last batch)
+    if (i + BATCH_SIZE < messages.length) {
+      await sleep(DELAY_BETWEEN_BATCHES);
     }
-
-    await sleep(250);
   }
 
   return res.status(200).json({
-    success: true,
-    stats: log
+    success: !log.timedOut,
+    timedOut: log.timedOut,
+    stats: log,
+    message: log.timedOut 
+      ? "Sending stopped due to timeout. Use a background job for large batches."
+      : "All messages processed"
   });
 }
