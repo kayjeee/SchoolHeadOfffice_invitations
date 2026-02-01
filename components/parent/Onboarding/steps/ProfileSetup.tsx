@@ -34,6 +34,7 @@ export default function ProfileSetup({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [formData, setFormData] = useState<ProfileFormData | null>(null);
   const [lastResponse, setLastResponse] = useState<any>(null);
+  const [existingProfile, setExistingProfile] = useState<any>(null);
 
   const {
     register,
@@ -52,6 +53,35 @@ export default function ProfileSetup({
     },
   });
 
+  // Fetch existing profile data
+  useEffect(() => {
+    const fetchExistingProfile = async () => {
+      if (!user?.sub) return;
+      
+      try {
+        const encodedUserId = encodeURIComponent(user.sub);
+        const response = await fetch(
+          `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodedUserId}`,
+          {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setExistingProfile(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+    
+    fetchExistingProfile();
+  }, [user]);
+
   useEffect(() => {
     console.log('🔍 ProfileSetup mounted with props:', {
       hasUser: !!user?.sub,
@@ -60,13 +90,41 @@ export default function ProfileSetup({
       onCompleteType: typeof onComplete,
     });
 
-    if (prefillData) {
-      console.log('📋 Setting form values from prefillData:', prefillData);
-      if (prefillData.name) setValue('name', prefillData.name);
-      if (prefillData.phone) setValue('phone', prefillData.phone);
-      if (prefillData.email) setValue('email', prefillData.email);
+    // Build the final prefill data
+    let finalPrefillData = { ...prefillData };
+    
+    // Merge with existing profile from backend
+    if (existingProfile) {
+      // Handle name - check for first_name/last_name vs name
+      let fullName = '';
+      if (existingProfile.name) {
+        fullName = existingProfile.name;
+      } else if (existingProfile.first_name || existingProfile.last_name) {
+        fullName = `${existingProfile.first_name || ''} ${existingProfile.last_name || ''}`.trim();
+      }
+      
+      // Check for "undefined undefined" name
+      if (fullName === 'undefined undefined' || fullName.includes('undefined')) {
+        console.log('⚠️ Detected malformed name from backend, ignoring it');
+        fullName = '';
+      }
+      
+      finalPrefillData = {
+        ...finalPrefillData,
+        name: finalPrefillData?.name || fullName || '',
+        phone: finalPrefillData?.phone || existingProfile.phone_number || existingProfile.phone || '',
+        email: finalPrefillData?.email || existingProfile.email || '',
+      };
     }
-  }, [prefillData, setValue, user, isLocked, onComplete]);
+
+    console.log('📋 Setting form values from final prefill data:', finalPrefillData);
+    
+    if (finalPrefillData) {
+      if (finalPrefillData.name) setValue('name', finalPrefillData.name);
+      if (finalPrefillData.phone) setValue('phone', finalPrefillData.phone);
+      if (finalPrefillData.email) setValue('email', finalPrefillData.email);
+    }
+  }, [prefillData, existingProfile, setValue, user, isLocked, onComplete]);
 
   const handleFormSubmit = handleSubmit(async (data) => {
     console.log('📋 Form submitted with data:', data);
@@ -90,12 +148,13 @@ export default function ProfileSetup({
       const encodedUserId = encodeURIComponent(user.sub);
 
       const payload = {
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        email: data.email.trim().toLowerCase(),
       };
 
       console.log('📤 Sending profile update with payload:', payload);
+      console.log('🌐 URL:', `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`);
 
       const response = await fetch(
         `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
@@ -109,19 +168,40 @@ export default function ProfileSetup({
       );
 
       console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
-      const result = await response.json();
-      console.log('📥 Response data:', result);
+      const responseText = await response.text();
+      console.log('📥 Raw response:', responseText);
 
+      let result;
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
+      }
+
+      console.log('📥 Parsed response data:', result);
       setLastResponse(result);
 
-      if (!response.ok || !result.success) {
+      if (!response.ok) {
         const errorMessage =
           result.errors?.join(', ') ||
           result.error ||
-          'Failed to save profile';
+          result.message ||
+          `Server returned ${response.status}: ${response.statusText}`;
 
         console.error('❌ Backend returned error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      if (!result.success) {
+        const errorMessage =
+          result.errors?.join(', ') ||
+          result.error ||
+          'Profile update was not successful';
+        
+        console.error('❌ Backend returned unsuccessful:', errorMessage);
         throw new Error(errorMessage);
       }
 
@@ -153,9 +233,69 @@ export default function ProfileSetup({
     handleSave(testData);
   };
 
+  // Test backend connection
+  const testBackendConnection = async () => {
+    console.log('🔗 Testing backend connection...');
+    
+    if (!user?.sub) {
+      alert('❌ No user ID available');
+      return;
+    }
+    
+    const encodedUserId = encodeURIComponent(user.sub);
+    const testUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodedUserId}`;
+    
+    console.log('🌐 Testing URL:', testUrl);
+    
+    try {
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      console.log('📥 Test response status:', response.status);
+      const result = await response.json();
+      console.log('📥 Test response data:', result);
+      
+      if (result.success && result.data) {
+        const userData = result.data.user || result.data;
+        alert(`✅ Backend connection successful!\n\nName: ${userData.name || 'Not set'}\nEmail: ${userData.email || 'Not set'}\nPhone: ${userData.phone_number || userData.phone || 'Not set'}`);
+      } else {
+        alert('⚠️ Backend responded but no profile data found');
+      }
+    } catch (error) {
+      console.error('❌ Backend connection test failed:', error);
+      alert('❌ Failed to connect to backend. Check console for details.');
+    }
+  };
+
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
       <h3 className="text-xl font-bold mb-4">Setup Your Profile</h3>
+
+      {/* Data Flow Debug Panel */}
+      <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+        <div className="font-semibold text-purple-800 mb-2">Data Flow Debug:</div>
+        <div className="text-purple-700 text-xs space-y-1">
+          <div>User ID: {user?.sub || 'Not available'}</div>
+          <div>User from Auth0: {user?.name || user?.given_name || '(no name)'}</div>
+          <div>Email from Auth0: {user?.email || '(no email)'}</div>
+          <div>Prefill Data: {JSON.stringify(prefillData)}</div>
+          <div>Existing Profile from Backend: {JSON.stringify(existingProfile)}</div>
+          <div>Is Locked: {isLocked ? 'Yes' : 'No'}</div>
+          <div>Current Form Values: {JSON.stringify(watch())}</div>
+        </div>
+        
+        <div className="mt-2 space-x-2">
+          <button
+            type="button"
+            onClick={testBackendConnection}
+            className="px-3 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
+          >
+            Test Backend Connection
+          </button>
+        </div>
+      </div>
 
       {/* Debug Info Panel */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -331,6 +471,7 @@ export default function ProfileSetup({
           <li>Go to Network tab to see API request/response</li>
           <li>Check if payload contains name, phone, and email</li>
           <li>Last API response will be shown above for debugging</li>
+          <li>Use "Test Backend Connection" to verify backend is reachable</li>
         </ol>
       </div>
     </div>

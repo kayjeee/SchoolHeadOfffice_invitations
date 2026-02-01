@@ -234,6 +234,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // Fetch existing user profile
 // In OnboardingFlow.tsx, update the fetchUserProfile function
+// Update the fetchUserProfile function in OnboardingFlow.tsx
 const fetchUserProfile = async () => {
   const userId = safeUserId(safeUser);
   if (!userId) {
@@ -246,9 +247,9 @@ const fetchUserProfile = async () => {
   
   setIsLoadingProfile(true);
   try {
-    // ✅ FIXED: Use query parameter instead of path parameter
+    // ✅ FIXED: Use the correct endpoint /users/show with query parameter
     const response = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/users/profile?auth0_id=${encodeURIComponent(userId)}`,
+      `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodeURIComponent(userId)}`,
       {
         method: 'GET',
         headers: {
@@ -257,18 +258,47 @@ const fetchUserProfile = async () => {
       }
     );
     
+    console.log('📥 Profile fetch response status:', response.status);
+    
     if (response.ok) {
       const result = await response.json();
-      if (result.success && result.data.user) {
-        console.log('✅ User profile fetched:', result.data.user);
-        setExistingProfile(result.data.user);
+      console.log('📥 Profile fetch result:', result);
+      
+      if (result.success && result.data) {
+        console.log('✅ User profile fetched:', result.data);
+        
+        // Handle the backend response format
+        const userProfile = result.data.user || result.data;
+        
+        if (userProfile) {
+          // Fix the name issue: check for first_name/last_name vs name
+          let fullName = '';
+          if (userProfile.name) {
+            fullName = userProfile.name;
+          } else if (userProfile.first_name || userProfile.last_name) {
+            fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim();
+          }
+          
+          const profileData = {
+            ...userProfile,
+            name: fullName,
+            // Map phone_number to phone for the form
+            phone: userProfile.phone_number || '',
+            email: userProfile.email || safeUserEmail(safeUser) || '',
+          };
+          
+          console.log('📋 Processed profile data:', profileData);
+          setExistingProfile(profileData);
+        }
+      } else {
+        console.log('ℹ️ No existing profile found or API returned unsuccessful');
       }
     } else {
-      console.log('ℹ️ No existing profile found');
+      console.log(`ℹ️ Profile fetch failed with status: ${response.status}`);
     }
   } catch (error) {
     console.error("❌ Error fetching user profile:", error);
-    setOnboardingError("Could not load your profile. Please refresh the page.");
+    // Don't show error, just log it
   } finally {
     setIsLoadingProfile(false);
   }
@@ -393,27 +423,32 @@ const fetchUserProfile = async () => {
     const showBackButton = currentStep !== 'PROFILE_SETUP' && currentStep !== 'INITIALIZING';
 
     switch (currentStep) {
-      case 'PROFILE_SETUP':
-        if (isLoadingProfile) {
-          return <LoadingScreen message="Loading your profile..." />;
-        }
-        
-        const existingName = existingProfile?.name || safeUserName(safeUser) || '';
-        
-        return (
-          <ProfileSetup
-            onComplete={(data) => completeStep(currentStep, data)}
-            prefillData={{
-              name: existingName,
-              email: existingProfile?.email || safeUserEmail(safeUser) || '',
-              phone: hasInvitation 
-                ? (onboardingData?.parent_phone || existingProfile?.phone_number || '')
-                : (existingProfile?.phone_number || ''),
-            }}
-            isLocked={isLocked}
-            user={safeUser}
-          />
-        );
+      // In OnboardingFlow.tsx, update the ProfileSetup section
+case 'PROFILE_SETUP':
+  if (isLoadingProfile) {
+    return <LoadingScreen message="Loading your profile..." />;
+  }
+  
+  // Use existingProfile if available, otherwise fall back to user data
+  const existingName = existingProfile?.name || safeUserName(safeUser) || '';
+  const existingPhone = existingProfile?.phone || existingProfile?.phone_number || '';
+  const existingEmail = existingProfile?.email || safeUserEmail(safeUser) || '';
+  
+  // Check for invitation data
+  const invitationPhone = hasInvitation ? (onboardingData?.parent_phone || '') : '';
+  
+  return (
+    <ProfileSetup
+      onComplete={(data) => completeStep(currentStep, data)}
+      prefillData={{
+        name: existingName,
+        email: existingEmail,
+        phone: invitationPhone || existingPhone,
+      }}
+      isLocked={isLocked}
+      user={safeUser}
+    />
+  );
 
       case 'IDENTITY_VERIFICATION':
         return renderWithBackButton(
