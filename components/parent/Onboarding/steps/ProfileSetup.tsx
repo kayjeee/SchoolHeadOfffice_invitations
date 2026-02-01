@@ -131,143 +131,151 @@ export default function ProfileSetup({
     await handleSave(data);
   });
 
-  const handleSave = async (data: ProfileFormData) => {
-    console.log('💾 Save button clicked with form data:', data);
+  // In ProfileSetup.tsx, replace the handleSave function with this:
+const handleSave = async (data: ProfileFormData) => {
+  console.log('💾 Save button clicked with form data:', data);
 
-    if (!user?.sub) {
-      console.error('❌ No user.sub available');
-      setSaveError('User authentication required');
-      return;
-    }
+  if (!user?.sub) {
+    console.error('❌ No user.sub available');
+    setSaveError('User authentication required');
+    return;
+  }
 
-    setIsSaving(true);
-    setSaveError(null);
-    setFormData(data);
+  setIsSaving(true);
+  setSaveError(null);
+  setFormData(data);
 
-    try {
-      const encodedUserId = encodeURIComponent(user.sub);
-
-      const payload = {
-        name: data.name.trim(),
-        phone: data.phone.trim(),
-        email: data.email.trim().toLowerCase(),
-      };
-
-      console.log('📤 Sending profile update with payload:', payload);
-      console.log('🌐 URL:', `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`);
-
-      const response = await fetch(
-        `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
-
-      const responseText = await response.text();
-      console.log('📥 Raw response:', responseText);
-
-      let result;
-      try {
-        result = responseText ? JSON.parse(responseText) : {};
-      } catch (parseError) {
-        console.error('❌ Failed to parse JSON response:', parseError);
-        throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
-      }
-
-      console.log('📥 Parsed response data:', result);
-      setLastResponse(result);
-
-      if (!response.ok) {
-        const errorMessage =
-          result.errors?.join(', ') ||
-          result.error ||
-          result.message ||
-          `Server returned ${response.status}: ${response.statusText}`;
-
-        console.error('❌ Backend returned error:', errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      if (!result.success) {
-        const errorMessage =
-          result.errors?.join(', ') ||
-          result.error ||
-          'Profile update was not successful';
-        
-        console.error('❌ Backend returned unsuccessful:', errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      console.log('✅ Profile saved successfully:', result.data?.user);
-      console.log('🚀 Calling onComplete callback with data:', data);
-
-      onComplete(data);
-
-      console.log('🎯 onComplete callback was called successfully');
-    } catch (error: any) {
-      console.error('❌ Failed to save profile:', error);
-      setSaveError(
-        error?.message || 'Failed to save profile. Please try again.'
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Test with hardcoded data
-  const testWithHardcodedData = () => {
-    console.log('🧪 Testing with hardcoded data');
-    const testData = {
-      name: 'Test User',
-      phone: '27814296653',
-      email: 'test@example.com',
-    };
-    console.log('Test data:', testData);
-    handleSave(testData);
-  };
-
-  // Test backend connection
-  const testBackendConnection = async () => {
-    console.log('🔗 Testing backend connection...');
-    
-    if (!user?.sub) {
-      alert('❌ No user ID available');
-      return;
-    }
-    
+  try {
     const encodedUserId = encodeURIComponent(user.sub);
-    const testUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodedUserId}`;
+    const apiUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`;
     
-    console.log('🌐 Testing URL:', testUrl);
+    const payload = {
+      name: data.name.trim(),
+      phone: data.phone.trim(),
+      email: data.email.trim().toLowerCase(),
+    };
+
+    console.log('📤 Sending profile update:');
+    console.log('🌐 URL:', apiUrl);
+    console.log('📦 Payload:', payload);
+    console.log('🔧 Method: PATCH');
+
+    // Add a timestamp for tracking
+    const startTime = Date.now();
     
-    try {
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      console.log('📥 Test response status:', response.status);
-      const result = await response.json();
-      console.log('📥 Test response data:', result);
-      
-      if (result.success && result.data) {
-        const userData = result.data.user || result.data;
-        alert(`✅ Backend connection successful!\n\nName: ${userData.name || 'Not set'}\nEmail: ${userData.email || 'Not set'}\nPhone: ${userData.phone_number || userData.phone || 'Not set'}`);
-      } else {
-        alert('⚠️ Backend responded but no profile data found');
-      }
-    } catch (error) {
-      console.error('❌ Backend connection test failed:', error);
-      alert('❌ Failed to connect to backend. Check console for details.');
+    const response = await fetch(apiUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const endTime = Date.now();
+    console.log(`⏱️ Request took ${endTime - startTime}ms`);
+    
+    console.log('📥 Response status:', response.status);
+    console.log('📥 Response status text:', response.statusText);
+    console.log('📥 Response OK?', response.ok);
+    
+    // Get all response headers
+    const headers = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log('📥 Response headers:', headers);
+
+    // Get the raw response text first
+    const responseText = await response.text();
+    console.log('📥 Raw response length:', responseText.length);
+    console.log('📥 Raw response (first 500 chars):', responseText.substring(0, 500));
+    
+    // Check if response is empty
+    if (!responseText || responseText.trim() === '') {
+      console.error('❌ Empty response from server');
+      throw new Error('Server returned an empty response');
     }
-  };
+    
+    // Try to parse as JSON
+    let result;
+    try {
+      result = JSON.parse(responseText);
+      console.log('📥 Successfully parsed JSON:', result);
+    } catch (parseError) {
+      console.error('❌ Failed to parse JSON response:', parseError);
+      
+      // Check if it's HTML (common for 404/500 pages)
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        console.error('❌ Server returned HTML instead of JSON');
+        throw new Error('Server error - returned HTML page instead of JSON');
+      }
+      
+      // Check if it's a plain text error
+      if (responseText.length < 500) {
+        console.error('❌ Server returned plain text:', responseText);
+        throw new Error(`Server error: ${responseText}`);
+      }
+      
+      throw new Error('Invalid JSON response from server');
+    }
+
+    setLastResponse(result);
+
+    // Check for HTTP errors
+    if (!response.ok) {
+      const errorMessage = 
+        result?.errors?.join?.() || 
+        result?.error || 
+        result?.message || 
+        `Server error: ${response.status} ${response.statusText}`;
+      
+      console.error('❌ Backend returned HTTP error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    // Check for API-level errors
+    if (result.success === false) {
+      const errorMessage = 
+        result?.errors?.join?.() || 
+        result?.error || 
+        result?.message || 
+        'Profile update failed';
+      
+      console.error('❌ Backend returned API error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    console.log('✅ Profile saved successfully:', result.data);
+    console.log('🚀 Calling onComplete callback with data:', data);
+
+    onComplete(data);
+
+    console.log('🎯 onComplete callback was called successfully');
+  } catch (error: any) {
+    console.error('❌ Failed to save profile:', error);
+    console.error('❌ Error stack:', error.stack);
+    
+    // Provide more specific error messages
+    let userFriendlyError = 'Failed to save profile. Please try again.';
+    
+    if (error.message.includes('JSON')) {
+      userFriendlyError = 'Server returned invalid response. Please check backend configuration.';
+    } else if (error.message.includes('HTML')) {
+      userFriendlyError = 'Server error occurred. Please contact support.';
+    } else if (error.message.includes('CORS') || error.message.includes('Network')) {
+      userFriendlyError = 'Network error. Please check your connection.';
+    } else {
+      userFriendlyError = error.message || userFriendlyError;
+    }
+    
+    setSaveError(userFriendlyError);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
