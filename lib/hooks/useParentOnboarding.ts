@@ -1,41 +1,23 @@
 // lib/hooks/useParentOnboarding.ts
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
-import { ParentAPI, ParentProfile, Learner, UpdateProfileData } from '../api/parent-api';
-import { UserSyncService, RailsUser } from '../services/userSyncService';
-
-// ========================
-// TYPES & CONSTANTS
-// ========================
-
-type OnboardingStep =
-  | 'INITIALIZING'
-  | 'PROFILE_SETUP'
-  | 'IDENTITY_VERIFICATION'
-  | 'LINK_LEARNERS'
-  | 'SUBSCRIPTION_CHOICE'
-  | 'PAYMENT_SETUP'
-  | 'PARENT_CONTACT_SUMMARY'
-  | 'NOTIFICATION_PREFERENCES'
-  | 'TERMS_ACCEPTANCE'
-  | 'COMPLETE';
-
-// Define the actual onboarding flow INCLUDING PAYMENT_SETUP
-const ONBOARDING_STEPS: OnboardingStep[] = [
+// ─── Canonical step order (MUST match backend OnboardingStatus::PARENT_STEPS) ───
+const PARENT_STEPS: string[] = [
   'PROFILE_SETUP',
   'IDENTITY_VERIFICATION',
   'LINK_LEARNERS',
   'SUBSCRIPTION_CHOICE',
-  'PAYMENT_SETUP', // Always include this in the flow
+  'PAYMENT_SETUP',
   'PARENT_CONTACT_SUMMARY',
   'NOTIFICATION_PREFERENCES',
   'TERMS_ACCEPTANCE',
 ];
 
+const API_BASE = 'https://shobackendv2-production.up.railway.app/api/v1';
+
 interface InvitationData {
-  id: string;
+  id?: string;
   token?: string;
   school_slug?: string;
   school_name?: string;
@@ -44,446 +26,285 @@ interface InvitationData {
 }
 
 interface UseParentOnboardingProps {
-  initialProfile?: ParentProfile | null;
-  initialLearners?: Learner[];
+  initialProfile?: any;
+  initialLearners?: any[];
   invitationData?: InvitationData | null;
 }
 
-// ========================
-// STATE MACHINE HOOK
-// ========================
+type OnboardingStep = typeof PARENT_STEPS[number] | 'INITIALIZING' | 'COMPLETE';
 
-export function useParentOnboarding({ 
-  initialProfile, 
-  initialLearners = [], 
-  invitationData 
+export function useParentOnboarding({
+  initialProfile,
+  initialLearners = [],
+  invitationData,
 }: UseParentOnboardingProps) {
+  // ─── Get authenticated user from Auth0 ─────────────────────
   const { user, isLoading: isAuthLoading } = useUser();
-  const queryClient = useQueryClient();
 
-  // Core state
+  // ─── State ─────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
-  const [completedSteps, setCompletedSteps] = useState<Set<OnboardingStep>>(new Set());
-  const [onboardingData, setOnboardingData] = useState<Record<string, any>>({});
-  const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData);
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [progress, setProgress] = useState<number>(0);
+  const [onboardingData, setOnboardingData] = useState<Record<string, any>>({
+    ...(invitationData || {}),
+  });
+  const [profile, setProfile] = useState<any>(initialProfile);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [railsUser, setRailsUser] = useState<RailsUser | null>(null);
-  
-  // Track if onboarding has been manually started
-  const [onboardingStarted, setOnboardingStarted] = useState(false);
 
-  // ========================
-  // DEBUGGING UTILITIES
-  // ========================
+  // Track whether we've fetched from the server at least once
+  const initializedRef = useRef(false);
 
-  const logStepTransition = useCallback((from: OnboardingStep, to: OnboardingStep, reason: string) => {
-    console.log('🔄 STEP TRANSITION:', {
-      from,
-      to,
-      reason,
-      timestamp: new Date().toISOString(),
-      completedSteps: Array.from(completedSteps),
-      totalSteps: ONBOARDING_STEPS.length,
-      progress: `${completedSteps.size}/${ONBOARDING_STEPS.length}`
-    });
-  }, [completedSteps]);
+  // ─── Extract auth0_id helper ───────────────────────────────
+  const getAuth0Id = useCallback((): string | null => {
+    if (!user?.sub) return null;
+    return user.sub;
+  }, [user]);
 
-  const logStepState = useCallback((step: OnboardingStep, message: string, data?: any) => {
-    console.log(`📍 [${step}] ${message}`, {
-      currentStep,
-      completedCount: completedSteps.size,
-      data,
-      timestamp: new Date().toISOString()
-    });
-  }, [currentStep, completedSteps]);
-
-  // ========================
-  // INVITATION PREFILL LOGIC
-  // ========================
-
-  const setInvitationPrefill = useCallback((inv: Partial<InvitationData>) => {
-    console.log('💾 Setting invitation prefill:', inv);
-    setInvitationPrefillState(inv);
-  }, []);
-
-  useEffect(() => {
-    if (!invitationPrefill) {
-      try {
-        const raw = sessionStorage.getItem("sho_invitation");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          console.log('📥 Loaded invitation from sessionStorage:', parsed);
-          setInvitationPrefill(parsed);
-        }
-      } catch (err) {
-        console.warn("Could not read invitation from sessionStorage:", err);
-      }
-    }
-  }, [invitationPrefill, setInvitationPrefill]);
-
-  useEffect(() => {
-    if (invitationPrefill) {
-      console.log('🔗 Merging invitation data into onboarding state');
-      setOnboardingData(prev => ({
-        ...prev,
-        parent_phone: invitationPrefill.parent_phone || prev.parent_phone,
-        learners: invitationPrefill.learners || prev.learners,
-        school_slug: invitationPrefill.school_slug || prev.school_slug,
-        school_name: invitationPrefill.school_name || prev.school_name,
-        invitation_id: invitationPrefill.id,
-        invitation_token: invitationPrefill.token,
-      }));
-    }
-  }, [invitationPrefill]);
-
-  // ========================
-  // USER SYNC LOGIC
-  // ========================
-
-  const handleSyncUser = useCallback(async () => {
-    if (!user) {
-      console.log('⏸️ User sync skipped: no user');
+  // ─── Fetch saved progress from backend ─────────────────────
+  const fetchOnboardingStatus = useCallback(async () => {
+    const auth0Id = getAuth0Id();
+    if (!auth0Id) {
+      console.warn('🔍 useParentOnboarding: no auth0_id available, starting fresh');
+      setCurrentStep(PARENT_STEPS[0]);
+      setProgress(0);
+      initializedRef.current = true;
       return;
     }
-
-    console.log('🔄 Starting user sync with Rails...', { userId: user.sub });
-    setIsSyncing(true);
-    setError(null);
 
     try {
-      const syncedUser = await UserSyncService.syncUserWithRails(
-        user,
-        invitationPrefill?.token
+      console.log('📥 useParentOnboarding: fetching status from backend...', { auth0Id });
+      
+      const res = await fetch(
+        `${API_BASE}/users/onboarding_status?auth0_id=${encodeURIComponent(auth0Id)}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
       );
-      console.log('✅ User synced successfully:', syncedUser);
-      setRailsUser(syncedUser);
-      
-      queryClient.invalidateQueries({ queryKey: ['parentProfile', user.sub] });
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user.sub] });
-    } catch (err: any) {
-      console.error('❌ User sync failed:', err);
-      setError(err.message || 'Failed to synchronize your account with our records.');
+
+      if (!res.ok) {
+        console.warn('⚠️ useParentOnboarding: failed to fetch status, starting fresh');
+        setCurrentStep(PARENT_STEPS[0]);
+        setProgress(0);
+        initializedRef.current = true;
+        return;
+      }
+
+      const json = await res.json();
+      const status = json?.data?.onboarding_status;
+
+      console.log('📦 useParentOnboarding: received status from backend:', status);
+
+      if (status) {
+        // Restore completed steps (filter to only known parent steps)
+        const savedCompleted: string[] = (status.completed_steps || [])
+          .map((s: string) => s.toString().toUpperCase())
+          .filter((s: string) => PARENT_STEPS.includes(s));
+
+        setCompletedSteps(savedCompleted);
+
+        // Calculate progress
+        const progressPercent = status.parent_completion_percentage ?? computeProgress(savedCompleted);
+        setProgress(progressPercent);
+
+        // Determine where to resume
+        const nextStep = status.next_parent_step || computeNextStep(savedCompleted);
+        
+        console.log('🎯 useParentOnboarding: restored state', {
+          savedCompleted,
+          nextStep,
+          progressPercent,
+          isComplete: nextStep === 'COMPLETE',
+        });
+
+        if (nextStep === 'COMPLETE' || status.parent_onboarding_completed) {
+          setCurrentStep('COMPLETE');
+          setIsOnboardingComplete(true);
+        } else {
+          setCurrentStep(nextStep);
+          setIsOnboardingComplete(false);
+        }
+      } else {
+        // No status object yet — start from the beginning
+        console.log('ℹ️ useParentOnboarding: no saved status, starting fresh');
+        setCurrentStep(PARENT_STEPS[0]);
+        setProgress(0);
+      }
+    } catch (e) {
+      console.error('❌ useParentOnboarding: error fetching status', e);
+      setCurrentStep(PARENT_STEPS[0]);
+      setProgress(0);
     } finally {
-      setIsSyncing(false);
+      initializedRef.current = true;
     }
-  }, [user, invitationPrefill?.token, queryClient]);
+  }, [getAuth0Id]);
 
+  // ─── Fetch on mount ────────────────────────────────────────
   useEffect(() => {
-    if (user && !railsUser && !isSyncing) {
-      handleSyncUser();
+    if (!isAuthLoading && user && !initializedRef.current) {
+      fetchOnboardingStatus();
     }
-  }, [user, railsUser, isSyncing, handleSyncUser]);
+  }, [isAuthLoading, user, fetchOnboardingStatus]);
 
-  // ========================
-  // DATA FETCHING
-  // ========================
+  // ─── Complete a step ───────────────────────────────────────
+  const completeStep = useCallback(async (stepName: string, data?: any) => {
+    const auth0Id = getAuth0Id();
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['parentProfile', user?.sub],
-    queryFn: () => ParentAPI.getProfile(user!.sub!),
-    enabled: !!user?.sub,
-    initialData: initialProfile,
-  });
-
-  const { data: learners, isLoading: areLearnersLoading } = useQuery({
-    queryKey: ['parentLearners', user?.sub],
-    queryFn: async () => {
-      const response = await ParentAPI.getMyLearners(user!.sub!);
-      return response.learners;
-    },
-    enabled: !!user?.sub,
-    initialData: initialLearners,
-  });
-
-  // ========================
-  // DATA MUTATIONS
-  // ========================
-
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: UpdateProfileData) => {
-      console.log('📤 Updating profile via API:', data);
-      return ParentAPI.updateProfile(user!.sub!, data);
-    },
-    onSuccess: (updatedProfile) => {
-      console.log('✅ Profile updated successfully:', updatedProfile);
-      queryClient.setQueryData(['parentProfile', user?.sub], updatedProfile);
-    },
-    onError: (error: any) => {
-      console.error('❌ Profile update failed:', error);
-      setError(error.message);
-    }
-  });
-
-  const linkLearnerMutation = useMutation({
-    mutationFn: (learnerNumber: string) => {
-      console.log('📤 Linking learner via API:', learnerNumber);
-      return ParentAPI.linkLearner(user!.sub!, learnerNumber);
-    },
-    onSuccess: () => {
-      console.log('✅ Learner linked successfully');
-      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
-    },
-    onError: (error: any) => {
-      console.error('❌ Learner linking failed:', error);
-      setError(error.message);
-    },
-  });
-
-  // ========================
-  // STEP DETERMINATION LOGIC
-  // ========================
-
-  const determineInitialStep = useCallback((): OnboardingStep => {
-    console.log('🎯 Determining initial step...', {
-      hasProfile: !!profile,
-      profileName: profile?.name,
-      learnerCount: learners?.length || 0,
-      needsOnboarding: profile?.needsOnboarding,
-      onboardingStarted
-    });
-
-    if (!onboardingStarted) {
-      // ✅ Check if onboarding is already marked as complete in the profile
-      if (profile && profile.needsOnboarding === false) {
-        console.log('➡️ Onboarding already complete according to profile');
-        return 'COMPLETE';
-      }
-
-      const hasCompleteProfile = profile && profile.name && profile.phone_number;
-      
-      if (!hasCompleteProfile) {
-        console.log('➡️ Starting at PROFILE_SETUP (incomplete profile)');
-        return 'PROFILE_SETUP';
-      }
-      
-      if (!learners || learners.length === 0) {
-        console.log('➡️ Starting at LINK_LEARNERS (no learners)');
-        return 'LINK_LEARNERS';
-      }
-      
-      console.log('➡️ Starting at PARENT_CONTACT_SUMMARY (has basics)');
-      return 'PARENT_CONTACT_SUMMARY';
-    }
-
-    return currentStep;
-  }, [profile, learners, onboardingStarted, currentStep]);
-
-  // Initialize the onboarding flow
-  useEffect(() => {
-    if (!user || isProfileLoading || currentStep !== 'INITIALIZING') {
-      return;
-    }
-
-    console.log('🚀 Initializing onboarding flow...');
-    const initialStep = determineInitialStep();
-    setCurrentStep(initialStep);
-    setOnboardingStarted(true);
-  }, [user, isProfileLoading, currentStep, determineInitialStep]);
-
-  // ========================
-  // STEP COMPLETION LOGIC
-  // ========================
-
-  const completeStep = useCallback(async (step: OnboardingStep, data: any) => {
     console.log('');
     console.log('═══════════════════════════════════════');
-    console.log(`✨ COMPLETING STEP: ${step}`);
+    console.log(`✨ COMPLETING STEP: ${stepName}`);
     console.log('═══════════════════════════════════════');
     console.log('📦 Step data:', data);
+    console.log('🔑 Auth0 ID:', auth0Id);
 
-    try {
-      // Save the step data
-      setOnboardingData(prev => {
-        const updated = { ...prev, [step]: data };
-        console.log('💾 Updated onboarding data:', updated);
-        return updated;
-      });
+    // 1. Optimistically update local state so the UI responds instantly
+    const newCompleted = completedSteps.includes(stepName)
+      ? completedSteps
+      : [...completedSteps, stepName];
 
-      // Mark step as completed
-      setCompletedSteps(prev => {
-        const updated = new Set(prev).add(step);
-        console.log('✅ Completed steps:', Array.from(updated));
-        console.log(`📊 Progress: ${updated.size}/${ONBOARDING_STEPS.length} steps`);
-        return updated;
-      });
+    setCompletedSteps(newCompleted);
+    const newProgress = computeProgress(newCompleted);
+    setProgress(newProgress);
 
-      // Handle profile update if this is profile setup
-      if (step === 'PROFILE_SETUP') {
-        console.log('🔄 Triggering profile API update...');
-        await updateProfileMutation.mutateAsync(data);
-        console.log('✅ Profile API update complete');
-      }
-
-      // Special handling for SUBSCRIPTION_CHOICE
-      // Always go to PAYMENT_SETUP regardless of tier chosen
-      if (step === 'SUBSCRIPTION_CHOICE') {
-        console.log('💳 Subscription selected - next step is PAYMENT_SETUP');
-        logStepTransition(step, 'PAYMENT_SETUP', 'Subscription choice made');
-        setCurrentStep('PAYMENT_SETUP');
-        return;
-      }
-
-      // Special handling for PAYMENT_SETUP - always go to PARENT_CONTACT_SUMMARY
-      if (step === 'PAYMENT_SETUP') {
-        console.log('💰 Payment setup complete - moving to PARENT_CONTACT_SUMMARY');
-        logStepTransition(step, 'PARENT_CONTACT_SUMMARY', 'Payment complete');
-        setCurrentStep('PARENT_CONTACT_SUMMARY');
-        return;
-      }
-
-      // Determine next step for all other cases
-      const currentIndex = ONBOARDING_STEPS.indexOf(step);
-      console.log(`📍 Current step index: ${currentIndex}/${ONBOARDING_STEPS.length - 1}`);
-
-      if (currentIndex >= ONBOARDING_STEPS.length - 1) {
-        console.log('🎉 ALL STEPS COMPLETED! Marking onboarding as COMPLETE');
-        logStepTransition(step, 'COMPLETE', 'Final step completed');
-        setCurrentStep('COMPLETE');
-      } else {
-        const nextStep = ONBOARDING_STEPS[currentIndex + 1];
-        console.log(`➡️ Moving to next step: ${nextStep}`);
-        logStepTransition(step, nextStep, 'Step completed successfully');
-        setCurrentStep(nextStep);
-      }
-
-      console.log('═══════════════════════════════════════');
-      console.log('');
-    } catch (error: any) {
-      console.error('');
-      console.error('═══════════════════════════════════════');
-      console.error(`❌ ERROR completing step ${step}:`, error);
-      console.error('═══════════════════════════════════════');
-      console.error('');
-      setError(error.message);
+    // Store step data locally (used by later steps, e.g. SUBSCRIPTION_CHOICE → PAYMENT_SETUP)
+    if (data) {
+      setOnboardingData((prev) => ({ ...prev, [stepName]: data }));
     }
-  }, [updateProfileMutation, logStepTransition]);
 
-  // ========================
-  // NAVIGATION LOGIC
-  // ========================
+    // Advance to the next step optimistically
+    const next = computeNextStep(newCompleted);
+    setCurrentStep(next);
+    if (next === 'COMPLETE') setIsOnboardingComplete(true);
 
+    console.log('📊 Local state updated:', {
+      completedSteps: newCompleted,
+      progress: newProgress,
+      nextStep: next,
+    });
+
+    // 2. Persist to backend (non-blocking — UI already moved on)
+    if (auth0Id) {
+      try {
+        console.log('📤 Persisting step to backend...');
+        
+        const res = await fetch(
+          `${API_BASE}/users/${encodeURIComponent(auth0Id)}/onboarding_status/complete_step`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              step_name: stepName,
+              metadata: data || {},
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('❌ useParentOnboarding: backend complete_step failed', err);
+          
+          // Roll back local state so the user can retry
+          setCompletedSteps(completedSteps);
+          setProgress(computeProgress(completedSteps));
+          setCurrentStep(stepName);
+          if (stepName !== 'COMPLETE') setIsOnboardingComplete(false);
+          
+          setError('Failed to save progress. Please try again.');
+        } else {
+          const result = await res.json();
+          console.log('✅ useParentOnboarding: step persisted successfully', result);
+          setError(null);
+        }
+      } catch (e) {
+        console.error('❌ useParentOnboarding: network error persisting step', e);
+        
+        // Roll back
+        setCompletedSteps(completedSteps);
+        setProgress(computeProgress(completedSteps));
+        setCurrentStep(stepName);
+        if (stepName !== 'COMPLETE') setIsOnboardingComplete(false);
+        
+        setError('Network error. Please check your connection and try again.');
+      }
+    } else {
+      console.warn('⚠️ useParentOnboarding: no auth0_id, cannot persist to backend');
+    }
+
+    console.log('═══════════════════════════════════════');
+    console.log('');
+  }, [completedSteps, getAuth0Id]);
+
+  // ─── Go back one step ──────────────────────────────────────
   const goBack = useCallback(() => {
     console.log('');
     console.log('═══════════════════════════════════════');
     console.log('🔙 GO BACK REQUESTED');
     console.log('═══════════════════════════════════════');
-    
-    const currentIndex = ONBOARDING_STEPS.indexOf(currentStep);
-    console.log(`📍 Current step: ${currentStep} (index ${currentIndex})`);
-    
-    if (currentIndex <= 0) {
+
+    const idx = PARENT_STEPS.indexOf(currentStep as any);
+    console.log(`📍 Current step: ${currentStep} (index ${idx})`);
+
+    if (idx <= 0) {
       console.log('⛔ Already at first step, cannot go back');
       console.log('═══════════════════════════════════════');
       console.log('');
       return;
     }
-    
-    const previousStep = ONBOARDING_STEPS[currentIndex - 1];
+
+    const previousStep = PARENT_STEPS[idx - 1];
     console.log(`⬅️ Going back to: ${previousStep}`);
-    
+
     // Remove current step from completed steps
-    setCompletedSteps(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(currentStep);
-      console.log('📝 Updated completed steps:', Array.from(newSet));
-      return newSet;
-    });
-    
-    logStepTransition(currentStep, previousStep, 'User navigated back');
+    const newCompleted = completedSteps.filter((s) => s !== currentStep);
+    setCompletedSteps(newCompleted);
+    setProgress(computeProgress(newCompleted));
     setCurrentStep(previousStep);
-    
+
+    console.log('📝 Updated state:', {
+      completedSteps: newCompleted,
+      currentStep: previousStep,
+    });
     console.log('═══════════════════════════════════════');
     console.log('');
-  }, [currentStep, logStepTransition]);
-
-  // ========================
-  // COMPUTED VALUES
-  // ========================
-
-  const progress = useMemo(() => {
-    const completedCount = completedSteps.size;
-    const totalSteps = ONBOARDING_STEPS.length;
-    const progressPercent = Math.max(0, Math.min(100, (completedCount / totalSteps) * 100));
-    
-    console.log('📊 Progress calculation:', {
-      completedCount,
-      totalSteps,
-      progressPercent: progressPercent.toFixed(1) + '%',
-      completedSteps: Array.from(completedSteps)
-    });
-    
-    return progressPercent;
-  }, [completedSteps]);
-
-  const isOnboardingComplete = useMemo(() => {
-    const complete = currentStep === 'COMPLETE';
-    console.log('🎯 Onboarding complete check:', {
-      currentStep,
-      isComplete: complete,
-      completedStepsCount: completedSteps.size,
-      totalSteps: ONBOARDING_STEPS.length
-    });
-    return complete;
   }, [currentStep, completedSteps]);
 
-  // ========================
-  // DEBUG: Log state changes
-  // ========================
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Onboarding Hook State:', {
-        currentStep,
-        completedSteps: Array.from(completedSteps),
-        progress: `${progress.toFixed(1)}%`,
-        isOnboardingComplete,
-        hasUser: !!user,
-        hasProfile: !!profile,
-        learnerCount: learners?.length || 0,
-        onboardingStarted
-      });
-    }
-  }, [currentStep, completedSteps, progress, isOnboardingComplete, user, profile, learners, onboardingStarted]);
-
-  // ========================
-  // RETURN API
-  // ========================
-
+  // ─── Expose ────────────────────────────────────────────────
   return {
     // User data
     user,
-    railsUser,
     profile,
-    learners,
-    
+    learners: initialLearners,
+
     // Step management
     currentStep,
-    steps: ONBOARDING_STEPS,
-    completedSteps: Array.from(completedSteps),
-    
+    steps: PARENT_STEPS,
+    completedSteps,
+
     // State
     onboardingData,
     isOnboardingComplete,
-    isLoading: isAuthLoading || isSyncing || isProfileLoading || areLearnersLoading,
+    isLoading: isAuthLoading || !initializedRef.current,
     progress,
     error,
-    
+
     // Actions
     completeStep,
     goBack,
-    retrySync: handleSyncUser,
-    setInvitationPrefill,
-    linkLearner: linkLearnerMutation.mutateAsync,
-    
-    // Debug helpers (only in development)
-    ...(process.env.NODE_ENV === 'development' && {
-      _debug: {
-        logStepState,
-        logStepTransition,
-        currentIndex: ONBOARDING_STEPS.indexOf(currentStep),
-        totalSteps: ONBOARDING_STEPS.length
-      }
-    })
+    retryFetch: fetchOnboardingStatus,
   };
+}
+
+// ─── Pure helpers (no side effects) ───────────────────────────
+function computeNextStep(completed: string[]): OnboardingStep {
+  for (const step of PARENT_STEPS) {
+    if (!completed.includes(step)) return step;
+  }
+  return 'COMPLETE';
+}
+
+function computeProgress(completed: string[]): number {
+  if (PARENT_STEPS.length === 0) return 0;
+  const count = completed.filter((s) => PARENT_STEPS.includes(s)).length;
+  return Math.round((count / PARENT_STEPS.length) * 100);
 }
