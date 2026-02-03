@@ -1,6 +1,8 @@
 // lib/hooks/useParentOnboarding.ts
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ParentAPI, ParentProfile, Learner, UpdateProfileData } from '../api/parent-api';
 
 // ─── Canonical step order (MUST match backend OnboardingStatus::PARENT_STEPS) ───
 const PARENT_STEPS: string[] = [
@@ -26,8 +28,8 @@ interface InvitationData {
 }
 
 interface UseParentOnboardingProps {
-  initialProfile?: any;
-  initialLearners?: any[];
+  initialProfile?: ParentProfile | null;
+  initialLearners?: Learner[];
   invitationData?: InvitationData | null;
 }
 
@@ -40,6 +42,7 @@ export function useParentOnboarding({
 }: UseParentOnboardingProps) {
   // ─── Get authenticated user from Auth0 ─────────────────────
   const { user, isLoading: isAuthLoading } = useUser();
+  const queryClient = useQueryClient();
 
   // ─── State ─────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('INITIALIZING');
@@ -48,9 +51,9 @@ export function useParentOnboarding({
   const [onboardingData, setOnboardingData] = useState<Record<string, any>>({
     ...(invitationData || {}),
   });
-  const [profile, setProfile] = useState<any>(initialProfile);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invitationPrefill, setInvitationPrefillState] = useState<Partial<InvitationData> | null>(invitationData || null);
 
   // Track whether we've fetched from the server at least once
   const initializedRef = useRef(false);
@@ -60,6 +63,92 @@ export function useParentOnboarding({
     if (!user?.sub) return null;
     return user.sub;
   }, [user]);
+
+  // ─── Invitation Prefill Logic ──────────────────────────────
+  const setInvitationPrefill = useCallback((inv: Partial<InvitationData>) => {
+    console.log('💾 Setting invitation prefill:', inv);
+    setInvitationPrefillState(inv);
+  }, []);
+
+  useEffect(() => {
+    if (!invitationPrefill) {
+      try {
+        const raw = sessionStorage.getItem("sho_invitation");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          console.log('📥 Loaded invitation from sessionStorage:', parsed);
+          setInvitationPrefill(parsed);
+        }
+      } catch (err) {
+        console.warn("Could not read invitation from sessionStorage:", err);
+      }
+    }
+  }, [invitationPrefill, setInvitationPrefill]);
+
+  useEffect(() => {
+    if (invitationPrefill) {
+      console.log('🔗 Merging invitation data into onboarding state');
+      setOnboardingData(prev => ({
+        ...prev,
+        parent_phone: invitationPrefill.parent_phone || prev.parent_phone,
+        learners: invitationPrefill.learners || prev.learners,
+        school_slug: invitationPrefill.school_slug || prev.school_slug,
+        school_name: invitationPrefill.school_name || prev.school_name,
+        invitation_id: invitationPrefill.id,
+        invitation_token: invitationPrefill.token,
+      }));
+    }
+  }, [invitationPrefill]);
+
+  // ─── Data Fetching with React Query ────────────────────────
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['parentProfile', user?.sub],
+    queryFn: () => ParentAPI.getProfile(user!.sub!),
+    enabled: !!user?.sub,
+    initialData: initialProfile,
+  });
+
+  const { data: learners, isLoading: areLearnersLoading } = useQuery({
+    queryKey: ['parentLearners', user?.sub],
+    queryFn: async () => {
+      const response = await ParentAPI.getMyLearners(user!.sub!);
+      return response.learners;
+    },
+    enabled: !!user?.sub,
+    initialData: initialLearners,
+  });
+
+  // ─── Profile Update Mutation ───────────────────────────────
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: UpdateProfileData) => {
+      console.log('📤 Updating profile via API:', data);
+      return ParentAPI.updateProfile(user!.sub!, data);
+    },
+    onSuccess: (updatedProfile) => {
+      console.log('✅ Profile updated successfully:', updatedProfile);
+      queryClient.setQueryData(['parentProfile', user?.sub], updatedProfile);
+    },
+    onError: (error: any) => {
+      console.error('❌ Profile update failed:', error);
+      setError(error.message);
+    }
+  });
+
+  // ─── Link Learner Mutation ─────────────────────────────────
+  const linkLearnerMutation = useMutation({
+    mutationFn: (learnerNumber: string) => {
+      console.log('📤 Linking learner via API:', learnerNumber);
+      return ParentAPI.linkLearner(user!.sub!, learnerNumber);
+    },
+    onSuccess: () => {
+      console.log('✅ Learner linked successfully');
+      queryClient.invalidateQueries({ queryKey: ['parentLearners', user?.sub] });
+    },
+    onError: (error: any) => {
+      console.error('❌ Learner linking failed:', error);
+      setError(error.message);
+    },
+  });
 
   // ─── Fetch saved progress from backend ─────────────────────
   const fetchOnboardingStatus = useCallback(async () => {
@@ -158,6 +247,19 @@ export function useParentOnboarding({
     console.log('📦 Step data:', data);
     console.log('🔑 Auth0 ID:', auth0Id);
 
+    // Handle profile update if this is profile setup
+    if (stepName === 'PROFILE_SETUP' && data) {
+      try {
+        console.log('🔄 Triggering profile API update...');
+        await updateProfileMutation.mutateAsync(data);
+        console.log('✅ Profile API update complete');
+      } catch (error) {
+        console.error('❌ Profile update failed:', error);
+        setError('Failed to update profile. Please try again.');
+        return;
+      }
+    }
+
     // 1. Optimistically update local state so the UI responds instantly
     const newCompleted = completedSteps.includes(stepName)
       ? completedSteps
@@ -233,7 +335,7 @@ export function useParentOnboarding({
 
     console.log('═══════════════════════════════════════');
     console.log('');
-  }, [completedSteps, getAuth0Id]);
+  }, [completedSteps, getAuth0Id, updateProfileMutation]);
 
   // ─── Go back one step ──────────────────────────────────────
   const goBack = useCallback(() => {
@@ -269,12 +371,30 @@ export function useParentOnboarding({
     console.log('');
   }, [currentStep, completedSteps]);
 
+  // ─── Computed loading state ────────────────────────────────
+  const isLoading = isAuthLoading || !initializedRef.current || isProfileLoading || areLearnersLoading;
+
+  // ─── Debug logging ─────────────────────────────────────────
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Onboarding Hook State:', {
+        currentStep,
+        completedSteps,
+        progress: `${progress.toFixed(1)}%`,
+        isOnboardingComplete,
+        hasUser: !!user,
+        hasProfile: !!profile,
+        learnerCount: learners?.length || 0,
+      });
+    }
+  }, [currentStep, completedSteps, progress, isOnboardingComplete, user, profile, learners]);
+
   // ─── Expose ────────────────────────────────────────────────
   return {
     // User data
     user,
     profile,
-    learners: initialLearners,
+    learners: learners || [],
 
     // Step management
     currentStep,
@@ -284,7 +404,7 @@ export function useParentOnboarding({
     // State
     onboardingData,
     isOnboardingComplete,
-    isLoading: isAuthLoading || !initializedRef.current,
+    isLoading,
     progress,
     error,
 
@@ -292,6 +412,16 @@ export function useParentOnboarding({
     completeStep,
     goBack,
     retryFetch: fetchOnboardingStatus,
+    setInvitationPrefill,
+    linkLearner: linkLearnerMutation.mutateAsync,
+
+    // Debug helpers (only in development)
+    ...(process.env.NODE_ENV === 'development' && {
+      _debug: {
+        initializedRef,
+        auth0Id: getAuth0Id(),
+      }
+    }),
   };
 }
 
