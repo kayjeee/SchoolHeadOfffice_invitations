@@ -31,7 +31,7 @@ interface OnboardingFlowProps {
 // Price configuration
 const PRICE_CONFIG = {
   premium: {
-    monthly: 299, // ZAR
+    monthly: 90, // ✅ NEW PRICE: R90/month
     annualDiscount: 0.15, // 15% discount
   }
 };
