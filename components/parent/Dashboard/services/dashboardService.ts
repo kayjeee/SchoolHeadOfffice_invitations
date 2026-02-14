@@ -1,4 +1,4 @@
-import { Learner } from "../../../../lib/types/parent.types";
+import { Learner } from "../../../../lib/api/parent-api";
 
 export const dashboardService = {
   async getDashboardStats(learners: Learner[]) {

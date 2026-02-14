@@ -1,5 +1,5 @@
 import React from "react";
-import { Learner } from "../../../../lib/types/parent.types";
+import { Learner } from "../../../../lib/api/parent-api";
 
 interface BehaviorTabProps {
   learners: Learner[];

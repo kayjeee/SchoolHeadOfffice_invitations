@@ -1,5 +1,5 @@
 import React from "react";
-import { Learner } from "../../../../lib/types/parent.types";
+import { Learner } from "../../../../lib/api/parent-api";
 import LearnerCard from "../widgets/LearnerCard";
 import StatsCard from "../widgets/StatsCard";
 import NotificationList from "../widgets/NotificationList";

@@ -1,7 +1,10 @@
-import { ParentProfile, Learner } from "../../../../lib/types/parent.types";
+import { ParentProfile, Learner } from "../../../../lib/api/parent-api";
 
 export interface ExtendedProfile extends ParentProfile {
   subscription?: "standard" | "premium";
+  // Add compatibility fields if needed by UI
+  first_name?: string;
+  last_name?: string;
 }
 
 export interface DashboardProps {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { dashboardService } from "../services/dashboardService";
-import { Learner } from "../../../../lib/types/parent.types";
+import { Learner } from "../../../../lib/api/parent-api";
 
 export function useParentDashboard(learners: Learner[]) {
   const [activeTab, setActiveTab] = useState("overview");
