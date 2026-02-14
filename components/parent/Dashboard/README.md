@@ -32,7 +32,7 @@ To ensure scalability and maintainability, the dashboard follows a strict separa
 
 ## Folder Structure
 ```
-components/parent/dashboard/
+components/parent/Dashboard/
 ├── ParentDashboard.tsx      # Main dashboard entry point
 ├── DashboardLayout.tsx     # Persistent layout (header, sidebar/nav)
 ├── tabs/                   # Individual feature tabs
