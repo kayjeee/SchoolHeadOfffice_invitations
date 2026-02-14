@@ -27,6 +27,8 @@ export function useParentDashboard(learners: Learner[]) {
 
     if (learners && learners.length > 0) {
       fetchData();
+    } else if (learners) {
+      setLoading(false);
     }
   }, [learners]);
 

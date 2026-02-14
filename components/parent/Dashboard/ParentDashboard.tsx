@@ -11,8 +11,9 @@ import PremiumTab from "./tabs/PremiumTab";
 import UpgradeBanner from "./widgets/UpgradeBanner";
 import DashboardLayout from "./DashboardLayout";
 import { useParentDashboard } from "./hooks/useParentDashboard";
+import { DashboardProps } from "./types/dashboard.types";
 
-export default function ParentDashboard({ user, profile, learners }) {
+export default function ParentDashboard({ user, profile, learners }: DashboardProps) {
   const { activeTab, setActiveTab, stats, notifications, loading } = useParentDashboard(learners);
 
   const isPremium = profile?.subscription === "premium";
