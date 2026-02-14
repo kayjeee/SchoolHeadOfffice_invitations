@@ -6,10 +6,12 @@ import NotificationList from "../widgets/NotificationList";
 
 interface OverviewTabProps {
   learners: Learner[];
+  stats?: any;
+  notifications?: any[];
 }
 
-export default function OverviewTab({ learners }: OverviewTabProps) {
-  const mockNotifications = [
+export default function OverviewTab({ learners, stats, notifications }: OverviewTabProps) {
+  const displayNotifications = notifications?.length ? notifications : [
     { id: 1, message: "Mathematics test results published", date: "2 hours ago" },
     { id: 2, message: "School closed for public holiday on Monday", date: "1 day ago" },
     { id: 3, message: "New assignment: History Essay", date: "2 days ago" },
@@ -18,9 +20,9 @@ export default function OverviewTab({ learners }: OverviewTabProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Attendance" value="95%" trend="+2%" color="blue" />
-        <StatsCard title="Avg. Grade" value="A-" color="green" />
-        <StatsCard title="Assignments" value="4 Pending" color="orange" />
+        <StatsCard title="Attendance" value={stats?.averageAttendance ? `${stats.averageAttendance}%` : "95%"} trend="+2%" color="blue" />
+        <StatsCard title="Avg. Grade" value={stats?.overallGrade || "A-"} color="green" />
+        <StatsCard title="Assignments" value={stats?.upcomingAssignments ? `${stats.upcomingAssignments} Pending` : "4 Pending"} color="orange" />
         <StatsCard title="Behavior" value="Exemplary" color="purple" />
       </div>
 
@@ -44,7 +46,7 @@ export default function OverviewTab({ learners }: OverviewTabProps) {
         </div>
 
         <div>
-          <NotificationList notifications={mockNotifications} />
+          <NotificationList notifications={displayNotifications} />
         </div>
       </div>
     </div>

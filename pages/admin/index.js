@@ -33,28 +33,7 @@ export default function Home() {
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
 
   /* ---------------------------------------------------
-   * 🚀 AUTH GUARD (MOST IMPORTANT FIX)
-   * --------------------------------------------------- */
-
-  if (authLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <a
-          href="/api/auth/login"
-          className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-700 transition"
-        >
-          Login to Continue
-        </a>
-      </div>
-    );
-  }
-
-  /* ---------------------------------------------------
-   * Initial data load
+   * Initial data load (Auth0-safe)
    * --------------------------------------------------- */
   useEffect(() => {
     if (!user?.sub) return;
@@ -65,7 +44,7 @@ export default function Home() {
   }, [user?.sub]);
 
   /* ---------------------------------------------------
-   * Fetch roles
+   * Fetch user roles
    * --------------------------------------------------- */
   const fetchUserRoles = async () => {
     try {
@@ -75,7 +54,7 @@ export default function Home() {
       const data = await res.json();
       setUserRoles(data.roles?.map((r) => r.name) || []);
     } catch (err) {
-      console.error("Failed to fetch roles", err);
+      console.error("❌ Failed to fetch roles", err);
       setUserRoles([]);
     }
   };
@@ -119,15 +98,15 @@ export default function Home() {
 
       setSchools(mapped);
     } catch (err) {
-      console.error("Failed to fetch schools", err);
-      setMessage("Unable to load schools.");
+      console.error("❌ Failed to fetch schools", err);
+      setMessage("Unable to load schools. Please try again.");
     } finally {
       setLoadingSchools(false);
     }
   };
 
   /* ---------------------------------------------------
-   * Onboarding check
+   * Onboarding status
    * --------------------------------------------------- */
   const checkOnboardingStatus = async () => {
     setCheckingOnboarding(true);
@@ -149,7 +128,7 @@ export default function Home() {
 
       setIsOnboardingComplete(Boolean(completed));
     } catch (err) {
-      console.error("Onboarding check failed", err);
+      console.error("❌ Failed onboarding check", err);
       setIsOnboardingComplete(false);
     } finally {
       setCheckingOnboarding(false);
@@ -199,7 +178,7 @@ export default function Home() {
    * Main render logic
    * --------------------------------------------------- */
   const renderContent = () => {
-    if (loadingSchools || checkingOnboarding) {
+    if (authLoading || loadingSchools || checkingOnboarding) {
       return <LoadingSpinner />;
     }
 
@@ -227,7 +206,7 @@ export default function Home() {
   };
 
   /* ---------------------------------------------------
-   * Layout
+   * Single layout (no mobile split)
    * --------------------------------------------------- */
   return (
     <FrontPageLayout user={user} schools={schools} userRoles={userRoles}>

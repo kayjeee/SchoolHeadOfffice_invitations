@@ -341,7 +341,10 @@ export default function ParentPage(props: ParentPageProps) {
     return <div className="p-8 text-center">{props.error}</div>;
   }
 
-  // 🚀 IMPORTANT: show landing BEFORE loading state
+  if (onboarding.isLoading) {
+    return <LoadingScreen message="Loading parent portal..." />;
+  }
+
   if (!onboarding.user) {
     return (
       <LandingPage
@@ -349,11 +352,6 @@ export default function ParentPage(props: ParentPageProps) {
         school={props.school}
       />
     );
-  }
-
-  // Only logged-in users should ever see loading
-  if (onboarding.isLoading) {
-    return <LoadingScreen message="Loading parent portal..." />;
   }
 
   return (
@@ -375,7 +373,6 @@ export default function ParentPage(props: ParentPageProps) {
     </ErrorBoundary>
   );
 }
-
 
 function SEOHead({ title }: { title: string }) {
   return (

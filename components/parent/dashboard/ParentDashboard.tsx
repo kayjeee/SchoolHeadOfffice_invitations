@@ -13,14 +13,14 @@ import DashboardLayout from "./DashboardLayout";
 import { useParentDashboard } from "./hooks/useParentDashboard";
 
 export default function ParentDashboard({ user, profile, learners }) {
-  const { activeTab, setActiveTab } = useParentDashboard(learners);
+  const { activeTab, setActiveTab, stats, notifications, loading } = useParentDashboard(learners);
 
   const isPremium = profile?.subscription === "premium";
 
   const renderTab = () => {
     switch (activeTab) {
       case "overview":
-        return <OverviewTab learners={learners} />;
+        return <OverviewTab learners={learners} stats={stats} notifications={notifications} />;
       case "academics":
         return <AcademicsTab learners={learners} isPremium={isPremium} />;
       case "attendance":
@@ -41,6 +41,16 @@ export default function ParentDashboard({ user, profile, learners }) {
         return <OverviewTab learners={learners} />;
     }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

@@ -23,4 +23,5 @@ export type TabKey =
   | "assignments"
   | "messages"
   | "reports"
-  | "analytics";
+  | "analytics"
+  | "premium";
