@@ -22,6 +22,7 @@ export interface Learner {
   grade: string;
   school_id: string;
   school_name: string;
+  school_slug?: string;
   learner_number: string;
   status: 'active' | 'inactive';
   full_name?: string;

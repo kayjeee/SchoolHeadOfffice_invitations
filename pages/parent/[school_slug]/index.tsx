@@ -1,53 +1,37 @@
-// pages/parent/index.tsx
-import React from "react";
+// pages/parent/[school_slug]/index.tsx
+import React, { useMemo } from "react";
 import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import { useRouter } from "next/router";
 
-import ErrorBoundary from "../../components/common/ErrorBoundary";
-import LoadingScreen from "../../components/common/LoadingScreen";
-import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
+import ErrorBoundary from "../../../components/common/ErrorBoundary";
+import LoadingScreen from "../../../components/common/LoadingScreen";
+import ParentDashboard from "../../../components/parent/Dashboard/ParentDashboard";
 
-import { InvitationService } from "../../lib/services/invitation.service";
-import { ParentService } from "../../lib/services/parent.service";
-import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
-import { slugify } from "../../lib/utils/slugify";
+import { ParentService } from "../../../lib/services/parent.service";
+import { useParentOnboarding } from "../../../lib/hooks/useParentOnboarding";
+import { slugify } from "../../../lib/utils/slugify";
 
 /* -------------------------------------------------------------------------- */
 /*                                  DYNAMIC                                   */
 /* -------------------------------------------------------------------------- */
 
 const FrontPageLayout = dynamic(
-  () => import("../../components/Layouts/FrontPageLayout"),
+  () => import("../../../components/Layouts/FrontPageLayout"),
   { ssr: true }
-);
-
-const OnboardingFlow = dynamic(
-  () => import("../../components/parent/Onboarding/OnboardingFlow"),
-  { ssr: false }
 );
 
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
 /* -------------------------------------------------------------------------- */
 
-interface InvitationData {
-  id: string;
-  token?: string;
-  school_slug?: string;
-  school_name?: string;
-  parent_phone?: string;
-  learners?: { id: string; name: string; grade?: string }[];
-}
-
-interface ParentPageProps {
+interface SchoolDashboardProps {
   isAuthenticated: boolean;
-  invitationToken?: string | null;
-  invitationData?: InvitationData | null;
+  school_slug: string;
   initialProfile?: any | null;
   initialLearners?: any[];
-  school?: string | null;
   error?: string | null;
 }
 
@@ -56,37 +40,10 @@ interface ParentPageProps {
 /* -------------------------------------------------------------------------- */
 
 export const getServerSideProps: GetServerSideProps<
-  ParentPageProps
+  SchoolDashboardProps
 > = async (context) => {
   const session = await getSession(context.req, context.res);
-  const token =
-    typeof context.query.token === "string" ? context.query.token : null;
-  const school =
-    typeof context.query.school === "string" ? context.query.school : null;
-
-  // ─── Invitation only (logged out) ─────────────────────────
-  if (!session?.user && token) {
-    try {
-      const verified = await InvitationService.verifyToken(token);
-      if (!verified.success) throw new Error();
-
-      return {
-        props: {
-          isAuthenticated: false,
-          invitationToken: token,
-          invitationData: { id: token, token, ...verified },
-          school,
-        },
-      };
-    } catch {
-      return {
-        props: {
-          isAuthenticated: false,
-          error: "Invalid or expired invitation link.",
-        },
-      };
-    }
-  }
+  const { school_slug } = context.params as { school_slug: string };
 
   // ─── Logged in user ───────────────────────────────────────
   if (session?.user) {
@@ -96,14 +53,11 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
-      // If onboarding is complete, redirect to the school-specific dashboard
-      if (profile?.needsOnboarding === false && learners && learners.length > 0) {
-        const primaryLearner = learners[0];
-        const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
-
+      // If onboarding is not complete, redirect to /parent
+      if (profile?.needsOnboarding !== false) {
         return {
           redirect: {
-            destination: `/parent/${schoolSlug}`,
+            destination: "/parent",
             permanent: false,
           },
         };
@@ -112,14 +66,17 @@ export const getServerSideProps: GetServerSideProps<
       return {
         props: {
           isAuthenticated: true,
+          school_slug,
           initialProfile: profile || null,
           initialLearners: learners || [],
         },
       };
-    } catch {
+    } catch (error) {
+      console.error("Error in School Dashboard getServerSideProps:", error);
       return {
         props: {
           isAuthenticated: true,
+          school_slug,
           error: "Failed to load your profile.",
         },
       };
@@ -130,6 +87,7 @@ export const getServerSideProps: GetServerSideProps<
   return {
     props: {
       isAuthenticated: false,
+      school_slug,
     },
   };
 };
@@ -138,18 +96,28 @@ export const getServerSideProps: GetServerSideProps<
 /*                                   PAGE                                     */
 /* -------------------------------------------------------------------------- */
 
-export default function ParentPage(props: ParentPageProps) {
+export default function SchoolParentDashboard(props: SchoolDashboardProps) {
+  const router = useRouter();
+
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
-    return <LandingPage invitationToken={props.invitationToken} school={props.school} />;
+    return <LandingPage school_slug={props.school_slug} />;
   }
 
-  // ✅ Logged in → now onboarding hook is safe to run
+  // ✅ Logged in
   const onboarding = useParentOnboarding({
     initialProfile: props.initialProfile,
     initialLearners: props.initialLearners,
-    invitationData: props.invitationData,
   });
+
+  // Filter learners by school slug
+  const filteredLearners = useMemo(() => {
+    if (!onboarding.learners) return [];
+    return onboarding.learners.filter((learner: any) => {
+      const learnerSchoolSlug = learner.school_slug || slugify(learner.school_name || "");
+      return learnerSchoolSlug === props.school_slug;
+    });
+  }, [onboarding.learners, props.school_slug]);
 
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;
@@ -159,21 +127,24 @@ export default function ParentPage(props: ParentPageProps) {
     return <div className="p-8 text-center">{props.error}</div>;
   }
 
+  // If no learners found for this school, we might want to show a message or redirect
+  // But for now, let's just pass them to the dashboard which handles empty states
+
+  const schoolName = filteredLearners.length > 0
+    ? filteredLearners[0].school_name
+    : props.school_slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
   return (
     <ErrorBoundary>
+      <Head>
+        <title>{schoolName} | Parent Portal</title>
+      </Head>
       <FrontPageLayout user={onboarding.user} userRoles={["parent"]}>
-        {!onboarding.isOnboardingComplete ? (
-          <OnboardingFlow
-            user={onboarding.user}
-            invitationData={props.invitationData}
-          />
-        ) : (
-          <ParentDashboard
-            user={onboarding.user}
-            profile={onboarding.profile}
-            learners={onboarding.learners}
-          />
-        )}
+        <ParentDashboard
+          user={onboarding.user}
+          profile={onboarding.profile}
+          learners={filteredLearners}
+        />
       </FrontPageLayout>
     </ErrorBoundary>
   );
@@ -183,23 +154,21 @@ export default function ParentPage(props: ParentPageProps) {
 /*                                LANDING PAGE                                */
 /* -------------------------------------------------------------------------- */
 
-function LandingPage({ invitationToken, school }: any) {
-  const returnTo = invitationToken
-    ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`
-    : "/parent";
+function LandingPage({ school_slug }: { school_slug: string }) {
+  const returnTo = `/parent/${school_slug}`;
 
   return (
     <>
       <Head>
-        <title>Parent Portal</title>
-        <meta name="robots" content="noindex,nofollow" />
+        <title>Parent Portal | {school_slug}</title>
+        <meta name="description" content={`Access the parent portal for ${school_slug}. View learner progress, school notices, and more.`} />
       </Head>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md">
           <h1 className="text-2xl font-bold mb-4">Parent Portal</h1>
           <p className="text-gray-600 mb-6">
-            Sign in to view school notices, learner progress, and important updates.
+            Sign in to view school notices, learner progress, and important updates for your school.
           </p>
 
           <a
