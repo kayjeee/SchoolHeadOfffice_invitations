@@ -20,6 +20,8 @@ const DesktopHome = ({ schools }) => {
     { name: "Student", icon: "🎓", href: "/student" },
     { name: "School Leader", icon: "🏫", href: "/admin" },
     { name: "District Leader", icon: "📍", href: "/district" },
+    { name: "School Vacations", icon: "🌴", href: "/vacations" },
+    { name: "School Principal", icon: "👨‍💼", href: "/principal" },
   ];
 
   return (
@@ -58,7 +60,7 @@ const DesktopHome = ({ schools }) => {
         </motion.p>
 
         {/* ✅ Role Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 mt-6 max-w-7xl mx-auto">
           {roles.map((role) => (
             <motion.div
               key={role.name}
