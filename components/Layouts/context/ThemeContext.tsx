@@ -36,7 +36,7 @@ const AppThemeContext = createContext<AppThemeContextType | undefined>(undefined
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
 
 const MODULE_TAG = 'APP_THEME_CONTEXT';
-const DEFAULT_PRIMARY = 'white';
+const DEFAULT_PRIMARY = 'Gray';
 
 // Predefined color mappings for simple color names
 const COLOR_MAPPINGS: Record<string, string> = {
