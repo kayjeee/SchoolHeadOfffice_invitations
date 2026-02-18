@@ -351,7 +351,7 @@ const fetchUserProfile = async () => {
         let redirectPath = '/parent';
         if (learners && learners.length > 0) {
           const primaryLearner = learners[0];
-          const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
+          const schoolSlug = primaryLearner.school_slug || (primaryLearner.school_name ? slugify(primaryLearner.school_name) : "school");
           redirectPath = `/parent/${schoolSlug}`;
           console.log('🚀 Redirecting to linked learner school dashboard:', redirectPath);
         } else if (onboardingData?.school_slug) {

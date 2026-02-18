@@ -192,7 +192,14 @@ export default function ParentPage(props: ParentPageProps) {
         console.warn("⚠️ Onboarding complete but no school slug found for redirect.");
       }
     }
-  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, props.invitationData]);
+  }, [
+    onboarding.isOnboardingComplete,
+    onboarding.isLoading,
+    onboarding.learners,
+    props.invitationData,
+    props.school,
+    currentSchool
+  ]);
 
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;
