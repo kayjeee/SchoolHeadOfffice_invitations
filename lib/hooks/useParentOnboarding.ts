@@ -43,7 +43,7 @@ export function useParentOnboarding({
 }: Props) {
   const { user, isLoading: authLoading } = useUser();
   const queryClient = useQueryClient();
-  const initializedRef = useRef(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
@@ -124,15 +124,24 @@ export function useParentOnboarding({
     } catch {
       setCurrentStep(PARENT_STEPS[0]);
     } finally {
-      initializedRef.current = true;
+      setIsInitialized(true);
     }
   }, [auth0Id]);
 
+  // Fix 2: Safety timeout for fetchStatus
   useEffect(() => {
-    if (!authLoading && auth0Id && !initializedRef.current) {
-      fetchStatus();
+    if (!authLoading && auth0Id && !isInitialized) {
+      const safetyTimer = setTimeout(() => {
+        if (!isInitialized) {
+          console.warn('⚠️ Onboarding status fetch safety timeout triggered');
+          setIsInitialized(true);
+          setCurrentStep(PARENT_STEPS[0]);
+        }
+      }, 10000);
+
+      fetchStatus().finally(() => clearTimeout(safetyTimer));
     }
-  }, [authLoading, auth0Id, fetchStatus]);
+  }, [authLoading, auth0Id, isInitialized, fetchStatus]);
 
   /* ---------------------------------------------------------------------- */
   /*                              MUTATIONS                                  */
@@ -203,8 +212,9 @@ export function useParentOnboarding({
   /*                                  STATE                                  */
   /* ---------------------------------------------------------------------- */
 
+  // Unblock if already initialized OR if we have SSR data to show
   const isLoading =
-    authLoading || (!!auth0Id && !initializedRef.current);
+    authLoading || (!!auth0Id && !isInitialized && !initialProfile);
 
   return {
     user,

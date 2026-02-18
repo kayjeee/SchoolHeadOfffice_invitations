@@ -12,6 +12,7 @@ import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
 import { InvitationService } from "../../lib/services/invitation.service";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
+import { slugify } from "../../lib/utils/slugify";
 
 /* -------------------------------------------------------------------------- */
 /*                                  DYNAMIC                                   */
@@ -90,10 +91,32 @@ export const getServerSideProps: GetServerSideProps<
   // ─── Logged in user ───────────────────────────────────────
   if (session?.user) {
     try {
-      const [profile, learners] = await Promise.all([
+      const [profile, learners] = (await Promise.all([
         ParentService.getProfile(session.user.sub),
         ParentService.getLearners(session.user.sub),
-      ]);
+      ])) as [any, any[]];
+
+      // Fix 3: Treat missing needsOnboarding as "complete" if learners exist
+      const onboardingDone =
+        profile?.needsOnboarding === false ||
+        profile?.onboarding_completed === true ||
+        profile?.parent_onboarding_completed === true ||
+        (!profile?.needsOnboarding && learners && learners.length > 0);
+
+      if (onboardingDone && learners && learners.length > 0) {
+        const firstLearner = learners[0];
+        const schoolSlug = firstLearner.school_slug ||
+                          (firstLearner.school_name ? slugify(firstLearner.school_name) : null);
+
+        if (schoolSlug) {
+          return {
+            redirect: {
+              destination: `/parent/${schoolSlug}`,
+              permanent: false,
+            },
+          };
+        }
+      }
 
       return {
         props: {
