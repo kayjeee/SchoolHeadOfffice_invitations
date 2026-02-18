@@ -70,7 +70,7 @@ export class ParentAPI {
       learners: z.array(z.any()),
     });
 
-    const response = await apiClient.get(`/parents/${auth0Id}/learners`, responseSchema);
+    const response = await apiClient.get(`/parents/${encodeURIComponent(auth0Id)}/learners`, responseSchema);
     return { learners: response.learners };
   }
 
@@ -79,6 +79,6 @@ export class ParentAPI {
       success: z.boolean(),
     });
 
-    return apiClient.post(`/parents/${auth0Id}/link_learner`, { learner_number: learnerNumber }, responseSchema);
+    return apiClient.post(`/parents/${encodeURIComponent(auth0Id)}/link_learner`, { learner_number: learnerNumber }, responseSchema);
   }
 }

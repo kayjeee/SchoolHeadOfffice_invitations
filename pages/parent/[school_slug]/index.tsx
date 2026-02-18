@@ -53,17 +53,6 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
-      // If onboarding is not complete AND no learners are linked, redirect to /parent
-      // We allow the dashboard if learners exist, as they might have just finished onboarding
-      // but the 'needsOnboarding' flag hasn't propagated to the profile yet.
-      if (profile?.needsOnboarding !== false && (!learners || learners.length === 0)) {
-        return {
-          redirect: {
-            destination: "/parent",
-            permanent: false,
-          },
-        };
-      }
 
       return {
         props: {

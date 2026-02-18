@@ -2,14 +2,20 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = 'shobackendv2-production.up.railway.app/api/v1';
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
+
+// Ensure we have a clean base URL without trailing slashes and with exactly one /api/v1
+const API_BASE_URL = (() => {
+  const cleanBase = RAW_API_BASE_URL.replace(/\/$/, '');
+  return cleanBase.endsWith('/api/v1') ? cleanBase : `${cleanBase}/api/v1`;
+})();
 
 // ========================
 // SERVER-SIDE API CLIENT
 // ========================
 
 async function fetchFromInternalApi(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${internalApiUrl}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -31,7 +37,7 @@ async function fetchFromInternalApi(endpoint: string, options: RequestInit = {})
 export class ParentService {
   static async getProfile(userId: string): Promise<ParentProfile | null> {
     try {
-      const data = await fetchFromInternalApi(`/parents/${userId}/profile`);
+      const data = await fetchFromInternalApi(`/parents/${encodeURIComponent(userId)}/profile`);
       return data as ParentProfile;
     } catch (error) {
       console.error(`Error fetching profile for user ${userId}:`, error);
@@ -41,7 +47,7 @@ export class ParentService {
 
   static async getLearners(userId: string): Promise<Learner[]> {
     try {
-      const data = await fetchFromInternalApi(`/parents/${userId}/learners`);
+      const data = await fetchFromInternalApi(`/parents/${encodeURIComponent(userId)}/learners`);
       return data as Learner[];
     } catch (error) {
       console.error(`Error fetching learners for user ${userId}:`, error);
@@ -51,7 +57,7 @@ export class ParentService {
 
   static async linkInvitation(userId: string, invitationId: string): Promise<{ success: boolean }> {
     try {
-      await fetchFromInternalApi(`/parents/${userId}/link-invitation`, {
+      await fetchFromInternalApi(`/parents/${encodeURIComponent(userId)}/link-invitation`, {
         method: 'POST',
         body: JSON.stringify({ invitationId }),
       });
