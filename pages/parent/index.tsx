@@ -1,5 +1,5 @@
 // pages/parent/index.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
 import dynamic from "next/dynamic";
@@ -151,6 +151,24 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: props.invitationData,
   });
 
+  // Client-side redirect if onboarding is complete
+  useEffect(() => {
+    if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
+      const primaryLearner = onboarding.learners?.[0];
+      let schoolSlug = primaryLearner?.school_slug || (primaryLearner?.school_name ? slugify(primaryLearner.school_name) : null);
+
+      if (!schoolSlug && props.invitationData?.school_slug) {
+        schoolSlug = props.invitationData.school_slug;
+      } else if (!schoolSlug && props.invitationData?.school_name) {
+        schoolSlug = slugify(props.invitationData.school_name);
+      }
+
+      if (schoolSlug) {
+        window.location.href = `/parent/${schoolSlug}`;
+      }
+    }
+  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, props.invitationData]);
+
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;
   }
@@ -168,11 +186,7 @@ export default function ParentPage(props: ParentPageProps) {
             invitationData={props.invitationData}
           />
         ) : (
-          <ParentDashboard
-            user={onboarding.user}
-            profile={onboarding.profile}
-            learners={onboarding.learners}
-          />
+          <LoadingScreen message="Redirecting to your school dashboard..." />
         )}
       </FrontPageLayout>
     </ErrorBoundary>

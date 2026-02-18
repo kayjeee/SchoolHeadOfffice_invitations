@@ -8,7 +8,7 @@ The platform uses a dynamic routing structure to provide each school with its ow
 
 ### URL Structure
 
-- `/parent`: Generic entry point. Redirects to login or onboarding.
+- `/parent`: Generic entry point. Redirects to login, handles onboarding, or redirects onboarded users to their school-specific slug. **No dashboard is rendered here.**
 - `/parent/[school-slug]`: School-specific dashboard and landing page.
 
 ## User Flow
