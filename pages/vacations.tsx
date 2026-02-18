@@ -121,34 +121,49 @@ const VacationsPage = () => {
         </section>
 
         {/* Contact Daniella */}
-        <section className="py-20 px-4 max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8">Ready to start planning?</h2>
-          <p className="text-lg text-gray-600 mb-12">
-            Contact Daniella directly and mention your Ubuntu Education coupon code.
-          </p>
+       {/* Contact Daniella */}
+<section className="py-20 px-4 max-w-5xl mx-auto text-center">
+  <h2 className="text-3xl font-bold mb-8">Ready to start planning?</h2>
+  <p className="text-lg text-gray-600 mb-12">
+    Contact Daniella directly and mention your Ubuntu Education coupon code.
+  </p>
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-            <div className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <Phone className="text-blue-500 w-6 h-6" />
-              <span>Contact via WhatsApp</span>
-            </div>
-            <div className="hidden md:block w-px h-8 bg-gray-200" />
-            <div className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <Mail className="text-blue-500 w-6 h-6" />
-              <span>vacations@schoolheadoffice.com</span>
-            </div>
-          </div>
+  <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+    
+    {/* WhatsApp */}
+    <a
+      href="https://wa.me/27790676551"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-blue-600 transition"
+    >
+      <Phone className="text-blue-500 w-6 h-6" />
+      <span>WhatsApp: +27 79 067 6551</span>
+    </a>
 
-          <div className="mt-16 p-6 bg-gray-50 rounded-xl border border-gray-100 max-w-2xl mx-auto">
-            <div className="flex items-start gap-4 text-left">
-              <CheckCircle className="text-green-500 w-6 h-6 mt-1 flex-shrink-0" />
-              <p className="text-gray-600">
-                "Ubuntu Education partnered with schoolheadoffice to help teachers book vacations.
-                We offer exclusive discounts to teachers who are part of our community."
-              </p>
-            </div>
-          </div>
-        </section>
+    <div className="hidden md:block w-px h-8 bg-gray-200" />
+
+    {/* Email */}
+    <a
+      href="mailto:daniella@dsquaredgs.com"
+      className="flex items-center gap-3 text-xl font-semibold text-gray-800 hover:text-blue-600 transition"
+    >
+      <Mail className="text-blue-500 w-6 h-6" />
+      <span>daniella@dsquaredgs.com</span>
+    </a>
+  </div>
+
+  <div className="mt-16 p-6 bg-gray-50 rounded-xl border border-gray-100 max-w-2xl mx-auto">
+    <div className="flex items-start gap-4 text-left">
+      <CheckCircle className="text-green-500 w-6 h-6 mt-1 flex-shrink-0" />
+      <p className="text-gray-600">
+        "Ubuntu Education partnered with SchoolHeadOffice to help teachers book vacations.
+        We offer exclusive discounts to teachers who are part of our community."
+      </p>
+    </div>
+  </div>
+</section>
+
       </div>
     </FrontPageLayout>
   );
