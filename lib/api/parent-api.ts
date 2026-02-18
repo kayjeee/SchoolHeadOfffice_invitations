@@ -70,7 +70,8 @@ export class ParentAPI {
       learners: z.array(z.any()),
     });
 
-    const response = await apiClient.get(`/parents/${encodeURIComponent(auth0Id)}/learners`, responseSchema);
+    // Try query parameter pattern which is more common in this backend
+    const response = await apiClient.get(`/parents/learners?auth0_id=${encodeURIComponent(auth0Id)}`, responseSchema);
     return { learners: response.learners };
   }
 
@@ -79,6 +80,6 @@ export class ParentAPI {
       success: z.boolean(),
     });
 
-    return apiClient.post(`/parents/${encodeURIComponent(auth0Id)}/link_learner`, { learner_number: learnerNumber }, responseSchema);
+    return apiClient.post(`/parents/link_learner?auth0_id=${encodeURIComponent(auth0Id)}`, { learner_number: learnerNumber }, responseSchema);
   }
 }

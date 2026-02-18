@@ -14,6 +14,7 @@ const API_BASE_URL = (() => {
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
+const TIMEOUT_MS = 10000; // 10 second timeout per request
 
 // ========================
 // CUSTOM ERROR CLASS
@@ -41,9 +42,13 @@ class ApiClient {
     let lastError: Error | null = null;
 
     for (let i = 0; i < MAX_RETRIES; i++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
       try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           ...options,
+          signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
             ...options.headers,
@@ -64,6 +69,8 @@ class ApiClient {
         if (i < MAX_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * Math.pow(2, i)));
         }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 

@@ -63,14 +63,34 @@ export function useParentOnboarding({
 
   const { data: profile } = useQuery({
     queryKey: ["parentProfile", auth0Id],
-    queryFn: () => ParentAPI.getProfile(auth0Id!),
+    queryFn: async () => {
+      console.log("📡 Fetching parent profile for:", auth0Id);
+      try {
+        const data = await ParentAPI.getProfile(auth0Id!);
+        console.log("✅ Profile fetched successfully");
+        return data;
+      } catch (err) {
+        console.error("❌ Profile fetch failed:", err);
+        throw err;
+      }
+    },
     enabled: !!auth0Id,
     initialData: initialProfile,
   });
 
   const { data: learners = [] } = useQuery({
     queryKey: ["parentLearners", auth0Id],
-    queryFn: () => ParentAPI.getMyLearners(auth0Id!).then(r => r.learners),
+    queryFn: async () => {
+      console.log("📡 Fetching learners for:", auth0Id);
+      try {
+        const response = await ParentAPI.getMyLearners(auth0Id!);
+        console.log(`✅ Fetched ${response.learners?.length || 0} learners`);
+        return response.learners;
+      } catch (err) {
+        console.error("❌ Learners fetch failed:", err);
+        return []; // Return empty array on failure to avoid hanging
+      }
+    },
     enabled: !!auth0Id,
     initialData: initialLearners,
   });

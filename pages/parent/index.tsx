@@ -12,6 +12,7 @@ import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
 import { InvitationService } from "../../lib/services/invitation.service";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
+import { useAppTheme } from "../../components/Layouts/context/ThemeContext";
 import { slugify } from "../../lib/utils/slugify";
 
 /* -------------------------------------------------------------------------- */
@@ -151,6 +152,8 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: props.invitationData,
   });
 
+  const { currentSchool } = useAppTheme();
+
   // Client-side redirect if onboarding is complete
   useEffect(() => {
     if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
@@ -164,6 +167,22 @@ export default function ParentPage(props: ParentPageProps) {
       } else if (!schoolSlug && props.invitationData?.school_name) {
         schoolSlug = slugify(props.invitationData.school_name);
         console.log("🔄 Slugified school name from invitation data:", schoolSlug);
+      } else if (!schoolSlug && props.school) {
+        schoolSlug = slugify(props.school);
+        console.log("🔄 Using school from props:", schoolSlug);
+      } else if (!schoolSlug && currentSchool?.schoolName) {
+        schoolSlug = slugify(currentSchool.schoolName);
+        console.log("🔄 Using school name from ThemeContext:", schoolSlug);
+      } else if (!schoolSlug && currentSchool?.name) {
+        schoolSlug = slugify(currentSchool.name);
+        console.log("🔄 Using school name (alt) from ThemeContext:", schoolSlug);
+      }
+
+      // If we STILL don't have a slug but onboarding is complete, use a default fallback
+      // to ensure we get off the /parent URL as requested.
+      if (!schoolSlug && onboarding.isOnboardingComplete) {
+        schoolSlug = "dashboard";
+        console.log("🔄 No school slug found, using default fallback: dashboard");
       }
 
       if (schoolSlug) {
@@ -201,8 +220,12 @@ export default function ParentPage(props: ParentPageProps) {
                 <p className="text-gray-500 mb-4">Taking too long? Click below to access your dashboard directly.</p>
                 <button
                   onClick={() => {
-                    const primaryLearner = onboarding.learners[0];
-                    const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
+                    const primaryLearner = onboarding.learners?.[0];
+                    const schoolSlug = primaryLearner?.school_slug ||
+                                     (primaryLearner?.school_name ? slugify(primaryLearner.school_name) :
+                                     (props.school ? slugify(props.school) :
+                                     (currentSchool?.schoolName ? slugify(currentSchool.schoolName) :
+                                     (currentSchool?.name ? slugify(currentSchool.name) : "dashboard"))));
                     window.location.href = `/parent/${schoolSlug}`;
                   }}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
