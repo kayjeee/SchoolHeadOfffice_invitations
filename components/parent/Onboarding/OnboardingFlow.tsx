@@ -1,6 +1,7 @@
 // components/parent/Onboarding/OnboardingFlow.tsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { slugify } from '../../../lib/utils/slugify';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationService } from '../../../lib/services/invitation.service';
@@ -345,14 +346,25 @@ const fetchUserProfile = async () => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
         console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
-        // Force a full page reload to ensure ParentPage re-initializes its hook
-        // and fetches the updated profile from the server
-        window.location.href = '/parent';
+
+        // Try to find a school slug to redirect to
+        const firstLearner = learners[0];
+        const schoolSlug = firstLearner?.school_slug ||
+                          (firstLearner?.school_name ? slugify(firstLearner.school_name) : null) ||
+                          (onboardingData?.school_name ? slugify(onboardingData.school_name) : null);
+
+        if (schoolSlug) {
+          window.location.href = `/parent/${schoolSlug}`;
+        } else {
+          // Force a full page reload to ensure ParentPage re-initializes its hook
+          // and fetches the updated profile from the server
+          window.location.href = '/parent';
+        }
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, learners, onboardingData]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {

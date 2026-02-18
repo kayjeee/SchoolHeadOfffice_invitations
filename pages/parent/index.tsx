@@ -2,6 +2,7 @@
 import React from "react";
 import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
+import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import Head from "next/head";
 
@@ -148,6 +149,8 @@ export const getServerSideProps: GetServerSideProps<
 /* -------------------------------------------------------------------------- */
 
 export default function ParentPage(props: ParentPageProps) {
+  const router = useRouter();
+
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
     return <LandingPage invitationToken={props.invitationToken} school={props.school} />;
@@ -159,6 +162,25 @@ export default function ParentPage(props: ParentPageProps) {
     initialLearners: props.initialLearners,
     invitationData: props.invitationData,
   });
+
+  // Client-side redirect fallback
+  React.useEffect(() => {
+    if (
+      !onboarding.isLoading &&
+      onboarding.isOnboardingComplete &&
+      onboarding.learners.length > 0 &&
+      router.pathname === "/parent"
+    ) {
+      const firstLearner = onboarding.learners[0];
+      const schoolSlug = firstLearner.school_slug ||
+                        (firstLearner.school_name ? slugify(firstLearner.school_name) : null);
+
+      if (schoolSlug) {
+        console.log(`🚀 Client-side redirecting to /parent/${schoolSlug}`);
+        router.push(`/parent/${schoolSlug}`);
+      }
+    }
+  }, [onboarding.isLoading, onboarding.isOnboardingComplete, onboarding.learners, router]);
 
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;

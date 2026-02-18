@@ -29,22 +29,30 @@ async function fetchFromInternalApi(endpoint: string, options: RequestInit = {})
 // ========================
 
 export class ParentService {
-  static async getProfile(userId: string): Promise<ParentProfile | null> {
+  static async getProfile(auth0Id: string): Promise<ParentProfile | null> {
     try {
-      const data = await fetchFromInternalApi(`/parents/${userId}/profile`);
-      return data as ParentProfile;
+      const data = await fetchFromInternalApi(`/users/show?auth0_id=${encodeURIComponent(auth0Id)}`);
+      // Consistent with ParentAPI.getProfile logic
+      const profile = data.data?.user || data.user || data.data || data;
+
+      if (profile && !profile.name && (profile.first_name || profile.last_name)) {
+        profile.name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+      }
+
+      return profile as ParentProfile;
     } catch (error) {
-      console.error(`Error fetching profile for user ${userId}:`, error);
+      console.error(`Error fetching profile for user ${auth0Id}:`, error);
       return null;
     }
   }
 
-  static async getLearners(userId: string): Promise<Learner[]> {
+  static async getLearners(auth0Id: string): Promise<Learner[]> {
     try {
-      const data = await fetchFromInternalApi(`/parents/${userId}/learners`);
-      return data as Learner[];
+      const data = await fetchFromInternalApi(`/parents/${auth0Id}/learners`);
+      // Extract learners array from { success: true, learners: [...] }
+      return (data.learners || []) as Learner[];
     } catch (error) {
-      console.error(`Error fetching learners for user ${userId}:`, error);
+      console.error(`Error fetching learners for user ${auth0Id}:`, error);
       return [];
     }
   }
