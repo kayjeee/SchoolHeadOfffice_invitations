@@ -19,7 +19,7 @@ const PARENT_STEPS = [
   "TERMS_ACCEPTANCE",
 ] as const;
 
-type OnboardingStep = typeof PARENT_STEPS[number] | "COMPLETE";
+type OnboardingStep = typeof PARENT_STEPS[number] | "COMPLETE" | "INITIALIZING";
 
 interface InvitationData {
   id?: string;
@@ -47,6 +47,7 @@ export function useParentOnboarding({
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
   const [progress, setProgress] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,10 +98,19 @@ export function useParentOnboarding({
       }
 
       const completed = (status.completed_steps || []).filter((s: string) =>
-        PARENT_STEPS.includes(s)
+        (PARENT_STEPS as readonly string[]).includes(s)
       );
 
       setCompletedSteps(completed);
+
+      // Merge step metadata into onboardingData
+      if (status.step_metadata) {
+        setOnboardingData((prev: any) => ({
+          ...prev,
+          ...status.step_metadata
+        }));
+      }
+
       setProgress(Math.round((completed.length / PARENT_STEPS.length) * 100));
 
       if (status.parent_onboarding_completed) {
@@ -135,6 +145,19 @@ export function useParentOnboarding({
       queryClient.setQueryData(["parentProfile", auth0Id], profile),
   });
 
+  const goBack = useCallback(() => {
+    const currentIndex = PARENT_STEPS.indexOf(currentStep as any);
+    if (currentIndex > 0) {
+      setCurrentStep(PARENT_STEPS[currentIndex - 1]);
+    }
+  }, [currentStep]);
+
+  const linkLearner = useCallback(async (learnerNumber: string) => {
+    if (!auth0Id) return;
+    await ParentAPI.linkLearner(auth0Id, learnerNumber);
+    queryClient.invalidateQueries({ queryKey: ["parentLearners", auth0Id] });
+  }, [auth0Id, queryClient]);
+
   const completeStep = useCallback(
     async (step: string, data?: any) => {
       if (!auth0Id) return;
@@ -143,7 +166,18 @@ export function useParentOnboarding({
         await updateProfile.mutateAsync(data);
       }
 
-      const nextCompleted = [...new Set([...completedSteps, step])];
+      // Store local data
+      if (data) {
+        setOnboardingData((prev: any) => ({
+          ...prev,
+          [step]: data,
+          ...data // Also flatten for convenience
+        }));
+      }
+
+      const nextCompleted = completedSteps.includes(step)
+        ? completedSteps
+        : [...completedSteps, step];
       setCompletedSteps(nextCompleted);
       setProgress(Math.round((nextCompleted.length / PARENT_STEPS.length) * 100));
 
@@ -178,10 +212,14 @@ export function useParentOnboarding({
     learners,
     currentStep,
     completedSteps,
+    onboardingData,
+    steps: [...PARENT_STEPS],
     progress,
     isOnboardingComplete,
     isLoading,
     error,
     completeStep,
+    goBack,
+    linkLearner,
   };
 }
