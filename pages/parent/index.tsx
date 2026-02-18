@@ -154,17 +154,23 @@ export default function ParentPage(props: ParentPageProps) {
   // Client-side redirect if onboarding is complete
   useEffect(() => {
     if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
+      console.log("🔄 Onboarding complete, checking for school slug for redirect...");
       const primaryLearner = onboarding.learners?.[0];
       let schoolSlug = primaryLearner?.school_slug || (primaryLearner?.school_name ? slugify(primaryLearner.school_name) : null);
 
       if (!schoolSlug && props.invitationData?.school_slug) {
         schoolSlug = props.invitationData.school_slug;
+        console.log("🔄 Using school slug from invitation data:", schoolSlug);
       } else if (!schoolSlug && props.invitationData?.school_name) {
         schoolSlug = slugify(props.invitationData.school_name);
+        console.log("🔄 Slugified school name from invitation data:", schoolSlug);
       }
 
       if (schoolSlug) {
+        console.log(`🚀 Redirecting to school dashboard: /parent/${schoolSlug}`);
         window.location.href = `/parent/${schoolSlug}`;
+      } else {
+        console.warn("⚠️ Onboarding complete but no school slug found for redirect.");
       }
     }
   }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, props.invitationData]);
@@ -186,7 +192,39 @@ export default function ParentPage(props: ParentPageProps) {
             invitationData={props.invitationData}
           />
         ) : (
-          <LoadingScreen message="Redirecting to your school dashboard..." />
+          // If we are here, it means redirection is either in progress or failed to find a slug
+          // We show a loading screen but provide a manual fallback if it takes too long
+          <div className="min-h-[60vh] flex flex-col items-center justify-center">
+            <LoadingScreen message="Redirecting to your school dashboard..." />
+            {onboarding.learners?.length > 0 && (
+              <div className="mt-8 text-center">
+                <p className="text-gray-500 mb-4">Taking too long? Click below to access your dashboard directly.</p>
+                <button
+                  onClick={() => {
+                    const primaryLearner = onboarding.learners[0];
+                    const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
+                    window.location.href = `/parent/${schoolSlug}`;
+                  }}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            )}
+            {onboarding.learners?.length === 0 && !onboarding.isLoading && (
+              <div className="mt-8 text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200 max-w-md">
+                <p className="text-yellow-800 font-semibold mb-2">No linked learners found</p>
+                <p className="text-yellow-700 text-sm mb-4">
+                  We couldn't find any learners linked to your account. You may need to link a learner to see your dashboard.
+                </p>
+                <ParentDashboard
+                  user={onboarding.user}
+                  profile={onboarding.profile}
+                  learners={[]}
+                />
+              </div>
+            )}
+          </div>
         )}
       </FrontPageLayout>
     </ErrorBoundary>

@@ -353,14 +353,20 @@ const fetchUserProfile = async () => {
           const primaryLearner = learners[0];
           const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
           redirectPath = `/parent/${schoolSlug}`;
+          console.log('🚀 Redirecting to linked learner school dashboard:', redirectPath);
         } else if (onboardingData?.school_slug) {
           redirectPath = `/parent/${onboardingData.school_slug}`;
+          console.log('🚀 Redirecting to school slug from onboarding data:', redirectPath);
         } else if (onboardingData?.school_name) {
           redirectPath = `/parent/${slugify(onboardingData.school_name)}`;
+          console.log('🚀 Redirecting to slugified school name from onboarding data:', redirectPath);
+        } else {
+          console.log('🚀 No school information found, redirecting to generic parent path.');
         }
 
         // Force a full page reload to ensure ParentPage re-initializes its hook
         // and fetches the updated profile from the server
+        console.log('🚀 Final redirect URL:', redirectPath);
         window.location.href = redirectPath;
       }, 3000); // Give them 3 seconds to see the success message
 

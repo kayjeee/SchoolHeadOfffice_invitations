@@ -82,12 +82,21 @@ export function useParentOnboarding({
   const fetchStatus = useCallback(async () => {
     if (!auth0Id) return;
 
+    console.log("🔍 Fetching onboarding status for:", auth0Id);
+
+    // Create a timeout promise to ensure we don't hang forever
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Onboarding status fetch timed out")), 8000)
+    );
+
     try {
-      const res = await fetch(
+      const fetchPromise = fetch(
         `https://shobackendv2-production.up.railway.app/api/v1/users/onboarding_status?auth0_id=${encodeURIComponent(auth0Id)}`
       );
 
-      if (!res.ok) throw new Error();
+      const res = (await Promise.race([fetchPromise, timeoutPromise])) as Response;
+
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
 
       const json = await res.json();
       const status = json?.data?.onboarding_status;
@@ -121,9 +130,11 @@ export function useParentOnboarding({
           PARENT_STEPS.find((s) => !completed.includes(s)) ?? "COMPLETE";
         setCurrentStep(next);
       }
-    } catch {
+    } catch (err) {
+      console.error("❌ Failed to fetch onboarding status:", err);
       setCurrentStep(PARENT_STEPS[0]);
     } finally {
+      console.log("✅ Onboarding initialization complete.");
       initializedRef.current = true;
     }
   }, [auth0Id]);
