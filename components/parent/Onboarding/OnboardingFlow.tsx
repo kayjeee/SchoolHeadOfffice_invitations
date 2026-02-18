@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationService } from '../../../lib/services/invitation.service';
+import { slugify } from '../../../lib/utils/slugify';
 import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
@@ -345,14 +346,27 @@ const fetchUserProfile = async () => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
         console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
+
+        // Determine the redirect destination
+        let redirectPath = '/parent';
+        if (learners && learners.length > 0) {
+          const primaryLearner = learners[0];
+          const schoolSlug = primaryLearner.school_slug || slugify(primaryLearner.school_name || "school");
+          redirectPath = `/parent/${schoolSlug}`;
+        } else if (onboardingData?.school_slug) {
+          redirectPath = `/parent/${onboardingData.school_slug}`;
+        } else if (onboardingData?.school_name) {
+          redirectPath = `/parent/${slugify(onboardingData.school_name)}`;
+        }
+
         // Force a full page reload to ensure ParentPage re-initializes its hook
         // and fetches the updated profile from the server
-        window.location.href = '/parent';
+        window.location.href = redirectPath;
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, learners, onboardingData]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -705,6 +719,14 @@ case 'PROFILE_SETUP':
         return <LoadingScreen message="Initializing onboarding..." />;
 
       case 'COMPLETE':
+        const redirectPath = (learners && learners.length > 0)
+          ? `/parent/${learners[0].school_slug || slugify(learners[0].school_name || "school")}`
+          : onboardingData?.school_slug
+            ? `/parent/${onboardingData.school_slug}`
+            : onboardingData?.school_name
+              ? `/parent/${slugify(onboardingData.school_name)}`
+              : '/parent';
+
         return (
           <div className="text-center p-8 bg-white rounded-lg shadow-md">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -717,7 +739,7 @@ case 'PROFILE_SETUP':
               Your account is now fully set up. Redirecting to dashboard...
             </p>
             <button
-              onClick={() => window.location.href = '/parent'}
+              onClick={() => window.location.href = redirectPath}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now
