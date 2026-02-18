@@ -198,19 +198,20 @@ function PublicLanding() {
           </p>
 
           <div className="flex justify-center gap-4">
-            <a
-              href="/api/auth/signup"
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold shadow"
-            >
-              Create Free Account
-            </a>
+           <a
+  href="/api/auth/login?returnTo=/parent"
+  className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold"
+>
+  Sign In
+</a>
 
-            <a
-              href="/api/auth/login"
-              className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold"
-            >
-              Sign In
-            </a>
+<a
+  href="/api/auth/signup?returnTo=/parent"
+  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold shadow"
+>
+  Create Free Account
+</a>
+
           </div>
 
           <div className="mt-16 grid md:grid-cols-3 gap-8 text-left">
