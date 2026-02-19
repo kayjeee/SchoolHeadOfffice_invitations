@@ -170,6 +170,8 @@ export default function ParentPage(props: ParentPageProps) {
         <OnboardingFlow
           user={onboarding.user}
           invitationData={props.invitationData}
+          initialProfile={props.initialProfile}
+          initialLearners={props.initialLearners}
         />
       </FrontPageLayout>
     </ErrorBoundary>
