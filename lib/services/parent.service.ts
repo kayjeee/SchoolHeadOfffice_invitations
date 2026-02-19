@@ -2,14 +2,18 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = 'shobackendv2-production.up.railway.app/api/v1';
+const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
 
 // ========================
 // SERVER-SIDE API CLIENT
 // ========================
 
 async function fetchFromInternalApi(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${internalApiUrl}${endpoint}`, {
+  // Ensure the URL is correctly constructed with a leading slash for the endpoint if needed
+  const baseUrl = internalApiUrl.endsWith('/') ? internalApiUrl.slice(0, -1) : internalApiUrl;
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  const response = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

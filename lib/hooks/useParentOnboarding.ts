@@ -43,16 +43,27 @@ export function useParentOnboarding({
 }: Props) {
   const { user, isLoading: authLoading } = useUser();
   const queryClient = useQueryClient();
-  const initializedRef = useRef(false);
+  const initializedRef = useRef(!!initialProfile);
+  const [timedOut, setTimedOut] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
   const [progress, setProgress] = useState(0);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const auth0Id = user?.sub ?? null;
+
+  // 10-second safety timeout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!initializedRef.current) {
+        console.warn("useParentOnboarding: 10s timeout reached. Unblocking UI.");
+        setTimedOut(true);
+      }
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 🚫 DO NOTHING if user not logged in
   const isDisabled = !auth0Id;
@@ -74,6 +85,13 @@ export function useParentOnboarding({
     enabled: !!auth0Id,
     initialData: initialLearners,
   });
+
+  // Debug log profile structure
+  useEffect(() => {
+    if (profile) {
+      console.log("DEBUG: Parent Profile Structure:", JSON.stringify(profile, null, 2));
+    }
+  }, [profile]);
 
   /* ---------------------------------------------------------------------- */
   /*                         FETCH ONBOARDING STATUS                         */
@@ -115,13 +133,13 @@ export function useParentOnboarding({
 
       if (status.parent_onboarding_completed) {
         setCurrentStep("COMPLETE");
-        setIsOnboardingComplete(true);
       } else {
         const next =
           PARENT_STEPS.find((s) => !completed.includes(s)) ?? "COMPLETE";
         setCurrentStep(next);
       }
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch onboarding status:", err);
       setCurrentStep(PARENT_STEPS[0]);
     } finally {
       initializedRef.current = true;
@@ -185,7 +203,6 @@ export function useParentOnboarding({
         PARENT_STEPS.find((s) => !nextCompleted.includes(s)) ?? "COMPLETE";
 
       setCurrentStep(next);
-      if (next === "COMPLETE") setIsOnboardingComplete(true);
 
       await fetch(
         `${API_URL}/users/${encodeURIComponent(auth0Id)}/onboarding_status/complete_step`,
@@ -203,8 +220,13 @@ export function useParentOnboarding({
   /*                                  STATE                                  */
   /* ---------------------------------------------------------------------- */
 
+  const isOnboardingComplete =
+    !!profile &&
+    learners?.length > 0 &&
+    !!(learners?.[0]?.school_slug || profile?.primary_school_slug);
+
   const isLoading =
-    authLoading || (!!auth0Id && !initializedRef.current);
+    !timedOut && (authLoading || (!!auth0Id && !initializedRef.current && !initialProfile));
 
   return {
     user,

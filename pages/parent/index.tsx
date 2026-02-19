@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import { useRouter } from "next/router";
 
 import ErrorBoundary from "../../components/common/ErrorBoundary";
 import LoadingScreen from "../../components/common/LoadingScreen";
@@ -95,6 +96,19 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
+      // Data-driven onboarding check
+      const primarySchoolSlug = learners?.[0]?.school_slug || profile?.primary_school_slug;
+      const onboardingComplete = !!profile && learners.length > 0 && !!primarySchoolSlug;
+
+      if (onboardingComplete && primarySchoolSlug) {
+        return {
+          redirect: {
+            destination: `/parent/${primarySchoolSlug}`,
+            permanent: false,
+          },
+        };
+      }
+
       return {
         props: {
           isAuthenticated: true,
@@ -102,7 +116,8 @@ export const getServerSideProps: GetServerSideProps<
           initialLearners: learners || [],
         },
       };
-    } catch {
+    } catch (err) {
+      console.error("SSR Error in /parent/index:", err);
       return {
         props: {
           isAuthenticated: true,
@@ -137,6 +152,18 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: props.invitationData,
   });
 
+  const router = useRouter();
+
+  // Handle client-side redirect if onboarding completes during the session
+  React.useEffect(() => {
+    if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
+      const slug = onboarding.learners?.[0]?.school_slug || onboarding.profile?.primary_school_slug;
+      if (slug) {
+        router.push(`/parent/${slug}`);
+      }
+    }
+  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, router]);
+
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;
   }
@@ -147,19 +174,15 @@ export default function ParentPage(props: ParentPageProps) {
 
   return (
     <ErrorBoundary>
+      <Head>
+        <title>Parent Onboarding | School CRM</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
       <FrontPageLayout user={onboarding.user} userRoles={["parent"]}>
-        {!onboarding.isOnboardingComplete ? (
-          <OnboardingFlow
-            user={onboarding.user}
-            invitationData={props.invitationData}
-          />
-        ) : (
-          <ParentDashboard
-            user={onboarding.user}
-            profile={onboarding.profile}
-            learners={onboarding.learners}
-          />
-        )}
+        <OnboardingFlow
+          user={onboarding.user}
+          invitationData={props.invitationData}
+        />
       </FrontPageLayout>
     </ErrorBoundary>
   );
