@@ -13,6 +13,7 @@ export interface ParentProfile {
   name?: string;
   needsOnboarding?: boolean;
   subscription?: "standard" | "premium";
+  primary_school_slug?: string;
 }
 
 export interface Learner {
@@ -22,6 +23,7 @@ export interface Learner {
   grade: string;
   school_id: string;
   school_name: string;
+  school_slug?: string;
   learner_number: string;
   status: 'active' | 'inactive';
   full_name?: string;

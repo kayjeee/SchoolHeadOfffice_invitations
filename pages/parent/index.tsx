@@ -4,6 +4,7 @@ import { GetServerSideProps } from "next";
 import { getSession } from "@auth0/nextjs-auth0";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import { useRouter } from "next/router";
 
 import ErrorBoundary from "../../components/common/ErrorBoundary";
 import LoadingScreen from "../../components/common/LoadingScreen";
@@ -95,6 +96,19 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
+      // Data-driven onboarding check
+      const primarySchoolSlug = learners?.[0]?.school_slug || profile?.primary_school_slug;
+      const onboardingComplete = !!profile && learners.length > 0 && !!primarySchoolSlug;
+
+      if (onboardingComplete && primarySchoolSlug) {
+        return {
+          redirect: {
+            destination: `/parent/${primarySchoolSlug}`,
+            permanent: false,
+          },
+        };
+      }
+
       return {
         props: {
           isAuthenticated: true,
@@ -102,7 +116,8 @@ export const getServerSideProps: GetServerSideProps<
           initialLearners: learners || [],
         },
       };
-    } catch {
+    } catch (err) {
+      console.error("SSR Error in /parent/index:", err);
       return {
         props: {
           isAuthenticated: true,
@@ -127,7 +142,13 @@ export const getServerSideProps: GetServerSideProps<
 export default function ParentPage(props: ParentPageProps) {
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
-    return <LandingPage invitationToken={props.invitationToken} school={props.school} />;
+    return (
+      <LandingPage
+        invitationToken={props.invitationToken}
+        school={props.school}
+        invitationData={props.invitationData}
+      />
+    );
   }
 
   // ✅ Logged in → now onboarding hook is safe to run
@@ -147,19 +168,17 @@ export default function ParentPage(props: ParentPageProps) {
 
   return (
     <ErrorBoundary>
+      <Head>
+        <title>Parent Onboarding | School CRM</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
       <FrontPageLayout user={onboarding.user} userRoles={["parent"]}>
-        {!onboarding.isOnboardingComplete ? (
-          <OnboardingFlow
-            user={onboarding.user}
-            invitationData={props.invitationData}
-          />
-        ) : (
-          <ParentDashboard
-            user={onboarding.user}
-            profile={onboarding.profile}
-            learners={onboarding.learners}
-          />
-        )}
+        <OnboardingFlow
+          user={onboarding.user}
+          invitationData={props.invitationData}
+          initialProfile={props.initialProfile}
+          initialLearners={props.initialLearners}
+        />
       </FrontPageLayout>
     </ErrorBoundary>
   );
@@ -169,21 +188,27 @@ export default function ParentPage(props: ParentPageProps) {
 /*                                LANDING PAGE                                */
 /* -------------------------------------------------------------------------- */
 
-function LandingPage({ invitationToken, school }: any) {
+function LandingPage({ invitationToken, school, invitationData }: any) {
   const returnTo = invitationToken
     ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`
     : "/parent";
 
+  const schoolName = invitationData?.school_name || (school ? school.replace(/-/g, " ") : null);
+  const pageTitle = schoolName ? `${schoolName} | Parent Portal` : "Parent Portal";
+
   return (
     <>
       <Head>
-        <title>Parent Portal</title>
+        <title>{pageTitle}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Parent Portal</h1>
+          <h1 className="text-2xl font-bold mb-4 capitalize">
+            {schoolName ? schoolName : "Parent Portal"}
+          </h1>
+          <h2 className="text-lg font-medium text-blue-600 mb-4">Parent Portal</h2>
           <p className="text-gray-600 mb-6">
             Sign in to view school notices, learner progress, and important updates.
           </p>

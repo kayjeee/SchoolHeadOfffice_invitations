@@ -26,6 +26,8 @@ import BackButton from './BackButton';
 interface OnboardingFlowProps {
   user: any;
   invitationData: any;
+  initialProfile?: any;
+  initialLearners?: any[];
 }
 
 // Price configuration
@@ -61,7 +63,12 @@ const safeUserName = (user: any): string => {
   return '';
 };
 
-export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
+export default function OnboardingFlow({
+  user,
+  invitationData,
+  initialProfile,
+  initialLearners
+}: OnboardingFlowProps) {
   const router = useRouter();
   
   // Logging initialization with EXTREME null safety
@@ -90,11 +97,6 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 
   // State management
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
-  const [learners, setLearners] = useState<Learner[]>([]);
-  const [isLoadingLearners, setIsLoadingLearners] = useState(true);
-  const [fetchLearnersError, setFetchLearnersError] = useState<string | null>(null);
-  const [existingProfile, setExistingProfile] = useState<any>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [paymentSuccessShown, setPaymentSuccessShown] = useState(false);
 
@@ -117,11 +119,14 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     onboardingData,
     completedSteps,
     profile,
+    learners: hookLearners,
     steps,
     isOnboardingComplete,
+    isLoading,
+    linkLearner,
   } = useParentOnboarding({
-    initialProfile: null,
-    initialLearners: [],
+    initialProfile: initialProfile,
+    initialLearners: initialLearners || [],
     invitationData,
   });
 
@@ -232,127 +237,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     }
   }, [router.query, currentStep, completeStep, returningFromPayment, router]);
 
-  // Fetch existing user profile
-// In OnboardingFlow.tsx, update the fetchUserProfile function
-// Update the fetchUserProfile function in OnboardingFlow.tsx
-const fetchUserProfile = async () => {
-  const userId = safeUserId(safeUser);
-  if (!userId) {
-    console.log('⏭️ Skipping profile fetch: no user ID');
-    setIsLoadingProfile(false);
-    return;
-  }
-  
-  console.log('📥 Fetching user profile...', { userId });
-  
-  setIsLoadingProfile(true);
-  try {
-    // ✅ FIXED: Use the correct endpoint /users/show with query parameter
-    const response = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodeURIComponent(userId)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    
-    console.log('📥 Profile fetch response status:', response.status);
-    
-    if (response.ok) {
-      const result = await response.json();
-      console.log('📥 Profile fetch result:', result);
-      
-      if (result.success && result.data) {
-        console.log('✅ User profile fetched:', result.data);
-        
-        // Handle the backend response format
-        const userProfile = result.data.user || result.data;
-        
-        if (userProfile) {
-          // Fix the name issue: check for first_name/last_name vs name
-          let fullName = '';
-          if (userProfile.name) {
-            fullName = userProfile.name;
-          } else if (userProfile.first_name || userProfile.last_name) {
-            fullName = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim();
-          }
-          
-          const profileData = {
-            ...userProfile,
-            name: fullName,
-            // Map phone_number to phone for the form
-            phone: userProfile.phone_number || '',
-            email: userProfile.email || safeUserEmail(safeUser) || '',
-          };
-          
-          console.log('📋 Processed profile data:', profileData);
-          setExistingProfile(profileData);
-        }
-      } else {
-        console.log('ℹ️ No existing profile found or API returned unsuccessful');
-      }
-    } else {
-      console.log(`ℹ️ Profile fetch failed with status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("❌ Error fetching user profile:", error);
-    // Don't show error, just log it
-  } finally {
-    setIsLoadingProfile(false);
-  }
-};
 
-  // Fetch learners linked to this parent
-  const fetchLearners = async () => {
-    const userId = safeUserId(safeUser);
-    if (!userId) {
-      setIsLoadingLearners(false);
-      return;
-    }
-    
-    console.log('📥 Fetching learners...', { userId });
-    
-    setIsLoadingLearners(true);
-    setFetchLearnersError(null);
-    try {
-      const response = await ParentAPI.getMyLearners(userId);
-      console.log('✅ Learners fetched:', response.learners?.length || 0);
-      setLearners(response.learners || []);
-    } catch (error) {
-      console.error("❌ Error fetching learners:", error);
-      setFetchLearnersError("We couldn't load your linked learners.");
-    } finally {
-      setIsLoadingLearners(false);
-    }
-  };
-
-  // Load initial data
-  useEffect(() => {
-    if (safeUser) {
-      fetchUserProfile();
-      fetchLearners();
-    } else {
-      setIsLoadingProfile(false);
-      setIsLoadingLearners(false);
-      setOnboardingError('User authentication required. Please log in.');
-    }
-  }, [safeUser]);
-
-  // Automatically redirect to dashboard when onboarding is complete
-  useEffect(() => {
-    if (currentStep === 'COMPLETE') {
-      const timer = setTimeout(() => {
-        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
-        // Force a full page reload to ensure ParentPage re-initializes its hook
-        // and fetches the updated profile from the server
-        window.location.href = '/parent';
-      }, 3000); // Give them 3 seconds to see the success message
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -425,14 +310,14 @@ const fetchUserProfile = async () => {
     switch (currentStep) {
       // In OnboardingFlow.tsx, update the ProfileSetup section
 case 'PROFILE_SETUP':
-  if (isLoadingProfile) {
+  if (isLoading) {
     return <LoadingScreen message="Loading your profile..." />;
   }
   
-  // Use existingProfile if available, otherwise fall back to user data
-  const existingName = existingProfile?.name || safeUserName(safeUser) || '';
-  const existingPhone = existingProfile?.phone || existingProfile?.phone_number || '';
-  const existingEmail = existingProfile?.email || safeUserEmail(safeUser) || '';
+  // Use profile from hook if available, otherwise fall back to user data
+  const existingName = profile?.name || safeUserName(safeUser) || '';
+  const existingPhone = profile?.phone || profile?.phone_number || '';
+  const existingEmail = profile?.email || safeUserEmail(safeUser) || '';
   
   // Check for invitation data
   const invitationPhone = hasInvitation ? (onboardingData?.parent_phone || '') : '';
@@ -459,14 +344,14 @@ case 'PROFILE_SETUP':
         );
 
       case 'LINK_LEARNERS':
-        if (isLoadingLearners) {
+        if (isLoading) {
           return <LoadingScreen message="Fetching your learners..." />;
         }
         
         return renderWithBackButton(
           <LinkLearners
-            existingLearners={learners}
-            onLearnerLinked={() => fetchLearners()}
+            existingLearners={hookLearners}
+            onLearnerLinked={(learnerNumber) => linkLearner(learnerNumber)}
             onComplete={() => completeStep('LINK_LEARNERS', {})}
             user={safeUser}
           />,
@@ -672,13 +557,13 @@ case 'PROFILE_SETUP':
         const parentData = {
           name: profile?.name || safeUserName(safeUser) || '',
           email: profile?.email || safeUserEmail(safeUser) || '',
-          phone: profile?.phone_number || onboardingData?.parent_phone || '',
+          phone: profile?.phone || profile?.phone_number || onboardingData?.parent_phone || '',
         };
         
         return renderWithBackButton(
           <ParentContactSummary
             parent={parentData}
-            learners={learners}
+            learners={hookLearners}
             school={{ name: onboardingData?.school_name || 'the school' }}
             onComplete={() => completeStep('PARENT_CONTACT_SUMMARY', {})}
           />,
@@ -705,6 +590,9 @@ case 'PROFILE_SETUP':
         return <LoadingScreen message="Initializing onboarding..." />;
 
       case 'COMPLETE':
+        const finalSlug = hookLearners?.[0]?.school_slug || profile?.primary_school_slug;
+        const dashboardUrl = finalSlug ? `/parent/${finalSlug}` : '/parent';
+
         return (
           <div className="text-center p-8 bg-white rounded-lg shadow-md">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -714,10 +602,13 @@ case 'PROFILE_SETUP':
               Onboarding Complete! 🎉
             </h2>
             <p className="text-gray-600 mb-4">
-              Your account is now fully set up. Redirecting to dashboard...
+              Your account is now fully set up. Click below to access your dashboard.
             </p>
             <button
-              onClick={() => window.location.href = '/parent'}
+              onClick={() => {
+                // Force a full page reload to the dashboard to ensure fresh server state
+                window.location.href = dashboardUrl;
+              }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now
@@ -743,15 +634,10 @@ case 'PROFILE_SETUP':
     currentStep,
     hasInvitation,
     isInvitationPrefillLocked,
-    isLoadingProfile,
-    existingProfile,
     safeUser,
     onboardingData,
     completeStep,
     renderWithBackButton,
-    isLoadingLearners,
-    learners,
-    fetchLearners,
     subscriptionChoice,
     shouldShowPaymentSuccess,
     paymentData,
@@ -761,8 +647,11 @@ case 'PROFILE_SETUP':
     setOnboardingError,
     goBack,
     profile,
+    hookLearners,
+    linkLearner,
     handleFinalStepComplete,
-    router
+    router,
+    isLoading
   ]);
 
   // Show cancellation notice
@@ -826,18 +715,6 @@ case 'PROFILE_SETUP':
           </div>
         )}
 
-        {/* Learners Fetch Error */}
-        {fetchLearnersError && currentStep === 'LINK_LEARNERS' && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{fetchLearnersError}</p>
-            <button
-              onClick={fetchLearners}
-              className="mt-2 text-sm font-semibold text-red-600 hover:text-red-800"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
 
         {/* Current Step Content */}
         <div className="mt-8">
@@ -857,7 +734,7 @@ case 'PROFILE_SETUP':
               <div><span className="text-gray-400">Billing Cycle:</span> {billingCycle || '(no cycle)'}</div>
               <div><span className="text-gray-400">Completed Steps:</span> {(completedSteps || []).length}</div>
               <div><span className="text-gray-400">Progress:</span> {Math.round(progress || 0)}%</div>
-              <div><span className="text-gray-400">Learners:</span> {learners.length}</div>
+              <div><span className="text-gray-400">Learners:</span> {hookLearners.length}</div>
               <div><span className="text-gray-400">Returning from Payment:</span> {returningFromPayment ? 'Yes' : 'No'}</div>
               <div><span className="text-gray-400">Payment Success Shown:</span> {paymentSuccessShown.toString()}</div>
               <div className="pt-2 border-t border-gray-700">
