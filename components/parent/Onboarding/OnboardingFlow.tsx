@@ -341,26 +341,6 @@ const fetchUserProfile = async () => {
     }
   }, [safeUser]);
 
-  // Automatically redirect to dashboard when onboarding is complete
-  useEffect(() => {
-    if (currentStep === 'COMPLETE' || isOnboardingComplete) {
-      const timer = setTimeout(() => {
-        // Resolve slug from hook data or local state
-        const slug = hookLearners?.[0]?.school_slug || profile?.primary_school_slug || learners?.[0]?.school_slug;
-
-        if (slug) {
-          console.log('🚀 Onboarding complete, navigating to school dashboard:', slug);
-          router.push(`/parent/${slug}`);
-        } else {
-          console.log('🚀 Onboarding complete, returning to entry point');
-          // Fallback to reload /parent if slug not yet available (will trigger SSR redirect)
-          window.location.href = '/parent';
-        }
-      }, 3000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep, isOnboardingComplete, hookLearners, profile, learners, router]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -725,10 +705,13 @@ case 'PROFILE_SETUP':
               Onboarding Complete! 🎉
             </h2>
             <p className="text-gray-600 mb-4">
-              Your account is now fully set up. Redirecting to dashboard...
+              Your account is now fully set up. Click below to access your dashboard.
             </p>
             <button
-              onClick={() => router.push(dashboardUrl)}
+              onClick={() => {
+                // Force a full page reload to the dashboard to ensure fresh server state
+                window.location.href = dashboardUrl;
+              }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now

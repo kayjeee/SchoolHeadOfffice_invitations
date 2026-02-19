@@ -152,18 +152,6 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: props.invitationData,
   });
 
-  const router = useRouter();
-
-  // Handle client-side redirect if onboarding completes during the session
-  React.useEffect(() => {
-    if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
-      const slug = onboarding.learners?.[0]?.school_slug || onboarding.profile?.primary_school_slug;
-      if (slug) {
-        router.push(`/parent/${slug}`);
-      }
-    }
-  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, router]);
-
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;
   }
