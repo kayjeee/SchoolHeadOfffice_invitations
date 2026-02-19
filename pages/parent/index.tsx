@@ -142,7 +142,13 @@ export const getServerSideProps: GetServerSideProps<
 export default function ParentPage(props: ParentPageProps) {
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
-    return <LandingPage invitationToken={props.invitationToken} school={props.school} />;
+    return (
+      <LandingPage
+        invitationToken={props.invitationToken}
+        school={props.school}
+        invitationData={props.invitationData}
+      />
+    );
   }
 
   // ✅ Logged in → now onboarding hook is safe to run
@@ -182,21 +188,27 @@ export default function ParentPage(props: ParentPageProps) {
 /*                                LANDING PAGE                                */
 /* -------------------------------------------------------------------------- */
 
-function LandingPage({ invitationToken, school }: any) {
+function LandingPage({ invitationToken, school, invitationData }: any) {
   const returnTo = invitationToken
     ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`
     : "/parent";
 
+  const schoolName = invitationData?.school_name || (school ? school.replace(/-/g, " ") : null);
+  const pageTitle = schoolName ? `${schoolName} | Parent Portal` : "Parent Portal";
+
   return (
     <>
       <Head>
-        <title>Parent Portal</title>
+        <title>{pageTitle}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Parent Portal</h1>
+          <h1 className="text-2xl font-bold mb-4 capitalize">
+            {schoolName ? schoolName : "Parent Portal"}
+          </h1>
+          <h2 className="text-lg font-medium text-blue-600 mb-4">Parent Portal</h2>
           <p className="text-gray-600 mb-6">
             Sign in to view school notices, learner progress, and important updates.
           </p>
