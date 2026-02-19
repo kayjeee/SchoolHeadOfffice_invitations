@@ -35,8 +35,18 @@ async function fetchFromInternalApi(endpoint: string, options: RequestInit = {})
 export class ParentService {
   static async getProfile(userId: string): Promise<ParentProfile | null> {
     try {
-      const data = await fetchFromInternalApi(`/parents/${userId}/profile`);
-      return data as ParentProfile;
+      // Use the same endpoint as ParentAPI to ensure consistency
+      const data = await fetchFromInternalApi(`/users/show?auth0_id=${encodeURIComponent(userId)}`);
+
+      // Handle the standardized backend response format
+      const profile = data.data?.user || data.data || data;
+
+      // Add name for compatibility if it doesn't exist
+      if (profile && !profile.name && (profile.first_name || profile.last_name)) {
+        profile.name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+      }
+
+      return profile as ParentProfile;
     } catch (error) {
       console.error(`Error fetching profile for user ${userId}:`, error);
       return null;
@@ -46,7 +56,8 @@ export class ParentService {
   static async getLearners(userId: string): Promise<Learner[]> {
     try {
       const data = await fetchFromInternalApi(`/parents/${userId}/learners`);
-      return data as Learner[];
+      // The API returns { success: true, learners: [...] }
+      return (data.learners || []) as Learner[];
     } catch (error) {
       console.error(`Error fetching learners for user ${userId}:`, error);
       return [];

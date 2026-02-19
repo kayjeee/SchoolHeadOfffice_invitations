@@ -43,7 +43,7 @@ export function useParentOnboarding({
 }: Props) {
   const { user, isLoading: authLoading } = useUser();
   const queryClient = useQueryClient();
-  const initializedRef = useRef(!!initialProfile);
+  const initializedRef = useRef(false); // Always allow status fetch
   const [timedOut, setTimedOut] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");

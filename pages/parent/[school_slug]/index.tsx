@@ -114,7 +114,7 @@ export default function SchoolDashboardPage({
       <Head>
         <title>{title}</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={`https://crm.school/parent/${school_slug}`} />
+        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://crm.school'}/parent/${school_slug}`} />
       </Head>
       <FrontPageLayout user={user} userRoles={["parent"]}>
         <ParentDashboard

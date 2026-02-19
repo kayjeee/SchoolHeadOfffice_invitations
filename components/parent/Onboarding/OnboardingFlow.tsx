@@ -117,6 +117,7 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     onboardingData,
     completedSteps,
     profile,
+    learners: hookLearners,
     steps,
     isOnboardingComplete,
   } = useParentOnboarding({
@@ -342,17 +343,24 @@ const fetchUserProfile = async () => {
 
   // Automatically redirect to dashboard when onboarding is complete
   useEffect(() => {
-    if (currentStep === 'COMPLETE') {
+    if (currentStep === 'COMPLETE' || isOnboardingComplete) {
       const timer = setTimeout(() => {
-        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
-        // Force a full page reload to ensure ParentPage re-initializes its hook
-        // and fetches the updated profile from the server
-        window.location.href = '/parent';
-      }, 3000); // Give them 3 seconds to see the success message
+        // Resolve slug from hook data or local state
+        const slug = hookLearners?.[0]?.school_slug || profile?.primary_school_slug || learners?.[0]?.school_slug;
+
+        if (slug) {
+          console.log('🚀 Onboarding complete, navigating to school dashboard:', slug);
+          router.push(`/parent/${slug}`);
+        } else {
+          console.log('🚀 Onboarding complete, returning to entry point');
+          // Fallback to reload /parent if slug not yet available (will trigger SSR redirect)
+          window.location.href = '/parent';
+        }
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, isOnboardingComplete, hookLearners, profile, learners, router]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -705,6 +713,9 @@ case 'PROFILE_SETUP':
         return <LoadingScreen message="Initializing onboarding..." />;
 
       case 'COMPLETE':
+        const finalSlug = hookLearners?.[0]?.school_slug || profile?.primary_school_slug || learners?.[0]?.school_slug;
+        const dashboardUrl = finalSlug ? `/parent/${finalSlug}` : '/parent';
+
         return (
           <div className="text-center p-8 bg-white rounded-lg shadow-md">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -717,7 +728,7 @@ case 'PROFILE_SETUP':
               Your account is now fully set up. Redirecting to dashboard...
             </p>
             <button
-              onClick={() => window.location.href = '/parent'}
+              onClick={() => router.push(dashboardUrl)}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now
