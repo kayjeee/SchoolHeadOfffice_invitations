@@ -50,6 +50,9 @@ export function useParentOnboarding({
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
+  const [progress, setProgress] = useState(0);
+  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (invitationData) {
@@ -57,9 +60,6 @@ export function useParentOnboarding({
       setOnboardingData(prev => ({ ...prev, ...invitationData }));
     }
   }, [invitationData]);
-  const [progress, setProgress] = useState(0);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const auth0Id = user?.sub ?? null;
 

@@ -19,7 +19,6 @@ const InvitationDataSchema = z.object({
     name: z.string(),
     slug: z.string(),
   }).optional(),
-  status: z.string().optional(),
 });
 
 type InvitationData = z.infer<typeof InvitationDataSchema>;
