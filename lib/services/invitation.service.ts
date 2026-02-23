@@ -3,7 +3,8 @@ import { z } from 'zod';
 
 // Define the schema for the expected API response
 const InvitationDataSchema = z.object({
-  success: z.boolean(),
+  success: z.boolean().optional(),
+  status: z.string().optional(),
   message: z.string().optional(),
   parent_phone: z.string().optional(),
   school_name: z.string().optional(),
@@ -18,6 +19,7 @@ const InvitationDataSchema = z.object({
     name: z.string(),
     slug: z.string(),
   }).optional(),
+  status: z.string().optional(),
 });
 
 type InvitationData = z.infer<typeof InvitationDataSchema>;
@@ -40,14 +42,32 @@ export class InvitationService {
     }
 
     const data = await response.json();
+    console.log('🔍 [InvitationService.verifyToken] Raw API response:', JSON.stringify(data, null, 2));
 
-    // Validate the response data against the schema
+    // Try to handle nested data format FIRST
+    const nestedData = data?.data?.invitation || data?.data || data?.invitation;
+    if (nestedData && typeof nestedData === 'object') {
+      console.log('🔄 [InvitationService.verifyToken] Found nested data, attempting to parse:', JSON.stringify(nestedData, null, 2));
+      const syntheticData = {
+        success: data.success || data.status === 'success' || true,
+        ...nestedData
+      };
+      const validation = InvitationDataSchema.safeParse(syntheticData);
+      if (validation.success) {
+        console.log('✅ [InvitationService.verifyToken] Nested data parsed successfully');
+        return validation.data;
+      }
+      console.warn("⚠️ [InvitationService.verifyToken] Nested data validation failed:", validation.error);
+    }
+
+    // Fallback to top-level validation
     const validationResult = InvitationDataSchema.safeParse(data);
     if (!validationResult.success) {
-        console.error("Invalid invitation data received from API:", validationResult.error);
+        console.error("❌ [InvitationService.verifyToken] Zod validation failed:", validationResult.error);
         throw new Error("Invalid invitation data format");
     }
 
+    console.log('✅ [InvitationService.verifyToken] Top-level data validated successfully');
     return validationResult.data;
   }
 

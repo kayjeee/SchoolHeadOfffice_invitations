@@ -64,6 +64,8 @@ const safeUserName = (user: any): string => {
 export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
   const router = useRouter();
   
+  console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
+
   // Logging initialization with EXTREME null safety
   useEffect(() => {
     console.log('');
@@ -436,6 +438,15 @@ case 'PROFILE_SETUP':
   
   // Check for invitation data
   const invitationPhone = hasInvitation ? (onboardingData?.parent_phone || '') : '';
+  const invitationSchoolName = onboardingData?.school_name || onboardingData?.school?.name || '';
+  const invitationGradeName = onboardingData?.grade_name || onboardingData?.learners?.[0]?.grade || '';
+
+  console.log('🎬 [OnboardingFlow] Passing to ProfileSetup:', {
+    invitationSchoolName,
+    invitationGradeName,
+    hasInvitation,
+    onboardingDataKeys: Object.keys(onboardingData || {})
+  });
   
   return (
     <ProfileSetup
@@ -444,6 +455,8 @@ case 'PROFILE_SETUP':
         name: existingName,
         email: existingEmail,
         phone: invitationPhone || existingPhone,
+        school_name: invitationSchoolName,
+        grade_name: invitationGradeName,
       }}
       isLocked={isLocked}
       user={safeUser}

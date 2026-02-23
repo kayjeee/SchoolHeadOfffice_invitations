@@ -67,19 +67,28 @@ export const getServerSideProps: GetServerSideProps<
 
   // ─── Invitation only (logged out) ─────────────────────────
   if (!session?.user && token) {
+    console.log('📨 [getServerSideProps] Invitation token detected:', token);
     try {
       const verified = await InvitationService.verifyToken(token);
-      if (!verified.success) throw new Error();
+      console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(verified, null, 2));
+
+      if (!verified.success && verified.status !== 'success') {
+         console.warn('📨 [getServerSideProps] Verification failed but didn\'t throw');
+      }
+
+      const invitationData = { id: token, token, ...verified };
+      console.log('📨 [getServerSideProps] Final invitationData for props:', JSON.stringify(invitationData, null, 2));
 
       return {
         props: {
           isAuthenticated: false,
           invitationToken: token,
-          invitationData: { id: token, token, ...verified },
+          invitationData,
           school,
         },
       };
-    } catch {
+    } catch (err: any) {
+      console.error('❌ [getServerSideProps] Verification error:', err.message);
       return {
         props: {
           isAuthenticated: false,
@@ -178,8 +187,14 @@ export default function ParentPage(props: ParentPageProps) {
 /* -------------------------------------------------------------------------- */
 
 function LandingPage({ invitationToken, school, invitationData }: any) {
+  console.log('🏠 [LandingPage] invitationData:', JSON.stringify(invitationData, null, 2));
+  console.log('🏠 [LandingPage] school from query:', school);
+
   const schoolName = invitationData?.school_name || invitationData?.school?.name || school;
   const gradeName = invitationData?.grade_name || invitationData?.learners?.[0]?.grade;
+
+  console.log('🏠 [LandingPage] Resolved schoolName:', schoolName);
+  console.log('🏠 [LandingPage] Resolved gradeName:', gradeName);
 
   const returnTo = invitationToken
     ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`

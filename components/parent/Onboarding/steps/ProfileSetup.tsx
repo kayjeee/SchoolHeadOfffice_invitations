@@ -19,6 +19,8 @@ interface ProfileSetupProps {
     name?: string;
     phone?: string;
     email?: string;
+    school_name?: string;
+    grade_name?: string;
   };
   isLocked?: boolean;
   user?: any;
@@ -140,7 +142,23 @@ export default function ProfileSetup({
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md">
-      <h3 className="text-xl font-bold mb-6">Setup Your Profile</h3>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4">
+        <div>
+          <h3 className="text-xl font-bold">Setup Your Profile</h3>
+          <p className="text-gray-500 text-sm">Please provide your contact information</p>
+        </div>
+
+        {(prefillData?.school_name || prefillData?.grade_name) && (
+          <div className="mt-4 md:mt-0 text-left md:text-right">
+            {prefillData.school_name && (
+              <p className="text-blue-600 font-bold">{prefillData.school_name}</p>
+            )}
+            {prefillData.grade_name && (
+              <p className="text-gray-600 text-sm font-semibold uppercase tracking-wider">{prefillData.grade_name}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {saveError && (
         <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
