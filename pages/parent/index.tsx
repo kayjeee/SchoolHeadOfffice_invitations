@@ -136,6 +136,13 @@ export const getServerSideProps: GetServerSideProps<
 /* -------------------------------------------------------------------------- */
 
 export default function ParentPage(props: ParentPageProps) {
+  // ✅ Initialize onboarding hook at top level (Rules of Hooks)
+  const onboarding = useParentOnboarding({
+    initialProfile: props.initialProfile,
+    initialLearners: props.initialLearners,
+    invitationData: props.invitationData,
+  });
+
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
     return (
@@ -146,13 +153,6 @@ export default function ParentPage(props: ParentPageProps) {
       />
     );
   }
-
-  // ✅ Logged in → now onboarding hook is safe to run
-  const onboarding = useParentOnboarding({
-    initialProfile: props.initialProfile,
-    initialLearners: props.initialLearners,
-    invitationData: props.invitationData,
-  });
 
   if (onboarding.isLoading) {
     return <LoadingScreen message="Loading your parent portal..." />;

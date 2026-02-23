@@ -45,14 +45,14 @@ export function useParentOnboarding({
   const queryClient = useQueryClient();
   const initializedRef = useRef(false);
 
-  console.log('🧪 [useParentOnboarding] Hook initialized with invitationData:', JSON.stringify(invitationData, null, 2));
-
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
   const [progress, setProgress] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  console.log('🧪 [useParentOnboarding] Hook initialized with invitationData:', JSON.stringify(invitationData, null, 2));
 
   useEffect(() => {
     if (invitationData) {
