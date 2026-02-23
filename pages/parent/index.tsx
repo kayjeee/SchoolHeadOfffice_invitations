@@ -36,7 +36,9 @@ interface InvitationData {
   token?: string;
   school_slug?: string;
   school_name?: string;
+  grade_name?: string;
   parent_phone?: string;
+  school?: { id: string; name: string; slug: string };
   learners?: { id: string; name: string; grade?: string }[];
 }
 
@@ -127,7 +129,13 @@ export const getServerSideProps: GetServerSideProps<
 export default function ParentPage(props: ParentPageProps) {
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
-    return <LandingPage invitationToken={props.invitationToken} school={props.school} />;
+    return (
+      <LandingPage
+        invitationToken={props.invitationToken}
+        school={props.school}
+        invitationData={props.invitationData}
+      />
+    );
   }
 
   // ✅ Logged in → now onboarding hook is safe to run
@@ -169,7 +177,10 @@ export default function ParentPage(props: ParentPageProps) {
 /*                                LANDING PAGE                                */
 /* -------------------------------------------------------------------------- */
 
-function LandingPage({ invitationToken, school }: any) {
+function LandingPage({ invitationToken, school, invitationData }: any) {
+  const schoolName = invitationData?.school_name || invitationData?.school?.name || school;
+  const gradeName = invitationData?.grade_name || invitationData?.learners?.[0]?.grade;
+
   const returnTo = invitationToken
     ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`
     : "/parent";
@@ -177,14 +188,29 @@ function LandingPage({ invitationToken, school }: any) {
   return (
     <>
       <Head>
-        <title>Parent Portal</title>
+        <title>{schoolName ? `${schoolName} - Parent Portal` : "Parent Portal"}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Parent Portal</h1>
-          <p className="text-gray-600 mb-6">
+        <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md w-full mx-4">
+          <h1 className="text-2xl font-bold mb-2">
+            {schoolName || "Parent Portal"}
+          </h1>
+
+          {gradeName && (
+            <p className="text-blue-600 font-semibold mb-4">
+              {gradeName}
+            </p>
+          )}
+
+          {schoolName && (
+            <h2 className="text-gray-500 text-sm mb-6 uppercase tracking-wider font-medium">
+              Parent Portal
+            </h2>
+          )}
+
+          <p className="text-gray-600 mb-8">
             Sign in to view school notices, learner progress, and important updates.
           </p>
 

@@ -6,6 +6,8 @@ const InvitationDataSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
   parent_phone: z.string().optional(),
+  school_name: z.string().optional(),
+  grade_name: z.string().optional(),
   learners: z.array(z.object({
     id: z.string(),
     name: z.string(),
