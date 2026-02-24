@@ -69,7 +69,8 @@ export class ParentAPI {
       learners: z.array(z.any()),
     });
 
-    const response = await apiClient.get(`/parents/${auth0Id}/learners`, responseSchema);
+    // Updated route to match backend implementation
+    const response = await apiClient.get(`/parents/my_learners?auth0_id=${encodeURIComponent(auth0Id)}`, responseSchema);
     return { learners: response.learners };
   }
 

@@ -4,7 +4,21 @@ import { z } from 'zod';
 // ========================
 // API CLIENT CONFIGURATION
 // ========================
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
+const getApiBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!envUrl) return 'https://shobackendv2-production.up.railway.app/api/v1';
+
+  // If the URL already contains /api/v1, use it as is (stripping trailing slash)
+  if (envUrl.includes('/api/v1')) {
+    return envUrl.replace(/\/$/, '');
+  }
+
+  // Otherwise, append /api/v1
+  return `${envUrl.replace(/\/$/, '')}/api/v1`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 

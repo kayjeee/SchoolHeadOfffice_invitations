@@ -5,6 +5,7 @@ import Head from "next/head";
 interface InvitationData {
   token?: string;
   school_name?: string;
+  grade_name?: string;
   learner_name?: string;
 }
 
@@ -63,12 +64,20 @@ export default function AuthGate({
                 </span>
               </p>
 
-              {invitationData?.learner_name && (
+              {(invitationData?.learner_name || invitationData?.grade_name) && (
                 <p style={styles.learnerName}>
                   This invitation is for{" "}
-                  <span style={styles.learnerHighlight}>
-                    {invitationData.learner_name}
-                  </span>
+                  {invitationData.learner_name && (
+                    <span style={styles.learnerHighlight}>
+                      {invitationData.learner_name}
+                    </span>
+                  )}
+                  {invitationData.learner_name && invitationData.grade_name && " in "}
+                  {invitationData.grade_name && (
+                    <span style={styles.learnerHighlight}>
+                      {invitationData.grade_name}
+                    </span>
+                  )}
                 </p>
               )}
             </div>

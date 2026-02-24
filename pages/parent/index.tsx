@@ -50,10 +50,23 @@ export const getServerSideProps: GetServerSideProps<
   ParentPageProps
 > = async (context) => {
   const session = await getSession(context.req, context.res);
-  const token =
-    typeof context.query.token === "string" ? context.query.token : null;
-  const school =
-    typeof context.query.school === "string" ? context.query.school : null;
+
+  // Sanitize token to handle cases where query params are accidentally glued (e.g. via \u0026)
+  const rawToken = typeof context.query.token === "string" ? context.query.token : null;
+  const token = rawToken ? rawToken.split('&')[0].split('\\u0026')[0].trim() : null;
+
+  let school = typeof context.query.school === "string" ? context.query.school : null;
+
+  // Extract school if it was glued to the token via \u0026
+  if (!school && rawToken && rawToken.includes('\\u0026school=')) {
+    school = rawToken.split('\\u0026school=')[1].split('&')[0];
+    // Replace + with spaces if present
+    school = decodeURIComponent(school.replace(/\+/g, ' '));
+  }
+
+  if (rawToken && rawToken !== token) {
+    console.log('🧹 [getServerSideProps] Sanitized token:', { original: rawToken, sanitized: token, extractedSchool: school });
+  }
 
   // ─── Invitation only (logged out) ─────────────────────────
   if (!session?.user && token) {
@@ -155,6 +168,7 @@ export default function ParentPage(props: ParentPageProps) {
     const authGateInvitation = {
       token: props.invitationData?.token || (typeof props.invitationToken === 'string' ? props.invitationToken : undefined),
       school_name: props.invitationData?.school_name || (typeof props.school === 'string' ? props.school : undefined),
+      grade_name: props.invitationData?.grade_name,
       learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
     };
 
