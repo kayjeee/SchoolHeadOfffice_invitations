@@ -10,7 +10,7 @@ import LoadingScreen from "../../components/common/LoadingScreen";
 import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
 import AuthGate from "../../components/auth/AuthGate";
 
-import { InvitationService } from "../../lib/services/invitation.service";
+import { InvitationAPI, InvitationData } from "../../lib/api/invitation-api";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
 
@@ -31,17 +31,6 @@ const OnboardingFlow = dynamic(
 /* -------------------------------------------------------------------------- */
 /*                                   TYPES                                    */
 /* -------------------------------------------------------------------------- */
-
-interface InvitationData {
-  id: string;
-  token?: string;
-  school_slug?: string;
-  school_name?: string;
-  grade_name?: string;
-  parent_phone?: string;
-  school?: { id: string; name: string; slug: string };
-  learners?: { id: string; name: string; grade?: string }[];
-}
 
 interface ParentPageProps {
   isAuthenticated: boolean;
@@ -73,15 +62,9 @@ export const getServerSideProps: GetServerSideProps<
     let error = null;
 
     try {
-      const verified = await InvitationService.verifyToken(token);
-      console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(verified, null, 2));
-
-      if (verified.success || verified.status === 'success') {
-        invitationData = { id: token, token, ...verified };
-      } else {
-        console.warn('📨 [getServerSideProps] Verification returned success:false');
-        error = "This invitation may have already been used or expired.";
-      }
+      const invitation = await InvitationAPI.verifyToken(token);
+      console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(invitation, null, 2));
+      invitationData = invitation;
     } catch (err: any) {
       console.error('❌ [getServerSideProps] Verification error:', err.message);
       error = "Could not verify your invitation. You can still sign in to check your account.";
@@ -109,8 +92,7 @@ export const getServerSideProps: GetServerSideProps<
       let invitationData = null;
       if (token) {
         try {
-          const verified = await InvitationService.verifyToken(token);
-          invitationData = { id: token, token, ...verified };
+          invitationData = await InvitationAPI.verifyToken(token);
         } catch (e) {
           console.error("Failed to verify token for logged-in user", e);
         }
@@ -156,7 +138,7 @@ export default function ParentPage(props: ParentPageProps) {
     return {
       ...props.invitationData,
       token: props.invitationData?.token || props.invitationToken || undefined,
-      school_name: props.invitationData?.school_name || props.invitationData?.school?.name || (typeof props.school === 'string' ? props.school : undefined)
+      school_name: props.invitationData?.school_name || (typeof props.school === 'string' ? props.school : undefined)
     };
   }, [props.invitationData, props.school, props.invitationToken]);
 
@@ -172,8 +154,8 @@ export default function ParentPage(props: ParentPageProps) {
     // We prioritize invitationData but fall back to the school query param
     const authGateInvitation = {
       token: props.invitationData?.token || (typeof props.invitationToken === 'string' ? props.invitationToken : undefined),
-      school_name: props.invitationData?.school_name || props.invitationData?.school?.name || (typeof props.school === 'string' ? props.school : undefined),
-      learner_name: props.invitationData?.learners?.[0]?.name,
+      school_name: props.invitationData?.school_name || (typeof props.school === 'string' ? props.school : undefined),
+      learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
     };
 
     console.log('🏠 [ParentPage] Passing to AuthGate:', JSON.stringify(authGateInvitation, null, 2));

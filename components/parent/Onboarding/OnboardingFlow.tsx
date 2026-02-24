@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
-import { InvitationService } from '../../../lib/services/invitation.service';
+import { InvitationAPI } from '../../../lib/api/invitation-api';
 import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
@@ -363,7 +363,8 @@ const fetchUserProfile = async () => {
     const userId = safeUserId(safeUser);
     if (hasInvitation && userId) {
       try {
-        await InvitationService.claim(onboardingData.invitation_token, userId);
+        // Use the new InvitationAPI to accept/claim the invitation
+        await InvitationAPI.acceptInvitation(onboardingData.token || onboardingData.invitation_token, userId);
         sessionStorage.removeItem('sho_invitation');
         console.log('✅ Invitation claimed successfully');
       } catch (error) {

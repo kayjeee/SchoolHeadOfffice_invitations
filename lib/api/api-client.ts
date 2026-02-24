@@ -35,7 +35,7 @@ class ApiClient {
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
