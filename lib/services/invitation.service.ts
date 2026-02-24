@@ -26,14 +26,19 @@ type InvitationData = z.infer<typeof InvitationDataSchema>;
 export class InvitationService {
   static async verifyToken(token: string): Promise<InvitationData> {
     const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
+    const fetchUrl = `${internalApiUrl}/invitations/${token}/verify_with_details`;
 
-    const response = await fetch(`${internalApiUrl}/invitations/${token}/verify_with_details`, {
+    console.log('📡 [InvitationService.verifyToken] Fetching:', fetchUrl);
+
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         // Add any necessary authentication headers for the internal API
       },
     });
+
+    console.log('📡 [InvitationService.verifyToken] Response status:', response.status);
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({ message: "Unknown error" }));

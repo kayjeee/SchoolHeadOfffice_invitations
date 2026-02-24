@@ -68,31 +68,31 @@ export default function AuthGate({
           )}
         </div>
 
-        {/* INVITATION DETAILS - Only shown when hasInvitation is true */}
-        {hasInvitation && (
+        {/* INVITATION DETAILS - Only shown when we have a valid token or verified data */}
+        {hasInvitation && invitationData?.token && (
           <div style={styles.invitationDetails}>
             <div style={styles.detailSection}>
               <h3 style={styles.audience}>Parents/Guardians</h3>
-              <h4 style={styles.eventTitle}>Induction for Grade 8 2026</h4>
+              <h4 style={styles.eventTitle}>Parent Portal Access</h4>
               
               <div style={styles.detailsList}>
                 <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Date:</span>
-                  <span style={styles.detailValue}>8th January 2026</span>
+                  <span style={styles.detailLabel}>Status:</span>
+                  <span style={styles.detailValue}>Invitation Active</span>
                 </div>
                 <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Time:</span>
-                  <span style={styles.detailValue}>08H00</span>
+                  <span style={styles.detailLabel}>Access:</span>
+                  <span style={styles.detailValue}>School Notices & Progress</span>
                 </div>
                 <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Venue:</span>
-                  <span style={styles.detailValue}>Far North Secondary School</span>
+                  <span style={styles.detailLabel}>School:</span>
+                  <span style={styles.detailValue}>{schoolName}</span>
                 </div>
               </div>
               
               <div style={styles.note}>
-                <strong>NB:</strong> Please come with the required documents to further 
-                the admission process if you have not done so.
+                <strong>NB:</strong> Please use the same email address that received
+                the invitation to ensure your profile is linked correctly.
               </div>
             </div>
           </div>

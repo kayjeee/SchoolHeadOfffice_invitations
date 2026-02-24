@@ -69,34 +69,33 @@ export const getServerSideProps: GetServerSideProps<
   // ─── Invitation only (logged out) ─────────────────────────
   if (!session?.user && token) {
     console.log('📨 [getServerSideProps] Invitation token detected:', token);
+    let invitationData = null;
+    let error = null;
+
     try {
       const verified = await InvitationService.verifyToken(token);
       console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(verified, null, 2));
 
-      if (!verified.success && verified.status !== 'success') {
-         console.warn('📨 [getServerSideProps] Verification failed but didn\'t throw');
+      if (verified.success || verified.status === 'success') {
+        invitationData = { id: token, token, ...verified };
+      } else {
+        console.warn('📨 [getServerSideProps] Verification returned success:false');
+        error = "This invitation may have already been used or expired.";
       }
-
-      const invitationData = { id: token, token, ...verified };
-      console.log('📨 [getServerSideProps] Final invitationData for props:', JSON.stringify(invitationData, null, 2));
-
-      return {
-        props: {
-          isAuthenticated: false,
-          invitationToken: token,
-          invitationData,
-          school,
-        },
-      };
     } catch (err: any) {
       console.error('❌ [getServerSideProps] Verification error:', err.message);
-      return {
-        props: {
-          isAuthenticated: false,
-          error: "Invalid or expired invitation link.",
-        },
-      };
+      error = "Could not verify your invitation. You can still sign in to check your account.";
     }
+
+    return {
+      props: {
+        isAuthenticated: false,
+        invitationToken: token,
+        invitationData,
+        school,
+        error,
+      },
+    };
   }
 
   // ─── Logged in user ───────────────────────────────────────
