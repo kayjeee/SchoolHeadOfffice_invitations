@@ -1,5 +1,6 @@
 // components/auth/AuthGate.tsx
 import React, { useMemo, CSSProperties } from "react";
+import Head from "next/head";
 
 interface InvitationData {
   token?: string;
@@ -16,7 +17,8 @@ export default function AuthGate({
   invitationData,
   returnTo = "/parent",
 }: AuthGateProps) {
-  const hasInvitation = Boolean(invitationData?.token);
+  const hasInvitation = Boolean(invitationData?.token || invitationData?.school_name);
+  const schoolName = invitationData?.school_name || "School Head Office";
 
   const safeReturnTo = useMemo(() => {
     if (hasInvitation) {
@@ -30,6 +32,11 @@ export default function AuthGate({
 
   return (
     <div style={styles.container}>
+      <Head>
+        <title>{schoolName} - Parent Portal</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
+
       <div style={styles.card}>
         {/* TITLE */}
         <h1 style={styles.title}>
@@ -43,7 +50,7 @@ export default function AuthGate({
               <p style={styles.invitationText}>
                 You've been invited to join <br />
                 <span style={styles.schoolName}>
-                  {invitationData?.school_name || "Far North Secondary School"}
+                  {schoolName}
                 </span>
               </p>
 

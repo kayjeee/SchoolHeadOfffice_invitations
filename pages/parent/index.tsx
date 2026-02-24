@@ -107,11 +107,24 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
+      let invitationData = null;
+      if (token) {
+        try {
+          const verified = await InvitationService.verifyToken(token);
+          invitationData = { id: token, token, ...verified };
+        } catch (e) {
+          console.error("Failed to verify token for logged-in user", e);
+        }
+      }
+
       return {
         props: {
           isAuthenticated: true,
           initialProfile: profile || null,
           initialLearners: learners || [],
+          invitationToken: token,
+          invitationData,
+          school,
         },
       };
     } catch {
@@ -138,20 +151,31 @@ export const getServerSideProps: GetServerSideProps<
 
 export default function ParentPage(props: ParentPageProps) {
   // ✅ Initialize onboarding hook at top level (Rules of Hooks)
+  // Merge school name from query param into invitation context for onboarding
+  const mergedInvitationData = React.useMemo(() => {
+    if (!props.invitationData && !props.school) return props.invitationData;
+    return {
+      ...props.invitationData,
+      token: props.invitationData?.token || props.invitationToken || undefined,
+      school_name: props.invitationData?.school_name || props.invitationData?.school?.name || (typeof props.school === 'string' ? props.school : undefined)
+    };
+  }, [props.invitationData, props.school, props.invitationToken]);
+
   const onboarding = useParentOnboarding({
     initialProfile: props.initialProfile,
     initialLearners: props.initialLearners,
-    invitationData: props.invitationData,
+    invitationData: mergedInvitationData as any,
   });
 
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
     // Map invitation data to AuthGate format
-    const authGateInvitation = props.invitationData ? {
-      token: props.invitationData.token,
-      school_name: props.invitationData.school_name || props.invitationData.school?.name || (typeof props.school === 'string' ? props.school : undefined),
-      learner_name: props.invitationData.learners?.[0]?.name,
-    } : null;
+    // We prioritize invitationData but fall back to the school query param
+    const authGateInvitation = {
+      token: props.invitationData?.token || (typeof props.invitationToken === 'string' ? props.invitationToken : undefined),
+      school_name: props.invitationData?.school_name || props.invitationData?.school?.name || (typeof props.school === 'string' ? props.school : undefined),
+      learner_name: props.invitationData?.learners?.[0]?.name,
+    };
 
     return (
       <AuthGate
@@ -175,7 +199,7 @@ export default function ParentPage(props: ParentPageProps) {
         {!onboarding.isOnboardingComplete ? (
           <OnboardingFlow
             user={onboarding.user}
-            invitationData={props.invitationData}
+            invitationData={mergedInvitationData}
           />
         ) : (
           <ParentDashboard
