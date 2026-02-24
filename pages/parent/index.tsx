@@ -96,6 +96,7 @@ export const getServerSideProps: GetServerSideProps<
 
   // ─── Logged in user ───────────────────────────────────────
   if (session?.user) {
+    console.log('👤 [getServerSideProps] Logged-in user:', session.user.sub);
     try {
       const [profile, learners] = await Promise.all([
         ParentService.getProfile(session.user.sub),
@@ -104,10 +105,11 @@ export const getServerSideProps: GetServerSideProps<
 
       let invitationData = null;
       if (token) {
+        console.log('📨 [getServerSideProps] Logged-in user with token, verifying...');
         try {
           invitationData = await InvitationAPI.verifyToken(token);
         } catch (e) {
-          console.error("Failed to verify token for logged-in user", e);
+          console.error("❌ [getServerSideProps] Failed to verify token for logged-in user", e);
         }
       }
 

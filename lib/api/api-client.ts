@@ -46,10 +46,26 @@ class ApiClient {
     schema: z.ZodType<T>
   ): Promise<T> {
     let lastError: Error | null = null;
+    const url = `${API_BASE_URL}${endpoint}`;
+    const method = options.method || 'GET';
+    const requestId = Math.random().toString(36).substring(7);
+
+    let parsedBody;
+    try {
+      parsedBody = options.body ? JSON.parse(options.body as string) : undefined;
+    } catch (e) {
+      parsedBody = options.body;
+    }
+
+    console.log(`🚀 [API Request ${requestId}] ${method} ${url}`, {
+      headers: options.headers,
+      body: parsedBody
+    });
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const start = Date.now();
+        const response = await fetch(url, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
@@ -57,12 +73,17 @@ class ApiClient {
           },
         });
 
+        const duration = Date.now() - start;
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
           throw new APIError(response.status, response.statusText, errorData);
         }
 
         const data = await response.json();
+        console.log(`✅ [API Response ${requestId}] SUCCESS (${response.status}) ${duration}ms`, data);
+
         const validatedData = schema.parse(data);
         return validatedData;
 

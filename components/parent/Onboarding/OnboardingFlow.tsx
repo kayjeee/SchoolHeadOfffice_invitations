@@ -240,12 +240,12 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 const fetchUserProfile = async () => {
   const userId = safeUserId(safeUser);
   if (!userId) {
-    console.log('⏭️ Skipping profile fetch: no user ID');
+    console.log('⏭️ [OnboardingFlow] Skipping profile fetch: no user ID');
     setIsLoadingProfile(false);
     return;
   }
   
-  console.log('📥 Fetching user profile...', { userId });
+  console.log('📥 [OnboardingFlow] fetchUserProfile TRIGGERED', { userId });
   
   setIsLoadingProfile(true);
   try {
@@ -264,10 +264,10 @@ const fetchUserProfile = async () => {
     
     if (response.ok) {
       const result = await response.json();
-      console.log('📥 Profile fetch result:', result);
+      console.log('📥 [OnboardingFlow] Profile fetch result:', result);
       
       if (result.success && result.data) {
-        console.log('✅ User profile fetched:', result.data);
+        console.log('✅ [OnboardingFlow] User profile fetched successfully');
         
         // Handle the backend response format
         const userProfile = result.data.user || result.data;
@@ -310,17 +310,18 @@ const fetchUserProfile = async () => {
   const fetchLearners = async () => {
     const userId = safeUserId(safeUser);
     if (!userId) {
+      console.log('⏭️ [OnboardingFlow] Skipping learners fetch: no user ID');
       setIsLoadingLearners(false);
       return;
     }
     
-    console.log('📥 Fetching learners...', { userId });
+    console.log('📥 [OnboardingFlow] fetchLearners TRIGGERED', { userId });
     
     setIsLoadingLearners(true);
     setFetchLearnersError(null);
     try {
       const response = await ParentAPI.getMyLearners(userId);
-      console.log('✅ Learners fetched:', response.learners?.length || 0);
+      console.log('✅ [OnboardingFlow] fetchLearners SUCCESS:', response.learners?.length || 0, 'learners found');
       setLearners(response.learners || []);
     } catch (error) {
       console.error("❌ Error fetching learners:", error);
@@ -332,6 +333,7 @@ const fetchUserProfile = async () => {
 
   // Load initial data
   useEffect(() => {
+    console.log('🔄 [OnboardingFlow] Initial data load useEffect triggered', { hasSafeUser: !!safeUser });
     if (safeUser) {
       fetchUserProfile();
       fetchLearners();
