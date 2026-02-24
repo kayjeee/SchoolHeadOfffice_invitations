@@ -176,6 +176,8 @@ export default function ParentPage(props: ParentPageProps) {
       learner_name: props.invitationData?.learners?.[0]?.name,
     };
 
+    console.log('🏠 [ParentPage] Passing to AuthGate:', JSON.stringify(authGateInvitation, null, 2));
+
     return (
       <AuthGate
         invitationData={authGateInvitation}

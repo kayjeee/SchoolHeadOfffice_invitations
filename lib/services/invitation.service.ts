@@ -52,10 +52,20 @@ export class InvitationService {
     const nestedData = data?.data?.invitation || data?.data || data?.invitation;
     if (nestedData && typeof nestedData === 'object') {
       console.log('🔄 [InvitationService.verifyToken] Found nested data, attempting to parse:', JSON.stringify(nestedData, null, 2));
+
+      // Look for school name in all possible locations
+      const schoolName = nestedData.school_name || nestedData.school?.name || data.school_name || data.school?.name;
+      const gradeName = nestedData.grade_name || data.grade_name;
+
       const syntheticData = {
         success: data.success || data.status === 'success' || true,
-        ...nestedData
+        ...nestedData,
+        school_name: schoolName,
+        grade_name: gradeName,
       };
+
+      console.log('🔄 [InvitationService.verifyToken] Synthetic data created:', JSON.stringify(syntheticData, null, 2));
+
       const validation = InvitationDataSchema.safeParse(syntheticData);
       if (validation.success) {
         console.log('✅ [InvitationService.verifyToken] Nested data parsed successfully');

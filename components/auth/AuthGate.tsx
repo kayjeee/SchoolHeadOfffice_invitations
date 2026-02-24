@@ -17,8 +17,17 @@ export default function AuthGate({
   invitationData,
   returnTo = "/parent",
 }: AuthGateProps) {
+  console.log('🚪 [AuthGate] Received invitationData:', JSON.stringify(invitationData, null, 2));
+
   const hasInvitation = Boolean(invitationData?.token || invitationData?.school_name);
-  const schoolName = invitationData?.school_name || "School Head Office";
+
+  // Aggressive fallback for school name
+  const schoolName = invitationData?.school_name ||
+                     (typeof (invitationData as any)?.school === 'string' ? (invitationData as any).school : undefined) ||
+                     "School Head Office";
+
+  console.log('🚪 [AuthGate] hasInvitation:', hasInvitation);
+  console.log('🚪 [AuthGate] resolved schoolName:', schoolName);
 
   const safeReturnTo = useMemo(() => {
     if (hasInvitation) {
