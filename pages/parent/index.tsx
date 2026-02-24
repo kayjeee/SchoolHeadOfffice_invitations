@@ -8,6 +8,7 @@ import Head from "next/head";
 import ErrorBoundary from "../../components/common/ErrorBoundary";
 import LoadingScreen from "../../components/common/LoadingScreen";
 import ParentDashboard from "../../components/parent/Dashboard/ParentDashboard";
+import AuthGate from "../../components/auth/AuthGate";
 
 import { InvitationService } from "../../lib/services/invitation.service";
 import { ParentService } from "../../lib/services/parent.service";
@@ -145,11 +146,17 @@ export default function ParentPage(props: ParentPageProps) {
 
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
+    // Map invitation data to AuthGate format
+    const authGateInvitation = props.invitationData ? {
+      token: props.invitationData.token,
+      school_name: props.invitationData.school_name || props.invitationData.school?.name || (typeof props.school === 'string' ? props.school : undefined),
+      learner_name: props.invitationData.learners?.[0]?.name,
+    } : null;
+
     return (
-      <LandingPage
-        invitationToken={props.invitationToken}
-        school={props.school}
-        invitationData={props.invitationData}
+      <AuthGate
+        invitationData={authGateInvitation}
+        returnTo="/parent"
       />
     );
   }
@@ -182,61 +189,3 @@ export default function ParentPage(props: ParentPageProps) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                LANDING PAGE                                */
-/* -------------------------------------------------------------------------- */
-
-function LandingPage({ invitationToken, school, invitationData }: any) {
-  console.log('🏠 [LandingPage] invitationData:', JSON.stringify(invitationData, null, 2));
-  console.log('🏠 [LandingPage] school from query:', school);
-
-  const schoolName = invitationData?.school_name || invitationData?.school?.name || school;
-  const gradeName = invitationData?.grade_name || invitationData?.learners?.[0]?.grade;
-
-  console.log('🏠 [LandingPage] Resolved schoolName:', schoolName);
-  console.log('🏠 [LandingPage] Resolved gradeName:', gradeName);
-
-  const returnTo = invitationToken
-    ? `/parent?token=${invitationToken}${school ? `&school=${school}` : ""}`
-    : "/parent";
-
-  return (
-    <>
-      <Head>
-        <title>{schoolName ? `${schoolName} - Parent Portal` : "Parent Portal"}</title>
-        <meta name="robots" content="noindex,nofollow" />
-      </Head>
-
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="bg-white p-10 rounded-xl shadow-lg text-center max-w-md w-full mx-4">
-          <h1 className="text-2xl font-bold mb-2">
-            {schoolName || "Parent Portal"}
-          </h1>
-
-          {gradeName && (
-            <p className="text-blue-600 font-semibold mb-4">
-              {gradeName}
-            </p>
-          )}
-
-          {schoolName && (
-            <h2 className="text-gray-500 text-sm mb-6 uppercase tracking-wider font-medium">
-              Parent Portal
-            </h2>
-          )}
-
-          <p className="text-gray-600 mb-8">
-            Sign in to view school notices, learner progress, and important updates.
-          </p>
-
-          <a
-            href={`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`}
-            className="block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            Sign In
-          </a>
-        </div>
-      </div>
-    </>
-  );
-}
