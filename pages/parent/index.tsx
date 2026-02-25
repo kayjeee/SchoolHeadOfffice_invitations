@@ -54,7 +54,8 @@ export const getServerSideProps: GetServerSideProps<
   // Sanitize token to handle cases where query params are accidentally glued (e.g. via \u0026)
   const rawToken = typeof context.query.token === "string" ? context.query.token : null;
   const token = rawToken ? rawToken.split('&')[0].split('\\u0026')[0].trim() : null;
-
+ console.log('🔑 rawToken:', rawToken);  // ← add this
+  console.log('🔑 sanitized token:', token);  // ← add this
   let school = typeof context.query.school === "string" ? context.query.school : null;
 
   // Extract school if it was glued to the token via \u0026
@@ -168,11 +169,12 @@ export default function ParentPage(props: ParentPageProps) {
     // Map invitation data to AuthGate format
     // We prioritize invitationData but fall back to the school query param
     const authGateInvitation = {
-      token: props.invitationData?.token || (typeof props.invitationToken === 'string' ? props.invitationToken : undefined),
-      school_name: props.invitationData?.school_name || (typeof props.school === 'string' ? props.school : undefined),
-      grade_name: props.invitationData?.grade_name,
-      learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
-    };
+  token: props.invitationData?.token || props.invitationToken,
+  school_name: props.invitationData?.school_name || props.school,
+  school_logo: props.invitationData?.school_logo || null,  // ← ADD
+  grade_name: props.invitationData?.grade_name || null,
+  learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
+};
 
     console.log('🏠 [ParentPage] Passing to AuthGate:', JSON.stringify(authGateInvitation, null, 2));
 

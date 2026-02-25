@@ -50,6 +50,7 @@ class ApiClient {
     const method = options.method || 'GET';
     const requestId = Math.random().toString(36).substring(7);
 
+    // Parse body for logging if it exists
     let parsedBody;
     try {
       parsedBody = options.body ? JSON.parse(options.body as string) : undefined;
@@ -82,14 +83,36 @@ class ApiClient {
         }
 
         const data = await response.json();
-        console.log(`✅ [API Response ${requestId}] SUCCESS (${response.status}) ${duration}ms`, data);
+        
+        // Log the raw data stringified to see everything before Zod processes it
+        console.log(`✅ [API Response ${requestId}] RAW (${response.status}) ${duration}ms:`, JSON.stringify(data, null, 2));
 
-        const validatedData = schema.parse(data);
-        return validatedData;
+        // Use safeParse so validation failures don't crash the request
+        const parseResult = schema.safeParse(data);
+        
+        if (!parseResult.success) {
+          console.warn(
+            `⚠️ [API Response ${requestId}] Zod validation failed. Returning raw data to avoid stripping fields:`, 
+            parseResult.error.flatten()
+          );
+          return data as T;
+        }
+
+        // Merge: Take the original raw data and overlay the Zod-parsed data.
+        // This ensures .passthrough() works at all levels and we don't lose fields 
+        // like school_logo even if they were missing from the schema definition.
+        const validatedData = typeof data === 'object' && data !== null
+          ? { ...data, ...parseResult.data }
+          : parseResult.data;
+
+        return validatedData as T;
 
       } catch (error) {
         lastError = error as Error;
+        console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, (error as Error).message);
+        
         if (i < MAX_RETRIES - 1) {
+          // Exponential backoff
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * Math.pow(2, i)));
         }
       }
