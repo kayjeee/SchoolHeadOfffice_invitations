@@ -751,10 +751,21 @@ case 'PROFILE_SETUP':
                 console.log('🚀 Manual redirect clicked, target:', resolvedSchoolName);
                 window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
               }}
-              className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+              className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors mb-6"
             >
               Go to Dashboard Now
             </button>
+
+            {/* DEMO / NESTED ROUTE LINK */}
+            <div style={styles.demoSection}>
+              <p style={styles.demoLabel}>Test Nested Route:</p>
+              <a
+                href="/parent/far%20noth%20secondary%20school"
+                style={styles.demoLink}
+              >
+                Far North Secondary School
+              </a>
+            </div>
           </div>
         );
 
@@ -913,3 +924,23 @@ case 'PROFILE_SETUP':
     </div>
   );
 }
+
+// Inline styles for specialized components
+const styles: Record<string, React.CSSProperties> = {
+  demoSection: {
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f3f4f6',
+    textAlign: 'center'
+  },
+  demoLabel: {
+    fontSize: '12px',
+    color: '#9ca3af',
+    marginBottom: '4px'
+  },
+  demoLink: {
+    fontSize: '13px',
+    color: '#2563eb',
+    textDecoration: 'underline'
+  }
+};
