@@ -153,6 +153,14 @@ export const getServerSideProps: GetServerSideProps<
 export default function ParentPage(props: ParentPageProps) {
   const router = useRouter();
 
+  console.log('🏠 [ParentPage] Render start. Props:', {
+    isAuthenticated: props.isAuthenticated,
+    invitationToken: props.invitationToken ? `${props.invitationToken.substring(0, 8)}...` : 'NONE',
+    school: props.school,
+    hasInvitationData: !!props.invitationData,
+    invitationDataSchool: props.invitationData?.school_name
+  });
+
   // ✅ Initialize onboarding hook at top level (Rules of Hooks)
   // Merge school name from query param into invitation context for onboarding
   const mergedInvitationData = React.useMemo(() => {
@@ -168,6 +176,16 @@ export default function ParentPage(props: ParentPageProps) {
     initialProfile: props.initialProfile,
     initialLearners: props.initialLearners,
     invitationData: mergedInvitationData as any,
+  });
+
+  console.log('🏠 [ParentPage] Onboarding state:', {
+    isOnboardingComplete: onboarding.isOnboardingComplete,
+    isLoading: onboarding.isLoading,
+    currentStep: onboarding.currentStep,
+    profileName: onboarding.profile?.name,
+    primarySchool: onboarding.profile?.primary_school_name,
+    learnersCount: onboarding.learners?.length,
+    onboardingDataSchool: onboarding.onboardingData?.school_name
   });
 
   // 🚀 Redirect to school-specific dashboard if onboarding is complete
@@ -189,7 +207,16 @@ export default function ParentPage(props: ParentPageProps) {
       const fromInvitation = props.invitationData?.school_name;
       const fromQuery = props.school;
 
-      const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || 'School';
+      // Special case: if mergedInvitationData has it, prioritize it over generic fallbacks
+      const fromMerged = mergedInvitationData?.school_name;
+
+      let schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
+
+      // If we still have 'School' but we had a name in props at some point, use it!
+      if (schoolName === 'School' && props.school) {
+        console.log('🩹 [ParentPage] schoolName was "School", recovering from props.school:', props.school);
+        schoolName = props.school;
+      }
 
       console.log('🚀 [ParentPage] Redirecting to school dashboard:', {
         resolved: schoolName,

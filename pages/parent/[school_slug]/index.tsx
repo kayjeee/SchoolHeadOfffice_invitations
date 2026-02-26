@@ -27,10 +27,14 @@ export default function SchoolOverviewPage({ school_slug }: SchoolOverviewProps)
 
   if (school_slug === 'School') {
     console.warn('⚠️ [SchoolOverviewPage] Received fallback "School" as slug. This usually means the redirection source had no valid school name.');
+
+    // In development, show a warning or redirect back to root if it's annoying
+    // For now, let's just make it look better
   }
 
   // Directly use the school_slug as the display name to strictly match the school name
-  const displayName = school_slug || 'School';
+  // But make it pretty if it's 'School'
+  const displayName = school_slug === 'School' ? 'Your School' : (school_slug || 'School');
 
   return (
     <FrontPageLayout>

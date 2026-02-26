@@ -41,6 +41,12 @@ export function useParentOnboarding({
   initialLearners = [],
   invitationData,
 }: Props) {
+  console.log('🧪 [useParentOnboarding] Hook triggered. Received invitationData:', {
+    hasData: !!invitationData,
+    schoolName: invitationData?.school_name,
+    token: invitationData?.token ? `${invitationData.token.substring(0, 8)}...` : 'NONE'
+  });
+
   const { user, isLoading: authLoading } = useUser();
   const queryClient = useQueryClient();
   const initializedRef = useRef(false);
@@ -48,6 +54,10 @@ export function useParentOnboarding({
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
+
+  useEffect(() => {
+    console.log('🧪 [useParentOnboarding] Effect: Initialized state. currentStep:', currentStep, 'onboardingData school:', onboardingData?.school_name);
+  }, []);
   const [progress, setProgress] = useState(0);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,10 +125,14 @@ export function useParentOnboarding({
       // Merge step metadata into onboardingData
       if (status.step_metadata) {
         console.log('🧪 [useParentOnboarding] Merging step_metadata:', JSON.stringify(status.step_metadata, null, 2));
-        setOnboardingData((prev: any) => ({
-          ...prev,
-          ...status.step_metadata
-        }));
+        setOnboardingData((prev: any) => {
+          const newData = {
+            ...prev,
+            ...status.step_metadata
+          };
+          console.log('🧪 [useParentOnboarding] Updated onboardingData school:', newData.school_name);
+          return newData;
+        });
       }
 
       setProgress(Math.round((completed.length / PARENT_STEPS.length) * 100));
