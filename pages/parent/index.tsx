@@ -13,7 +13,6 @@ import AuthGate from "../../components/auth/AuthGate";
 import { InvitationAPI, InvitationData } from "../../lib/api/invitation-api";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
-import { slugify } from "../../lib/utils/slugify";
 import { useRouter } from "next/router";
 
 /* -------------------------------------------------------------------------- */
@@ -174,15 +173,10 @@ export default function ParentPage(props: ParentPageProps) {
       const schoolName = onboarding.learners[0]?.school_name ||
                         onboarding.profile?.primary_school_name ||
                         onboarding.onboardingData?.school_name ||
-                        'school';
+                        'School';
 
-      const schoolSlug = onboarding.profile?.primary_school_slug ||
-                        (onboarding.learners[0] as any)?.school_slug ||
-                        onboarding.onboardingData?.school_slug ||
-                        slugify(schoolName);
-
-      console.log('🚀 [ParentPage] Redirecting to school dashboard:', schoolSlug);
-      router.replace(`/parent/${schoolSlug}`);
+      console.log('🚀 [ParentPage] Redirecting to school dashboard:', schoolName);
+      router.replace(`/parent/${encodeURIComponent(schoolName)}`);
     }
   }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, router]);
 

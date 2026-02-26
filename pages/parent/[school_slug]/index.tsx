@@ -23,13 +23,8 @@ export const getServerSideProps: GetServerSideProps<SchoolOverviewProps> = async
 };
 
 export default function SchoolOverviewPage({ school_slug }: SchoolOverviewProps) {
-  // Simple formatting for display: convert 'school-name' to 'School Name'
-  const displayName = school_slug
-    ? school_slug
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-    : 'School';
+  // Directly use the school_slug as the display name to strictly match the school name
+  const displayName = school_slug || 'School';
 
   return (
     <FrontPageLayout>

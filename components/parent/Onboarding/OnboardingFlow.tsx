@@ -1,7 +1,6 @@
 // components/parent/Onboarding/OnboardingFlow.tsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { slugify } from '../../../lib/utils/slugify';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationAPI } from '../../../lib/api/invitation-api';
@@ -351,17 +350,15 @@ const fetchUserProfile = async () => {
       const timer = setTimeout(() => {
         console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
 
-        // Determine the school slug for the redirect
+        // Determine the school name for the redirect
         const schoolName = onboardingData?.school_name ||
                           onboardingData?.school?.name ||
                           (learners && learners[0]?.school_name) ||
-                          'school';
-
-        const schoolSlug = onboardingData?.school_slug || slugify(schoolName);
+                          'School';
 
         // Force a full page reload to ensure ParentPage re-initializes its hook
         // and fetches the updated profile from the server
-        window.location.href = `/parent/${schoolSlug}`;
+        window.location.href = `/parent/${encodeURIComponent(schoolName)}`;
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
@@ -747,9 +744,8 @@ case 'PROFILE_SETUP':
                 const schoolName = onboardingData?.school_name ||
                                   onboardingData?.school?.name ||
                                   (learners && learners[0]?.school_name) ||
-                                  'school';
-                const schoolSlug = onboardingData?.school_slug || slugify(schoolName);
-                window.location.href = `/parent/${schoolSlug}`;
+                                  'School';
+                window.location.href = `/parent/${encodeURIComponent(schoolName)}`;
               }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
