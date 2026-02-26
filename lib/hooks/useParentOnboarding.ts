@@ -52,6 +52,15 @@ export function useParentOnboarding({
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('🧪 [useParentOnboarding] Hook initialized with invitationData:', JSON.stringify(invitationData, null, 2));
+
+  useEffect(() => {
+    if (invitationData) {
+      console.log('🧪 [useParentOnboarding] invitationData changed, updating onboardingData');
+      setOnboardingData(prev => ({ ...prev, ...invitationData }));
+    }
+  }, [invitationData]);
+
   const auth0Id = user?.sub ?? null;
 
   // 🚫 DO NOTHING if user not logged in
@@ -105,6 +114,7 @@ export function useParentOnboarding({
 
       // Merge step metadata into onboardingData
       if (status.step_metadata) {
+        console.log('🧪 [useParentOnboarding] Merging step_metadata:', JSON.stringify(status.step_metadata, null, 2));
         setOnboardingData((prev: any) => ({
           ...prev,
           ...status.step_metadata

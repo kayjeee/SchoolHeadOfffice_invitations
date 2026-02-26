@@ -37,6 +37,7 @@ export interface UpdateProfileData {
 
 export class ParentAPI {
   static async getProfile(auth0Id: string): Promise<ParentProfile> {
+    console.log(`👤 [ParentAPI.getProfile] Fetching for: ${auth0Id}`);
     const responseSchema = z.object({
       success: z.boolean(),
       data: z.any()
@@ -50,6 +51,7 @@ export class ParentAPI {
       profile.name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
     }
 
+    console.log(`👤 [ParentAPI.getProfile] Loaded: ${profile?.name || 'Unknown'}`);
     return profile;
   }
 
@@ -64,12 +66,15 @@ export class ParentAPI {
   }
 
   static async getMyLearners(auth0Id: string): Promise<{ learners: Learner[] }> {
+    console.log(`🎓 [ParentAPI.getMyLearners] Fetching for: ${auth0Id}`);
     const responseSchema = z.object({
       success: z.boolean(),
       learners: z.array(z.any()),
     });
 
-    const response = await apiClient.get(`/parents/${auth0Id}/learners`, responseSchema);
+    // Updated route to match backend implementation
+    const response = await apiClient.get(`/parents/my_learners?auth0_id=${encodeURIComponent(auth0Id)}`, responseSchema);
+    console.log(`🎓 [ParentAPI.getMyLearners] Found ${response.learners?.length || 0} learners`);
     return { learners: response.learners };
   }
 

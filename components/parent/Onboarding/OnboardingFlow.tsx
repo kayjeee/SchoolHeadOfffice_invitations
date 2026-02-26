@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
-import { InvitationService } from '../../../lib/services/invitation.service';
+import { InvitationAPI } from '../../../lib/api/invitation-api';
 import OnboardingProgress from './OnboardingProgress';
 import ProfileSetup from './steps/ProfileSetup';
 import IdentityVerification from './steps/IdentityVerification';
@@ -64,6 +64,8 @@ const safeUserName = (user: any): string => {
 export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
   const router = useRouter();
   
+  console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
+
   // Logging initialization with EXTREME null safety
   useEffect(() => {
     console.log('');
@@ -238,12 +240,12 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
 const fetchUserProfile = async () => {
   const userId = safeUserId(safeUser);
   if (!userId) {
-    console.log('⏭️ Skipping profile fetch: no user ID');
+    console.log('⏭️ [OnboardingFlow] Skipping profile fetch: no user ID');
     setIsLoadingProfile(false);
     return;
   }
   
-  console.log('📥 Fetching user profile...', { userId });
+  console.log('📥 [OnboardingFlow] fetchUserProfile TRIGGERED', { userId });
   
   setIsLoadingProfile(true);
   try {
@@ -262,10 +264,10 @@ const fetchUserProfile = async () => {
     
     if (response.ok) {
       const result = await response.json();
-      console.log('📥 Profile fetch result:', result);
+      console.log('📥 [OnboardingFlow] Profile fetch result:', result);
       
       if (result.success && result.data) {
-        console.log('✅ User profile fetched:', result.data);
+        console.log('✅ [OnboardingFlow] User profile fetched successfully');
         
         // Handle the backend response format
         const userProfile = result.data.user || result.data;
@@ -308,17 +310,18 @@ const fetchUserProfile = async () => {
   const fetchLearners = async () => {
     const userId = safeUserId(safeUser);
     if (!userId) {
+      console.log('⏭️ [OnboardingFlow] Skipping learners fetch: no user ID');
       setIsLoadingLearners(false);
       return;
     }
     
-    console.log('📥 Fetching learners...', { userId });
+    console.log('📥 [OnboardingFlow] fetchLearners TRIGGERED', { userId });
     
     setIsLoadingLearners(true);
     setFetchLearnersError(null);
     try {
       const response = await ParentAPI.getMyLearners(userId);
-      console.log('✅ Learners fetched:', response.learners?.length || 0);
+      console.log('✅ [OnboardingFlow] fetchLearners SUCCESS:', response.learners?.length || 0, 'learners found');
       setLearners(response.learners || []);
     } catch (error) {
       console.error("❌ Error fetching learners:", error);
@@ -330,6 +333,7 @@ const fetchUserProfile = async () => {
 
   // Load initial data
   useEffect(() => {
+    console.log('🔄 [OnboardingFlow] Initial data load useEffect triggered', { hasSafeUser: !!safeUser });
     if (safeUser) {
       fetchUserProfile();
       fetchLearners();
@@ -361,7 +365,8 @@ const fetchUserProfile = async () => {
     const userId = safeUserId(safeUser);
     if (hasInvitation && userId) {
       try {
-        await InvitationService.claim(onboardingData.invitation_token, userId);
+        // Use the new InvitationAPI to accept/claim the invitation
+        await InvitationAPI.acceptInvitation(onboardingData.token || onboardingData.invitation_token, userId);
         sessionStorage.removeItem('sho_invitation');
         console.log('✅ Invitation claimed successfully');
       } catch (error) {
@@ -436,6 +441,15 @@ case 'PROFILE_SETUP':
   
   // Check for invitation data
   const invitationPhone = hasInvitation ? (onboardingData?.parent_phone || '') : '';
+  const invitationSchoolName = onboardingData?.school_name || onboardingData?.school?.name || '';
+  const invitationGradeName = onboardingData?.grade_name || onboardingData?.learners?.[0]?.grade || '';
+
+  console.log('🎬 [OnboardingFlow] Passing to ProfileSetup:', {
+    invitationSchoolName,
+    invitationGradeName,
+    hasInvitation,
+    onboardingDataKeys: Object.keys(onboardingData || {})
+  });
   
   return (
     <ProfileSetup
@@ -444,6 +458,8 @@ case 'PROFILE_SETUP':
         name: existingName,
         email: existingEmail,
         phone: invitationPhone || existingPhone,
+        school_name: invitationSchoolName,
+        grade_name: invitationGradeName,
       }}
       isLocked={isLocked}
       user={safeUser}

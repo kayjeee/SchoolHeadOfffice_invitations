@@ -1,33 +1,88 @@
-// lib/api/invitation-api.ts
 import { z } from 'zod';
 import { apiClient } from './api-client';
 
-// ========================
-// ZOD SCHEMAS
-// ========================
+/**
+ * Schema for the Invitation object.
+ * .passthrough() is used to ensure we don't lose fields not explicitly defined here.
+ */
+const InvitationSchema = z.object({
+  id: z.string().optional(),
+  token: z.string().optional(),
+  status: z.string().optional(),
+  school_id: z.string().optional(),
+  school_name: z.string().optional(),
+  school_logo: z.string().nullable().optional(), // Allowed to be null or missing
+  grade_name: z.string().optional(),
+  recipient_phone_number: z.string().optional(),
+  parent_name: z.string().optional(),
+  learner_number: z.string().optional(),
+  learner_numbers: z.array(z.string()).optional(),
+  learner_ids: z.array(z.string()).optional(),
+  expired_at: z.string().optional(),
+  expires_at: z.string().optional(),
+  expired: z.boolean().optional(),
+  active: z.boolean().optional(),
+  full_magic_link: z.string().optional(),
+}).passthrough();
 
-const InvitationDataSchema = z.object({
-  id: z.string(),
-  school_id: z.string(),
-  school_name: z.string(),
-  phone_number: z.string(),
-  learner_ids: z.array(z.string()),
-  expires_at: z.string().datetime(),
-});
+/**
+ * Schema for the specific verification endpoint response.
+ */
+const VerifyWithDetailsSchema = z.object({
+  success: z.boolean(),
+  invitation: InvitationSchema,
+  expires_in: z.number().optional(),
+  is_expired: z.boolean().optional(),
+}).passthrough();
 
-export type InvitationData = z.infer<typeof InvitationDataSchema>;
-
-// ========================
-// API SERVICE
-// ========================
+export type InvitationData = z.infer<typeof InvitationSchema>;
 
 export class InvitationAPI {
+  /**
+   * Fetches invitation details via token without claiming/accepting it.
+   */
   static async verifyToken(token: string): Promise<InvitationData> {
-    const responseSchema = z.object({
-      invitation: InvitationDataSchema,
-    });
+    console.log(`🔍 [InvitationAPI.verifyToken] Triggered for token: ${token.substring(0, 10)}...`);
+    
+    try {
+      const response = await apiClient.get(
+        `/invitations/${token}/verify_with_details`,
+        VerifyWithDetailsSchema
+      );
 
-    const response = await apiClient.post('/invitations/verify', { token }, responseSchema);
-    return response.invitation;
+      // Log specific fields to verify the backend is sending what we expect
+      console.log(`✅ [InvitationAPI.verifyToken] school_name: ${response.invitation.school_name}`);
+      console.log(`✅ [InvitationAPI.verifyToken] school_logo: ${response.invitation.school_logo}`);
+      
+      return response.invitation;
+    } catch (error) {
+      console.error(`❌ [InvitationAPI.verifyToken] Verification failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Links the invitation to an authenticated Auth0 user.
+   */
+  static async acceptInvitation(token: string, auth0Id: string): Promise<{ success: boolean }> {
+    console.log(`🤝 [InvitationAPI.acceptInvitation] Claiming token: ${token.substring(0, 10)}... for user: ${auth0Id}`);
+    
+    const schema = z.object({ 
+      success: z.boolean() 
+    }).passthrough();
+
+    try {
+      const response = await apiClient.post(
+        '/invitations/verify', 
+        { token, auth0_id: auth0Id }, 
+        schema
+      );
+      
+      console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${response.success}`);
+      return response;
+    } catch (error) {
+      console.error(`❌ [InvitationAPI.acceptInvitation] Failed:`, error);
+      throw error;
+    }
   }
 }
