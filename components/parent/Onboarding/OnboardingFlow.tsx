@@ -351,9 +351,10 @@ const fetchUserProfile = async () => {
         console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
 
         // Determine the school name for the redirect
-        const schoolName = onboardingData?.school_name ||
+        // We prioritize the linked learner's school name if available
+        const schoolName = (learners && learners[0]?.school_name) ||
+                          onboardingData?.school_name ||
                           onboardingData?.school?.name ||
-                          (learners && learners[0]?.school_name) ||
                           'School';
 
         // Force a full page reload to ensure ParentPage re-initializes its hook
@@ -741,9 +742,9 @@ case 'PROFILE_SETUP':
             </p>
             <button
               onClick={() => {
-                const schoolName = onboardingData?.school_name ||
+                const schoolName = (learners && learners[0]?.school_name) ||
+                                  onboardingData?.school_name ||
                                   onboardingData?.school?.name ||
-                                  (learners && learners[0]?.school_name) ||
                                   'School';
                 window.location.href = `/parent/${encodeURIComponent(schoolName)}`;
               }}
