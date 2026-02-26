@@ -2,14 +2,38 @@
 import { z } from 'zod';
 import { ParentProfile, Learner } from '../api/parent-api';
 
-const internalApiUrl = 'https://shobackendv2-production.up.railway.app/api/v1';
+// ========================
+// API BASE URL RESOLUTION
+// ========================
+const getApiBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const fallback = 'https://shobackendv2-production.up.railway.app/api/v1';
+
+  if (!envUrl) {
+    console.log(`🌐 [ParentService] No NEXT_PUBLIC_API_BASE_URL found, using fallback: ${fallback}`);
+    return fallback;
+  }
+
+  let resolved = envUrl.replace(/\/$/, '');
+  if (!resolved.includes('/api/v1')) {
+    resolved = `${resolved}/api/v1`;
+  }
+
+  console.log(`🌐 [ParentService] Resolved API Base URL: ${resolved} (from ENV: ${envUrl})`);
+  return resolved;
+};
+
+const internalApiUrl = getApiBaseUrl();
 
 // ========================
 // SERVER-SIDE API CLIENT
 // ========================
 
 async function fetchFromInternalApi(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${internalApiUrl}${endpoint}`, {
+  const url = `${internalApiUrl}${endpoint}`;
+  console.log(`📡 [ParentService] FETCHING: ${url}`);
+
+  const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
