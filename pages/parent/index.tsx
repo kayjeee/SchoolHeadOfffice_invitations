@@ -172,25 +172,45 @@ export default function ParentPage(props: ParentPageProps) {
 
   // 🚀 Redirect to school-specific dashboard if onboarding is complete
   React.useEffect(() => {
+    console.log('🔄 [ParentPage] Redirection Check:', {
+      isOnboardingComplete: onboarding.isOnboardingComplete,
+      isLoading: onboarding.isLoading,
+      hasLearners: onboarding.learners?.length > 0,
+      hasProfile: !!onboarding.profile,
+      hasInvitationData: !!props.invitationData,
+      hasSchoolQuery: !!props.school
+    });
+
     if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
       // Prioritize the linked learner's school name, then profile, then onboarding data, then invitation props
-      const schoolName = onboarding.learners[0]?.school_name ||
-                        onboarding.profile?.primary_school_name ||
-                        onboarding.onboardingData?.school_name ||
-                        props.invitationData?.school_name ||
-                        props.school ||
-                        'School';
+      const fromLearner = onboarding.learners[0]?.school_name;
+      const fromProfile = onboarding.profile?.primary_school_name;
+      const fromOnboarding = onboarding.onboardingData?.school_name;
+      const fromInvitation = props.invitationData?.school_name;
+      const fromQuery = props.school;
+
+      const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || 'School';
 
       console.log('🚀 [ParentPage] Redirecting to school dashboard:', {
         resolved: schoolName,
-        fromLearners: onboarding.learners[0]?.school_name,
-        fromOnboarding: onboarding.onboardingData?.school_name,
-        fromInvitation: props.invitationData?.school_name,
-        fromQuery: props.school
+        source: fromLearner ? 'learner' : fromProfile ? 'profile' : fromOnboarding ? 'onboarding' : fromInvitation ? 'invitation' : fromQuery ? 'query' : 'fallback',
+        details: {
+          fromLearner,
+          fromProfile,
+          fromOnboarding,
+          fromInvitation,
+          fromQuery
+        }
       });
 
+      if (schoolName === 'School') {
+        console.warn('⚠️ [ParentPage] Redirecting to fallback "School". This usually means no school context was found in learners, profile, or invitation.');
+      }
+
       // We use router.replace to avoid adding the intermediate /parent to history
-      router.replace(`/parent/${encodeURIComponent(schoolName)}`);
+      const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
+      console.log('🚀 [ParentPage] router.replace:', targetPath);
+      router.replace(targetPath);
     }
   }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, props.invitationData, props.school, router]);
 

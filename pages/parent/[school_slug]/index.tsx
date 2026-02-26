@@ -23,6 +23,12 @@ export const getServerSideProps: GetServerSideProps<SchoolOverviewProps> = async
 };
 
 export default function SchoolOverviewPage({ school_slug }: SchoolOverviewProps) {
+  console.log('🏛️ [SchoolOverviewPage] Rendered with school_slug:', school_slug);
+
+  if (school_slug === 'School') {
+    console.warn('⚠️ [SchoolOverviewPage] Received fallback "School" as slug. This usually means the redirection source had no valid school name.');
+  }
+
   // Directly use the school_slug as the display name to strictly match the school name
   const displayName = school_slug || 'School';
 
