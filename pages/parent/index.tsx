@@ -13,6 +13,8 @@ import AuthGate from "../../components/auth/AuthGate";
 import { InvitationAPI, InvitationData } from "../../lib/api/invitation-api";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
+import { slugify } from "../../lib/utils/slugify";
+import { useRouter } from "next/router";
 
 /* -------------------------------------------------------------------------- */
 /*                                  DYNAMIC                                   */
@@ -147,6 +149,8 @@ export const getServerSideProps: GetServerSideProps<
 /* -------------------------------------------------------------------------- */
 
 export default function ParentPage(props: ParentPageProps) {
+  const router = useRouter();
+
   // ✅ Initialize onboarding hook at top level (Rules of Hooks)
   // Merge school name from query param into invitation context for onboarding
   const mergedInvitationData = React.useMemo(() => {
@@ -163,6 +167,24 @@ export default function ParentPage(props: ParentPageProps) {
     initialLearners: props.initialLearners,
     invitationData: mergedInvitationData as any,
   });
+
+  // 🚀 Redirect to school-specific dashboard if onboarding is complete
+  React.useEffect(() => {
+    if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
+      const schoolName = onboarding.learners[0]?.school_name ||
+                        onboarding.profile?.primary_school_name ||
+                        onboarding.onboardingData?.school_name ||
+                        'school';
+
+      const schoolSlug = onboarding.profile?.primary_school_slug ||
+                        (onboarding.learners[0] as any)?.school_slug ||
+                        onboarding.onboardingData?.school_slug ||
+                        slugify(schoolName);
+
+      console.log('🚀 [ParentPage] Redirecting to school dashboard:', schoolSlug);
+      router.replace(`/parent/${schoolSlug}`);
+    }
+  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, router]);
 
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {

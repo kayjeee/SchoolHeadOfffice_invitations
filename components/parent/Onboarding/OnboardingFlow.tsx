@@ -1,6 +1,7 @@
 // components/parent/Onboarding/OnboardingFlow.tsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { slugify } from '../../../lib/utils/slugify';
 import { useParentOnboarding } from '../../../lib/hooks/useParentOnboarding';
 import { ParentAPI, Learner } from '../../../lib/api/parent-api';
 import { InvitationAPI } from '../../../lib/api/invitation-api';
@@ -349,14 +350,23 @@ const fetchUserProfile = async () => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
         console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
+
+        // Determine the school slug for the redirect
+        const schoolName = onboardingData?.school_name ||
+                          onboardingData?.school?.name ||
+                          (learners && learners[0]?.school_name) ||
+                          'school';
+
+        const schoolSlug = onboardingData?.school_slug || slugify(schoolName);
+
         // Force a full page reload to ensure ParentPage re-initializes its hook
         // and fetches the updated profile from the server
-        window.location.href = '/parent';
+        window.location.href = `/parent/${schoolSlug}`;
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, onboardingData, learners]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -733,7 +743,14 @@ case 'PROFILE_SETUP':
               Your account is now fully set up. Redirecting to dashboard...
             </p>
             <button
-              onClick={() => window.location.href = '/parent'}
+              onClick={() => {
+                const schoolName = onboardingData?.school_name ||
+                                  onboardingData?.school?.name ||
+                                  (learners && learners[0]?.school_name) ||
+                                  'school';
+                const schoolSlug = onboardingData?.school_slug || slugify(schoolName);
+                window.location.href = `/parent/${schoolSlug}`;
+              }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
               Go to Dashboard Now
