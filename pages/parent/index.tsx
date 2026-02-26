@@ -170,20 +170,26 @@ export default function ParentPage(props: ParentPageProps) {
   // 🚀 Redirect to school-specific dashboard if onboarding is complete
   React.useEffect(() => {
     if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
-      // Prioritize the linked learner's school name, then profile, then onboarding data
+      // Prioritize the linked learner's school name, then profile, then onboarding data, then invitation props
       const schoolName = onboarding.learners[0]?.school_name ||
                         onboarding.profile?.primary_school_name ||
                         onboarding.onboardingData?.school_name ||
+                        props.invitationData?.school_name ||
+                        props.school ||
                         'School';
 
-      // If the school name is just "School" (placeholder) but we have onboarding data,
-      // check if it's better than nothing, but we really want the exact name.
-      console.log('🚀 [ParentPage] Redirecting to school dashboard:', schoolName);
+      console.log('🚀 [ParentPage] Redirecting to school dashboard:', {
+        resolved: schoolName,
+        fromLearners: onboarding.learners[0]?.school_name,
+        fromOnboarding: onboarding.onboardingData?.school_name,
+        fromInvitation: props.invitationData?.school_name,
+        fromQuery: props.school
+      });
 
       // We use router.replace to avoid adding the intermediate /parent to history
       router.replace(`/parent/${encodeURIComponent(schoolName)}`);
     }
-  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, router]);
+  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, props.invitationData, props.school, router]);
 
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {

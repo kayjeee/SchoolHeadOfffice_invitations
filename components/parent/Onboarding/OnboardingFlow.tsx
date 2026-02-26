@@ -63,32 +63,6 @@ const safeUserName = (user: any): string => {
 
 export default function OnboardingFlow({ user, invitationData }: OnboardingFlowProps) {
   const router = useRouter();
-  
-  console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
-
-  // Logging initialization with EXTREME null safety
-  useEffect(() => {
-    console.log('');
-    console.log('🎬 ═══════════════════════════════════════');
-    console.log('🎬 OnboardingFlow Component Mounted');
-    console.log('🎬 ═══════════════════════════════════════');
-    
-    // SAFE logging - no string concatenation that could cause toString() errors
-    const userEmail = safeUserEmail(user);
-    const userId = safeUserId(user);
-    
-    console.log('👤 User exists:', !!user);
-    console.log('👤 User email:', userEmail || '(no email)');
-    console.log('👤 User ID:', userId || '(no ID)');
-    console.log('📨 Has invitation:', !!invitationData);
-    
-    // Safe query params logging
-    try {
-      console.log('🔍 Query params:', router.query || {});
-    } catch (error) {
-      console.log('🔍 Query params: [Error reading query params]');
-    }
-  }, []);
 
   // State management
   const [isInvitationPrefillLocked, setInvitationPrefillLocked] = useState(true);
@@ -126,6 +100,45 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     initialLearners: [],
     invitationData,
   });
+
+  // Calculate the robust school name at the top level
+  const resolvedSchoolName = useMemo(() => {
+    const name = (learners && learners[0]?.school_name) ||
+                 onboardingData?.school_name ||
+                 onboardingData?.school?.name ||
+                 invitationData?.school_name ||
+                 invitationData?.school ||
+                 'School';
+    console.log('🏛️ [OnboardingFlow] resolvedSchoolName:', name);
+    return name;
+  }, [learners, onboardingData, invitationData]);
+
+  console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
+
+  // Logging initialization with EXTREME null safety
+  useEffect(() => {
+    console.log('');
+    console.log('🎬 ═══════════════════════════════════════');
+    console.log('🎬 OnboardingFlow Component Mounted');
+    console.log('🎬 ═══════════════════════════════════════');
+
+    // SAFE logging - no string concatenation that could cause toString() errors
+    const userEmail = safeUserEmail(user);
+    const userId = safeUserId(user);
+
+    console.log('👤 User exists:', !!user);
+    console.log('👤 User email:', userEmail || '(no email)');
+    console.log('👤 User ID:', userId || '(no ID)');
+    console.log('📨 Has invitation:', !!invitationData);
+
+    // Safe query params logging
+    try {
+      console.log('🔍 Query params:', router.query || {});
+    } catch (error) {
+      console.log('🔍 Query params: [Error reading query params]');
+    }
+  }, []);
+
 
   const hasInvitation = !!onboardingData?.invitation_id;
   const subscriptionChoice = onboardingData?.SUBSCRIPTION_CHOICE || {};
@@ -348,23 +361,16 @@ const fetchUserProfile = async () => {
   useEffect(() => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
-        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...');
-
-        // Determine the school name for the redirect
-        // We prioritize the linked learner's school name if available
-        const schoolName = (learners && learners[0]?.school_name) ||
-                          onboardingData?.school_name ||
-                          onboardingData?.school?.name ||
-                          'School';
+        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...', resolvedSchoolName);
 
         // Force a full page reload to ensure ParentPage re-initializes its hook
         // and fetches the updated profile from the server
-        window.location.href = `/parent/${encodeURIComponent(schoolName)}`;
+        window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, onboardingData, learners]);
+  }, [currentStep, resolvedSchoolName]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -742,11 +748,8 @@ case 'PROFILE_SETUP':
             </p>
             <button
               onClick={() => {
-                const schoolName = (learners && learners[0]?.school_name) ||
-                                  onboardingData?.school_name ||
-                                  onboardingData?.school?.name ||
-                                  'School';
-                window.location.href = `/parent/${encodeURIComponent(schoolName)}`;
+                console.log('🚀 Manual redirect clicked, target:', resolvedSchoolName);
+                window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
               }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
             >
