@@ -66,7 +66,7 @@ export default function AuthGate({
   return (
     <div style={styles.container}>
       <Head>
-        <title>{schoolName} - Parent Portal</title>
+        <title>{`${schoolName} - Parent Portal`}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
