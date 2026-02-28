@@ -190,56 +190,48 @@ export default function ParentPage(props: ParentPageProps) {
 
   // 🚀 Redirect to school-specific dashboard if onboarding is complete
   React.useEffect(() => {
-    console.log('🔄 [ParentPage] Redirection Check:', {
-      isOnboardingComplete: onboarding.isOnboardingComplete,
-      isLoading: onboarding.isLoading,
-      hasLearners: onboarding.learners?.length > 0,
-      hasProfile: !!onboarding.profile,
-      hasInvitationData: !!props.invitationData,
-      hasSchoolQuery: !!props.school
+    // If we're fully logged in and onboarded, we need school context before redirecting
+    const shouldRedirect = props.isAuthenticated && onboarding.isOnboardingComplete && !onboarding.isLoading;
+
+    if (!shouldRedirect) return;
+
+    // Prioritize the linked learner's school name, then profile, then onboarding data, then invitation props
+    const fromLearner = onboarding.learners?.[0]?.school_name;
+    const fromProfile = onboarding.profile?.primary_school_name;
+    const fromOnboarding = onboarding.onboardingData?.school_name;
+    const fromInvitation = props.invitationData?.school_name;
+    const fromQuery = props.school;
+    const fromMerged = mergedInvitationData?.school_name;
+
+    const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
+
+    console.log('🚀 [ParentPage] Redirection Logic:', {
+      resolved: schoolName,
+      sources: { fromLearner, fromProfile, fromOnboarding, fromInvitation, fromQuery, fromMerged }
     });
 
-    if (onboarding.isOnboardingComplete && !onboarding.isLoading) {
-      // Prioritize the linked learner's school name, then profile, then onboarding data, then invitation props
-      const fromLearner = onboarding.learners[0]?.school_name;
-      const fromProfile = onboarding.profile?.primary_school_name;
-      const fromOnboarding = onboarding.onboardingData?.school_name;
-      const fromInvitation = props.invitationData?.school_name;
-      const fromQuery = props.school;
-
-      // Special case: if mergedInvitationData has it, prioritize it over generic fallbacks
-      const fromMerged = mergedInvitationData?.school_name;
-
-      let schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
-
-      // If we still have 'School' but we had a name in props at some point, use it!
-      if (schoolName === 'School' && props.school) {
-        console.log('🩹 [ParentPage] schoolName was "School", recovering from props.school:', props.school);
-        schoolName = props.school;
-      }
-
-      console.log('🚀 [ParentPage] Redirecting to school dashboard:', {
-        resolved: schoolName,
-        source: fromLearner ? 'learner' : fromProfile ? 'profile' : fromOnboarding ? 'onboarding' : fromInvitation ? 'invitation' : fromQuery ? 'query' : 'fallback',
-        details: {
-          fromLearner,
-          fromProfile,
-          fromOnboarding,
-          fromInvitation,
-          fromQuery
-        }
-      });
-
-      if (schoolName === 'School') {
-        console.warn('⚠️ [ParentPage] Redirecting to fallback "School". This usually means no school context was found in learners, profile, or invitation.');
-      }
-
-      // We use router.replace to avoid adding the intermediate /parent to history
-      const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
-      console.log('🚀 [ParentPage] router.replace:', targetPath);
-      router.replace(targetPath);
+    if (schoolName === 'School' && !onboarding.isLoading) {
+       console.warn('⚠️ [ParentPage] Redirecting to fallback "School". Waiting to see if learners load.');
+       // If we are onboarded but have no learners yet, they might still be fetching via SWR/React Query
+       if (onboarding.learners?.length === 0) return;
     }
-  }, [onboarding.isOnboardingComplete, onboarding.isLoading, onboarding.learners, onboarding.profile, onboarding.onboardingData, props.invitationData, props.school, router]);
+
+    // We use router.replace to avoid adding the intermediate /parent to history
+    const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
+    console.log('🚀 [ParentPage] Navigating to:', targetPath);
+    router.replace(targetPath);
+  }, [
+    onboarding.isOnboardingComplete,
+    onboarding.isLoading,
+    onboarding.learners,
+    onboarding.profile,
+    onboarding.onboardingData,
+    props.invitationData,
+    props.school,
+    props.isAuthenticated,
+    mergedInvitationData,
+    router
+  ]);
 
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
