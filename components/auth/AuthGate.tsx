@@ -173,7 +173,7 @@ export default function AuthGate({
         <div style={styles.demoSection}>
           <p style={styles.demoLabel}>Test Nested Route:</p>
           <a
-            href="/parent/far%20noth%20secondary%20school"
+            href="/parent/far%20north%20secondary%20school"
             style={styles.demoLink}
           >
             Far North Secondary School

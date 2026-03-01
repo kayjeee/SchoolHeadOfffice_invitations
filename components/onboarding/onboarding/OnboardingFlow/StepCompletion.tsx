@@ -30,7 +30,7 @@ const StepCompletion: React.FC = () => {
           <div className="mt-8 pt-6 border-t border-gray-100">
             <p className="text-xs text-gray-400 mb-2">Test Nested Route:</p>
             <a
-              href="/parent/far%20noth%20secondary%20school"
+              href="/parent/far%20north%20secondary%20school"
               className="text-sm text-blue-600 underline font-medium"
             >
               Far North Secondary School
