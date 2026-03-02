@@ -84,10 +84,9 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
 
     // Check if the user is onboarded. If not, redirect to the onboarding flow gateway.
     const hasProfile = !!profile;
-    const hasLearners = learners && learners.length > 0;
 
-    if (!hasProfile || !hasLearners) {
-      console.log(`⏳ [SchoolDashboard.GSSP] User not fully onboarded. Redirecting to onboarding gateway.`);
+    if (!hasProfile) {
+      console.log(`⏳ [SchoolDashboard.GSSP] User profile missing. Redirecting to onboarding gateway.`);
       const onboardingPath = token
         ? `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(school_slug)}`
         : `/parent?school=${encodeURIComponent(school_slug)}`;
