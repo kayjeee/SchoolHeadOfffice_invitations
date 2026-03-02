@@ -3,10 +3,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ParentAPI, ParentProfile, Learner, UpdateProfileData } from "../api/parent-api";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "https://shobackendv2-production.up.railway.app/api/v1";
+import { apiClient } from "../api/api-client";
+import { z } from "zod";
 
 const PARENT_STEPS = [
   "PROFILE_SETUP",
@@ -51,16 +49,22 @@ export function useParentOnboarding({
   const queryClient = useQueryClient();
   const initializedRef = useRef(false);
 
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>("PROFILE_SETUP");
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>("INITIALIZING");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [onboardingData, setOnboardingData] = useState<any>(invitationData || {});
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const isOnboardingComplete = currentStep === "COMPLETE";
 
   useEffect(() => {
-    console.log('🧪 [useParentOnboarding] Effect: Initialized state. currentStep:', currentStep, 'onboardingData school:', onboardingData?.school_name);
-  }, []);
-  const [progress, setProgress] = useState(0);
-  const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    console.log('🧪 [useParentOnboarding] Hook state update:', {
+      currentStep,
+      completedCount: completedSteps.length,
+      isOnboardingComplete,
+      schoolName: onboardingData?.school_name
+    });
+  }, [currentStep, completedSteps, isOnboardingComplete, onboardingData]);
 
   console.log('🧪 [useParentOnboarding] Hook initialized with invitationData:', JSON.stringify(invitationData, null, 2));
 
@@ -102,16 +106,22 @@ export function useParentOnboarding({
     if (!auth0Id) return;
 
     try {
-      const res = await fetch(
-        `https://shobackendv2-production.up.railway.app/api/v1/users/onboarding_status?auth0_id=${encodeURIComponent(auth0Id)}`
+      const schema = z.object({
+        success: z.boolean(),
+        data: z.object({
+          onboarding_status: z.any()
+        })
+      }).passthrough();
+
+      const json = await apiClient.get(
+        `/users/onboarding_status?auth0_id=${encodeURIComponent(auth0Id)}`,
+        schema
       );
 
-      if (!res.ok) throw new Error();
-
-      const json = await res.json();
       const status = json?.data?.onboarding_status;
 
       if (!status) {
+        console.log('🧪 [useParentOnboarding] No onboarding status found. Starting from scratch.');
         setCurrentStep(PARENT_STEPS[0]);
         return;
       }
@@ -137,13 +147,15 @@ export function useParentOnboarding({
 
       setProgress(Math.round((completed.length / PARENT_STEPS.length) * 100));
 
-      if (status.parent_onboarding_completed) {
+      // Force logic: If parent_onboarding_completed is false, we MUST be on a step
+      if (status.parent_onboarding_completed === true) {
+        console.log('🧪 [useParentOnboarding] Backend reports COMPLETED');
         setCurrentStep("COMPLETE");
-        setIsOnboardingComplete(true);
       } else {
         const next =
-          PARENT_STEPS.find((s) => !completed.includes(s)) ?? "COMPLETE";
-        setCurrentStep(next);
+          PARENT_STEPS.find((s) => !completed.includes(s)) ?? "PROFILE_SETUP";
+        console.log('🧪 [useParentOnboarding] Backend reports INCOMPLETE. Next step:', next);
+        setCurrentStep(next as OnboardingStep);
       }
     } catch {
       setCurrentStep(PARENT_STEPS[0]);
@@ -208,16 +220,15 @@ export function useParentOnboarding({
       const next =
         PARENT_STEPS.find((s) => !nextCompleted.includes(s)) ?? "COMPLETE";
 
-      setCurrentStep(next);
-      if (next === "COMPLETE") setIsOnboardingComplete(true);
+      console.log(`🧪 [useParentOnboarding] completeStep(${step}) -> Next: ${next}`);
+      setCurrentStep(next as OnboardingStep);
 
-      await fetch(
-        `${API_URL}/users/${encodeURIComponent(auth0Id)}/onboarding_status/complete_step`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ step_name: step, metadata: data ?? {} }),
-        }
+      const schema = z.object({ success: z.boolean() }).passthrough();
+
+      await apiClient.post(
+        `/users/${encodeURIComponent(auth0Id)}/onboarding_status/complete_step`,
+        { step_name: step, metadata: data ?? {} },
+        schema
       );
     },
     [auth0Id, completedSteps, updateProfile]

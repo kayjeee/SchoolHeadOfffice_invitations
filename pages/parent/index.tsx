@@ -178,16 +178,6 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: mergedInvitationData as any,
   });
 
-  console.log('🏠 [ParentPage] Onboarding state:', {
-    isOnboardingComplete: onboarding.isOnboardingComplete,
-    isLoading: onboarding.isLoading,
-    currentStep: onboarding.currentStep,
-    profileName: onboarding.profile?.name,
-    primarySchool: onboarding.profile?.primary_school_name,
-    learnersCount: onboarding.learners?.length,
-    onboardingDataSchool: onboarding.onboardingData?.school_name
-  });
-
   // 🚀 Redirect to school-specific dashboard if onboarding is complete
   React.useEffect(() => {
     // If we're fully logged in and onboarded, we need school context before redirecting
@@ -206,14 +196,13 @@ export default function ParentPage(props: ParentPageProps) {
     const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
 
     if (schoolName === 'School' && !onboarding.isLoading) {
-       console.warn('⚠️ [ParentPage] Redirecting to fallback "School". Waiting to see if learners load.');
        // If we are onboarded but have no learners yet, they might still be fetching via SWR/React Query
        if (onboarding.learners?.length === 0) return;
     }
 
     // We use router.replace to avoid adding the intermediate /parent to history
     const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
-    console.log('🚀 [ParentPage] Navigating to:', targetPath);
+    console.log('🚀 [ParentPage] Onboarding complete. Navigating to:', targetPath);
     router.replace(targetPath);
   }, [
     onboarding.isOnboardingComplete,
