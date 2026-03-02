@@ -83,10 +83,11 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
     ]);
 
     // Check if the user is onboarded. If not, redirect to the onboarding flow gateway.
-    const hasProfile = !!profile;
+    // We check the specific parent_onboarding_completed flag from the backend
+    const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;
 
-    if (!hasProfile) {
-      console.log(`⏳ [SchoolDashboard.GSSP] User profile missing. Redirecting to onboarding gateway.`);
+    if (!profile || !isOnboardingComplete) {
+      console.log(`⏳ [SchoolDashboard.GSSP] Onboarding incomplete for ${userId}. Redirecting to gateway.`);
       const onboardingPath = token
         ? `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(school_slug)}`
         : `/parent?school=${encodeURIComponent(school_slug)}`;
