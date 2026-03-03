@@ -59,10 +59,7 @@ export class ParentService {
 
   static async linkInvitation(userId: string, invitationId: string): Promise<{ success: boolean }> {
     try {
-      await fetchFromInternalApi(`/parents/${userId}/link-invitation`, {
-        method: 'POST',
-        body: JSON.stringify({ invitationId }),
-      });
+      await apiClient.post(`/parents/${userId}/link-invitation`, { invitationId }, GenericResponseSchema);
       return { success: true };
     } catch (error) {
       console.error(`Error linking invitation ${invitationId} to user ${userId}:`, error);
