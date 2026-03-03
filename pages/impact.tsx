@@ -200,7 +200,30 @@ const ImpactPage = () => {
         </section>
 
         {/* Testimonials */}
-        
+        <section className="py-20 bg-blue-50 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">Teacher Testimonials</h2>
+            <div className="grid md:grid-cols-2 gap-8">
+              {testimonials.map((t, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  className="bg-white p-8 rounded-2xl shadow-sm relative"
+                >
+                  <Quote className="absolute top-4 right-4 w-8 h-8 text-blue-100" />
+                  <p className="text-lg text-slate-700 mb-6 italic">"{t.quote}"</p>
+                  <div>
+                    <div className="font-bold text-slate-900">{t.author}</div>
+                    <div className="text-sm text-slate-500">{t.location}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* POPIA Compliance */}
         <section className="py-20 px-4">
           <div className="max-w-4xl mx-auto bg-slate-50 border border-slate-200 rounded-3xl p-8 md:p-12 text-center">
