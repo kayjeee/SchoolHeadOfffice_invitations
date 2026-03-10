@@ -3,15 +3,15 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 
-import ErrorBoundary from '../../components/common/ErrorBoundary';
-import { SchoolAPI, School } from '../../lib/api/school-api';
-import SchoolCard from '../../components/school/SchoolCard';
-import SchoolSearchBar from '../../components/school/SchoolSearchBar';
-import EmptyState from '../../components/school/EmptyState';
+import ErrorBoundary from '../../../components/common/ErrorBoundary';
+import { SchoolAPI, School } from '../../../lib/api/school-api';
+import SchoolCard from '../../../components/school/SchoolCard';
+import SchoolSearchBar from '../../../components/school/SchoolSearchBar';
+import EmptyState from '../../../components/school/EmptyState';
 
 // Lazy load layout
 const FrontPageLayout = dynamic(
-  () => import("../../components/Layouts/FrontPageLayout"),
+  () => import("../../../components/Layouts/FrontPageLayout"),
   { ssr: true }
 );
 
@@ -65,10 +65,10 @@ export default function SchoolBrowser({ schools, totalCount, page, error }: Scho
   return (
     <ErrorBoundary>
       <Head>
-        <title>Find Your School | School Head Office</title>
-        <meta name="description" content="Browse and connect with schools on School Head Office" />
+        <title>Find Your School | Teacher Portal</title>
+        <meta name="description" content="Browse and connect with your school to manage grades and learners." />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://www.schoolheadoffice.com/school" />
+        <link rel="canonical" href="https://www.schoolheadoffice.com/teacher/school" />
       </Head>
 
       <FrontPageLayout userRoles={['guest']}>
