@@ -14,6 +14,14 @@ export interface School {
   gradeCount?: number;
 }
 
+export interface Teacher {
+  id: string;
+  name: string;
+  slug: string;
+  avatar?: string;
+  grades: string[];
+}
+
 export interface GetSchoolsResponse {
   schools: School[];
   totalCount: number;
@@ -59,5 +67,30 @@ export class SchoolAPI {
       totalCount: response.totalCount || response.total_count || schools.length,
       page: response.page || page,
     };
+  }
+
+  static async getTeachers(schoolId: string): Promise<Teacher[]> {
+    console.log(`👨‍🏫 [SchoolAPI.getTeachers] Fetching teachers for schoolId: ${schoolId}`);
+
+    const responseSchema = z.object({
+      teachers: z.array(z.any()),
+    });
+
+    const endpoint = `/schools/${schoolId}/teachers`;
+    try {
+      const response = await apiClient.get(endpoint, responseSchema);
+      const teachersList = response.teachers || (Array.isArray(response) ? response : []);
+
+      return teachersList.map((t: any) => ({
+        id: t.id || t._id?.$oid || t._id || '',
+        name: t.name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unknown Teacher',
+        slug: t.slug || t.id || '',
+        avatar: t.avatar || t.profile_image || null,
+        grades: t.grades || t.grade_names || [],
+      }));
+    } catch (error) {
+      console.error(`❌ [SchoolAPI.getTeachers] Failed to fetch teachers for school ${schoolId}:`, error);
+      return [];
+    }
   }
 }
