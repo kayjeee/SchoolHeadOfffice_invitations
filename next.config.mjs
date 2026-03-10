@@ -22,4 +22,13 @@ export default {
       },
     ];
   },
+
+  async rewrites() {
+    return [
+      {
+        source: '/parent/school/:school_slug',
+        destination: '/parent/:school_slug',
+      },
+    ];
+  },
 };

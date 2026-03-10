@@ -9,6 +9,9 @@ export interface School {
   country: string;
   logo: string | null;
   status: string;
+  teacherCount?: number;
+  learnerCount?: number;
+  gradeCount?: number;
 }
 
 export interface GetSchoolsResponse {
@@ -46,6 +49,9 @@ export class SchoolAPI {
       country: s.country || '',
       logo: s.logo || s.school_logo || null,
       status: s.status || 'active',
+      teacherCount: s.teacher_count || s.teacherCount || 0,
+      learnerCount: s.learner_count || s.learnerCount || 0,
+      gradeCount: s.grade_count || s.gradeCount || 0,
     }));
 
     return {
