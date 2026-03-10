@@ -15,7 +15,7 @@ const DesktopHome = ({ schools }) => {
 
   // ✅ Roles with navigation targets
   const roles = [
-    { name: "Teacher", icon: "📚", href: "/teacher" },
+    { name: "Teacher", icon: "📚", href: "/teacher/school" },
     { name: "Parent", icon: "🏠", href: "/parent" },
     { name: "Student", icon: "🎓", href: "/student" },
     { name: "School Leader", icon: "🏫", href: "/admin" },

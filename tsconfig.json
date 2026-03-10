@@ -18,14 +18,25 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
-    "next-env.d.ts",
-    "additional.d.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "pages/api/whatsapp-business/send-bulk.js"  ],
+    "**/*.tsx",
+    "additional.d.ts",
+    "next-env.d.ts",
+    "pages/api/whatsapp-business/send-bulk.js",
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
