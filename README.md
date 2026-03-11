@@ -435,3 +435,22 @@ sequenceDiagram
     Note over B: Link Parent User to Learner Profile
     B-->>N: Success
 ```
+
+### 3. Classroom & Communication Flow (Prompt 6)
+```mermaid
+sequenceDiagram
+    participant T as Teacher (Grade Page)
+    participant R as Rails API
+    participant DB as Database
+    participant S as SMS/WhatsApp Gateway
+
+    T->>R: POST /api/v1/learner_invitations/:id/resend
+    R->>DB: Update invitation (reset expiry, inc. count)
+    R->>S: Dispatch new Magic Link
+    S-->>T: 200 OK (Success Message)
+
+    Note over T,R: Bulk Operations
+    T->>R: POST /api/v1/invitations/bulk_create [learner_ids]
+    R->>DB: Create multiple LearnerInvitation records
+    R-->>T: 201 Created (Batch Status)
+```

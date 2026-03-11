@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getSession } from "@auth0/nextjs-auth0";
 import { toast, Toaster } from 'react-hot-toast';
@@ -220,7 +221,12 @@ export default function TeacherDashboard({
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2">
-                                <button className="text-blue-600 hover:text-blue-800 font-bold text-sm">View Class</button>
+                                <Link
+                                  href={`/teacher/school/${schoolSlug}/teachers/${teacherSlug}/grades/${grade.id}`}
+                                  className="text-blue-600 hover:text-blue-800 font-bold text-sm"
+                                >
+                                  View Class
+                                </Link>
                                 <button
                                   onClick={() => { setSelectedGrade(grade); setIsModalOpen(true); }}
                                   className="text-green-600 hover:text-green-800 font-bold text-sm"
