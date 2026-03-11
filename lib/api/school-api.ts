@@ -32,6 +32,21 @@ export interface GradeAssignment {
   connection_rate?: number;
 }
 
+export interface Grade {
+  id: string;
+  name: string;
+  school_id: string;
+}
+
+export interface Learner {
+  id: string;
+  name: string;
+  parent_name?: string;
+  parent_phone?: string;
+  status: 'Linked' | 'Pending' | 'Unlinked';
+  invitation_id?: string;
+}
+
 export interface TeacherStats {
   total_learners: number;
   active_grades: number;
@@ -46,6 +61,11 @@ export interface LearnerInvitation {
   learner_name: string;
   status: 'Sent' | 'Delivered' | 'Accepted';
   created_at: string;
+}
+
+export interface LearnerInvitationDetail extends LearnerInvitation {
+  learner_id: string;
+  last_action?: string;
 }
 
 export interface GetSchoolsResponse {
@@ -215,5 +235,69 @@ export class SchoolAPI {
     });
 
     return await apiClient.post(`/grades/${gradeId}/invite_learner`, data, responseSchema);
+  }
+
+  static async getGrade(gradeId: string): Promise<Grade> {
+    console.log(`📚 [SchoolAPI.getGrade] Fetching grade: ${gradeId}`);
+    const responseSchema = z.object({
+      grade: z.any(),
+    });
+    const response = await apiClient.get(`/grades/${gradeId}`, responseSchema);
+    return {
+      id: response.grade.id,
+      name: response.grade.name || response.grade.grade_name,
+      school_id: response.grade.school_id,
+    };
+  }
+
+  static async getGradeLearners(gradeId: string): Promise<Learner[]> {
+    console.log(`👨‍🎓 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
+    const responseSchema = z.object({
+      learners: z.array(z.any()),
+    });
+    const response = await apiClient.get(`/grades/${gradeId}/learners`, responseSchema);
+    return response.learners.map((l: any) => ({
+      id: l.id,
+      name: l.name,
+      parent_name: l.parent_name,
+      parent_phone: l.parent_phone,
+      status: l.status || 'Unlinked',
+      invitation_id: l.invitation_id,
+    }));
+  }
+
+  static async getGradeInvitations(gradeId: string): Promise<LearnerInvitationDetail[]> {
+    console.log(`📨 [SchoolAPI.getGradeInvitations] Fetching invitations for grade: ${gradeId}`);
+    const responseSchema = z.object({
+      invitations: z.array(z.any()),
+    });
+    const response = await apiClient.get(`/learner_invitations/by_grade/${gradeId}`, responseSchema);
+    return response.invitations.map((inv: any) => ({
+      id: inv.id,
+      parent_name: inv.parent_name,
+      parent_phone: inv.parent_phone,
+      learner_name: inv.learner_name,
+      learner_id: inv.learner_id,
+      status: inv.status,
+      created_at: inv.created_at,
+      last_action: inv.last_action,
+    }));
+  }
+
+  static async bulkCreateInvitations(learnerIds: string[]): Promise<{ success: boolean; batch_status?: any }> {
+    console.log(`📨 [SchoolAPI.bulkCreateInvitations] Bulk creating for ${learnerIds.length} learners`);
+    const responseSchema = z.object({
+      success: z.boolean(),
+      batch_status: z.any().optional(),
+    });
+    return await apiClient.post('/invitations/bulk_create', { learner_ids: learnerIds }, responseSchema);
+  }
+
+  static async resendInvitation(invitationId: string): Promise<{ success: boolean }> {
+    console.log(`🔄 [SchoolAPI.resendInvitation] Resending invitation: ${invitationId}`);
+    const responseSchema = z.object({
+      success: z.boolean(),
+    });
+    return await apiClient.post(`/learner_invitations/${invitationId}/resend`, {}, responseSchema);
   }
 }
