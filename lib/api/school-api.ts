@@ -29,6 +29,23 @@ export interface GradeAssignment {
   id: string;
   grade_name: string;
   learner_count: number;
+  connection_rate?: number;
+}
+
+export interface TeacherStats {
+  total_learners: number;
+  active_grades: number;
+  pending_invites: number;
+  parent_connection_rate: number;
+}
+
+export interface LearnerInvitation {
+  id: string;
+  parent_name: string;
+  parent_phone: string;
+  learner_name: string;
+  status: 'Sent' | 'Delivered' | 'Accepted';
+  created_at: string;
 }
 
 export interface GetSchoolsResponse {
@@ -122,10 +139,81 @@ export class SchoolAPI {
         id: a.id || a._id?.$oid || a._id || '',
         grade_name: a.grade_name || a.gradeName || 'Unknown Grade',
         learner_count: a.learner_count || a.learnerCount || 0,
+        connection_rate: a.connection_rate || a.connectionRate || 0,
       }));
     } catch (error) {
       console.error(`❌ [SchoolAPI.getTeacherGradeAssignments] Failed to fetch assignments for teacher ${teacherId}:`, error);
       return [];
     }
+  }
+
+  static async getTeacherProfile(teacherId: string): Promise<{ teacher: Teacher; stats: TeacherStats }> {
+    console.log(`👤 [SchoolAPI.getTeacherProfile] Fetching profile for: ${teacherId}`);
+
+    const responseSchema = z.object({
+      teacher: z.any(),
+      stats: z.object({
+        total_learners: z.number(),
+        active_grades: z.number(),
+        pending_invites: z.number(),
+        parent_connection_rate: z.number(),
+      }),
+    });
+
+    const response = await apiClient.get(`/users/${teacherId}`, responseSchema);
+
+    const t = response.teacher;
+    const teacher: Teacher = {
+      id: t.id || t._id?.$oid || t._id || '',
+      name: t.name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unknown Teacher',
+      slug: t.slug || t.id || '',
+      avatar: t.avatar || t.profile_image || null,
+      grades: t.grades || t.grade_names || [],
+      auth0_id: t.auth0_id || t.auth0Id || null,
+      bio: t.bio || '',
+      email: t.email || '',
+    };
+
+    return {
+      teacher,
+      stats: response.stats,
+    };
+  }
+
+  static async getPendingInvitations(teacherId: string): Promise<LearnerInvitation[]> {
+    console.log(`📨 [SchoolAPI.getPendingInvitations] Fetching for teacherId: ${teacherId}`);
+
+    const responseSchema = z.object({
+      invitations: z.array(z.any()),
+    });
+
+    const endpoint = `/learner_invitations/pending?teacher_id=${teacherId}`;
+    try {
+      const response = await apiClient.get(endpoint, responseSchema);
+      const invitations = response.invitations || (Array.isArray(response) ? response : []);
+
+      return invitations.map((inv: any) => ({
+        id: inv.id || inv._id?.$oid || inv._id || '',
+        parent_name: inv.parent_name || 'Unknown Parent',
+        parent_phone: inv.parent_phone || inv.recipient_phone_number || '',
+        learner_name: inv.learner_name || '',
+        status: inv.status || 'Sent',
+        created_at: inv.created_at || new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error(`❌ [SchoolAPI.getPendingInvitations] Failed to fetch invitations:`, error);
+      return [];
+    }
+  }
+
+  static async inviteParent(gradeId: string, data: { parent_name: string; parent_phone: string; learner_name: string }): Promise<{ success: boolean; invitation?: LearnerInvitation }> {
+    console.log(`➕ [SchoolAPI.inviteParent] Sending invite for grade ${gradeId}`);
+
+    const responseSchema = z.object({
+      success: z.boolean(),
+      invitation: z.any().optional(),
+    });
+
+    return await apiClient.post(`/grades/${gradeId}/invite_learner`, data, responseSchema);
   }
 }

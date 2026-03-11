@@ -1,5 +1,5 @@
 # Parent Onboarding Enhancement - Technical Overview
-we deploy
+
 ## Problem Statement 
 
 The current parent onboarding system has critical gaps that create friction in the user experience:
@@ -406,3 +406,32 @@ This enhancement transforms the parent onboarding experience from a manual, erro
 - 🎯 95%+ accuracy in parent-learner matching
 - 🤝 60% reduction in support tickets
 - 😊 Significantly improved user satisfaction
+---
+
+## 🏫 School Head Office: Teacher-Parent Invitation Flow
+
+### 1. Route Hierarchy
+All teacher-facing routes are nested to maintain school and profile context:
+`school/` → `[schoolSlug]/` → `teachers/` → `[teacherSlug]/` → `dashboard`
+
+### 2. Invitation Logic (Mermaid)
+```mermaid
+sequenceDiagram
+    participant T as Teacher (Dashboard)
+    participant B as Rails API (v1)
+    participant P as Parent (WhatsApp/SMS)
+    participant N as Next.js (Parent Portal)
+
+    T->>B: POST /api/v1/grades/:id/invite_learner
+    Note over B: Create LearnerInvitation & Token
+    B-->>T: 201 Created (Token Generated)
+    T->>P: Send Magic Link via WhatsApp
+    Note right of P: Link: /parent/school-slug?token=xyz
+    P->>N: Clicks Link
+    N->>B: GET /api/v1/invitations/verify?token=xyz
+    B-->>N: Invitation Details (School/Learner Name)
+    P->>N: Accepts & Registers
+    N->>B: POST /api/v1/learner_invitations/:id/accept
+    Note over B: Link Parent User to Learner Profile
+    B-->>N: Success
+```
