@@ -20,6 +20,15 @@ export interface Teacher {
   slug: string;
   avatar?: string;
   grades: string[];
+  auth0_id?: string;
+  bio?: string;
+  email?: string;
+}
+
+export interface GradeAssignment {
+  id: string;
+  grade_name: string;
+  learner_count: number;
 }
 
 export interface GetSchoolsResponse {
@@ -87,9 +96,35 @@ export class SchoolAPI {
         slug: t.slug || t.id || '',
         avatar: t.avatar || t.profile_image || null,
         grades: t.grades || t.grade_names || [],
+        auth0_id: t.auth0_id || t.auth0Id || null,
+        bio: t.bio || '',
+        email: t.email || '',
       }));
     } catch (error) {
       console.error(`❌ [SchoolAPI.getTeachers] Failed to fetch teachers for school ${schoolId}:`, error);
+      return [];
+    }
+  }
+
+  static async getTeacherGradeAssignments(teacherId: string): Promise<GradeAssignment[]> {
+    console.log(`📚 [SchoolAPI.getTeacherGradeAssignments] Fetching assignments for teacherId: ${teacherId}`);
+
+    const responseSchema = z.object({
+      assignments: z.array(z.any()),
+    });
+
+    const endpoint = `/teacher_grade_assignments?teacher_id=${teacherId}`;
+    try {
+      const response = await apiClient.get(endpoint, responseSchema);
+      const assignments = response.assignments || (Array.isArray(response) ? response : []);
+
+      return assignments.map((a: any) => ({
+        id: a.id || a._id?.$oid || a._id || '',
+        grade_name: a.grade_name || a.gradeName || 'Unknown Grade',
+        learner_count: a.learner_count || a.learnerCount || 0,
+      }));
+    } catch (error) {
+      console.error(`❌ [SchoolAPI.getTeacherGradeAssignments] Failed to fetch assignments for teacher ${teacherId}:`, error);
       return [];
     }
   }

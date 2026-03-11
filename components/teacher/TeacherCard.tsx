@@ -45,7 +45,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, schoolSlug }) => {
       </div>
 
       <Link
-        href={`/teacher/school/${schoolSlug}/teachers/${teacher.slug}`}
+        href={`/school/${schoolSlug}/teachers/${teacher.slug}`}
         className="mt-auto w-full py-2 px-4 border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold rounded-lg transition-colors text-sm"
       >
         View Profile

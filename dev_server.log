@@ -1,0 +1,248 @@
+   ▲ Next.js 15.0.7
+   - Local:        http://localhost:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+   We detected TypeScript in your project and reconfigured your tsconfig.json file for you. Strict-mode is set to false by default.
+   The following mandatory changes were made to your tsconfig.json:
+
+	- jsx was set to preserve (next.js implements its own optimized jsx transform)
+
+ ✓ Ready in 1936ms
+ ○ Compiling /school/[schoolSlug]/teachers/[teacherSlug] ...
+ ✓ Compiled /school/[schoolSlug]/teachers/[teacherSlug] in 7.3s (458 modules)
+⚠️ [TeacherProfile.GSSP] getSession failed.
+🏫 [SchoolAPI.getSchools] Fetching: search="Far North Secondary School", page=1, limit=10
+🚀 [API Request ak9svj] GET https://shobackendv2-production.up.railway.app/api/v1/schools?search=Far%20North%20Secondary%20School&page=1&limit=10 { headers: undefined, body: undefined }
+✅ [API Response ak9svj] RAW (200) 596ms: {
+  "success": true,
+  "schools": [
+    {
+      "_id": "68f008c2e794f0d0efbbad72",
+      "adminUsers": [],
+      "cash_account": 5000,
+      "city": "New York",
+      "country": "USA",
+      "created_at": "2025-10-15T22:49:06.948+02:00",
+      "facebook": null,
+      "invites": [],
+      "latitude": null,
+      "line1": "123 Main St",
+      "line2": null,
+      "linkedin": null,
+      "logo": null,
+      "longitude": null,
+      "payment_history": [],
+      "postalCode": "10001",
+      "province": "NY",
+      "schoolEmail": "testschool@example.com",
+      "schoolName": "Test School",
+      "school_created_by": null,
+      "status": "active",
+      "theme": "",
+      "tiktok": null,
+      "updated_at": "2025-10-15T22:49:06.948+02:00",
+      "user_email": null,
+      "user_id": null,
+      "website": null
+    },
+    {
+      "_id": "68ff2ee54fdf9dc19107108c",
+      "adminUsers": [
+        {
+          "id": "1761553978144",
+          "name": "Mary",
+          "email": "maryjarrett@me.com",
+          "role": "Administrator",
+          "addedAt": "2025-10-27T08:32:58.144Z"
+        }
+      ],
+      "cash_account": 0,
+      "city": "East London",
+      "country": "South Africa",
+      "created_at": "2025-10-27T10:35:49.671+02:00",
+      "facebook": "",
+      "invites": [],
+      "latitude": null,
+      "line1": "1234 Main St",
+      "line2": "",
+      "linkedin": "",
+      "logo": "https://res.cloudinary.com/chameleon-techie/image/upload/v1761977292/zcqio04riixkitu7hwan.jpg",
+      "longitude": null,
+      "payment_history": [],
+      "postalCode": "007",
+      "province": "Eastern Cape",
+      "schoolEmail": "maryjarrett@me.com",
+      "schoolName": "Mary School",
+      "school_created_by": "maryjarrett@me.com",
+      "status": "active",
+      "theme": "{\"mode\"=>\"green\", \"value\"=>\"#059669\"}",
+      "tiktok": "",
+      "updated_at": "2025-10-27T10:35:49.671+02:00",
+      "user_email": "maryjarrett@me.com",
+      "user_id": "auth0|68eca9945b449ea074181412",
+      "website": ""
+    },
+    {
+      "_id": "69792e28af829c6967bc780a",
+      "adminUsers": [],
+      "cash_account": 0,
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "created_at": "2026-01-27T23:29:12.938+02:00",
+      "facebook": "",
+      "invites": [],
+      "latitude": null,
+      "line1": "demis",
+      "line2": "sdfs",
+      "linkedin": "",
+      "logo": "https://res.cloudinary.com/chameleon-techie/image/upload/v1769549351/uustd7o728nmhjemlz7c.jpg",
+      "longitude": null,
+      "payment_history": [],
+      "postalCode": "333",
+      "province": "Gauteng",
+      "schoolEmail": "schooldemo@gmail.com",
+      "schoolName": "schooldemo",
+      "school_created_by": "kagiso.killagram@gmail.com",
+      "status": "active",
+      "theme": "{}",
+      "tiktok": "",
+      "updated_at": "2026-01-27T23:29:12.938+02:00",
+      "user_email": "kagiso.killagram@gmail.com",
+      "user_id": "google-oauth2|111442371056038350919",
+      "website": ""
+    },
+    {
+      "_id": "6979cb079e8d6f65fa6519b3",
+      "adminUsers": [
+        {
+          "id": "1769589289144",
+          "name": "Mrs Manana",
+          "email": "700400585@gdeschools.gov.za",
+          "role": "Administrator",
+          "addedAt": "2026-01-28T08:34:49.144Z"
+        },
+        {
+          "id": "1769589466053",
+          "name": "Mr Sello",
+          "email": "mrsello@gmail.com",
+          "role": "Administrator",
+          "addedAt": "2026-01-28T08:37:46.053Z"
+        }
+      ],
+      "cash_account": 0,
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "created_at": "2026-01-28T10:38:31.789+02:00",
+      "facebook": "",
+      "invites": [],
+      "latitude": -26.03990988932697,
+      "line1": " 2188, 27 Ukraine Ave, Cosmo City, Roodepoort, 2188",
+      "line2": "Far North Secondary School | Cosmo City Ext 7",
+      "linkedin": "",
+      "logo": "https://res.cloudinary.com/chameleon-techie/image/upload/v1769589509/l4clqfnn0k03vxthxbtx.jpg",
+      "longitude": 27.915717986835208,
+      "payment_history": [],
+      "postalCode": "2188",
+      "province": "Gauteng",
+      "schoolEmail": "700400585@gdeschools.gov.za",
+      "schoolName": "Far North Secondary School",
+      "school_created_by": "700400585@gdeschools.gov.za",
+      "status": "active",
+      "theme": "{}",
+      "tiktok": "",
+      "updated_at": "2026-01-28T10:38:31.789+02:00",
+      "user_email": "700400585@gdeschools.gov.za",
+      "user_id": "auth0|6979c721a480781a0ffe933b",
+      "website": ""
+    },
+    {
+      "_id": "697b90afc2f1b004af901d45",
+      "adminUsers": [
+        {
+          "id": "1769705636870",
+          "name": "dfsdfd",
+          "email": "hghgggggggf@gmail.com",
+          "role": "Administrator",
+          "addedAt": "2026-01-29T16:53:56.870Z"
+        }
+      ],
+      "cash_account": 0,
+      "city": "Johannesburg",
+      "country": "South Africa",
+      "created_at": "2026-01-29T18:54:07.689+02:00",
+      "facebook": "",
+      "invites": [],
+      "latitude": null,
+      "line1": "1234 fggfg",
+      "line2": "1234 fgfg",
+      "linkedin": "",
+      "logo": "https://res.cloudinary.com/chameleon-techie/image/upload/v1769705645/jti72q7854j30vylhcpu.png",
+      "longitude": null,
+      "payment_history": [],
+      "postalCode": "543454",
+      "province": "Gauteng",
+      "schoolEmail": "demoschool@gmail.com",
+      "schoolName": "demoschool",
+      "school_created_by": null,
+      "status": "active",
+      "theme": "{}",
+      "tiktok": "",
+      "updated_at": "2026-01-29T18:54:07.689+02:00",
+      "user_email": null,
+      "user_id": null,
+      "website": ""
+    }
+  ]
+}
+👨‍🏫 [SchoolAPI.getTeachers] Fetching teachers for schoolId: 6979cb079e8d6f65fa6519b3
+🚀 [API Request zrnf] GET https://shobackendv2-production.up.railway.app/api/v1/schools/6979cb079e8d6f65fa6519b3/teachers { headers: undefined, body: undefined }
+✅ [API Response zrnf] RAW (200) 761ms: {
+  "success": true,
+  "data": []
+}
+⚠️ [API Response zrnf] Zod validation failed. Returning raw data to avoid stripping fields: {
+  formErrors: [],
+  fieldErrors: { teachers: [ 'Invalid input: expected array, received undefined' ] }
+}
+[34m[1m[DEBUG][0m [34m[2026-03-11T05:55:10.222Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-03-11T05:55:10.222Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET /school/Far%20North%20Secondary%20School/teachers/kagiso-dlamini-7808 200 in 9500ms
+ ○ Compiling /api/auth/[...auth0] ...
+ ✓ Compiled /api/auth/[...auth0] in 4.4s (163 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:116:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ○ Compiling /_error ...
+ GET /api/auth/me 500 in 5188ms
+ ✓ Compiled /_error in 1093ms (474 modules)
