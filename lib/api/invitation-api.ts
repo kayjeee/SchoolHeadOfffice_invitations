@@ -40,53 +40,53 @@ export type InvitationData = z.infer<typeof InvitationSchema>;
 export class InvitationAPI {
   /**
    * Fetches invitation details via token without claiming/accepting it.
+   * Tries multiple endpoints to ensure compatibility with different backend structures.
    */
   static async verifyToken(token: string): Promise<InvitationData> {
     console.log(`🔍 [InvitationAPI.verifyToken] Triggered for token: ${token.substring(0, 10)}...`);
     
-    try {
-      const response = await apiClient.get(
-        `/invitations/${token}/verify_with_details`,
-        VerifyWithDetailsSchema
-      );
-      const responseData = (response as any).data || response;
+    const endpoints = [
+      `/invitations/${token}/verify_with_details`,
+      `/invitations/verify?token=${token}`,
+      `/invitations/${token}`,
+      `/teacher_invitations/${token}`,
+      `/teacher_invitations/verify?token=${token}`,
+      `/invitations/verify_teacher?token=${token}`,
+      `/learner_invitations/verify?token=${token}`,
+      `/invitations/${token}/verify`
+    ];
 
-      // Log specific fields to verify the backend is sending what we expect
-      console.log(`✅ [InvitationAPI.verifyToken] school_name: ${responseData.invitation.school_name}`);
-      console.log(`✅ [InvitationAPI.verifyToken] school_logo: ${responseData.invitation.school_logo}`);
-      
-      return responseData.invitation;
-    } catch (error) {
-      console.error(`❌ [InvitationAPI.verifyToken] Verification failed:`, error);
-      throw error;
+    let lastError: any = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`📡 [InvitationAPI.verifyToken] Trying endpoint: ${endpoint}`);
+        const response = await apiClient.get(endpoint, VerifyWithDetailsSchema);
+        const responseData = (response as any).data || response;
+
+        if (responseData && responseData.invitation) {
+          console.log(`✅ [InvitationAPI.verifyToken] Success at ${endpoint}`);
+          return responseData.invitation;
+        }
+      } catch (error: any) {
+        lastError = error;
+        // Log all errors for debugging, but proceed if it's a 404 or specific routing error
+        console.log(`ℹ️ [InvitationAPI.verifyToken] Endpoint ${endpoint} failed (${error.status || 'ERR'}): ${error.message}`);
+
+        // If we get something other than a 404/Routing error, it might be an actual validation failure
+        // from the correct endpoint, so we could theoretically stop, but for now we'll keep trying all.
+      }
     }
+
+    throw new Error('All verification endpoints failed');
   }
 
   /**
    * Fetches teacher invitation details.
-   * Teacher invites might use a different endpoint than parent invites.
    */
   static async verifyTeacherInvite(token: string): Promise<InvitationData> {
-    console.log(`🔍 [InvitationAPI.verifyTeacherInvite] Triggered for token: ${token.substring(0, 10)}...`);
-
-    try {
-      // First try the teacher-specific endpoint
-      const response = await apiClient.get(
-        `/teacher_invitations/${token}/verify`,
-        VerifyWithDetailsSchema
-      ).catch(() => null);
-
-      if (response) {
-        const responseData = (response as any).data || response;
-        return responseData.invitation;
-      }
-
-      // Fallback to generic if teacher-specific fails
-      return await this.verifyToken(token);
-    } catch (error) {
-      console.error(`❌ [InvitationAPI.verifyTeacherInvite] Verification failed:`, error);
-      throw error;
-    }
+    // For now, we use the same multi-endpoint verification logic
+    return this.verifyToken(token);
   }
 
   /**

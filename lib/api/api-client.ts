@@ -79,6 +79,12 @@ class ApiClient {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
+
+          // Don't retry on client errors (4xx)
+          if (response.status >= 400 && response.status < 500) {
+            throw new APIError(response.status, response.statusText, errorData);
+          }
+
           throw new APIError(response.status, response.statusText, errorData);
         }
 
@@ -112,6 +118,12 @@ class ApiClient {
         console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, (error as Error).message);
         
         if (i < MAX_RETRIES - 1) {
+          // Don't retry if it's a client error (4xx)
+          const status = (error as any).status;
+          if (status >= 400 && status < 500) {
+            console.log(`🚫 [API Request ${requestId}] Not retrying client error ${status}`);
+            break;
+          }
           // Exponential backoff
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * Math.pow(2, i)));
         }
