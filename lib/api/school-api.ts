@@ -80,22 +80,25 @@ export class SchoolAPI {
 
     console.log(`🏫 [SchoolAPI.getSchools] Fetching: search="${search}", page=${page}, limit=${limit}`);
 
-    // Since I don't know the exact response structure of the backend yet,
-    // I'll use a schema that captures the expected fields but is flexible.
+    // The backend wraps responses in a "data" object.
     const responseSchema = z.object({
-      success: z.boolean().optional(),
-      schools: z.array(z.any()),
-      totalCount: z.number().optional(),
-      total_count: z.number().optional(),
-      page: z.number().optional(),
+      status: z.string().optional(),
+      message: z.string().nullable().optional(),
+      data: z.object({
+        schools: z.array(z.any()),
+        totalCount: z.number().optional(),
+        total_count: z.number().optional(),
+        page: z.number().optional(),
+      }).optional()
     });
 
     const endpoint = `/schools?search=${encodeURIComponent(search)}&page=${page}&limit=${limit}`;
     const response = await apiClient.get(endpoint, responseSchema);
+    const responseData = response.data || response;
 
     // Map the response to our interface
     // Note: Backend might use _id, or id, and different casing for totalCount
-    const schools = (response.schools || []).map((s: any) => ({
+    const schools = (responseData.schools || []).map((s: any) => ({
       id: s.id || s._id?.$oid || s._id || '',
       schoolName: s.schoolName || s.name || 'Unknown School',
       city: s.city || '',
@@ -110,8 +113,8 @@ export class SchoolAPI {
 
     return {
       schools,
-      totalCount: response.totalCount || response.total_count || schools.length,
-      page: response.page || page,
+      totalCount: responseData.totalCount || responseData.total_count || schools.length,
+      page: responseData.page || page,
     };
   }
 
@@ -119,13 +122,17 @@ export class SchoolAPI {
     console.log(`👨‍🏫 [SchoolAPI.getTeachers] Fetching teachers for schoolId: ${schoolId}`);
 
     const responseSchema = z.object({
-      teachers: z.array(z.any()),
+      data: z.object({
+        teachers: z.array(z.any()).optional()
+      }).optional(),
+      teachers: z.array(z.any()).optional(),
     });
 
     const endpoint = `/schools/${schoolId}/teachers`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const teachersList = response.teachers || (Array.isArray(response) ? response : []);
+      const responseData = (response as any).data || response;
+      const teachersList = responseData.teachers || (Array.isArray(responseData) ? responseData : []);
 
       return teachersList.map((t: any) => ({
         id: t.id || t._id?.$oid || t._id || '',
@@ -147,13 +154,17 @@ export class SchoolAPI {
     console.log(`📚 [SchoolAPI.getTeacherGradeAssignments] Fetching assignments for teacherId: ${teacherId}`);
 
     const responseSchema = z.object({
-      assignments: z.array(z.any()),
+      data: z.object({
+        assignments: z.array(z.any()).optional()
+      }).optional(),
+      assignments: z.array(z.any()).optional(),
     });
 
     const endpoint = `/teacher_grade_assignments?teacher_id=${teacherId}`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const assignments = response.assignments || (Array.isArray(response) ? response : []);
+      const responseData = (response as any).data || response;
+      const assignments = responseData.assignments || (Array.isArray(responseData) ? responseData : []);
 
       return assignments.map((a: any) => ({
         id: a.id || a._id?.$oid || a._id || '',
@@ -171,18 +182,23 @@ export class SchoolAPI {
     console.log(`👤 [SchoolAPI.getTeacherProfile] Fetching profile for: ${teacherId}`);
 
     const responseSchema = z.object({
-      teacher: z.any(),
+      data: z.object({
+        teacher: z.any(),
+        stats: z.any(),
+      }).optional(),
+      teacher: z.any().optional(),
       stats: z.object({
         total_learners: z.number(),
         active_grades: z.number(),
         pending_invites: z.number(),
         parent_connection_rate: z.number(),
-      }),
+      }).optional(),
     });
 
     const response = await apiClient.get(`/users/${teacherId}`, responseSchema);
+    const responseData = (response as any).data || response;
 
-    const t = response.teacher;
+    const t = responseData.teacher;
     const teacher: Teacher = {
       id: t.id || t._id?.$oid || t._id || '',
       name: t.name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unknown Teacher',
@@ -196,7 +212,7 @@ export class SchoolAPI {
 
     return {
       teacher,
-      stats: response.stats,
+      stats: responseData.stats,
     };
   }
 
@@ -204,13 +220,17 @@ export class SchoolAPI {
     console.log(`📨 [SchoolAPI.getPendingInvitations] Fetching for teacherId: ${teacherId}`);
 
     const responseSchema = z.object({
-      invitations: z.array(z.any()),
+      data: z.object({
+        invitations: z.array(z.any()).optional()
+      }).optional(),
+      invitations: z.array(z.any()).optional(),
     });
 
     const endpoint = `/learner_invitations/pending?teacher_id=${teacherId}`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const invitations = response.invitations || (Array.isArray(response) ? response : []);
+      const responseData = (response as any).data || response;
+      const invitations = responseData.invitations || (Array.isArray(responseData) ? responseData : []);
 
       return invitations.map((inv: any) => ({
         id: inv.id || inv._id?.$oid || inv._id || '',
@@ -240,23 +260,27 @@ export class SchoolAPI {
   static async getGrade(gradeId: string): Promise<Grade> {
     console.log(`📚 [SchoolAPI.getGrade] Fetching grade: ${gradeId}`);
     const responseSchema = z.object({
-      grade: z.any(),
+      data: z.object({ grade: z.any() }).optional(),
+      grade: z.any().optional(),
     });
     const response = await apiClient.get(`/grades/${gradeId}`, responseSchema);
+    const responseData = (response as any).data || response;
     return {
-      id: response.grade.id,
-      name: response.grade.name || response.grade.grade_name,
-      school_id: response.grade.school_id,
+      id: responseData.grade.id,
+      name: responseData.grade.name || responseData.grade.grade_name,
+      school_id: responseData.grade.school_id,
     };
   }
 
   static async getGradeLearners(gradeId: string): Promise<Learner[]> {
     console.log(`👨‍🎓 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
     const responseSchema = z.object({
-      learners: z.array(z.any()),
+      data: z.object({ learners: z.array(z.any()) }).optional(),
+      learners: z.array(z.any()).optional(),
     });
     const response = await apiClient.get(`/grades/${gradeId}/learners`, responseSchema);
-    return response.learners.map((l: any) => ({
+    const responseData = (response as any).data || response;
+    return (responseData.learners || []).map((l: any) => ({
       id: l.id,
       name: l.name,
       parent_name: l.parent_name,
@@ -269,10 +293,12 @@ export class SchoolAPI {
   static async getGradeInvitations(gradeId: string): Promise<LearnerInvitationDetail[]> {
     console.log(`📨 [SchoolAPI.getGradeInvitations] Fetching invitations for grade: ${gradeId}`);
     const responseSchema = z.object({
-      invitations: z.array(z.any()),
+      data: z.object({ invitations: z.array(z.any()) }).optional(),
+      invitations: z.array(z.any()).optional(),
     });
     const response = await apiClient.get(`/learner_invitations/by_grade/${gradeId}`, responseSchema);
-    return response.invitations.map((inv: any) => ({
+    const responseData = (response as any).data || response;
+    return (responseData.invitations || []).map((inv: any) => ({
       id: inv.id,
       parent_name: inv.parent_name,
       parent_phone: inv.parent_phone,

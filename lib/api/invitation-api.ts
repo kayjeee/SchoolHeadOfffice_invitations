@@ -49,12 +49,13 @@ export class InvitationAPI {
         `/invitations/${token}/verify_with_details`,
         VerifyWithDetailsSchema
       );
+      const responseData = (response as any).data || response;
 
       // Log specific fields to verify the backend is sending what we expect
-      console.log(`✅ [InvitationAPI.verifyToken] school_name: ${response.invitation.school_name}`);
-      console.log(`✅ [InvitationAPI.verifyToken] school_logo: ${response.invitation.school_logo}`);
+      console.log(`✅ [InvitationAPI.verifyToken] school_name: ${responseData.invitation.school_name}`);
+      console.log(`✅ [InvitationAPI.verifyToken] school_logo: ${responseData.invitation.school_logo}`);
       
-      return response.invitation;
+      return responseData.invitation;
     } catch (error) {
       console.error(`❌ [InvitationAPI.verifyToken] Verification failed:`, error);
       throw error;
