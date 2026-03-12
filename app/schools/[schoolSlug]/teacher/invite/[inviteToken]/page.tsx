@@ -64,7 +64,7 @@ export default async function InvitePage({ params }: PageProps) {
             />
           </div>
 
-          <p className="mt-6 text-xs text-gray-400 text-center">
+          <p className="mt-6 text-xs text-gray-400 text-center" suppressHydrationWarning>
             Invite expires on {new Date(invite.expiresAt).toLocaleDateString()}
           </p>
         </div>

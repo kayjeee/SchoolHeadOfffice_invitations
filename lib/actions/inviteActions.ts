@@ -100,13 +100,19 @@ export async function validateInvite(schoolSlug: string, token: string) {
         }
 
         invite = {
-          _id: apiInvite.id,
+          _id: apiInvite.id || `api_${token.substring(0, 8)}`,
           schoolId: apiInvite.school_id || school._id.toString(),
-          email: apiInvite.recipient_phone_number || 'teacher@school', // Fallback for UI
+          email: apiInvite.recipient_phone_number || apiInvite.email || 'teacher@school', // Fallback for UI
           role: 'teacher',
           status: 'pending',
           expiresAt: apiInvite.expires_at || apiInvite.expired_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         } as any;
+
+        // Ensure we have a valid invitation object
+        if (!invite._id) {
+           console.error(`❌ [INVITE_VALIDATION] API returned success but invitation data is incomplete`, apiInvite);
+           invite = null;
+        }
       } catch (apiError) {
         console.error(`❌ [INVITE_VALIDATION] Backend API verification failed:`, apiError);
       }
