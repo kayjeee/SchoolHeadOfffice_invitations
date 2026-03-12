@@ -63,6 +63,33 @@ export class InvitationAPI {
   }
 
   /**
+   * Fetches teacher invitation details.
+   * Teacher invites might use a different endpoint than parent invites.
+   */
+  static async verifyTeacherInvite(token: string): Promise<InvitationData> {
+    console.log(`🔍 [InvitationAPI.verifyTeacherInvite] Triggered for token: ${token.substring(0, 10)}...`);
+
+    try {
+      // First try the teacher-specific endpoint
+      const response = await apiClient.get(
+        `/teacher_invitations/${token}/verify`,
+        VerifyWithDetailsSchema
+      ).catch(() => null);
+
+      if (response) {
+        const responseData = (response as any).data || response;
+        return responseData.invitation;
+      }
+
+      // Fallback to generic if teacher-specific fails
+      return await this.verifyToken(token);
+    } catch (error) {
+      console.error(`❌ [InvitationAPI.verifyTeacherInvite] Verification failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Links the invitation to an authenticated Auth0 user.
    */
   static async acceptInvitation(token: string, auth0Id: string): Promise<{ success: boolean }> {

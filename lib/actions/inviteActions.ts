@@ -89,7 +89,7 @@ export async function validateInvite(schoolSlug: string, token: string) {
     if (!invite) {
       console.log(`ℹ️ [INVITE_VALIDATION] Invite not found in MongoDB, checking backend API...`);
       try {
-        const apiInvite = await InvitationAPI.verifyToken(token);
+        const apiInvite = await InvitationAPI.verifyTeacherInvite(token);
 
         // If we got here, token is valid on backend
         // Check if it's for the correct school
