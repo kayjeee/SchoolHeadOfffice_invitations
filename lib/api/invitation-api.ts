@@ -96,7 +96,8 @@ export class InvitationAPI {
     console.log(`🤝 [InvitationAPI.acceptInvitation] Claiming token: ${token.substring(0, 10)}... for user: ${auth0Id}`);
     
     const schema = z.object({ 
-      success: z.boolean() 
+      data: z.object({ success: z.boolean() }).optional(),
+      success: z.boolean().optional()
     }).passthrough();
 
     try {
@@ -106,8 +107,9 @@ export class InvitationAPI {
         schema
       );
       
-      console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${response.success}`);
-      return response;
+      const responseData = (response as any).data || response;
+      console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${responseData.success}`);
+      return responseData;
     } catch (error) {
       console.error(`❌ [InvitationAPI.acceptInvitation] Failed:`, error);
       throw error;

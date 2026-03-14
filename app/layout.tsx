@@ -1,4 +1,6 @@
 import '../styles/globals.css';
+import { UserProvider } from '@auth0/nextjs-auth0/client';
+import { Toaster } from 'react-hot-toast';
 
 export default function RootLayout({
   children,
@@ -7,7 +9,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <UserProvider>
+          {children}
+          <Toaster position="top-right" />
+        </UserProvider>
+      </body>
     </html>
   );
 }
