@@ -153,3 +153,32 @@ export async function validateInvite(schoolSlug: string, token: string) {
     return { valid: false, error: 'An error occurred during validation' };
   }
 }
+
+export async function acceptTeacherInviteAction(token: string, auth0Id: string) {
+  console.log(`🤝 [INVITE_ACCEPTANCE] Accepting invite with token: ${token.substring(0, 8)}... for user: ${auth0Id}`);
+
+  try {
+    // 1. Link the invitation in the backend
+    const result = await InvitationAPI.acceptInvitation(token, auth0Id);
+
+    if (!result.success) {
+      return { success: false, error: 'Failed to accept invitation on backend' };
+    }
+
+    // 2. Perform any additional local MongoDB operations if needed
+    // (e.g., updating local invite status, creating a teacher profile)
+    const client = await clientPromise;
+    const db = client.db();
+
+    const tokenHash = hashToken(token);
+    await db.collection('invites').updateOne(
+      { tokenHash },
+      { $set: { status: 'accepted', acceptedAt: new Date(), auth0Id } }
+    );
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ [INVITE_ACCEPTANCE] Error:', error.message);
+    return { success: false, error: error.message || 'An error occurred while accepting the invitation' };
+  }
+}

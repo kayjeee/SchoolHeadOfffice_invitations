@@ -60,7 +60,9 @@ export default async function InvitePage({ params }: PageProps) {
 
             <AcceptInviteButton
               schoolId={school._id.toString()}
+              schoolSlug={schoolSlug}
               email={invite.email}
+              token={inviteToken}
             />
           </div>
 
