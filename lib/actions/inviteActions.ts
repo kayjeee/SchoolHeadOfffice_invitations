@@ -99,14 +99,18 @@ export async function validateInvite(schoolSlug: string, token: string) {
            console.warn(`⚠️ [INVITE_VALIDATION] Token school slug mismatch: expected ${schoolSlug}, got ${apiSchoolSlug}`);
         }
 
+        console.log('📄 [INVITE_VALIDATION] API Invite data:', apiInvite);
+
         invite = {
           _id: apiInvite.id || `api_${token.substring(0, 8)}`,
           schoolId: apiInvite.school_id || school._id.toString(),
-          email: apiInvite.recipient_phone_number || apiInvite.email || 'teacher@school', // Fallback for UI
+          email: apiInvite.email || apiInvite.recipient_phone_number || 'teacher@school', // Prioritize email over phone number
           role: 'teacher',
           status: 'pending',
           expiresAt: apiInvite.expires_at || apiInvite.expired_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         } as any;
+
+        console.log('📄 [INVITE_VALIDATION] Mapped invite object:', invite);
 
         // Ensure we have a valid invitation object
         if (!invite._id) {

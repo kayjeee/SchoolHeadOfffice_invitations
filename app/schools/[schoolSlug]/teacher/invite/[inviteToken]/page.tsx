@@ -38,6 +38,14 @@ export default async function InvitePage({ params }: PageProps) {
 
   const { invite, school } = result;
 
+  console.log('📨 [InvitePage] Rendering invite:', {
+    id: invite._id,
+    email: invite.email,
+    school: school.name
+  });
+
+  const isEmail = invite.email && invite.email.includes('@');
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-xl rounded-xl overflow-hidden">
@@ -54,7 +62,7 @@ export default async function InvitePage({ params }: PageProps) {
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-sm text-blue-800">
-                <strong>Email:</strong> {invite.email}
+                <strong>{isEmail ? 'Email' : 'Phone'}:</strong> {invite.email}
               </p>
             </div>
 
