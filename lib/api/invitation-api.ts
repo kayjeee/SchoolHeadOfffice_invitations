@@ -92,11 +92,16 @@ export class InvitationAPI {
   /**
    * Links the invitation to an authenticated Auth0 user.
    */
-  static async acceptInvitation(token: string, auth0Id: string): Promise<{ success: boolean }> {
+  static async acceptInvitation(token: string, auth0Id: string): Promise<{ success: boolean, invitation?: InvitationData }> {
     console.log(`🤝 [InvitationAPI.acceptInvitation] Claiming token: ${token.substring(0, 10)}... for user: ${auth0Id}`);
     
     const schema = z.object({ 
-      data: z.object({ success: z.boolean() }).optional(),
+      status: z.string().optional(),
+      message: z.string().optional(),
+      data: z.object({
+        success: z.boolean().optional(),
+        invitation: InvitationSchema.optional()
+      }).optional(),
       success: z.boolean().optional()
     }).passthrough();
 
@@ -108,8 +113,14 @@ export class InvitationAPI {
       );
       
       const responseData = (response as any).data || response;
-      console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${responseData.success}`);
-      return responseData;
+      const isSuccess = responseData.status === 'success' || responseData.success === true || responseData.data?.success === true;
+
+      console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${isSuccess}`);
+
+      return {
+        success: isSuccess,
+        invitation: responseData.data?.invitation || responseData.invitation
+      };
     } catch (error) {
       console.error(`❌ [InvitationAPI.acceptInvitation] Failed:`, error);
       throw error;

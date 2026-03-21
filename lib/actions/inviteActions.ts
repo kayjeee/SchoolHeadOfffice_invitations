@@ -169,6 +169,8 @@ export async function acceptTeacherInviteAction(token: string, auth0Id: string) 
       return { success: false, error: 'Failed to accept invitation on backend' };
     }
 
+    const apiInvitation = result.invitation;
+
     // 2. Perform any additional local MongoDB operations if needed
     // (e.g., updating local invite status, creating a teacher profile)
     const client = await clientPromise;
@@ -180,7 +182,11 @@ export async function acceptTeacherInviteAction(token: string, auth0Id: string) 
       { $set: { status: 'accepted', acceptedAt: new Date(), auth0Id } }
     );
 
-    return { success: true };
+    return {
+      success: true,
+      teacherName: apiInvitation?.teacher_name,
+      schoolSlug: apiInvitation?.school_slug
+    };
   } catch (error: any) {
     console.error('❌ [INVITE_ACCEPTANCE] Error:', error.message);
     return { success: false, error: error.message || 'An error occurred while accepting the invitation' };
