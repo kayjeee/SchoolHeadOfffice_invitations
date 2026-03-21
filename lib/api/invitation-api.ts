@@ -31,10 +31,17 @@ const InvitationSchema = z.object({
  * Schema for the specific verification endpoint response.
  */
 const VerifyWithDetailsSchema = z.object({
-  success: z.boolean(),
-  invitation: InvitationSchema,
-  expires_in: z.number().optional(),
-  is_expired: z.boolean().optional(),
+  status: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
+  data: z.object({
+    invitation: InvitationSchema.nullable().optional(),
+    expires_in: z.number().nullable().optional(),
+    is_expired: z.boolean().nullable().optional(),
+  }).passthrough().nullable().optional(),
+  success: z.boolean().nullable().optional(),
+  invitation: InvitationSchema.nullable().optional(),
+  expires_in: z.number().nullable().optional(),
+  is_expired: z.boolean().nullable().optional(),
 }).passthrough();
 
 export type InvitationData = z.infer<typeof InvitationSchema>;
@@ -64,11 +71,13 @@ export class InvitationAPI {
       try {
         console.log(`📡 [InvitationAPI.verifyToken] Trying endpoint: ${endpoint}`);
         const response = await apiClient.get(endpoint, VerifyWithDetailsSchema);
-        const responseData = (response as any).data || response;
 
-        if (responseData && responseData.invitation) {
+        // Handle both wrapped and unwrapped response formats
+        const invitation = response.data?.invitation || response.invitation;
+
+        if (invitation) {
           console.log(`✅ [InvitationAPI.verifyToken] Success at ${endpoint}`);
-          return responseData.invitation;
+          return invitation;
         }
       } catch (error: any) {
         lastError = error;
@@ -114,14 +123,18 @@ export class InvitationAPI {
         schema
       );
       
-      const responseData = (response as any).data || response;
-      const isSuccess = responseData.status === 'success' || responseData.success === true || responseData.data?.success === true;
+      // Look for success across all common backend patterns
+      const isSuccess =
+        response.status === 'success' ||
+        response.success === true ||
+        response.data?.success === true ||
+        (response.status !== 'error' && response.data?.invitation?.status === 'accepted');
 
       console.log(`✅ [InvitationAPI.acceptInvitation] Success: ${isSuccess}`);
 
       return {
         success: isSuccess,
-        invitation: responseData.data?.invitation || responseData.invitation
+        invitation: response.data?.invitation || response.invitation
       };
     } catch (error) {
       console.error(`❌ [InvitationAPI.acceptInvitation] Failed:`, error);
