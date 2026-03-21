@@ -6,23 +6,25 @@ import { apiClient } from './api-client';
  * .passthrough() is used to ensure we don't lose fields not explicitly defined here.
  */
 const InvitationSchema = z.object({
-  id: z.string().optional(),
-  token: z.string().optional(),
-  status: z.string().optional(),
-  school_id: z.string().optional(),
-  school_name: z.string().optional(),
-  school_logo: z.string().nullable().optional(), // Allowed to be null or missing
-  grade_name: z.string().optional(),
-  recipient_phone_number: z.string().optional(),
-  parent_name: z.string().optional(),
-  learner_number: z.string().optional(),
-  learner_numbers: z.array(z.string()).optional(),
-  learner_ids: z.array(z.string()).optional(),
-  expired_at: z.string().optional(),
-  expires_at: z.string().optional(),
-  expired: z.boolean().optional(),
-  active: z.boolean().optional(),
-  full_magic_link: z.string().optional(),
+  id: z.string().nullable().optional(),
+  token: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  school_id: z.string().nullable().optional(),
+  school_name: z.string().nullable().optional(),
+  school_logo: z.string().nullable().optional(),
+  grade_name: z.string().nullable().optional(),
+  recipient_phone_number: z.string().nullable().optional(),
+  parent_name: z.string().nullable().optional(),
+  learner_number: z.string().nullable().optional(),
+  learner_numbers: z.array(z.string()).nullable().optional(),
+  learner_ids: z.array(z.string()).nullable().optional(),
+  expired_at: z.string().nullable().optional(),
+  expires_at: z.string().nullable().optional(),
+  expired: z.boolean().nullable().optional(),
+  active: z.boolean().nullable().optional(),
+  full_magic_link: z.string().nullable().optional(),
+  teacher_name: z.string().nullable().optional(),
+  school_slug: z.string().nullable().optional(),
 }).passthrough();
 
 /**
@@ -96,13 +98,13 @@ export class InvitationAPI {
     console.log(`🤝 [InvitationAPI.acceptInvitation] Claiming token: ${token.substring(0, 10)}... for user: ${auth0Id}`);
     
     const schema = z.object({ 
-      status: z.string().optional(),
-      message: z.string().optional(),
+      status: z.string().nullable().optional(),
+      message: z.string().nullable().optional(),
       data: z.object({
-        success: z.boolean().optional(),
-        invitation: InvitationSchema.optional()
-      }).optional(),
-      success: z.boolean().optional()
+        success: z.boolean().nullable().optional(),
+        invitation: InvitationSchema.nullable().optional()
+      }).passthrough().nullable().optional(),
+      success: z.boolean().nullable().optional()
     }).passthrough();
 
     try {
