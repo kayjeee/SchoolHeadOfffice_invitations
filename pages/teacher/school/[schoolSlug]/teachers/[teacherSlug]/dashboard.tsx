@@ -39,26 +39,56 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   const user = session.user;
 
-  // Authorization: If session.user.slug !== teacherSlug AND session.user.role !== 'admin', return 403 Forbidden.
-  // Note: Assuming user.slug is available in session or we check auth0_id
+  console.log(`🔍 [Dashboard.GSSP] Params:`, { schoolSlug, teacherSlug });
 
-  const schoolName = decodeURIComponent(schoolSlug.replace(/\+/g, ' '));
+  // Decode school name and teacher slug
+  const decodedSchoolSlug = decodeURIComponent(schoolSlug);
+  const schoolSearchName = decodedSchoolSlug.replace(/-/g, ' ').replace(/\+/g, ' ');
+
   const slugParts = teacherSlug.split('-');
   const shortId = slugParts[slugParts.length - 1];
 
   try {
-    const schoolResponse = await SchoolAPI.getSchools({ search: schoolName, limit: 10 });
-    const school = schoolResponse.schools.find(s => s.schoolName.toLowerCase() === schoolName.toLowerCase()) || schoolResponse.schools[0];
+    console.log(`🏫 [Dashboard.GSSP] Looking up school for: "${schoolSearchName}" (slug: ${decodedSchoolSlug})`);
 
-    if (!school) {
-        return { notFound: true };
+    // 1. Try fetching school
+    const schoolResponse = await SchoolAPI.getSchools({ search: schoolSearchName, limit: 10 });
+    let school = schoolResponse.schools.find(s =>
+      s.schoolName.toLowerCase() === schoolSearchName.toLowerCase() ||
+      s.id === decodedSchoolSlug
+    ) || schoolResponse.schools[0];
+
+    // Fallback search with raw slug if no results
+    if (!school && decodedSchoolSlug !== schoolSearchName) {
+      console.log(`🏫 [Dashboard.GSSP] No initial results, trying search with raw slug: "${decodedSchoolSlug}"`);
+      const fallbackResponse = await SchoolAPI.getSchools({ search: decodedSchoolSlug, limit: 10 });
+      school = fallbackResponse.schools[0];
     }
 
+    if (!school) {
+      console.error(`❌ [Dashboard.GSSP] School not found for ${schoolSlug}`);
+      return { notFound: true };
+    }
+
+    console.log(`✅ [Dashboard.GSSP] Found school: ${school.schoolName} (${school.id})`);
+
+    // 2. Fetch teachers and find the right one
     const teachers = await SchoolAPI.getTeachers(school.id);
-    const teacherBrief = teachers.find(t => t.id.endsWith(shortId) || t.slug === teacherSlug);
+
+    // Priority for finding the teacher:
+    // 1. Exact Auth0 ID match (most secure)
+    // 2. Exact slug match
+    // 3. Short ID match (legacy/fallback)
+    const teacherBrief = teachers.find(t =>
+      t.auth0_id === user.sub ||
+      t.slug === teacherSlug ||
+      (shortId && t.id.endsWith(shortId))
+    );
 
     if (!teacherBrief) {
-        return { notFound: true };
+      console.warn(`⚠️ [Dashboard.GSSP] Teacher not found. Search criteria: auth0_id=${user.sub}, slug=${teacherSlug}, shortId=${shortId}`);
+      console.log(`👨‍🏫 [Dashboard.GSSP] Available teachers:`, teachers.map(t => ({ id: t.id, slug: t.slug, auth0_id: t.auth0_id })));
+      return { notFound: true };
     }
 
     // Authorization check
