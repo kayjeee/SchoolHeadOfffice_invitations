@@ -122,17 +122,22 @@ export class SchoolAPI {
     console.log(`👨‍🏫 [SchoolAPI.getTeachers] Fetching teachers for schoolId: ${schoolId}`);
 
     const responseSchema = z.object({
-      data: z.object({
-        teachers: z.array(z.any()).optional()
-      }).optional(),
+      status: z.string().optional(),
+      message: z.string().nullable().optional(),
+      data: z.union([
+        z.array(z.any()),
+        z.object({
+          teachers: z.array(z.any()).optional()
+        })
+      ]).optional(),
       teachers: z.array(z.any()).optional(),
-    });
+    }).passthrough();
 
     const endpoint = `/schools/${schoolId}/teachers`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const responseData = (response as any).data || response;
-      const teachersList = responseData.teachers || (Array.isArray(responseData) ? responseData : []);
+      const data = (response as any).data;
+      const teachersList = Array.isArray(data) ? data : (data?.teachers || response.teachers || []);
 
       return teachersList.map((t: any) => ({
         id: t.id || t._id?.$oid || t._id || '',
