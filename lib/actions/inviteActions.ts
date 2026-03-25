@@ -109,7 +109,8 @@ export async function validateInvite(schoolSlug: string, token: string) {
           status: apiInvite.status || 'pending', // Use actual status from API
           expiresAt: apiInvite.expires_at || apiInvite.expired_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           teacherName: apiInvite.teacher_name,
-          schoolSlug: apiInvite.school_slug
+          schoolSlug: apiInvite.school_slug,
+          auth0Id: apiInvite.auth0_id
         } as any;
 
         console.log('📄 [INVITE_VALIDATION] Mapped invite object:', invite);

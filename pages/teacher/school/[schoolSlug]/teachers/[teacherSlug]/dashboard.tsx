@@ -73,21 +73,43 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     console.log(`✅ [Dashboard.GSSP] Found school: ${school.schoolName} (${school.id})`);
 
     // 2. Fetch teachers and find the right one
-    const teachers = await SchoolAPI.getTeachers(school.id);
+    let teachers = await SchoolAPI.getTeachers(school.id);
 
     // Priority for finding the teacher:
     // 1. Exact Auth0 ID match (most secure)
     // 2. Exact slug match
     // 3. Short ID match (legacy/fallback)
-    const teacherBrief = teachers.find(t =>
+    let teacherBrief = teachers.find(t =>
       t.auth0_id === user.sub ||
       t.slug === teacherSlug ||
       (shortId && t.id.endsWith(shortId))
     );
 
+    // 3. Resilience: If not found in school list, try direct profile lookup if we have an ID-like slug
+    if (!teacherBrief && teacherSlug.length > 20) {
+       try {
+         const profile = await SchoolAPI.getTeacherProfile(teacherSlug);
+         if (profile && profile.teacher) {
+            teacherBrief = profile.teacher;
+         }
+       } catch (e) {}
+    }
+
     if (!teacherBrief) {
       console.warn(`⚠️ [Dashboard.GSSP] Teacher not found. Search criteria: auth0_id=${user.sub}, slug=${teacherSlug}, shortId=${shortId}`);
-      console.log(`👨‍🏫 [Dashboard.GSSP] Available teachers:`, teachers.map(t => ({ id: t.id, slug: t.slug, auth0_id: t.auth0_id })));
+
+      // Final attempt: search by Auth0 ID in the entire user base if the school-specific fetch failed to include them
+      try {
+        const profile = await SchoolAPI.getTeacherProfile(user.sub);
+        if (profile && profile.teacher) {
+           teacherBrief = profile.teacher;
+           console.log(`✅ [Dashboard.GSSP] Found teacher by Auth0 ID fallback: ${teacherBrief.id}`);
+        }
+      } catch (e) {}
+    }
+
+    if (!teacherBrief) {
+      console.error(`❌ [Dashboard.GSSP] Teacher still not found after all fallbacks.`);
       return { notFound: true };
     }
 

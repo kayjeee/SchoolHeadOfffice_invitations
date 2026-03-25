@@ -75,7 +75,7 @@ export default async function InvitePage({ params }: PageProps) {
                   <p className="text-sm">You have already joined {school.name}.</p>
                 </div>
                 <Link
-                  href={`/teacher/school/${invite.schoolSlug || schoolSlug}/teachers/${(invite.teacherName || invite.email).toLowerCase().replace(/[^a-z0-9]/g, '-')}/dashboard`}
+                  href={`/teacher/school/${invite.schoolSlug || schoolSlug}/teachers/${(invite.auth0Id || invite.teacherName || invite.email).toLowerCase().replace(/[^a-z0-9]/g, '-')}/dashboard`}
                   className="block w-full bg-blue-600 text-white text-center font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
                 >
                   Go to Dashboard

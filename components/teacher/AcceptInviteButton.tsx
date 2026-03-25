@@ -38,11 +38,11 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
       if (result.success) {
         toast.success('Invitation accepted!', { id: loadingToast });
 
-        // Build the teacher slug if name is available: "Jane Smith" -> "jane-smith"
-        // In the real system, teacher profiles might have a unique ID appended: "jane-smith-123"
-        // But for redirection, we'll try to build a clean slug or use the one provided.
-        const teacherName = result.teacherName || user.name || 'teacher';
-        const teacherSlug = teacherName.toLowerCase().replace(/ /g, '-');
+        // Priority for dashboard redirection slug:
+        // 1. Auth0 ID (most reliable for finding the profile in GSSP fallback)
+        // 2. Teacher Name (legacy/formatted)
+        const teacherIdentifier = user.sub || result.teacherName || 'teacher';
+        const teacherSlug = teacherIdentifier.toLowerCase().replace(/[^a-z0-9]/g, '-');
         const targetSchoolSlug = result.schoolSlug || schoolSlug;
 
         // Redirect to the teacher dashboard: /teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard
