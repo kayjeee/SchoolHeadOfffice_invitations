@@ -159,17 +159,22 @@ export class SchoolAPI {
     console.log(`📚 [SchoolAPI.getTeacherGradeAssignments] Fetching assignments for teacherId: ${teacherId}`);
 
     const responseSchema = z.object({
-      data: z.object({
-        assignments: z.array(z.any()).optional()
-      }).optional(),
+      status: z.string().optional(),
+      message: z.string().nullable().optional(),
+      data: z.union([
+        z.array(z.any()),
+        z.object({
+          assignments: z.array(z.any()).optional()
+        })
+      ]).optional(),
       assignments: z.array(z.any()).optional(),
-    });
+    }).passthrough();
 
     const endpoint = `/teacher_grade_assignments?teacher_id=${teacherId}`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const responseData = (response as any).data || response;
-      const assignments = responseData.assignments || (Array.isArray(responseData) ? responseData : []);
+      const data = (response as any).data;
+      const assignments = Array.isArray(data) ? data : (data?.assignments || response.assignments || []);
 
       return assignments.map((a: any) => ({
         id: a.id || a._id?.$oid || a._id || '',
@@ -225,17 +230,22 @@ export class SchoolAPI {
     console.log(`📨 [SchoolAPI.getPendingInvitations] Fetching for teacherId: ${teacherId}`);
 
     const responseSchema = z.object({
-      data: z.object({
-        invitations: z.array(z.any()).optional()
-      }).optional(),
+      status: z.string().optional(),
+      message: z.string().nullable().optional(),
+      data: z.union([
+        z.array(z.any()),
+        z.object({
+          invitations: z.array(z.any()).optional()
+        })
+      ]).optional(),
       invitations: z.array(z.any()).optional(),
-    });
+    }).passthrough();
 
     const endpoint = `/learner_invitations/pending?teacher_id=${teacherId}`;
     try {
       const response = await apiClient.get(endpoint, responseSchema);
-      const responseData = (response as any).data || response;
-      const invitations = responseData.invitations || (Array.isArray(responseData) ? responseData : []);
+      const data = (response as any).data;
+      const invitations = Array.isArray(data) ? data : (data?.invitations || response.invitations || []);
 
       return invitations.map((inv: any) => ({
         id: inv.id || inv._id?.$oid || inv._id || '',
