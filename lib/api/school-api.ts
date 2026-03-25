@@ -205,14 +205,25 @@ export class SchoolAPI {
       }).optional(),
     });
 
-    const response = await apiClient.get(`/users/${teacherId}`, responseSchema);
-    const responseData = (response as any).data || response;
+    let responseData;
+    try {
+      const response = await apiClient.get(`/users/${teacherId}`, responseSchema);
+      responseData = (response as any).data || response;
+    } catch (err: any) {
+      if (err.status === 404) {
+        console.log(`ℹ️ [SchoolAPI.getTeacherProfile] User endpoint failed for ${teacherId}, trying /teachers/...`);
+        const altResponse = await apiClient.get(`/teachers/${teacherId}`, responseSchema);
+        responseData = (altResponse as any).data || altResponse;
+      } else {
+        throw err;
+      }
+    }
 
-    const t = responseData.teacher;
+    const t = responseData.teacher || responseData;
     const teacher: Teacher = {
-      id: t.id || t._id?.$oid || t._id || '',
+      id: t.id || t._id?.$oid || t._id || teacherId,
       name: t.name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unknown Teacher',
-      slug: t.slug || t.id || '',
+      slug: t.slug || t.id || teacherId,
       avatar: t.avatar || t.profile_image || null,
       grades: t.grades || t.grade_names || [],
       auth0_id: t.auth0_id || t.auth0Id || null,
@@ -222,7 +233,12 @@ export class SchoolAPI {
 
     return {
       teacher,
-      stats: responseData.stats,
+      stats: responseData.stats || {
+        total_learners: 0,
+        active_grades: 0,
+        pending_invites: 0,
+        parent_connection_rate: 0
+      },
     };
   }
 

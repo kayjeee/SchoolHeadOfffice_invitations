@@ -114,19 +114,32 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
-    const [profileData, grades, activity] = await Promise.all([
+    const [profileResult, grades, activity] = await Promise.allSettled([
       SchoolAPI.getTeacherProfile(teacherBrief.id),
       SchoolAPI.getTeacherGradeAssignments(teacherBrief.id),
       SchoolAPI.getPendingInvitations(teacherBrief.id)
     ]);
 
+    const profileData = profileResult.status === 'fulfilled' ? profileResult.value : null;
+    const gradesData = grades.status === 'fulfilled' ? grades.value : [];
+    const activityData = activity.status === 'fulfilled' ? activity.value : [];
+
+    if (profileResult.status === 'rejected') {
+      console.warn(`⚠️ [Dashboard.GSSP] Failed to fetch teacher profile for ${teacherBrief.id}:`, profileResult.reason);
+    }
+
     return {
       props: {
-        teacher: profileData.teacher,
+        teacher: profileData?.teacher || teacherBrief,
         school,
-        grades,
-        stats: profileData.stats,
-        activity,
+        grades: gradesData,
+        stats: profileData?.stats || {
+          total_learners: gradesData.reduce((acc, g) => acc + (g.learner_count || 0), 0),
+          active_grades: gradesData.length,
+          pending_invites: activityData.length,
+          parent_connection_rate: 0,
+        },
+        activity: activityData,
         schoolSlug,
         teacherSlug,
       },

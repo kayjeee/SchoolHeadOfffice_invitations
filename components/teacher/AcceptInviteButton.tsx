@@ -35,8 +35,8 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
     try {
       const result = await acceptTeacherInviteAction(token, user.sub!);
 
-      if (result.success) {
-        toast.success('Invitation accepted!', { id: loadingToast });
+      if (result.success || result.error?.includes('already processed')) {
+        toast.success(result.success ? 'Invitation accepted!' : 'Redirecting to your dashboard...', { id: loadingToast });
 
         // Build the teacher slug: prioritize returned teacherSlug, then teacherName, then user.name
         let teacherSlug = result.teacherSlug;
