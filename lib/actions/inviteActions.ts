@@ -187,7 +187,8 @@ export async function acceptTeacherInviteAction(token: string, auth0Id: string) 
     return {
       success: true,
       teacherName: apiInvitation?.teacher_name,
-      schoolSlug: apiInvitation?.school_slug
+      schoolSlug: apiInvitation?.school_slug,
+      teacherSlug: apiInvitation?.teacher_slug
     };
   } catch (error: any) {
     console.error('❌ [INVITE_ACCEPTANCE] Error:', error.message);

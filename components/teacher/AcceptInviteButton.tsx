@@ -38,12 +38,17 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
       if (result.success) {
         toast.success('Invitation accepted!', { id: loadingToast });
 
-        // Build the teacher slug if name is available: "Jane Smith" -> "jane-smith"
-        // In the real system, teacher profiles might have a unique ID appended: "jane-smith-123"
-        // But for redirection, we'll try to build a clean slug or use the one provided.
-        const teacherName = result.teacherName || user.name || 'teacher';
-        const teacherSlug = teacherName.toLowerCase().replace(/ /g, '-');
+        // Build the teacher slug: prioritize returned teacherSlug, then teacherName, then user.name
+        let teacherSlug = result.teacherSlug;
+
+        if (!teacherSlug) {
+          const teacherName = result.teacherName || user.name || 'teacher';
+          teacherSlug = teacherName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        }
+
         const targetSchoolSlug = result.schoolSlug || schoolSlug;
+
+        console.log(`🚀 [AcceptInviteButton] Redirecting to dashboard:`, { targetSchoolSlug, teacherSlug });
 
         // Redirect to the teacher dashboard: /teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard
         router.push(`/teacher/school/${targetSchoolSlug}/teachers/${teacherSlug}/dashboard`);

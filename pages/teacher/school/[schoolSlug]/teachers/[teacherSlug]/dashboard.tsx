@@ -39,7 +39,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   const user = session.user;
 
-  console.log(`🔍 [Dashboard.GSSP] Params:`, { schoolSlug, teacherSlug });
+  console.log(`🔍 [Dashboard.GSSP] Params:`, { schoolSlug, teacherSlug, auth0Id: user.sub });
 
   // Decode school name and teacher slug
   const decodedSchoolSlug = decodeURIComponent(schoolSlug);
@@ -53,10 +53,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // 1. Try fetching school
     const schoolResponse = await SchoolAPI.getSchools({ search: schoolSearchName, limit: 10 });
+    console.log(`🏫 [Dashboard.GSSP] API Schools found:`, schoolResponse.schools.map(s => ({ id: s.id, name: s.schoolName })));
+
     let school = schoolResponse.schools.find(s =>
       s.schoolName.toLowerCase() === schoolSearchName.toLowerCase() ||
       s.id === decodedSchoolSlug
-    ) || schoolResponse.schools[0];
+    ) || (schoolResponse.schools.length > 0 ? schoolResponse.schools[0] : null);
 
     // Fallback search with raw slug if no results
     if (!school && decodedSchoolSlug !== schoolSearchName) {
@@ -74,20 +76,33 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // 2. Fetch teachers and find the right one
     const teachers = await SchoolAPI.getTeachers(school.id);
+    console.log(`👨‍🏫 [Dashboard.GSSP] Teachers in school ${school.schoolName}:`, teachers.map(t => ({ id: t.id, name: t.name, slug: t.slug, auth0_id: t.auth0_id })));
 
     // Priority for finding the teacher:
     // 1. Exact Auth0 ID match (most secure)
     // 2. Exact slug match
     // 3. Short ID match (legacy/fallback)
-    const teacherBrief = teachers.find(t =>
-      t.auth0_id === user.sub ||
-      t.slug === teacherSlug ||
-      (shortId && t.id.endsWith(shortId))
-    );
+    // 4. Email match (if available in session)
+    // 5. Name match (last resort fallback)
+    const teacherBrief = teachers.find(t => {
+      const auth0Match = t.auth0_id === user.sub;
+      const slugMatch = t.slug === teacherSlug;
+      const idMatch = (shortId && t.id.endsWith(shortId));
+      const emailMatch = user.email && t.email && t.email.toLowerCase() === user.email.toLowerCase();
+
+      // For name match, we compare the normalized teacher name with the normalized slug
+      const normalizedSlugName = teacherSlug.split('-').slice(0, -1).join(' ') || teacherSlug.replace(/-/g, ' ');
+      const nameMatch = t.name.toLowerCase() === normalizedSlugName.toLowerCase();
+
+      if (auth0Match || slugMatch || idMatch || emailMatch || nameMatch) {
+        console.log(`✅ [Dashboard.GSSP] Teacher found! Match reasons:`, { auth0Match, slugMatch, idMatch, emailMatch, nameMatch });
+        return true;
+      }
+      return false;
+    });
 
     if (!teacherBrief) {
       console.warn(`⚠️ [Dashboard.GSSP] Teacher not found. Search criteria: auth0_id=${user.sub}, slug=${teacherSlug}, shortId=${shortId}`);
-      console.log(`👨‍🏫 [Dashboard.GSSP] Available teachers:`, teachers.map(t => ({ id: t.id, slug: t.slug, auth0_id: t.auth0_id })));
       return { notFound: true };
     }
 
