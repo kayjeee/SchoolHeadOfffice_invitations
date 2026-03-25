@@ -125,24 +125,28 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const activityData = activity.status === 'fulfilled' ? activity.value : [];
 
     if (profileResult.status === 'rejected') {
-      console.warn(`⚠️ [Dashboard.GSSP] Failed to fetch teacher profile for ${teacherBrief.id}:`, profileResult.reason);
+      console.warn(`⚠️ [Dashboard.GSSP] Failed to fetch teacher profile for ${teacherBrief.id}:`, (profileResult.reason as Error).message || profileResult.reason);
     }
 
-    return {
-      props: {
-        teacher: profileData?.teacher || teacherBrief,
-        school,
-        grades: gradesData,
-        stats: profileData?.stats || {
-          total_learners: gradesData.reduce((acc, g) => acc + (g.learner_count || 0), 0),
-          active_grades: gradesData.length,
-          pending_invites: activityData.length,
-          parent_connection_rate: 0,
-        },
-        activity: activityData,
-        schoolSlug,
-        teacherSlug,
+    const finalProps = {
+      teacher: profileData?.teacher || teacherBrief,
+      school,
+      grades: gradesData,
+      stats: profileData?.stats || {
+        total_learners: gradesData.reduce((acc, g) => acc + (g.learner_count || 0), 0),
+        active_grades: gradesData.length,
+        pending_invites: activityData.length,
+        parent_connection_rate: 0,
       },
+      activity: activityData,
+      schoolSlug,
+      teacherSlug,
+    };
+
+    console.log(`✅ [Dashboard.GSSP] Success! Returning props for teacher: ${finalProps.teacher.name} (${finalProps.teacher.id})`);
+
+    return {
+      props: finalProps,
     };
   } catch (err) {
     console.error('Error fetching dashboard data:', err);

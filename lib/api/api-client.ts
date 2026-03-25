@@ -31,7 +31,11 @@ export class APIError extends Error {
     public statusText: string,
     public details?: Record<string, any>
   ) {
-    super(`API Error: ${status} ${statusText}`);
+    // If there's a specific message in the details (common in our backend), use it
+    const detailMessage = details?.message || details?.error || (Array.isArray(details?.errors) ? details.errors[0] : null);
+    const message = detailMessage ? `${detailMessage}` : `API Error: ${status} ${statusText}`;
+
+    super(message);
     this.name = 'APIError';
   }
 }

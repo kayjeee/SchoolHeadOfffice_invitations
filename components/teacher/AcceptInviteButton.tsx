@@ -35,7 +35,13 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
     try {
       const result = await acceptTeacherInviteAction(token, user.sub!);
 
-      if (result.success || result.error?.includes('already processed')) {
+      // Check if invitation was accepted successfully OR it's already processed/accepted
+      const isAlreadyHandled =
+        result.error?.toLowerCase().includes('already processed') ||
+        result.error?.toLowerCase().includes('already accepted') ||
+        result.error?.toLowerCase().includes('invitation not found'); // Sometimes backend returns 422 if it's already gone
+
+      if (result.success || isAlreadyHandled) {
         toast.success(result.success ? 'Invitation accepted!' : 'Redirecting to your dashboard...', { id: loadingToast });
 
         // Build the teacher slug: prioritize returned teacherSlug, then teacherName, then user.name

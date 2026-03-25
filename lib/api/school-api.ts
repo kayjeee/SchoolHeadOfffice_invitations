@@ -205,15 +205,24 @@ export class SchoolAPI {
       }).optional(),
     });
 
-    let responseData;
+    let responseData = null;
     try {
       const response = await apiClient.get(`/users/${teacherId}`, responseSchema);
       responseData = (response as any).data || response;
     } catch (err: any) {
       if (err.status === 404) {
-        console.log(`ℹ️ [SchoolAPI.getTeacherProfile] User endpoint failed for ${teacherId}, trying /teachers/...`);
-        const altResponse = await apiClient.get(`/teachers/${teacherId}`, responseSchema);
-        responseData = (altResponse as any).data || altResponse;
+        console.log(`ℹ️ [SchoolAPI.getTeacherProfile] User endpoint failed for ${teacherId}, trying /teachers/${teacherId}/profile...`);
+        try {
+           const altResponse = await apiClient.get(`/teachers/${teacherId}/profile`, responseSchema);
+           responseData = (altResponse as any).data || altResponse;
+        } catch (altErr: any) {
+           console.warn(`⚠️ [SchoolAPI.getTeacherProfile] Profile endpoint failed: ${altErr.message}`);
+           // If everything fails, return null instead of throwing to allow GSSP to use teacherBrief
+           return {
+             teacher: { id: teacherId, name: 'Teacher Profile', slug: teacherId, grades: [] },
+             stats: { total_learners: 0, active_grades: 0, pending_invites: 0, parent_connection_rate: 0 }
+           };
+        }
       } else {
         throw err;
       }
