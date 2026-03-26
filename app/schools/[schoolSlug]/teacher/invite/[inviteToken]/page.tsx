@@ -2,6 +2,7 @@ import { validateInvite } from '@/lib/actions/inviteActions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import AcceptInviteButton from '@/components/teacher/AcceptInviteButton';
+import AcceptTeacherInvite from '@/components/teacher/AcceptTeacherInvite';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,27 +69,20 @@ export default async function InvitePage({ params }: PageProps) {
               </p>
             </div>
 
-            {isAccepted ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200 text-center text-green-800">
-                  <p className="font-bold mb-2">Invitation Already Accepted</p>
-                  <p className="text-sm">You have already joined {school.name}.</p>
-                </div>
-                <Link
-                  href={`/teacher/school/${invite.schoolSlug || schoolSlug}/teachers/${(invite.teacherName || invite.email).toLowerCase().replace(/[^a-z0-9]/g, '-')}/dashboard`}
-                  className="block w-full bg-blue-600 text-white text-center font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-md"
-                >
-                  Go to Dashboard
-                </Link>
-              </div>
-            ) : (
-              <AcceptInviteButton
-                schoolId={school._id.toString()}
-                schoolSlug={schoolSlug}
-                email={invite.email}
-                token={inviteToken}
-              />
-            )}
+            <AcceptTeacherInvite
+              schoolSlug={schoolSlug}
+              inviteToken={inviteToken}
+            />
+
+            <div className="mt-8 pt-8 border-t border-gray-100 opacity-50">
+               <p className="text-xs text-gray-400 text-center uppercase tracking-widest mb-4">Alternative Option</p>
+               <AcceptInviteButton
+                 schoolId={school._id.toString()}
+                 schoolSlug={schoolSlug}
+                 email={invite.email}
+                 token={inviteToken}
+               />
+            </div>
           </div>
 
           <p className="mt-6 text-xs text-gray-400 text-center" suppressHydrationWarning>
