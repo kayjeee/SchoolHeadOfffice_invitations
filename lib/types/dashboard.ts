@@ -25,7 +25,7 @@ export interface ActivityLog {
   type: 'insight' | 'message' | 'alert' | 'success';
   title: string;
   description: string;
-  timestamp: Date;
+  timestamp: string;
   schoolSlug: string;
   teacherSlug: string;
   metadata?: {

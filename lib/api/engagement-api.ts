@@ -34,7 +34,7 @@ export const EngagementAPI = {
         type: 'insight',
         title: 'Mood Spike Detected',
         description: 'Class participation in "Grade 4 - Blue" increased significantly after today\'s Science lab. 8 students were highly engaged.',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         schoolSlug,
         teacherSlug,
         metadata: {
@@ -48,7 +48,7 @@ export const EngagementAPI = {
         type: 'alert',
         title: 'Low Engagement Flag',
         description: '3 parents haven\'t opened the weekly story update for 2 consecutive weeks. Consider a direct message nudge.',
-        timestamp: new Date(Date.now() - 3600000),
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
         schoolSlug,
         teacherSlug,
         metadata: {
@@ -62,7 +62,7 @@ export const EngagementAPI = {
         type: 'message',
         title: 'New Parent Inquiry',
         description: 'Mrs. Dlamini sent a message regarding Thabo\'s Math progress. "Thanks for the update, he\'s loving the new modules!"',
-        timestamp: new Date(Date.now() - 7200000),
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
         schoolSlug,
         teacherSlug,
       },
@@ -71,7 +71,7 @@ export const EngagementAPI = {
         type: 'success',
         title: 'Goal Achieved!',
         description: 'Your class reached 500 "Teamwork" points this month. A reward celebration is recommended.',
-        timestamp: new Date(Date.now() - 86400000),
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
         schoolSlug,
         teacherSlug,
       }

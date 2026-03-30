@@ -3,7 +3,6 @@
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { acceptTeacherInviteAction } from '@/lib/actions/inviteActions';
 import { toast } from 'react-hot-toast';
 
 interface AcceptInviteButtonProps {
@@ -22,8 +21,6 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
     if (isLoading) return;
 
     if (!user) {
-      // Redirect to login if not authenticated
-      // We encode the current URL as the returnTo destination
       const returnTo = encodeURIComponent(window.location.href);
       window.location.href = `/api/auth/login?returnTo=${returnTo}`;
       return;
@@ -33,18 +30,22 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
     const loadingToast = toast.loading('Accepting invitation...');
 
     try {
-      const result = await acceptTeacherInviteAction(token, user.sub!);
+      const response = await fetch('/api/teacher/accept-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
 
-      // Check if invitation was accepted successfully OR it's already processed/accepted
+      const result = await response.json();
+
       const isAlreadyHandled =
         result.error?.toLowerCase().includes('already processed') ||
         result.error?.toLowerCase().includes('already accepted') ||
-        result.error?.toLowerCase().includes('invitation not found'); // Sometimes backend returns 422 if it's already gone
+        result.error?.toLowerCase().includes('invitation not found');
 
       if (result.success || isAlreadyHandled) {
         toast.success(result.success ? 'Invitation accepted!' : 'Redirecting to your dashboard...', { id: loadingToast });
 
-        // Build the teacher slug: prioritize returned teacherSlug, then teacherName, then user.name
         let teacherSlug = result.teacherSlug;
 
         if (!teacherSlug) {
@@ -56,7 +57,6 @@ export default function AcceptInviteButton({ schoolId, schoolSlug, email, token 
 
         console.log(`🚀 [AcceptInviteButton] Redirecting to dashboard:`, { targetSchoolSlug, teacherSlug });
 
-        // Redirect to the teacher dashboard: /teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard
         router.push(`/teacher/school/${targetSchoolSlug}/teachers/${teacherSlug}/dashboard`);
       } else {
         toast.error(result.error || 'Failed to accept invitation', { id: loadingToast });
