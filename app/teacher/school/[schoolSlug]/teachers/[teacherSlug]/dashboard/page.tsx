@@ -1,10 +1,12 @@
 import React from 'react';
 import { getSession } from '@auth0/nextjs-auth0';
-import { SchoolAPI, Teacher as CoreTeacher, TeacherStats } from '@/lib/api/school-api';
+import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
 import { DashboardData, ActivityLog, AgentStatus } from '@/lib/types/dashboard';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{
@@ -16,7 +18,7 @@ interface PageProps {
 export default async function DashboardPage({ params }: PageProps) {
   const { schoolSlug, teacherSlug } = await params;
 
-  // 1. Authentication
+  // 1. Authentication & Session
   const session = await getSession();
   if (!session) {
     redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
@@ -48,11 +50,11 @@ export default async function DashboardPage({ params }: PageProps) {
 
     if (!coreSchool) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-surface text-white">
+        <div className="flex items-center justify-center min-h-[60vh] text-white">
           <div className="text-center p-8 bg-surface-container rounded-3xl border border-white/10">
             <h1 className="text-2xl font-bold mb-2">School Not Found</h1>
             <p className="text-white/40 mb-6">We couldn't find a school matching "{schoolSlug}".</p>
-            <a href="/teacher/school" className="px-6 py-3 bg-primary-fixed text-on-primary-fixed rounded-xl font-bold">Return to Browser</a>
+            <a href="/teacher/school" className="px-6 py-3 bg-primary-fixed text-on-primary-fixed rounded-xl font-bold inline-block">Return to Browser</a>
           </div>
         </div>
       );
@@ -69,7 +71,7 @@ export default async function DashboardPage({ params }: PageProps) {
 
     if (!coreTeacherBrief) {
        return (
-        <div className="flex items-center justify-center min-h-screen bg-surface text-white">
+        <div className="flex items-center justify-center min-h-[60vh] text-white">
           <div className="text-center p-8 bg-surface-container rounded-3xl border border-white/10">
             <h1 className="text-2xl font-bold mb-2">Teacher Profile Not Found</h1>
             <p className="text-white/40 mb-6">We couldn't find a teacher matching "{teacherSlug}" in this school.</p>
@@ -81,7 +83,7 @@ export default async function DashboardPage({ params }: PageProps) {
     // Authorization check
     if (user.role !== 'admin' && user.sub !== coreTeacherBrief.auth0_id) {
        return (
-        <div className="flex items-center justify-center min-h-screen bg-surface text-white">
+        <div className="flex items-center justify-center min-h-[60vh] text-white">
           <div className="text-center p-8 bg-surface-container rounded-3xl border border-white/10">
             <h1 className="text-2xl font-bold mb-2 text-red-400">Access Denied</h1>
             <p className="text-white/40 mb-6">You do not have permission to access this dashboard.</p>
@@ -140,11 +142,11 @@ export default async function DashboardPage({ params }: PageProps) {
   } catch (error) {
     console.error('Error loading dashboard:', error);
     return (
-      <div className="flex items-center justify-center min-h-screen bg-surface text-white">
+      <div className="flex items-center justify-center min-h-[60vh] text-white">
         <div className="text-center p-8 bg-surface-container rounded-3xl border border-white/10">
           <h1 className="text-2xl font-bold mb-2 text-red-400">System Error</h1>
           <p className="text-white/40 mb-6">An error occurred while loading your dashboard. Please try again later.</p>
-          <button onClick={() => window.location.reload()} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold">Reload Dashboard</button>
+          <button className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold">Reload Dashboard</button>
         </div>
       </div>
     );

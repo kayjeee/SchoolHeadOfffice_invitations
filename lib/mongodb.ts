@@ -7,12 +7,8 @@ let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
 if (!process.env.MONGODB_URI) {
-  // During build we might not have MONGODB_URI, but we don't want to crash
-  if (process.env.NODE_ENV === 'production') {
-    clientPromise = Promise.resolve(null as any);
-  } else {
-    throw new Error('Please add your Mongo URI to .env.local');
-  }
+  // During build or in environments without MongoDB, return a rejected promise that components can handle
+  clientPromise = Promise.resolve(null as any);
 } else {
   if (process.env.NODE_ENV === 'development') {
     if (!(global as any)._mongoClientPromise) {
