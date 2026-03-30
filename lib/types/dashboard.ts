@@ -2,7 +2,7 @@ export interface School {
   id: string;
   schoolName: string;
   slug: string;
-  logo?: string;
+  logo: string | null;
   stats?: {
     teachers: number;
     students: number;
@@ -14,10 +14,10 @@ export interface Teacher {
   id: string;
   name: string;
   slug: string;
-  avatar?: string;
-  bio?: string;
-  email?: string;
-  auth0Id?: string;
+  avatar: string | null;
+  bio: string | null;
+  email: string | null;
+  auth0Id: string | null;
 }
 
 export interface ActivityLog {
