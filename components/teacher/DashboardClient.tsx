@@ -15,11 +15,21 @@ import {
   ChevronRight,
   MoreHorizontal,
   Plus,
-  LayoutDashboard
+  LayoutDashboard,
+  ArrowUpRight
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { DashboardData } from '@/lib/types/dashboard';
+import Link from 'next/link';
+
+const Activity = ({ className }: { className?: string }) => (
+  <Zap className={className} />
+);
+
+const Shield = ({ className }: { className?: string }) => (
+  <Zap className={className} />
+);
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -157,6 +167,37 @@ export default function DashboardClient({
               </div>
               <ActivityFeed activities={data.activities} godMode={godMode} />
             </div>
+
+            {/* Active Classes Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
+                  <BookOpen className={cn("w-3.5 h-3.5", accentColor)} />
+                  Active Classes
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.classes.map((cls) => (
+                  <div key={cls.id} className="p-5 rounded-3xl bg-surface-container border border-white/5 flex items-center justify-between group hover:border-white/10 transition-all">
+                    <div>
+                      <h4 className="text-sm font-black text-white/90 mb-1">{cls.grade_name}</h4>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">{cls.learner_count} Learners</span>
+                        <span className="w-1 h-1 rounded-full bg-white/10"></span>
+                        <span className="text-[10px] font-bold text-green-500/60 uppercase tracking-widest">{cls.connection_rate || 0}% Linked</span>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/teacher/school/${schoolSlug}/teachers/${teacherSlug}/grades/${cls.id}`}
+                      className={cn("p-3 rounded-2xl bg-white/5 border border-white/10 opacity-0 group-hover:opacity-100 transition-all active:scale-95", godMode ? "hover:text-secondary-accent" : "hover:text-primary-accent")}
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Sidebar - Active Sentinel Agents */}
@@ -211,15 +252,3 @@ export default function DashboardClient({
       </div>
   );
 }
-
-const Activity = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>
-);
-
-const Shield = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);

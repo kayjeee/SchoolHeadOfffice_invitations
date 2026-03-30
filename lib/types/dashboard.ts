@@ -49,6 +49,12 @@ export interface DashboardData {
   teacher: Teacher;
   activities: ActivityLog[];
   agents: AgentStatus[];
+  classes: {
+    id: string;
+    grade_name: string;
+    learner_count: number;
+    connection_rate?: number;
+  }[];
   stats: {
     totalLearners: number;
     activeGrades: number;

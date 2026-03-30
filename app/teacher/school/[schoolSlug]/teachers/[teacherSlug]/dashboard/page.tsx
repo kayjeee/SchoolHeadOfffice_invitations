@@ -1,10 +1,11 @@
 import React from 'react';
-import { getSession, withPageAuthRequired } from '@auth0/nextjs-auth0';
+import { getSession } from '@auth0/nextjs-auth0';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
 import { DashboardData, ActivityLog, AgentStatus } from '@/lib/types/dashboard';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,16 +21,21 @@ export default async function DashboardPage(props: PageProps) {
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  let session;
-  try {
-    session = await getSession();
-  } catch (e) {
-    console.error("Failed to get session:", e);
-    redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
-  }
+  // Middleware handles protection, but we still need the user ID for data fetching
+  const session = await getSession();
 
   if (!session) {
-    redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
+     // If session is still not available here (e.g. during pre-render or middleware skip),
+     // we provide a safe fallback or redirect if it's a real request.
+     return (
+        <div className="flex items-center justify-center min-h-[60vh] text-white">
+          <div className="text-center p-8 bg-surface-container rounded-3xl border border-white/10">
+            <h1 className="text-2xl font-bold mb-2">Session Required</h1>
+            <p className="text-white/40 mb-6">Please log in to access your dashboard.</p>
+            <a href={`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`} className="px-6 py-3 bg-primary-fixed text-on-primary-fixed rounded-xl font-bold inline-block">Log In</a>
+          </div>
+        </div>
+      );
   }
   const user = session.user;
 
@@ -101,10 +107,11 @@ export default async function DashboardPage(props: PageProps) {
     }
 
     // C. Fetch Additional Data
-    const [profileData, activities, agents] = await Promise.all([
+    const [profileData, activities, agents, assignments] = await Promise.all([
       SchoolAPI.getTeacherProfile(coreTeacherBrief.id),
       EngagementAPI.getRecentActivity(schoolSlug, teacherSlug),
       EngagementAPI.getAgentStatus(schoolSlug, teacherSlug),
+      SchoolAPI.getTeacherGradeAssignments(coreTeacherBrief.id),
     ]);
 
     // D. Map to DashboardData interface
@@ -131,6 +138,7 @@ export default async function DashboardPage(props: PageProps) {
       },
       activities: activities as ActivityLog[],
       agents: agents as AgentStatus[],
+      classes: assignments,
       stats: {
         totalLearners: profileData.stats.total_learners,
         activeGrades: profileData.stats.active_grades,

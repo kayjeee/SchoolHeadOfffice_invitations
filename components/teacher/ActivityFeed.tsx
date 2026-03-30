@@ -76,7 +76,7 @@ const ActivityIcon = ({ type, godMode }: { type: ActivityItem['type'], godMode: 
 
 export default function ActivityFeed({ activities, godMode = false }: ActivityFeedProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
       {activities.length > 0 ? (
         activities.map((item) => (
           <div

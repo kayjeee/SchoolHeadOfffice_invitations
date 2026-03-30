@@ -117,9 +117,3 @@ export default function AgentStatusList({ agents, godMode = false }: AgentStatus
     </div>
   );
 }
-
-const Plus = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-  </svg>
-);
