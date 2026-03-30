@@ -4,6 +4,7 @@ import React from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/router';
 import {
   Home,
   Users,
@@ -35,7 +36,10 @@ function InnerLayout({
   schoolSlug,
   teacherSlug
 }: DashboardLayoutWrapperProps) {
-  const pathname = usePathname();
+  const nextPathname = usePathname();
+  const pagesRouter = useRouter();
+  const pathname = nextPathname || pagesRouter?.asPath || '';
+
   const { godMode } = useGodmode();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
