@@ -7,8 +7,15 @@ export const EngagementAPI = {
    * Fetch recent activity for the "Intelligence Stream"
    */
   async getRecentActivity(schoolSlug: string, teacherSlug: string): Promise<ActivityLog[]> {
-    const client = await clientPromise;
-    const db = client.db();
+    try {
+      const client = await clientPromise;
+      if (client) {
+        const db = client.db();
+        // Here we would normally query the DB
+      }
+    } catch (e) {
+      console.warn("MongoDB client not available, returning mocked activity feed.");
+    }
 
     // In a real implementation, we would query the 'activities' or 'audit_logs' collection
     // filtered by schoolId/teacherId. For now, let's provide some realistic mocked data

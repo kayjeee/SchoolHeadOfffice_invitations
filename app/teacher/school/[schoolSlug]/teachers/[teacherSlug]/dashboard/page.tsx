@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSession } from '@auth0/nextjs-auth0';
+import { getSession, withPageAuthRequired } from '@auth0/nextjs-auth0';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
@@ -15,11 +15,19 @@ interface PageProps {
   }>;
 }
 
-export default async function DashboardPage({ params }: PageProps) {
+export default async function DashboardPage(props: PageProps) {
+  const { params } = props;
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  const session = await getSession();
+  let session;
+  try {
+    session = await getSession();
+  } catch (e) {
+    console.error("Failed to get session:", e);
+    redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
+  }
+
   if (!session) {
     redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
   }

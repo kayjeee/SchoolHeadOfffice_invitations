@@ -8,8 +8,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-surface text-white">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="bg-surface text-white" suppressHydrationWarning>
         <UserProvider>
           {children}
           <Toaster position="top-right" />

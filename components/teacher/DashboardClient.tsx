@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import DashboardLayout from '@/components/teacher/DashboardLayout';
+import { useGodmode } from '@/context/GodmodeContext';
 import PromptInput from '@/components/teacher/PromptInput';
 import ActivityFeed from '@/components/teacher/ActivityFeed';
 import AgentStatusList from '@/components/teacher/AgentStatusList';
@@ -36,7 +36,7 @@ export default function DashboardClient({
   schoolSlug,
   teacherSlug
 }: DashboardClientProps) {
-  const [godMode, setGodMode] = useState(false);
+  const { godMode, setGodMode } = useGodmode();
   const [data, setData] = useState<DashboardData>(initialData);
 
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
@@ -52,12 +52,7 @@ export default function DashboardClient({
   ];
 
   return (
-    <DashboardLayout
-      schoolSlug={schoolSlug}
-      teacherSlug={teacherSlug}
-      godMode={godMode}
-    >
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -214,7 +209,6 @@ export default function DashboardClient({
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }
 

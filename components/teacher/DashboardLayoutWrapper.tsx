@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,20 +24,19 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-interface DashboardLayoutProps {
+interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
   schoolSlug: string;
   teacherSlug: string;
-  godMode?: boolean;
 }
 
-export default function DashboardLayout({
+function InnerLayout({
   children,
   schoolSlug,
-  teacherSlug,
-  godMode = false
-}: DashboardLayoutProps) {
+  teacherSlug
+}: DashboardLayoutWrapperProps) {
   const pathname = usePathname();
+  const { godMode } = useGodmode();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -47,8 +47,6 @@ export default function DashboardLayout({
   ];
 
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
-  const accentBg = godMode ? 'bg-secondary-accent/10' : 'bg-primary-accent/10';
-  const accentBorder = godMode ? 'border-secondary-accent/20' : 'border-primary-accent/20';
 
   return (
     <div className="min-h-screen bg-surface text-white font-sans selection:bg-primary-accent/30">
@@ -124,5 +122,15 @@ export default function DashboardLayout({
         </div>
       </nav>
     </div>
+  );
+}
+
+import { useState } from 'react';
+
+export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProps) {
+  return (
+    <GodmodeProvider>
+      <InnerLayout {...props} />
+    </GodmodeProvider>
   );
 }
