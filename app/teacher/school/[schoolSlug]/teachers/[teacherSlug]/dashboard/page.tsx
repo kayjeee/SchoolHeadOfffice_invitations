@@ -5,7 +5,7 @@ import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
 import { DashboardData, ActivityLog, AgentStatus } from '@/lib/types/dashboard';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +21,10 @@ export default async function DashboardPage(props: PageProps) {
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // In Next.js 15, we MUST await headers() to ensure the request is available for getSession()
+  // In Next.js 15 App Router, ensure headers and cookies are awaited to initialize request context
+  // This helps @auth0/nextjs-auth0 v2.x find the request/response in AsyncLocalStorage
   await headers();
-
+  await cookies();
   const session = await getSession();
 
   if (!session) {

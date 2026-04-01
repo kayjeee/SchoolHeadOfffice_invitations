@@ -1,0 +1,26 @@
+
+> dev
+> next
+
+   ▲ Next.js 15.0.7
+   - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 3.7s
+ ○ Compiling /teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard ...
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled /teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard in 13s (1120 modules)
+ ⨯ node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js (164:1) @ get
+ ⨯ TypeError: "secret" is required
+    at DashboardPage (./app/teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard/page.tsx:33:90)
+digest: "200800201"
+  162 |     var _a = paramsSchema.validate(params, { allowUnknown: true }), value = _a.value, error = _a.error, warning = _a.warning;
+  163 |     if (error) {
+> 164 |         throw new TypeError(error.details[0].message);
+      | ^
+  165 |     }
+  166 |     if (warning) {
+  167 |         console.warn(warning.message);
+ GET /teacher/school/far-north-secondary-school/teachers/jane-smith/dashboard 500 in 17322ms
