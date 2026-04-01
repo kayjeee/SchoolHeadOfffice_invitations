@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   Send,
   User,
+  Users,
   MessageSquare,
   Search,
   Bot,
@@ -33,8 +35,12 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [typingTimer, setTypingTimer] = useState<NodeJS.Timeout | null>(null);
   const [agentSuggestion, setAgentSuggestion] = useState<AgentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [potentialParticipants, setPotentialParticipants] = useState<any[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,8 +56,30 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
   useEffect(() => {
     if (activeConversation) {
       fetchMessages(activeConversation.id);
+
+      // Auto-mark as read
+      markAsRead(activeConversation.id);
+
+      // Implement polling for real-time feel (every 5 seconds)
+      const interval = setInterval(() => {
+        fetchMessages(activeConversation.id, true);
+      }, 5000);
+
+      return () => clearInterval(interval);
     }
   }, [activeConversation]);
+
+  const markAsRead = async (convId: string) => {
+    try {
+      await fetch(`/api/v1/messaging/messages?conversationId=${convId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'read' })
+      });
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -59,6 +87,55 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const startNewMessage = async () => {
+    setIsCreating(true);
+    // Fetch teachers/staff in the school to start a chat
+    try {
+      // This is a simplified lookup for the sandbox
+      const res = await fetch(`/api/v1/schools/${schoolId}/teachers`);
+      // Fallback for non-existent endpoint in sandbox or different structure
+      if (res.ok) {
+        const data = await res.json();
+        setPotentialParticipants(data || []);
+      } else {
+        // Mocked participants if API fails
+        setPotentialParticipants([
+           { id: 'principal_1', name: 'Principal Williams', role: 'principal' },
+           { id: 'teacher_2', name: 'Mr. Dlamini', role: 'teacher' }
+        ]);
+      }
+    } catch (err) {
+      setPotentialParticipants([
+         { id: 'principal_1', name: 'Principal Williams', role: 'principal' }
+      ]);
+    }
+  };
+
+  const createConversation = async (participant: any) => {
+    try {
+      const res = await fetch(`/api/v1/messaging/conversations?schoolId=${schoolId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'direct',
+          participants: [
+            { id: currentUserId, name: 'You', role: 'teacher' },
+            { id: participant.id, name: participant.name, role: participant.role }
+          ]
+        })
+      });
+      if (res.ok) {
+        const { conversationId } = await res.json();
+        await fetchConversations();
+        setIsCreating(false);
+        // Find and activate the new conversation
+        // Note: fetchConversations is async, so we might need to find it from the new state
+      }
+    } catch (err) {
+      console.error('Failed to create conversation', err);
+    }
   };
 
   const fetchConversations = async () => {
@@ -75,16 +152,73 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
     }
   };
 
-  const fetchMessages = async (convId: string) => {
+  const fetchMessages = async (convId: string, isPoll = false) => {
     try {
       const res = await fetch(`/api/v1/messaging/messages?conversationId=${convId}`);
       if (res.ok) {
+        // Fetch typing status for other participants (mock API response for this iteration)
+        // In reality, this would be a separate API or part of the messages metadata
+        const typingRes = await fetch(`/api/v1/messaging/agent?conversationId=${convId}&checkTyping=true`);
+        if (typingRes.ok) {
+          const { isTyping: otherTyping } = await typingRes.json().catch(() => ({ isTyping: false }));
+          setOtherUserTyping(!!otherTyping);
+        }
+
         const data = await res.json();
-        setMessages(data.reverse()); // Messages come in descending order from API
+        const reversed = data.reverse();
+
+        // Update state if new messages or status changed
+        setMessages(prev => {
+           const hasChanges = prev.length !== reversed.length ||
+                              prev.some((m, i) => m.status !== reversed[i]?.status);
+
+           if (!hasChanges) return prev;
+
+           // Notify if new message from others
+           const lastNew = reversed[reversed.length - 1];
+           if (isPoll && lastNew && lastNew.senderId !== currentUserId) {
+             toast.success(`New message in ${activeConversation?.metadata?.groupName || 'this chat'}`);
+           }
+
+           return reversed;
+        });
+
+        if (!isPoll) scrollToBottom();
       }
     } catch (err) {
       console.error('Failed to fetch messages', err);
     }
+  };
+
+  const updateTypingStatus = async (typing: boolean) => {
+    if (!activeConversation) return;
+    try {
+      await fetch(`/api/v1/messaging/messages?conversationId=${activeConversation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'typing', isTyping: typing })
+      });
+    } catch (err) {
+      console.error('Failed to update typing status', err);
+    }
+  };
+
+  const handleTyping = (content: string) => {
+    setNewMessage(content);
+
+    if (!isTyping) {
+      setIsTyping(true);
+      updateTypingStatus(true);
+    }
+
+    if (typingTimer) clearTimeout(typingTimer);
+
+    const timer = setTimeout(() => {
+      setIsTyping(false);
+      updateTypingStatus(false);
+    }, 2000);
+
+    setTypingTimer(timer);
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -124,7 +258,7 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
 
       if (agentRes.ok) {
         const agentData: AgentResponse = await agentRes.json();
-        if (agentData.suggestions.length > 0 || agentData.type === 'alert') {
+        if (agentData.suggestions.length > 0 || agentData.type === 'alert' || agentData.recipients.length > 0) {
           setAgentSuggestion(agentData);
         }
       }
@@ -147,7 +281,7 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
               <MessageSquare className={cn("w-3.5 h-3.5", accentColor)} />
               Messages
             </h3>
-            <button className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
+            <button onClick={startNewMessage} className="p-1.5 hover:bg-white/5 rounded-lg transition-colors">
               <Plus className="w-4 h-4 text-white/40" />
             </button>
           </div>
@@ -162,7 +296,29 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {conversations.length === 0 ? (
+          {isCreating ? (
+            <div className="space-y-1">
+              <div className="px-3 py-2 flex justify-between items-center">
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Select Recipient</span>
+                <button onClick={() => setIsCreating(false)} className="text-[10px] font-bold text-red-400 uppercase">Cancel</button>
+              </div>
+              {potentialParticipants.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => createConversation(p)}
+                  className="w-full p-3 rounded-2xl hover:bg-white/5 transition-all flex items-center gap-3 text-left"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 font-bold uppercase text-xs">
+                    {p.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white/80">{p.name}</h4>
+                    <span className="text-[10px] text-white/20 uppercase tracking-widest">{p.role}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : conversations.length === 0 ? (
             <div className="p-8 text-center text-white/20 text-xs italic">No active conversations</div>
           ) : (
             conversations.map((conv) => (
@@ -251,6 +407,18 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                   </div>
                 </div>
               ))}
+              {otherUserTyping && (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                    <User className="w-4 h-4 text-white/20 animate-pulse" />
+                  </div>
+                  <div className="px-3 py-2 bg-white/5 rounded-xl rounded-tl-none flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-bounce [animation-delay:0.2s]"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-bounce [animation-delay:0.4s]"></span>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -264,6 +432,13 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                   <div className="flex-1 space-y-2">
                     <p className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">Sentinel Suggestion</p>
                     <div className="flex flex-wrap gap-2">
+                      {agentSuggestion.target === 'group' && agentSuggestion.recipients.length > 0 && (
+                        <div className="w-full mb-1">
+                          <span className="text-[9px] font-bold text-indigo-400/80 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                            Targets: {agentSuggestion.metadata?.grade || agentSuggestion.recipients.length + ' recipients'}
+                          </span>
+                        </div>
+                      )}
                       {agentSuggestion.suggestions.map((s, i) => (
                         <button
                           key={i}
@@ -288,7 +463,7 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => handleTyping(e.target.value)}
                   placeholder="Type a message..."
                   className="flex-1 bg-transparent border-none outline-none text-sm py-2.5 placeholder:text-white/20 text-white/80"
                 />
@@ -314,7 +489,10 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                <h3 className="text-lg font-bold text-white/90 mb-1">Select a Conversation</h3>
                <p className="text-sm text-white/40 max-w-xs">Choose a chat from the left to start messaging with parents, principals, or staff.</p>
              </div>
-             <button className={cn("px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95", accentBtn)}>
+             <button
+               onClick={startNewMessage}
+               className={cn("px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95", accentBtn)}
+              >
                New Message
              </button>
           </div>

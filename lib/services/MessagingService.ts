@@ -45,6 +45,12 @@ export class MessagingService {
         throw new Error('Unauthorized to create conversation for others');
     }
 
+    const isP1Auth = await this.verifyAccess(participant1.id, schoolId);
+    const isP2Auth = await this.verifyAccess(participant2.id, schoolId);
+    if (!isP1Auth || !isP2Auth) {
+        throw new Error('One or more participants do not belong to this school');
+    }
+
     // Role-based safety: Parents can only message within their children's context (handled by UI filtering, but enforced here)
     // Teachers/Principals must be in the same schoolId
 
@@ -85,7 +91,8 @@ export class MessagingService {
     const db = client.db();
 
     // Security: Ensure requesting user is a teacher or principal at this school
-    // (Mock check: would query teachers collection)
+    const isAuthorized = await this.verifyAccess(requestingUserId, schoolId);
+    if (!isAuthorized) throw new Error('Unauthorized to create group conversations');
 
     const newConversation = {
       schoolId,

@@ -17,6 +17,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   switch (method) {
+    case 'GET':
+      // Support for checking typing status
+      try {
+        const { conversationId, checkTyping } = req.query;
+        if (checkTyping === 'true') {
+           // Mock response: in production this would query a real-time presence store (Redis/DB)
+           // For the sandbox, we toggle a random status to demonstrate the UI indicator
+           return res.status(200).json({ isTyping: Math.random() > 0.8 });
+        }
+        res.status(400).json({ error: 'Invalid request' });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+      break;
+
     case 'POST':
       try {
         const { content, metadata } = req.body;
@@ -38,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       break;
 
     default:
-      res.setHeader('Allow', ['POST']);
+      res.setHeader('Allow', ['GET', 'POST']);
       res.status(405).end(`Method ${method} Not Allowed`);
   }
 }

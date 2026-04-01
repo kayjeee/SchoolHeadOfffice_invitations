@@ -51,12 +51,16 @@ export class MessagingAgent {
       // In a real implementation, we would query 'students' and 'classrooms' to match names
       // For this implementation, we use regex/keyword detection with schoolId scoping concepts
 
-      // Example matching for learner names (Mocked database check)
-      const learners = ['Thabo', 'Sarah', 'Kobus', 'Ayanda'];
-      for (const learner of learners) {
-        if (lowerContent.includes(learner.toLowerCase())) {
-          context.learnerName = learner;
-          // In reality: context.studentId = await db.collection('students').findOne({ name: learner, schoolId })._id;
+      // 1. Detect Learner names from MongoDB school scope
+      const students = await db.collection('students')
+        .find({ schoolId: new ObjectId(schoolId) })
+        .toArray();
+
+      for (const student of students) {
+        if (lowerContent.includes(student.name.toLowerCase())) {
+          context.learnerName = student.name;
+          context.studentId = student._id.toString();
+          context.parentIds = student.parentIds || [];
           break;
         }
       }
@@ -110,19 +114,18 @@ export class MessagingAgent {
     const db = client.db();
 
     if (target === 'individual' && context.learnerName) {
-      // Find parent IDs for the specific student in this school
-      // const student = await db.collection('students').findOne({ name: context.learnerName, schoolId });
-      // if (student) recipients.push(...student.parentIds);
-
-      // Mocked recipient for individual (Parent of Thabo)
-      recipients.push('parent_id_123');
+      // Use parent IDs detected during context analysis
+      if (context.parentIds) {
+        recipients.push(...context.parentIds.map((id: any) => id.toString()));
+      }
     } else if (target === 'group' && context.grade) {
-      // Find all parent IDs for a grade within this school
-      // const learnersInGrade = await db.collection('students').find({ grade: context.grade, schoolId }).toArray();
-      // recipients.push(...new Set(learnersInGrade.flatMap(l => l.parentIds)));
+      // Find all students in this grade for the specific school
+      const learnersInGrade = await db.collection('students')
+        .find({ grade: context.grade, schoolId: new ObjectId(schoolId) })
+        .toArray();
 
-      // Mocked recipients for group (All parents in Grade 10)
-      recipients.push('parent_id_1', 'parent_id_2', 'parent_id_3');
+      const parentIds = new Set(learnersInGrade.flatMap(l => l.parentIds || []));
+      recipients.push(...Array.from(parentIds).map((id: any) => id.toString()));
     }
 
     return recipients;
