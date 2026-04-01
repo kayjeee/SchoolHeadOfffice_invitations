@@ -29,3 +29,29 @@ export const SchoolSchema = z.object({
 });
 
 export type School = z.infer<typeof SchoolSchema>;
+
+export const ParticipantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(['teacher', 'parent', 'principal', 'staff']),
+  avatar: z.string().optional(),
+});
+
+export const MessageSchema = z.object({
+  conversationId: z.string(),
+  senderId: z.string(),
+  content: z.string(),
+  type: z.enum(['text', 'image', 'file', 'system']).default('text'),
+  status: z.enum(['sent', 'delivered', 'read']).default('sent'),
+  timestamp: z.date().default(() => new Date()),
+  metadata: z.record(z.any()).optional(),
+});
+
+export const ConversationSchema = z.object({
+  schoolId: z.string(),
+  type: z.enum(['direct', 'group']),
+  participants: z.array(ParticipantSchema),
+  metadata: z.record(z.any()).optional(),
+  createdAt: z.date().default(() => new Date()),
+  updatedAt: z.date().default(() => new Date()),
+});
