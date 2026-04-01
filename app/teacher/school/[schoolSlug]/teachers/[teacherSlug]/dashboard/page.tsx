@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSession } from '@auth0/nextjs-auth0';
+import { getSession, withPageAuthRequired } from '@auth0/nextjs-auth0';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
@@ -16,26 +16,15 @@ interface PageProps {
   }>;
 }
 
-export default async function DashboardPage(props: PageProps) {
+const DashboardPage = withPageAuthRequired(async (props: PageProps) => {
   const { params } = props;
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // In Next.js 15 App Router, we MUST await headers AND cookies to properly initialize the request context
-  // for @auth0/nextjs-auth0 v2.x.
-  let session = null;
-  try {
-    await headers();
-    await cookies();
-    session = await getSession();
-  } catch (e) {
-    console.warn(`⚠️ [App.Dashboard] Failed to retrieve session in Server Component:`, e);
-  }
+  // withPageAuthRequired handles session retrieval and redirection automatically
+  const session = await getSession();
 
   if (!session) {
-    // If we're on the server and getSession fails in a way that doesn't allow redirect,
-    // we'll let the client handle it or show a login link.
-    // However, usually redirect() works if called before any content is sent.
     redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
   }
   const user = session.user;
@@ -168,4 +157,6 @@ export default async function DashboardPage(props: PageProps) {
       </div>
     );
   }
-}
+});
+
+export default DashboardPage;

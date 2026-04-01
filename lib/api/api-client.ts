@@ -119,9 +119,15 @@ class ApiClient {
 
         return validatedData as T;
 
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
-        console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, (error as Error).message);
+
+        // Log common handled errors as informational
+        if (error.status === 409 || error.status === 404) {
+          console.log(`ℹ️ [API Request ${requestId}] Attempt ${i + 1} stopped: ${error.message}`);
+        } else {
+          console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, error.message);
+        }
         
         if (i < MAX_RETRIES - 1) {
           // Don't retry if it's a client error (4xx)
