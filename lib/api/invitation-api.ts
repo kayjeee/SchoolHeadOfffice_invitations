@@ -81,11 +81,18 @@ export class InvitationAPI {
         }
       } catch (error: any) {
         lastError = error;
-        // Log all errors for debugging, but proceed if it's a 404 or specific routing error
-        console.log(`ℹ️ [InvitationAPI.verifyToken] Endpoint ${endpoint} failed (${error.status || 'ERR'}): ${error.message}`);
 
-        // If we get something other than a 404/Routing error, it might be an actual validation failure
-        // from the correct endpoint, so we could theoretically stop, but for now we'll keep trying all.
+        // Handle 409 Conflict (Already accepted) as a special case
+        if (error.status === 409) {
+           const invitation = error.details?.data?.invitation || error.details?.invitation;
+           if (invitation) {
+              console.log(`ℹ️ [InvitationAPI.verifyToken] Endpoint ${endpoint} reported invitation already accepted. Returning details.`);
+              return invitation;
+           }
+        }
+
+        // Log other errors for debugging, but proceed to next endpoint
+        console.log(`ℹ️ [InvitationAPI.verifyToken] Endpoint ${endpoint} failed (${error.status || 'ERR'}): ${error.message}`);
       }
     }
 

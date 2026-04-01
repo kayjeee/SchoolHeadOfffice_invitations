@@ -21,13 +21,21 @@ export default async function DashboardPage(props: PageProps) {
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // In Next.js 15 App Router, ensure headers and cookies are awaited to initialize request context
-  // This helps @auth0/nextjs-auth0 v2.x find the request/response in AsyncLocalStorage
-  await headers();
-  await cookies();
-  const session = await getSession();
+  // In Next.js 15 App Router, we MUST await headers AND cookies to properly initialize the request context
+  // for @auth0/nextjs-auth0 v2.x.
+  let session = null;
+  try {
+    await headers();
+    await cookies();
+    session = await getSession();
+  } catch (e) {
+    console.warn(`⚠️ [App.Dashboard] Failed to retrieve session in Server Component:`, e);
+  }
 
   if (!session) {
+    // If we're on the server and getSession fails in a way that doesn't allow redirect,
+    // we'll let the client handle it or show a login link.
+    // However, usually redirect() works if called before any content is sent.
     redirect(`/api/auth/login?returnTo=/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`);
   }
   const user = session.user;
