@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -17,12 +17,7 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
@@ -37,7 +32,6 @@ function InnerLayout({
 }: DashboardLayoutWrapperProps) {
   const pathname = usePathname();
   const { godMode } = useGodmode();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Home', href: `/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`, icon: Home },
@@ -124,8 +118,6 @@ function InnerLayout({
     </div>
   );
 }
-
-import { useState } from 'react';
 
 export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProps) {
   return (
