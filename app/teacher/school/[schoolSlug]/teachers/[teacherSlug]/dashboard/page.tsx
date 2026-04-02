@@ -1,11 +1,11 @@
 import React from 'react';
-import { getSession } from '@auth0/nextjs-auth0';
+import { getSession, withPageAuthRequired } from '@auth0/nextjs-auth0';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
 import { DashboardData, ActivityLog, AgentStatus } from '@/lib/types/dashboard';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +16,15 @@ interface PageProps {
   }>;
 }
 
-export default async function DashboardPage(props: PageProps) {
+const DashboardPageBase = async (props: PageProps) => {
   const { params } = props;
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // In Next.js 15, we MUST await headers() to ensure the request is available for getSession()
+  // Explicitly await headers and cookies before getSession() to ensure
+  // the request context is initialized in Next.js 15 AsyncLocalStorage
   await headers();
+  await cookies();
 
   const session = await getSession();
 
@@ -159,4 +161,6 @@ export default async function DashboardPage(props: PageProps) {
       </div>
     );
   }
-}
+};
+
+export default withPageAuthRequired(DashboardPageBase as any);
