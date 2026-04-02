@@ -19,13 +19,23 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [lastSeenTimestamp, setLastSeenTimestamp] = React.useState<string | null>(null);
 
   useEffect(() => {
-    // Auto-scroll to bottom on new messages
+    // Set initial last seen on mount or when messages first load
+    if (!lastSeenTimestamp && messages.length > 0) {
+      setLastSeenTimestamp(messages[messages.length - 1].timestamp);
+    }
+  }, [messages, lastSeenTimestamp]);
+
+  useEffect(() => {
+    // Auto-scroll to bottom on new messages if already at bottom
+    // or if the message is from the current user
     if (bottomRef.current) {
+      const isMyMessage = messages.length > 0 && messages[messages.length - 1].sender_id === currentUserId;
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, currentUserId]);
 
   const getParticipant = (id: string) => {
     return participants.find(p => p.id === id);
@@ -83,9 +93,18 @@ export default function ChatWindow({
               const isMine = msg.sender_id === currentUserId;
               const sender = getParticipant(msg.sender_id);
 
+              const isNew = lastSeenTimestamp && new Date(msg.timestamp) > new Date(lastSeenTimestamp) && msg.sender_id !== currentUserId;
+
               return (
+                <React.Fragment key={msg.id}>
+                {isNew && msg.id === messages.find(m => new Date(m.timestamp) > new Date(lastSeenTimestamp!))?.id && (
+                  <div className="flex justify-center my-4">
+                    <span className="bg-primary-accent/10 border border-primary-accent/20 rounded-full px-4 py-1 text-[10px] font-bold text-primary-accent uppercase tracking-widest">
+                      New Messages Below
+                    </span>
+                  </div>
+                )}
                 <motion.div
-                  key={msg.id}
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.2 }}
@@ -144,6 +163,7 @@ export default function ChatWindow({
                     </div>
                   </div>
                 </motion.div>
+                </React.Fragment>
               );
             })}
             </AnimatePresence>

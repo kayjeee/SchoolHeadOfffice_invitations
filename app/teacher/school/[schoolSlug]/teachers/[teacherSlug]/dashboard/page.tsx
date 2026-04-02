@@ -21,7 +21,11 @@ export default async function DashboardPage(props: PageProps) {
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // Simplified pattern for App Router
+  // In Next.js 15, we MUST await headers() and cookies() to ensure
+  // the request context is available for getSession()
+  await headers();
+  await cookies();
+
   const session = await getSession();
 
   if (!session) {
