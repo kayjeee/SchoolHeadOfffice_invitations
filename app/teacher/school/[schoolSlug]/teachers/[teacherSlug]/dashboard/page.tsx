@@ -5,7 +5,7 @@ import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
 import { DashboardData, ActivityLog, AgentStatus } from '@/lib/types/dashboard';
 import { redirect } from 'next/navigation';
-import { headers, cookies } from 'next/headers';
+import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,12 +16,11 @@ interface PageProps {
   }>;
 }
 
-const DashboardPage = withPageAuthRequired(async (props: PageProps) => {
+const DashboardPage = withPageAuthRequired(async (props: any) => {
   const { params } = props;
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // withPageAuthRequired handles session retrieval and redirection automatically
   const session = await getSession();
 
   if (!session) {

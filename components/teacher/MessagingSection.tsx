@@ -308,8 +308,12 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                   onClick={() => createConversation(p)}
                   className="w-full p-3 rounded-2xl hover:bg-white/5 transition-all flex items-center gap-3 text-left"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 font-bold uppercase text-xs">
-                    {p.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 font-bold uppercase text-xs overflow-hidden">
+                    {p.avatar ? (
+                       <img src={p.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                       p.name.charAt(0)
+                    )}
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white/80">{p.name}</h4>
@@ -330,8 +334,16 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                   activeConversation?.id === conv.id ? "bg-white/10" : "hover:bg-white/5"
                 )}
               >
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 group-hover:border-white/10">
-                  {conv.type === 'group' ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 group-hover:border-white/10 overflow-hidden">
+                  {conv.type === 'group' ? (
+                    <Users className="w-5 h-5" />
+                  ) : (
+                    conv.participants.find(p => p.id !== currentUserId)?.avatar ? (
+                      <img src={conv.participants.find(p => p.id !== currentUserId)?.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
@@ -359,8 +371,16 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40">
-                  {activeConversation.type === 'group' ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-white/40 overflow-hidden">
+                  {activeConversation.type === 'group' ? (
+                    <Users className="w-5 h-5" />
+                  ) : (
+                    activeConversation.participants.find(p => p.id !== currentUserId)?.avatar ? (
+                      <img src={activeConversation.participants.find(p => p.id !== currentUserId)?.avatar} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )
+                  )}
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white/90">
@@ -388,10 +408,10 @@ export default function MessagingSection({ schoolId, currentUserId, godMode = fa
                   )}
                 >
                   <div className={cn(
-                    "px-4 py-3 rounded-2xl text-sm",
+                    "px-4 py-2.5 rounded-2xl text-[13.5px] leading-relaxed shadow-sm",
                     msg.senderId === currentUserId
-                      ? "bg-white/10 text-white/90 rounded-tr-none"
-                      : "bg-surface-container-high text-white/80 border border-white/5 rounded-tl-none"
+                      ? "bg-indigo-600 text-white rounded-tr-none"
+                      : "bg-surface-container-high text-white/90 border border-white/5 rounded-tl-none"
                   )}>
                     {msg.content}
                   </div>

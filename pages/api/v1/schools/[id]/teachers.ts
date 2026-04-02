@@ -19,16 +19,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Find teachers belonging to this school
       // In production, we'd also filter by the specific schoolId
-      const teachers = await db.collection('teachers')
-        .find({})
-        .limit(20)
-        .toArray();
+      // Find staff and parents for this school to start chats
+      const [teachers, parents] = await Promise.all([
+        db.collection('teachers').find({}).limit(20).toArray(),
+        db.collection('parents').find({}).limit(20).toArray()
+      ]);
 
-      res.status(200).json(teachers.map(t => ({
+      const staffContacts = teachers.map(t => ({
         id: t.auth0Id || t._id.toString(),
         name: t.name || 'Unknown Staff',
-        role: t.role || 'teacher'
-      })));
+        role: t.role || 'teacher',
+        avatar: t.avatar || t.profile_image
+      }));
+
+      const parentContacts = parents.map(p => ({
+        id: p.auth0Id || p._id.toString(),
+        name: p.name || 'Parent',
+        role: 'parent',
+        avatar: p.avatar
+      }));
+
+      res.status(200).json([...staffContacts, ...parentContacts]);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
