@@ -29,7 +29,7 @@ export default function ParentDashboard({ user, profile, learners }: DashboardPr
       case "behavior":
         return <BehaviorTab learners={learners} isPremium={isPremium} />;
       case "messages":
-        return <MessagesTab />;
+        return <MessagesTab schoolId={profile?.school_id} />;
       case "assignments":
         return <AssignmentsTab learners={learners} />;
       case "reports":

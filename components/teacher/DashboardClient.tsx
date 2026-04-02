@@ -5,6 +5,7 @@ import { useGodmode } from '@/context/GodmodeContext';
 import PromptInput from '@/components/teacher/PromptInput';
 import ActivityFeed from '@/components/teacher/ActivityFeed';
 import AgentStatusList from '@/components/teacher/AgentStatusList';
+import MessagingSection from '@/components/teacher/MessagingSection';
 import {
   Zap,
   TrendingUp,
@@ -166,6 +167,21 @@ export default function DashboardClient({
                 </button>
               </div>
               <ActivityFeed activities={data.activities} godMode={godMode} />
+            </div>
+
+            {/* Messaging Section */}
+            <div className="space-y-4">
+               <div className="flex items-center justify-between px-2">
+                <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
+                  <MessageSquare className={cn("w-3.5 h-3.5", accentColor)} />
+                  Intelligent Messaging
+                </h3>
+              </div>
+              <MessagingSection
+                schoolId={data.school.id}
+                currentUserId={data.teacher.auth0Id || data.teacher.id}
+                godMode={godMode}
+              />
             </div>
 
             {/* Active Classes Section */}

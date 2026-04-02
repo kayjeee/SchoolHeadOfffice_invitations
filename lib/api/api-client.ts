@@ -82,13 +82,15 @@ class ApiClient {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
 
-          // Don't retry on client errors (4xx)
-          if (response.status >= 400 && response.status < 500) {
-            throw new APIError(response.status, response.statusText, errorData);
+          // Log common handled errors as informational to reduce log noise
+          if (response.status === 409 || response.status === 404) {
+            console.log(`ℹ️ [API Response ${requestId}] ${response.status === 409 ? 'CONFLICT' : 'NOT FOUND'} (${response.status}) ${duration}ms:`, errorData.message || '');
+          } else {
+            console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
           }
 
+          // Throw custom error for caller to handle
           throw new APIError(response.status, response.statusText, errorData);
         }
 
@@ -117,9 +119,15 @@ class ApiClient {
 
         return validatedData as T;
 
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
-        console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, (error as Error).message);
+
+        // Log common handled errors as informational
+        if (error.status === 409 || error.status === 404) {
+          console.log(`ℹ️ [API Request ${requestId}] Attempt ${i + 1} stopped: ${error.message}`);
+        } else {
+          console.error(`❌ [API Request ${requestId}] Attempt ${i + 1} failed:`, error.message);
+        }
         
         if (i < MAX_RETRIES - 1) {
           // Don't retry if it's a client error (4xx)

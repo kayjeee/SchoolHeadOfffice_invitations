@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSession } from '@auth0/nextjs-auth0';
+import { getSession, withPageAuthRequired } from '@auth0/nextjs-auth0';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { EngagementAPI } from '@/lib/api/engagement-api';
 import DashboardClient from '@/components/teacher/DashboardClient';
@@ -16,14 +16,11 @@ interface PageProps {
   }>;
 }
 
-export default async function DashboardPage(props: PageProps) {
+const DashboardPage = withPageAuthRequired(async (props: any) => {
   const { params } = props;
   const { schoolSlug, teacherSlug } = await params;
 
   // 1. Authentication & Session
-  // In Next.js 15, we MUST await headers() to ensure the request is available for getSession()
-  await headers();
-
   const session = await getSession();
 
   if (!session) {
@@ -159,4 +156,6 @@ export default async function DashboardPage(props: PageProps) {
       </div>
     );
   }
-}
+});
+
+export default DashboardPage;
