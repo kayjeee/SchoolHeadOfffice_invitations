@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/router';
 import {
   Home,
   Users,
@@ -30,7 +31,11 @@ function InnerLayout({
   schoolSlug,
   teacherSlug
 }: DashboardLayoutWrapperProps) {
-  const pathname = usePathname();
+  // Support both App Router and Pages Router
+  const nextPathname = usePathname();
+  const pagesRouter = useRouter();
+  const pathname = nextPathname || pagesRouter?.asPath || '';
+
   const { godMode } = useGodmode();
 
   const navItems = [
