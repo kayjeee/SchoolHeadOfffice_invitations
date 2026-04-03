@@ -15,7 +15,7 @@ import {
   Heart,
   ChevronRight,
   MoreHorizontal,
-  Plus,
+  Plus as PlusIcon,
   LayoutDashboard,
   ArrowUpRight,
   MessageSquare,
@@ -101,7 +101,7 @@ export default function DashboardClient({
             </div>
 
             <button className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-2xl transition-all text-xs font-bold uppercase tracking-widest">
-              <Plus className="w-4 h-4" />
+              <PlusIcon className="w-4 h-4" />
               New Report
             </button>
           </div>

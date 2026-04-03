@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Send, Plus, Wand2 } from 'lucide-react';
+import { Send, Plus as PlusIcon, Wand2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -32,7 +32,7 @@ export default function PromptInput({ godMode = false }: PromptInputProps) {
       />
       <div className="flex items-center gap-1 pr-1">
         <button className="p-2 text-white/40 hover:text-white/60 hover:bg-white/5 rounded-xl transition-all">
-          <Plus className="w-5 h-5" />
+          <PlusIcon className="w-5 h-5" />
         </button>
         <button className={cn(
           "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95",
