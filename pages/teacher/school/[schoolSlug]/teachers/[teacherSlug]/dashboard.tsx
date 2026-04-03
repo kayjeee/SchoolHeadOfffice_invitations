@@ -134,7 +134,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return {
       props: {
-        initialData: dashboardData,
+        initialData: JSON.parse(JSON.stringify(dashboardData)),
         schoolSlug,
         teacherSlug,
       },
