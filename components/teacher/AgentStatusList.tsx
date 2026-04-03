@@ -9,7 +9,8 @@ import {
   Circle,
   AlertCircle,
   MoreVertical,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
