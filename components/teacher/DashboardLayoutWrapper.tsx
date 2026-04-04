@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/router';
 import {
   Home,
   Users,
@@ -17,12 +18,7 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
@@ -35,9 +31,12 @@ function InnerLayout({
   schoolSlug,
   teacherSlug
 }: DashboardLayoutWrapperProps) {
-  const pathname = usePathname();
+  // Support both App Router and Pages Router
+  const nextPathname = usePathname();
+  const pagesRouter = useRouter();
+  const pathname = nextPathname || pagesRouter?.asPath || '';
+
   const { godMode } = useGodmode();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
     { name: 'Home', href: `/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`, icon: Home },
@@ -124,8 +123,6 @@ function InnerLayout({
     </div>
   );
 }
-
-import { useState } from 'react';
 
 export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProps) {
   return (

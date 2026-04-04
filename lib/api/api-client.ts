@@ -82,7 +82,13 @@ class ApiClient {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
+
+          // Log common 4xx errors as informational to reduce noise
+          if (response.status === 404 || response.status === 409) {
+            console.log(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
+          } else {
+            console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
+          }
 
           // Don't retry on client errors (4xx)
           if (response.status >= 400 && response.status < 500) {

@@ -5,6 +5,7 @@ import { useGodmode } from '@/context/GodmodeContext';
 import PromptInput from '@/components/teacher/PromptInput';
 import ActivityFeed from '@/components/teacher/ActivityFeed';
 import AgentStatusList from '@/components/teacher/AgentStatusList';
+import MessagingSection from '@/components/teacher/messaging/MessagingSection';
 import {
   Zap,
   TrendingUp,
@@ -14,12 +15,13 @@ import {
   Heart,
   ChevronRight,
   MoreHorizontal,
-  Plus,
+  Plus as PlusIcon,
   LayoutDashboard,
-  ArrowUpRight
+  ArrowUpRight,
+  MessageSquare,
+  Activity as ActivityIcon
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 import { DashboardData } from '@/lib/types/dashboard';
 import Link from 'next/link';
 
@@ -30,10 +32,6 @@ const Activity = ({ className }: { className?: string }) => (
 const Shield = ({ className }: { className?: string }) => (
   <Zap className={className} />
 );
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface DashboardClientProps {
   initialData: DashboardData;
@@ -48,6 +46,7 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const { godMode, setGodMode } = useGodmode();
   const [data, setData] = useState<DashboardData>(initialData);
+  const [activeTab, setActiveTab] = useState<'overview' | 'messages'>('overview');
 
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
   const accentBg = godMode ? 'bg-secondary-accent/10' : 'bg-primary-accent/10';
@@ -102,7 +101,7 @@ export default function DashboardClient({
             </div>
 
             <button className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-2xl transition-all text-xs font-bold uppercase tracking-widest">
-              <Plus className="w-4 h-4" />
+              <PlusIcon className="w-4 h-4" />
               New Report
             </button>
           </div>
@@ -129,11 +128,44 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 p-1 bg-surface-container/50 border border-white/5 rounded-2xl w-fit">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
+              activeTab === 'overview'
+                ? "bg-white/10 text-white shadow-xl"
+                : "text-white/40 hover:text-white/60 hover:bg-white/5"
+            )}
+          >
+            <ActivityIcon className="w-4 h-4" />
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
+              activeTab === 'messages'
+                ? "bg-white/10 text-white shadow-xl"
+                : "text-white/40 hover:text-white/60 hover:bg-white/5"
+            )}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Messaging
+          </button>
+        </div>
 
-          {/* Main Dashboard Stream */}
-          <div className="lg:col-span-8 space-y-8">
+        {activeTab === 'messages' ? (
+          <div className="pt-4">
+            <MessagingSection currentUserId={data.teacher.id} godMode={godMode} />
+          </div>
+        ) : (
+          /* Content Grid */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4">
+
+            {/* Main Dashboard Stream */}
+            <div className="lg:col-span-8 space-y-8">
 
             {/* Stats Ribbon */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -247,8 +279,9 @@ export default function DashboardClient({
                   </button>
                </div>
              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
   );
 }

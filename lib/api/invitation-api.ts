@@ -81,6 +81,17 @@ export class InvitationAPI {
         }
       } catch (error: any) {
         lastError = error;
+
+        // Special handling for 409 Conflict: It means the invitation was already accepted,
+        // but the endpoint still returns the data in the error details.
+        if (error.status === 409 && error.details) {
+          const invitation = error.details.data?.invitation || error.details.invitation;
+          if (invitation) {
+            console.log(`✅ [InvitationAPI.verifyToken] Success at ${endpoint} (Handled 409)`);
+            return invitation;
+          }
+        }
+
         // Log all errors for debugging, but proceed if it's a 404 or specific routing error
         console.log(`ℹ️ [InvitationAPI.verifyToken] Endpoint ${endpoint} failed (${error.status || 'ERR'}): ${error.message}`);
 
