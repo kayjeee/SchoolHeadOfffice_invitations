@@ -44,6 +44,12 @@ export class APIError extends Error {
 // CORE HTTP CLIENT
 // ========================
 class ApiClient {
+  private accessToken: string | null = null;
+
+  setAccessToken(token: string | null) {
+    this.accessToken = token;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit,
@@ -70,12 +76,18 @@ class ApiClient {
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
         const start = Date.now();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...((options.headers as Record<string, string>) || {}),
+        };
+
+        if (this.accessToken) {
+          headers['Authorization'] = `Bearer ${this.accessToken}`;
+        }
+
         const response = await fetch(url, {
           ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
+          headers,
         });
 
         const duration = Date.now() - start;

@@ -158,7 +158,11 @@ export default function DashboardClient({
 
         {activeTab === 'messages' ? (
           <div className="pt-4">
-            <MessagingSection currentUserId={data.teacher.id} godMode={godMode} />
+            <MessagingSection
+              currentUserId={data.teacher.id}
+              schoolId={data.school.id}
+              godMode={godMode}
+            />
           </div>
         ) : (
           /* Content Grid */
