@@ -44,7 +44,7 @@ export class MessagingAPI {
    * Mark messages in a conversation as read
    */
   static async markAsRead(conversationId: string): Promise<{ success: boolean }> {
-    return apiClient.post(`/conversations/${conversationId}/read`, {}, z.object({ success: z.boolean() }));
+    return apiClient.put(`/conversations/${conversationId}/read`, {}, z.object({ success: z.boolean() }));
   }
 
   /**

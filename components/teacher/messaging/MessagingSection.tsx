@@ -1,23 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import ConversationList from './ConversationList';
+import DirectoryList from './DirectoryList';
 import ChatWindow from './ChatWindow';
 import MessageInput from './MessageInput';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
+import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Participant } from '@/lib/types/messaging';
-import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2 } from 'lucide-react';
+import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MessagingSectionProps {
   currentUserId: string;
+  schoolId: string;
   godMode?: boolean;
 }
 
 export default function MessagingSection({
   currentUserId,
+  schoolId,
   godMode = false,
 }: MessagingSectionProps) {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [showDirectory, setShowDirectory] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -38,11 +43,23 @@ export default function MessagingSection({
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
     setShowMobileList(false);
+    setShowDirectory(false);
   };
 
   const handleBackToList = () => {
     setShowMobileList(true);
   };
+
+  // Mark as read when active conversation changes
+  useEffect(() => {
+    if (activeConvId) {
+      MessagingAPI.markAsRead(activeConvId).then(() => {
+        refreshConvs();
+      }).catch(err => {
+        console.warn('Failed to mark conversation as read:', err);
+      });
+    }
+  }, [activeConvId]);
 
   const onSendMessage = async (content: string) => {
     if (!activeConvId) return;
@@ -92,17 +109,26 @@ export default function MessagingSection({
 
       <div className="flex h-full relative z-10">
 
-        {/* Left Panel - Conversation List */}
+        {/* Left Panel - Conversation List or Directory */}
         <div className={cn(
           "w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300",
           !showMobileList && "hidden md:flex"
         )}>
-           <ConversationList
-             conversations={conversations}
-             activeConversationId={activeConvId}
-             onSelectConversation={handleSelectConversation}
-             currentUserId={currentUserId}
-           />
+           {showDirectory ? (
+             <DirectoryList
+               schoolId={schoolId}
+               onSelectConversation={handleSelectConversation}
+               onBack={() => setShowDirectory(false)}
+             />
+           ) : (
+             <ConversationList
+               conversations={conversations}
+               activeConversationId={activeConvId}
+               onSelectConversation={handleSelectConversation}
+               currentUserId={currentUserId}
+               onNewMessage={() => setShowDirectory(true)}
+             />
+           )}
         </div>
 
         {/* Right Panel - Chat Area */}
@@ -247,9 +273,10 @@ export default function MessagingSection({
                  </p>
                </div>
                <button
-                 onClick={() => {/* Open new conversation modal */}}
-                 className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+                 onClick={() => setShowDirectory(true)}
+                 className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-2 group/btn"
                >
+                 <Users className={cn("w-4 h-4 transition-colors", godMode ? "group-hover/btn:text-secondary-accent" : "group-hover/btn:text-primary-accent")} />
                  New Message
                </button>
             </div>

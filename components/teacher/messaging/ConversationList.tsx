@@ -1,12 +1,13 @@
 import React from 'react';
 import { Conversation, Participant } from '@/lib/types/messaging';
-import { Search, User } from 'lucide-react';
+import { Search, User, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConversationListProps {
   conversations: Conversation[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
+  onNewMessage: () => void;
   currentUserId: string;
 }
 
@@ -40,7 +41,16 @@ export default function ConversationList({
     <div className="flex flex-col h-full bg-surface-container border-r border-white/5 overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-white/5 space-y-4">
-        <h2 className="text-xl font-bold text-white/90">Messages</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white/90">Messages</h2>
+          <button
+            onClick={onNewMessage}
+            className="p-2 hover:bg-white/5 rounded-xl text-primary-accent transition-all active:scale-95"
+            title="New Message"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/40 transition-colors" />
           <input
@@ -109,7 +119,7 @@ export default function ConversationList({
                       {lastMsg ? lastMsg.content : "Start a conversation"}
                     </p>
                     {conv.unread_count > 0 && (
-                      <span className="shrink-0 bg-primary-accent text-on-primary-fixed text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                      <span className="shrink-0 bg-primary-accent text-on-primary-fixed text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center animate-pulse">
                         {conv.unread_count}
                       </span>
                     )}
