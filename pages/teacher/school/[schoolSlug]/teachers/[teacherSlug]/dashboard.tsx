@@ -68,14 +68,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       return { notFound: true };
     }
 
-    // B. Teacher Lookup
+    // B. Teacher Lookup - Prioritize matching by Auth0 ID to handle name collisions correctly
     const coreTeachers = await SchoolAPI.getTeachers(coreSchool.id);
-    const coreTeacherBrief = coreTeachers.find(t => {
-      const auth0Match = t.auth0_id === user.sub;
-      const slugMatch = t.slug === teacherSlug;
-      const idMatch = (shortId && t.id.endsWith(shortId));
-      return auth0Match || slugMatch || idMatch;
-    });
+
+    // Find teacher: try Auth0 ID first, then slug, then short ID
+    const coreTeacherBrief =
+      coreTeachers.find(t => t.auth0_id === user.sub) ||
+      coreTeachers.find(t => t.slug === teacherSlug) ||
+      coreTeachers.find(t => shortId && t.id.endsWith(shortId));
 
     if (!coreTeacherBrief) {
        return { notFound: true };
