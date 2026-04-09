@@ -26,6 +26,7 @@ const InvitationSchema = z.object({
   teacher_name: z.string().nullable().optional(),
   teacher_slug: z.string().nullable().optional(),
   school_slug: z.string().nullable().optional(),
+  school_name: z.string().nullable().optional(),
 }).passthrough();
 
 /**
