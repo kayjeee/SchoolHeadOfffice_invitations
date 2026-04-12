@@ -2,13 +2,16 @@ import { useState, useRef, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
+import { useApi } from './useApi';
 
 /**
  * Hook for managing conversations list
  */
 export function useConversations() {
+  const { accessToken, isLoading: isAuthLoading } = useApi();
+
   const { data: conversations = [], error, isLoading } = useSWR(
-    '/conversations',
+    accessToken ? '/conversations' : null,
     () => MessagingAPI.getConversations(),
     {
       refreshInterval: 5000,
@@ -18,7 +21,7 @@ export function useConversations() {
 
   return {
     conversations,
-    loading: isLoading,
+    loading: isLoading || isAuthLoading,
     error,
     refresh: () => mutate('/conversations')
   };
@@ -28,12 +31,13 @@ export function useConversations() {
  * Hook for managing messages in a specific conversation
  */
 export function useMessages(conversationId: string | null) {
+  const { accessToken, isLoading: isAuthLoading } = useApi();
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   // Fetch messages using SWR
   const { data: remoteMessages = [], error, isLoading } = useSWR(
-    conversationId ? `/conversations/${conversationId}/messages` : null,
+    (accessToken && conversationId) ? `/conversations/${conversationId}/messages` : null,
     () => MessagingAPI.getMessages(conversationId!),
     {
       refreshInterval: 3000,

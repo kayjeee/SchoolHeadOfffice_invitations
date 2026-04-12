@@ -44,6 +44,15 @@ export class APIError extends Error {
 // CORE HTTP CLIENT
 // ========================
 class ApiClient {
+  private accessToken: string | null = null;
+
+  /**
+   * Set the Auth0 access token to be used for requests.
+   */
+  public setAccessToken(token: string | null) {
+    this.accessToken = token;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit,
@@ -70,12 +79,18 @@ class ApiClient {
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
         const start = Date.now();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...((options.headers as Record<string, string>) || {}),
+        };
+
+        if (this.accessToken) {
+          headers['Authorization'] = `Bearer ${this.accessToken}`;
+        }
+
         const response = await fetch(url, {
           ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
+          headers,
         });
 
         const duration = Date.now() - start;
@@ -88,6 +103,14 @@ class ApiClient {
             console.log(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
           } else {
             console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
+          }
+
+          // Handle 401 Unauthorized
+          if (response.status === 401) {
+            console.error(`🔒 [API Response ${requestId}] UNAUTHORIZED. Redirecting to login...`);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/api/auth/login';
+            }
           }
 
           // Don't retry on client errors (4xx)
