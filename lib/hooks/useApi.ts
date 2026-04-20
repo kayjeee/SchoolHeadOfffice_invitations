@@ -28,6 +28,9 @@ export function useApi() {
         const token = data.accessToken;
         setAccessToken(token);
         apiClient.setAccessToken(token);
+        if (user?.email) {
+          apiClient.setUserEmail(user.email);
+        }
       } else if (response.status === 401) {
         // Not authenticated with Auth0
         setAccessToken(null);

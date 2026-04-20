@@ -30,9 +30,14 @@ export class APIError extends Error {
 
 class ApiClient {
   private accessToken: string | null = null;
+  private userEmail: string | null = null;
 
   public setAccessToken(token: string | null) {
     this.accessToken = token;
+  }
+
+  public setUserEmail(email: string | null) {
+    this.userEmail = email;
   }
 
   private async request<T>(
@@ -60,6 +65,10 @@ class ApiClient {
 
         if (this.accessToken) {
           headers['Authorization'] = `Bearer ${this.accessToken}`;
+        }
+
+        if (this.userEmail && !headers['X-User-Email']) {
+          headers['X-User-Email'] = this.userEmail;
         }
 
         const response = await fetch(url, { ...options, headers });
@@ -106,6 +115,10 @@ class ApiClient {
 
   post<T>(endpoint: string, body: unknown, schema: z.ZodType<T>, options: RequestInit = {}): Promise<T> {
     return this.request(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }, schema);
+  }
+
+  put<T>(endpoint: string, body: unknown, schema: z.ZodType<T>, options: RequestInit = {}): Promise<T> {
+    return this.request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }, schema);
   }
 }
 

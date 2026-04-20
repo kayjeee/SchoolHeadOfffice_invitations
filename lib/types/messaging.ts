@@ -4,7 +4,7 @@ export const ParticipantSchema = z.object({
   id: z.string(),
   name: z.string(),
   avatar: z.string().optional(),
-  role: z.enum(['teacher', 'parent', 'principal', 'admin']),
+  role: z.enum(['teacher', 'parent', 'principal', 'admin', 'staff']),
   online_status: z.enum(['online', 'offline']).optional().default('offline'),
 });
 
