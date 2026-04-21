@@ -6,6 +6,7 @@ import MessageInput from './MessageInput';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
+import { SchoolAPI } from '@/lib/api/school-api';
 import { Participant } from '@/lib/types/messaging';
 import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2, Users, GraduationCap, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -162,12 +163,12 @@ export default function MessagingSection({
 
       <div className="flex h-full relative z-10">
 
-        {/* Left Panel - Sidebar (Conversations or Directory) */}
+        {/* Left Panel - Sidebar (Conversations or Directory on Mobile Only) */}
         <div className={cn(
           "w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300",
           !showMobileList && "hidden md:flex"
         )}>
-           {showDirectory ? (
+           {showDirectory && showMobileList ? (
              <DirectoryList
                schoolId={schoolId}
                onSelectConversation={handleSelectConversation}
@@ -187,7 +188,7 @@ export default function MessagingSection({
            )}
         </div>
 
-        {/* Right Panel - Main Content (Chat Window or Placeholder) */}
+        {/* Right Panel - Main Content (Chat Window, Directory, or Placeholder) */}
         <div className={cn(
           "flex-1 flex flex-col min-w-0 transition-all duration-300",
           showMobileList && "hidden md:flex"
@@ -314,6 +315,16 @@ export default function MessagingSection({
                 </div>
               </div>
             </>
+          ) : showDirectory ? (
+             <div className="flex-1 overflow-hidden">
+                <DirectoryList
+                  schoolId={schoolId}
+                  onSelectConversation={handleSelectConversation}
+                  onBack={() => setShowDirectory(false)}
+                  existingConversations={conversations}
+                  currentUserId={currentUserId}
+                />
+             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
                <div className="relative">
