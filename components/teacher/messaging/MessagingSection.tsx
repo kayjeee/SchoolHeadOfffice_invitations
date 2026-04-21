@@ -37,7 +37,23 @@ export default function MessagingSection({
 
   const otherParticipant = useMemo(() => {
     if (!activeConversation) return null;
-    return activeConversation.participants.find(p => p.id !== currentUserId) || activeConversation.participants[0];
+
+    // Defensively handle participants and participant_ids
+    const participants = activeConversation.participants || [];
+    const participantIds = (activeConversation as any).participant_ids || [];
+
+    // Prioritize object-based participants if available
+    if (participants.length > 0) {
+       return participants.find(p => p.id?.toString() !== currentUserId?.toString()) || participants[0];
+    }
+
+    // Fallback to participant_ids if object-based participants are missing
+    if (participantIds.length > 0) {
+       const otherId = participantIds.find((id: any) => id?.toString() !== currentUserId?.toString());
+       return otherId ? { id: otherId.toString(), name: 'Contact', role: 'staff' } as Participant : null;
+    }
+
+    return null;
   }, [activeConversation, currentUserId]);
 
   const handleSelectConversation = (id: string) => {
@@ -167,7 +183,7 @@ export default function MessagingSection({
 
                   <div className="min-w-0">
                     <h3 className="font-bold text-white/90 text-sm md:text-base truncate">
-                      {activeConversation?.title || otherParticipant?.name}
+                      {activeConversation?.title || otherParticipant?.name || 'Contact'}
                     </h3>
                     <p className="text-[10px] md:text-[11px] font-bold text-white/20 uppercase tracking-widest flex items-center gap-1.5">
                       {otherParticipant?.online_status === 'online' ? (
