@@ -20,8 +20,9 @@ export default function ConversationList({
 }: ConversationListProps) {
 
   const getOtherParticipant = (participants: any[]): any | null => {
-    if (!participants || !Array.isArray(participants) || participants.length === 0) return null;
-    return participants.find(p => (p.id || p) !== currentUserId) || participants[0];
+    const pList = participants || [];
+    if (pList.length === 0) return null;
+    return pList.find(p => (p.id || p) !== currentUserId) || pList[0];
   };
 
   const formatDate = (dateStr: string) => {
@@ -42,8 +43,10 @@ export default function ConversationList({
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const filteredConversations = conversations.filter(conv => {
-    // Safely handle missing participants or participant_ids
-    const participants = conv.participants || (conv as any).participant_ids || [];
+    // Pattern: const participants = conv.participant_ids || [];
+    const participants = (conv as any).participant_ids || conv.participants || [];
+
+    // Skip conversations that don't have valid participant data
     if (!Array.isArray(participants) || participants.length === 0) return false;
 
     const other = getOtherParticipant(participants);
@@ -91,9 +94,10 @@ export default function ConversationList({
           </div>
         ) : (
           filteredConversations.map((conv) => {
-            const participants = conv.participants || (conv as any).participant_ids || [];
+            const participants = (conv as any).participant_ids || conv.participants || [];
             const other = getOtherParticipant(participants);
 
+            // Skip conversations that don't have valid participant data
             if (!other) return null;
 
             const displayName = conv.title || (typeof other === 'object' ? other.name : 'Unknown');
