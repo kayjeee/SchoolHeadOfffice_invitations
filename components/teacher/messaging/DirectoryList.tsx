@@ -9,6 +9,8 @@ interface DirectoryListProps {
   schoolId: string;
   onSelectConversation: (id: string) => void;
   onBack: () => void;
+  existingConversations?: any[];
+  currentUserId?: string;
 }
 
 type DirectoryData = {
@@ -21,6 +23,8 @@ export default function DirectoryList({
   schoolId,
   onSelectConversation,
   onBack,
+  existingConversations = [],
+  currentUserId,
 }: DirectoryListProps) {
   const [directory, setDirectory] = useState<DirectoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,9 +43,21 @@ export default function DirectoryList({
   }, [schoolId]);
 
   const handleContactClick = async (contactId: string) => {
+    // 1. Check if conversation already exists in local state
+    const existing = existingConversations.find(conv => {
+      const participants = conv.participants || conv.participant_ids || [];
+      const ids = participants.map((p: any) => (p.id || p).toString());
+      return ids.includes(contactId.toString()) && ids.includes(currentUserId?.toString());
+    });
+
+    if (existing) {
+      onSelectConversation(existing.id);
+      return;
+    }
+
+    // 2. If not, create new one
     setCreatingConvId(contactId);
     try {
-      // Create or get existing conversation
       const conv = await MessagingAPI.createConversation([contactId], schoolId);
       onSelectConversation(conv.id);
     } catch (err) {
@@ -58,10 +74,20 @@ export default function DirectoryList({
     );
   };
 
+  // Filter out duplicates from API response just in case
+  const getUniqueContacts = (contacts: Participant[]) => {
+    const seen = new Set();
+    return contacts.filter(c => {
+      if (seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+  };
+
   const sections = [
-    { title: 'Admins', icon: Shield, data: directory?.admins || [] },
-    { title: 'Teachers', icon: GraduationCap, data: directory?.teachers || [] },
-    { title: 'Parents', icon: Users, data: directory?.parents || [] },
+    { title: 'Admins', icon: Shield, data: getUniqueContacts(directory?.admins || []) },
+    { title: 'Teachers', icon: GraduationCap, data: getUniqueContacts(directory?.teachers || []) },
+    { title: 'Parents', icon: Users, data: getUniqueContacts(directory?.parents || []) },
   ];
 
   if (loading) {

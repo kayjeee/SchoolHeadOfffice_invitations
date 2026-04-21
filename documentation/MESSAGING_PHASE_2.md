@@ -26,6 +26,7 @@ A new, robust Directory component has been implemented:
   - **Teachers** (GraduationCap icon)
   - **Parents** (Users icon)
 - **Search Filter**: Real-time filtering by contact name is implemented across all groups.
+- **Duplicate Prevention**: The component filters out duplicate contacts from the API response and checks for existing local conversations before attempting to create a new one, ensuring a clean and efficient user experience.
 - **Conversation Initiation**: Clicking a contact initiates a new conversation via `MessagingAPI.createConversation`, passing the `schoolId` to ensure the backend can correctly context-bind the new chat.
 
 ## 4. Conversation Management (`components/teacher/messaging/ConversationList.tsx`)

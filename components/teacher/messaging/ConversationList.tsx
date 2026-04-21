@@ -9,6 +9,7 @@ interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   currentUserId: string;
   onNewMessage?: () => void;
+  contactMap?: Map<string, Participant>;
 }
 
 export default function ConversationList({
@@ -17,12 +18,22 @@ export default function ConversationList({
   onSelectConversation,
   currentUserId,
   onNewMessage,
+  contactMap,
 }: ConversationListProps) {
 
   const getOtherParticipant = (participants: any[]): any | null => {
     const pList = participants || [];
     if (pList.length === 0) return null;
-    return pList.find(p => (p.id || p) !== currentUserId) || pList[0];
+    const other = pList.find(p => (p.id?.toString() || p?.toString()) !== currentUserId?.toString()) || pList[0];
+
+    // Resolve from contactMap if possible
+    if (other && contactMap) {
+      const id = other.id?.toString() || other?.toString();
+      const resolved = contactMap.get(id);
+      if (resolved) return { ...(typeof other === 'object' ? other : {}), ...resolved };
+    }
+
+    return other;
   };
 
   const formatDate = (dateStr: string) => {
