@@ -96,7 +96,7 @@ export default function MessagingSection({
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
     setShowMobileList(false);
-    setShowDirectory(false);
+    setShowDirectory(false); // 💡 Ensure directory view is closed when a conversation is selected
   };
 
   const handleBackToList = () => {
@@ -162,29 +162,19 @@ export default function MessagingSection({
 
       <div className="flex h-full relative z-10">
 
-        {/* Left Panel - Conversation List or Directory */}
+        {/* Left Panel - Conversation List */}
         <div className={cn(
           "w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300",
           !showMobileList && "hidden md:flex"
         )}>
-           {showDirectory ? (
-             <DirectoryList
-               schoolId={schoolId}
-               onSelectConversation={handleSelectConversation}
-               onBack={() => setShowDirectory(false)}
-               existingConversations={conversations}
-               currentUserId={currentUserId}
-             />
-           ) : (
-             <ConversationList
-               conversations={conversations}
-               activeConversationId={activeConvId}
-               onSelectConversation={handleSelectConversation}
-               currentUserId={currentUserId}
-               onNewMessage={() => setShowDirectory(true)}
-               contactMap={contactMap}
-             />
-           )}
+           <ConversationList
+             conversations={conversations}
+             activeConversationId={activeConvId}
+             onSelectConversation={handleSelectConversation}
+             currentUserId={currentUserId}
+             onNewMessage={() => setShowDirectory(true)}
+             contactMap={contactMap}
+           />
         </div>
 
         {/* Right Panel - Chat Area */}
