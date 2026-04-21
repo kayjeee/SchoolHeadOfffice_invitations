@@ -20,6 +20,13 @@ export default function MessageInput({
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // 💡 Auto-focus textarea on mount (when chat window opens)
+  useEffect(() => {
+    if (textareaRef.current && !disabled) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (message.trim() && !isSending && !disabled) {
