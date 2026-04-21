@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Participant } from '@/lib/types/messaging';
-import { Search, User, Shield, Users, GraduationCap, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, User, Shield, Users, GraduationCap, ChevronRight, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DirectoryListProps {
@@ -146,11 +146,17 @@ export default function DirectoryList({
                       </p>
                     </div>
 
-                    {creatingConvId === contact.id ? (
-                      <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
-                    )}
+                    <div className="flex items-center gap-2">
+                       {creatingConvId === contact.id ? (
+                         <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
+                       ) : (
+                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-accent/10 rounded-xl group-hover:bg-primary-accent/20 transition-all">
+                            <MessageSquare className="w-3.5 h-3.5 text-primary-accent" />
+                            <span className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">Message</span>
+                         </div>
+                       )}
+                       <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                    </div>
                   </button>
                 ))}
               </div>

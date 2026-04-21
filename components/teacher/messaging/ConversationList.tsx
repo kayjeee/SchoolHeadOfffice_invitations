@@ -38,6 +38,13 @@ export default function ConversationList({
     }
   };
 
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const filteredConversations = conversations.filter(conv => {
+    const other = getOtherParticipant(conv.participants);
+    return (conv.title || other.name).toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="flex flex-col h-full bg-surface-container border-r border-white/5 overflow-hidden">
       {/* Header */}
@@ -57,6 +64,8 @@ export default function ConversationList({
           <input
             type="text"
             placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all"
           />
         </div>
@@ -64,12 +73,14 @@ export default function ConversationList({
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {conversations.length === 0 ? (
+        {filteredConversations.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm text-white/20 font-medium">No conversations yet</p>
+            <p className="text-sm text-white/20 font-medium">
+              {searchQuery ? "No conversations found" : "No conversations yet"}
+            </p>
           </div>
         ) : (
-          conversations.map((conv) => {
+          filteredConversations.map((conv) => {
             const other = getOtherParticipant(conv.participants);
             const isActive = activeConversationId === conv.id;
             const lastMsg = conv.last_message;
