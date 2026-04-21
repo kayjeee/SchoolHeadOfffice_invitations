@@ -285,16 +285,25 @@ export default function MessagingSection({
                <div className="space-y-2">
                  <h3 className="text-xl font-black text-white/90">Select a conversation</h3>
                  <p className="text-sm text-white/40 max-w-xs mx-auto">
-                    Choose a contact from the left panel to start communicating with parents and faculty.
+                    Choose a contact from the left panel or open the school directory to start communicating with parents and faculty.
                  </p>
                </div>
-               <button
-                 onClick={() => setShowDirectory(true)}
-                 className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-2 group/btn"
-               >
-                 <Users className={cn("w-4 h-4 transition-colors", godMode ? "group-hover/btn:text-secondary-accent" : "group-hover/btn:text-primary-accent")} />
-                 New Message
-               </button>
+               <div className="flex flex-col sm:flex-row gap-3">
+                 <button
+                   onClick={() => setShowDirectory(true)}
+                   className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
+                 >
+                   <Users className={cn("w-4 h-4 transition-colors", godMode ? "group-hover/btn:text-secondary-accent" : "group-hover/btn:text-primary-accent")} />
+                   New Message
+                 </button>
+                 <button
+                   onClick={() => setShowDirectory(true)}
+                   className="px-8 py-3.5 bg-primary-accent/10 border border-primary-accent/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/20 transition-all active:scale-95 flex items-center justify-center gap-2 text-primary-accent min-w-[180px]"
+                 >
+                   <LayoutDashboard className="w-4 h-4" />
+                   Open Directory
+                 </button>
+               </div>
             </div>
           )}
         </div>
