@@ -7,7 +7,7 @@ import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessagi
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Participant } from '@/lib/types/messaging';
-import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2, Users } from 'lucide-react';
+import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2, Users, GraduationCap, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MessagingSectionProps {
@@ -26,35 +26,72 @@ export default function MessagingSection({
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [directory, setDirectory] = useState<{ admins: Participant[], teachers: Participant[], parents: Participant[] } | null>(null);
 
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
   const { isTyping: isOtherTyping, handleTyping } = useTyping(activeConvId);
 
+  useEffect(() => {
+    const fetchDirectory = async () => {
+      try {
+        const data = await SchoolAPI.getDirectory(schoolId);
+        setDirectory(data);
+      } catch (err) {
+        console.error('Failed to fetch directory for naming:', err);
+      }
+    };
+    fetchDirectory();
+  }, [schoolId]);
+
+  // Memoized map of all directory contacts for fast lookup
+  const contactMap = useMemo(() => {
+    const map = new Map<string, Participant>();
+    if (!directory) return map;
+
+    [...directory.admins, ...directory.teachers, ...directory.parents].forEach(p => {
+      // Use string keys to handle any potential ID format mismatches
+      map.set(p.id.toString(), p);
+    });
+    return map;
+  }, [directory]);
+
   const activeConversation = useMemo(() =>
     conversations.find(c => c.id === activeConvId),
   [conversations, activeConvId]);
 
-  const otherParticipant = useMemo(() => {
-    if (!activeConversation) return null;
+  const resolvedParticipants = useMemo(() => {
+    if (!activeConversation) return [];
 
-    // Defensively handle participants and participant_ids
     const participants = activeConversation.participants || [];
     const participantIds = (activeConversation as any).participant_ids || [];
 
-    // Prioritize object-based participants if available
-    if (participants.length > 0) {
-       return participants.find(p => p.id?.toString() !== currentUserId?.toString()) || participants[0];
-    }
+    // Create a unique set of all participant IDs
+    const allIds = Array.from(new Set([
+      ...participants.map(p => p.id?.toString()),
+      ...participantIds.map((id: any) => id?.toString())
+    ])).filter(Boolean);
 
-    // Fallback to participant_ids if object-based participants are missing
-    if (participantIds.length > 0) {
-       const otherId = participantIds.find((id: any) => id?.toString() !== currentUserId?.toString());
-       return otherId ? { id: otherId.toString(), name: 'Contact', role: 'staff' } as Participant : null;
-    }
+    return allIds.map(id => {
+      const fromDirectory = contactMap.get(id!);
+      const fromConv = participants.find(p => p.id?.toString() === id);
 
-    return null;
-  }, [activeConversation, currentUserId]);
+      let resolved = fromConv || { id: id!, name: 'Contact', role: 'staff' } as Participant;
+
+      if (fromDirectory) {
+        resolved = { ...resolved, ...fromDirectory };
+      } else if (id === currentUserId?.toString()) {
+        resolved = { ...resolved, name: 'You', role: 'teacher' };
+      }
+
+      return resolved;
+    });
+  }, [activeConversation, contactMap, currentUserId]);
+
+  const otherParticipant = useMemo(() => {
+    if (!activeConversation) return null;
+    return resolvedParticipants.find(p => p.id?.toString() !== currentUserId?.toString()) || resolvedParticipants[0];
+  }, [resolvedParticipants, currentUserId, activeConversation]);
 
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
@@ -135,6 +172,8 @@ export default function MessagingSection({
                schoolId={schoolId}
                onSelectConversation={handleSelectConversation}
                onBack={() => setShowDirectory(false)}
+               existingConversations={conversations}
+               currentUserId={currentUserId}
              />
            ) : (
              <ConversationList
@@ -143,6 +182,7 @@ export default function MessagingSection({
                onSelectConversation={handleSelectConversation}
                currentUserId={currentUserId}
                onNewMessage={() => setShowDirectory(true)}
+               contactMap={contactMap}
              />
            )}
         </div>
@@ -217,7 +257,7 @@ export default function MessagingSection({
               {/* Chat Body */}
               <ChatWindow
                 messages={messages}
-                participants={activeConversation?.participants || []}
+                participants={resolvedParticipants}
                 currentUserId={currentUserId}
                 loading={loadingMessages}
               />
@@ -274,6 +314,16 @@ export default function MessagingSection({
                 </div>
               </div>
             </>
+          ) : showDirectory && !showMobileList ? (
+             <div className="flex-1 overflow-hidden">
+                <DirectoryList
+                  schoolId={schoolId}
+                  onSelectConversation={handleSelectConversation}
+                  onBack={() => setShowDirectory(false)}
+                  existingConversations={conversations}
+                  currentUserId={currentUserId}
+                />
+             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
                <div className="relative">
