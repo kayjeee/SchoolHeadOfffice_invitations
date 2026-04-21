@@ -42,7 +42,7 @@ export default function DirectoryList({
     setCreatingConvId(contactId);
     try {
       // Create or get existing conversation
-      const conv = await MessagingAPI.createConversation([contactId]);
+      const conv = await MessagingAPI.createConversation([contactId], schoolId);
       onSelectConversation(conv.id);
     } catch (err) {
       console.error('Failed to create conversation:', err);

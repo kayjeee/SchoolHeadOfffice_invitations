@@ -1,14 +1,17 @@
 # Teacher Portal Messaging Phase 2 Implementation
 
-This document outlines the changes implemented during Phase 2 of the Teacher Portal Messaging & Directory system. The primary focus was on resolving authentication issues for local development, implementing the school directory, and enhancing the messaging UI.
+This document outlines the changes implemented during Phase 2 of the Teacher Portal Messaging & Directory system. The primary focus was on resolving authentication issues for local development, fixing conversation creation errors, implementing the school directory, and enhancing the messaging UI.
 
-## 1. API Client Enhancements (`lib/api/api-client.ts`)
+## 1. API Client Enhancements (`lib/api/api-client.ts` & `lib/api/messaging-api.ts`)
 
 ### Authentication Bypass
 To resolve `401 Unauthorized` errors during local development, the `ApiClient` has been refactored to support a custom header-based authentication bypass.
 - **`X-User-Email` Header**: Every outgoing request to the backend now automatically includes the `X-User-Email` header if a user email is available.
 - **Dynamic Session Integration**: The `apiClient` includes a `setUserEmail(email: string | null)` method.
 - **`PUT` Method Support**: Added a standard `put` wrapper to facilitate marking conversations as read and other update operations.
+
+### Payload Structure Correction
+- **`createConversation` Payload**: Updated to send `participant_ids` alongside a nested `conversation` object containing `school_id`. This complies with Rails backend expectations and prevents `400 Bad Request` errors when starting direct chats from the directory.
 
 ## 2. Authentication Hook Integration (`lib/hooks/useApi.ts`)
 
@@ -23,7 +26,7 @@ A new, robust Directory component has been implemented:
   - **Teachers** (GraduationCap icon)
   - **Parents** (Users icon)
 - **Search Filter**: Real-time filtering by contact name is implemented across all groups.
-- **Conversation Initiation**: Clicking a contact initiates a new conversation (or retrieves an existing one) via `MessagingAPI.createConversation`.
+- **Conversation Initiation**: Clicking a contact initiates a new conversation via `MessagingAPI.createConversation`, passing the `schoolId` to ensure the backend can correctly context-bind the new chat.
 
 ## 4. Conversation Management (`components/teacher/messaging/ConversationList.tsx`)
 
@@ -35,7 +38,7 @@ Enhancements to the conversation sidebar:
 ## 5. Routing & Redirection Logic
 
 - **Slug-Based Navigation**: Maintained strict adherence to the route structure: `/teacher/school/[schoolSlug]/teachers/[teacherSlug]/dashboard`.
-- **Acceptance Flow**: Updated `AcceptInviteButton.tsx` to prioritize the `teacherSlug` returned from the API upon successful invitation acceptance, ensuring valid redirections even if name-based slugs collide.
+- **Acceptance Flow**: Redirections prioritize the `teacherSlug` returned from the API upon successful invitation acceptance, ensuring valid redirections even if name-based slugs collide.
 - **Dashboard Synchronization**: The `DashboardClient` and `MessagingSection` now correctly use the resolved `schoolId` and `teacherId` (internal MongoDB IDs) for all API interactions while maintaining user-friendly slugs in the URL.
 
 ## 6. Data Model Updates (`lib/types/messaging.ts`)
