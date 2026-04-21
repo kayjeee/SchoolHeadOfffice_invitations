@@ -21,8 +21,19 @@ export class MessagingAPI {
   /**
    * Create a new conversation with a set of participants
    */
-  static async createConversation(participantIds: string[]): Promise<Conversation> {
-    return apiClient.post('/conversations', { participant_ids: participantIds }, ConversationSchema);
+  static async createConversation(participantIds: string[], schoolId?: string): Promise<Conversation> {
+    const payload = {
+      participant_ids: participantIds,
+      conversation: schoolId ? { school_id: schoolId } : {}
+    };
+
+    const responseSchema = z.object({
+      success: z.boolean(),
+      data: ConversationSchema
+    });
+
+    const response = await apiClient.post('/conversations', payload, responseSchema);
+    return response.data;
   }
 
   /**
