@@ -52,7 +52,7 @@ export default function ConversationList({
     const other = getOtherParticipant(participants);
     if (!other) return false;
 
-    const displayName = conv.title || (typeof other === 'object' ? other.name : 'Unknown');
+    const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
     if (!displayName) return false;
 
     return displayName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -100,7 +100,7 @@ export default function ConversationList({
             // Skip conversations that don't have valid participant data
             if (!other) return null;
 
-            const displayName = conv.title || (typeof other === 'object' ? other.name : 'Unknown');
+            const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
             const isActive = activeConversationId === conv.id;
             const lastMsg = conv.last_message;
 
