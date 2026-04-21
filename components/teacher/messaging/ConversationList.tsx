@@ -19,8 +19,9 @@ export default function ConversationList({
   onNewMessage,
 }: ConversationListProps) {
 
-  const getOtherParticipant = (participants: Participant[]) => {
-    return participants.find(p => p.id !== currentUserId) || participants[0];
+  const getOtherParticipant = (participants: any[]): any | null => {
+    if (!participants || !Array.isArray(participants) || participants.length === 0) return null;
+    return participants.find(p => (p.id || p) !== currentUserId) || participants[0];
   };
 
   const formatDate = (dateStr: string) => {
@@ -41,8 +42,17 @@ export default function ConversationList({
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const filteredConversations = conversations.filter(conv => {
-    const other = getOtherParticipant(conv.participants);
-    return (conv.title || other.name).toLowerCase().includes(searchQuery.toLowerCase());
+    // Safely handle missing participants or participant_ids
+    const participants = conv.participants || (conv as any).participant_ids || [];
+    if (!Array.isArray(participants) || participants.length === 0) return false;
+
+    const other = getOtherParticipant(participants);
+    if (!other) return false;
+
+    const displayName = conv.title || (typeof other === 'object' ? other.name : 'Unknown');
+    if (!displayName) return false;
+
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   return (
@@ -81,7 +91,12 @@ export default function ConversationList({
           </div>
         ) : (
           filteredConversations.map((conv) => {
-            const other = getOtherParticipant(conv.participants);
+            const participants = conv.participants || (conv as any).participant_ids || [];
+            const other = getOtherParticipant(participants);
+
+            if (!other) return null;
+
+            const displayName = conv.title || (typeof other === 'object' ? other.name : 'Unknown');
             const isActive = activeConversationId === conv.id;
             const lastMsg = conv.last_message;
 
@@ -97,10 +112,10 @@ export default function ConversationList({
                 )}
               >
                 <div className="relative shrink-0">
-                  {other.avatar ? (
+                  {typeof other === 'object' && other.avatar ? (
                     <img
                       src={other.avatar}
-                      alt={other.name}
+                      alt={other.name || 'Avatar'}
                       className="w-12 h-12 rounded-2xl object-cover bg-surface-container"
                     />
                   ) : (
@@ -108,7 +123,7 @@ export default function ConversationList({
                       <User className="w-6 h-6 text-white/20" />
                     </div>
                   )}
-                  {other.online_status === 'online' && (
+                  {typeof other === 'object' && other.online_status === 'online' && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container"></span>
                   )}
                 </div>
@@ -116,7 +131,7 @@ export default function ConversationList({
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h4 className="font-bold text-white/90 truncate text-sm">
-                      {conv.title || other.name}
+                      {displayName}
                     </h4>
                     <span className="text-[10px] font-bold text-white/20 uppercase whitespace-nowrap">
                       {formatDate(conv.updated_at)}
