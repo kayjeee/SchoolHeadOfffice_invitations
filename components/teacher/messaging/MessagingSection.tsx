@@ -162,22 +162,32 @@ export default function MessagingSection({
 
       <div className="flex h-full relative z-10">
 
-        {/* Left Panel - Conversation List */}
+        {/* Left Panel - Sidebar (Conversations or Directory) */}
         <div className={cn(
           "w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300",
           !showMobileList && "hidden md:flex"
         )}>
-           <ConversationList
-             conversations={conversations}
-             activeConversationId={activeConvId}
-             onSelectConversation={handleSelectConversation}
-             currentUserId={currentUserId}
-             onNewMessage={() => setShowDirectory(true)}
-             contactMap={contactMap}
-           />
+           {showDirectory ? (
+             <DirectoryList
+               schoolId={schoolId}
+               onSelectConversation={handleSelectConversation}
+               onBack={() => setShowDirectory(false)}
+               existingConversations={conversations}
+               currentUserId={currentUserId}
+             />
+           ) : (
+             <ConversationList
+               conversations={conversations}
+               activeConversationId={activeConvId}
+               onSelectConversation={handleSelectConversation}
+               currentUserId={currentUserId}
+               onNewMessage={() => setShowDirectory(true)}
+               contactMap={contactMap}
+             />
+           )}
         </div>
 
-        {/* Right Panel - Chat Area */}
+        {/* Right Panel - Main Content (Chat Window or Placeholder) */}
         <div className={cn(
           "flex-1 flex flex-col min-w-0 transition-all duration-300",
           showMobileList && "hidden md:flex"
@@ -304,16 +314,6 @@ export default function MessagingSection({
                 </div>
               </div>
             </>
-          ) : showDirectory && !showMobileList ? (
-             <div className="flex-1 overflow-hidden">
-                <DirectoryList
-                  schoolId={schoolId}
-                  onSelectConversation={handleSelectConversation}
-                  onBack={() => setShowDirectory(false)}
-                  existingConversations={conversations}
-                  currentUserId={currentUserId}
-                />
-             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
                <div className="relative">
