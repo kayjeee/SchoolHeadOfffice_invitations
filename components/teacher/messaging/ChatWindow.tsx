@@ -38,7 +38,7 @@ export default function ChatWindow({
   }, [messages, currentUserId]);
 
   const getParticipant = (id: string) => {
-    return participants.find(p => p.id === id);
+    return participants.find(p => p.id?.toString() === id?.toString());
   };
 
   const formatDate = (dateStr: string) => {

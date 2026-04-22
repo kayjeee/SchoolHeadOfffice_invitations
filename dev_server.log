@@ -1,0 +1,83 @@
+
+> dev
+> next
+
+   ▲ Next.js 15.0.7
+   - Local:        http://localhost:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 2.1s
+ ○ Compiling / ...
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 7.7s (945 modules)
+MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
+    at db (pages/index.tsx:161:22)
+  159 |   try {
+  160 |     const client = await clientPromise;
+> 161 |     const db = client.db("tracker");
+      |                      ^
+  162 |     const schools = await db
+  163 |       .collection("School")
+  164 |       .find({})
+[34m[1m[DEBUG][0m [34m[2026-04-22T09:10:39.312Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-04-22T09:10:39.312Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET / 200 in 8358ms
+MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
+    at db (pages/index.tsx:161:22)
+  159 |   try {
+  160 |     const client = await clientPromise;
+> 161 |     const db = client.db("tracker");
+      |                      ^
+  162 |     const schools = await db
+  163 |       .collection("School")
+  164 |       .find({})
+[34m[1m[DEBUG][0m [34m[2026-04-22T09:11:31.550Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-04-22T09:11:31.550Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET / 200 in 61ms
+ ○ Compiling /api/auth/[...auth0] ...
+ ✓ Compiled /api/auth/[...auth0] in 543ms (180 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:116:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ○ Compiling /_error ...
+ GET /api/auth/me 500 in 2320ms
+ ✓ Compiled /_error in 1579ms (962 modules)

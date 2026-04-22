@@ -24,16 +24,36 @@ export default function ConversationList({
   const getOtherParticipant = (participants: any[]): any | null => {
     const pList = participants || [];
     if (pList.length === 0) return null;
-    const other = pList.find(p => (p.id?.toString() || p?.toString()) !== currentUserId?.toString()) || pList[0];
 
-    // Resolve from contactMap if possible
-    if (other && contactMap) {
-      const id = other.id?.toString() || other?.toString();
-      const resolved = contactMap.get(id);
-      if (resolved) return { ...(typeof other === 'object' ? other : {}), ...resolved };
+    // Filter out your own ID to find the other person
+    // Using .toString() for robust comparison with BSON IDs
+    const otherId = pList.find(p => {
+      const id = p.id?.toString() || p?.toString();
+      return id !== currentUserId?.toString();
+    });
+
+    if (otherId) {
+      const id = otherId.id?.toString() || otherId?.toString();
+      const fromMap = contactMap?.get(id);
+      return {
+        ...(typeof otherId === 'object' ? otherId : {}),
+        ...(fromMap || {}),
+      };
     }
 
-    return other;
+    // If no other participant, it's a self-conversation
+    const me = pList.find(p => (p.id?.toString() || p?.toString()) === currentUserId?.toString());
+    if (me) {
+      const id = me.id?.toString() || me?.toString();
+      const fromMap = contactMap?.get(id);
+      return {
+        ...(typeof me === 'object' ? me : {}),
+        ...(fromMap || {}),
+        name: 'Me (Private)',
+      };
+    }
+
+    return null;
   };
 
   const formatDate = (dateStr: string) => {
