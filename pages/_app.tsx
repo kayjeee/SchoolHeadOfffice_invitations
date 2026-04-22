@@ -3,6 +3,7 @@ import { UserProvider } from "@auth0/nextjs-auth0/client";
 import { ThemeProvider } from '../context/ThemeContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { AuthTokenHandler } from '../components/AuthTokenHandler';
 
 const queryClient = new QueryClient();
 
@@ -11,6 +12,7 @@ export default function App({ Component, pageProps }) {
     <UserProvider user={pageProps.user}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <AuthTokenHandler />
           <Component {...pageProps} />
         </ThemeProvider>
       </QueryClientProvider>

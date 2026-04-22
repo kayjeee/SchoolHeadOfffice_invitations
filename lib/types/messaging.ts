@@ -4,7 +4,7 @@ export const ParticipantSchema = z.object({
   id: z.string(),
   name: z.string(),
   avatar: z.string().optional(),
-  role: z.enum(['teacher', 'parent', 'principal', 'admin']),
+  role: z.enum(['teacher', 'parent', 'principal', 'admin', 'staff']),
   online_status: z.enum(['online', 'offline']).optional().default('offline'),
 });
 
@@ -20,7 +20,8 @@ export const MessageSchema = z.object({
 
 export const ConversationSchema = z.object({
   id: z.string(),
-  participants: z.array(ParticipantSchema),
+  participants: z.array(ParticipantSchema).optional().default([]),
+  participant_ids: z.array(z.string()).optional().default([]),
   last_message: MessageSchema.optional(),
   unread_count: z.number().default(0),
   updated_at: z.string(),

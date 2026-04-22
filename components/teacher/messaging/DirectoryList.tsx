@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Participant } from '@/lib/types/messaging';
-import { Search, User, Shield, Users, GraduationCap, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, User, Shield, Users, GraduationCap, ChevronRight, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DirectoryListProps {
   schoolId: string;
   onSelectConversation: (id: string) => void;
   onBack: () => void;
+  existingConversations?: any[];
+  currentUserId?: string;
 }
 
 type DirectoryData = {
@@ -21,6 +23,8 @@ export default function DirectoryList({
   schoolId,
   onSelectConversation,
   onBack,
+  existingConversations = [],
+  currentUserId,
 }: DirectoryListProps) {
   const [directory, setDirectory] = useState<DirectoryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,10 +43,22 @@ export default function DirectoryList({
   }, [schoolId]);
 
   const handleContactClick = async (contactId: string) => {
+    // 1. Check if conversation already exists in local state
+    const existing = existingConversations.find(conv => {
+      const participants = conv.participants || conv.participant_ids || [];
+      const ids = participants.map((p: any) => (p.id || p).toString());
+      return ids.includes(contactId.toString()) && ids.includes(currentUserId?.toString());
+    });
+
+    if (existing) {
+      onSelectConversation(existing.id);
+      return;
+    }
+
+    // 2. If not, create new one
     setCreatingConvId(contactId);
     try {
-      // Create or get existing conversation
-      const conv = await MessagingAPI.createConversation([contactId]);
+      const conv = await MessagingAPI.createConversation([contactId], schoolId);
       onSelectConversation(conv.id);
     } catch (err) {
       console.error('Failed to create conversation:', err);
@@ -58,10 +74,20 @@ export default function DirectoryList({
     );
   };
 
+  // Filter out duplicates from API response just in case
+  const getUniqueContacts = (contacts: Participant[]) => {
+    const seen = new Set();
+    return contacts.filter(c => {
+      if (seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+  };
+
   const sections = [
-    { title: 'Admins', icon: Shield, data: directory?.admins || [] },
-    { title: 'Teachers', icon: GraduationCap, data: directory?.teachers || [] },
-    { title: 'Parents', icon: Users, data: directory?.parents || [] },
+    { title: 'Admins', icon: Shield, data: getUniqueContacts(directory?.admins || []) },
+    { title: 'Teachers', icon: GraduationCap, data: getUniqueContacts(directory?.teachers || []) },
+    { title: 'Parents', icon: Users, data: getUniqueContacts(directory?.parents || []) },
   ];
 
   if (loading) {
@@ -146,11 +172,17 @@ export default function DirectoryList({
                       </p>
                     </div>
 
-                    {creatingConvId === contact.id ? (
-                      <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
-                    )}
+                    <div className="flex items-center gap-2">
+                       {creatingConvId === contact.id ? (
+                         <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
+                       ) : (
+                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-accent/10 rounded-xl group-hover:bg-primary-accent/20 transition-all">
+                            <MessageSquare className="w-3.5 h-3.5 text-primary-accent" />
+                            <span className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">Message</span>
+                         </div>
+                       )}
+                       <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                    </div>
                   </button>
                 ))}
               </div>

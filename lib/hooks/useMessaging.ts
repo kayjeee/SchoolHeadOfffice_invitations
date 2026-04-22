@@ -2,25 +2,29 @@ import { useState, useRef, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
+import { useApi } from './useApi';
 
 /**
  * Hook for managing conversations list
  */
 export function useConversations() {
+  const { accessToken, isLoading: isAuthLoading } = useApi();
+
   const { data: conversations = [], error, isLoading } = useSWR(
-    '/conversations',
+    accessToken ? '/conversations' : null,
     () => MessagingAPI.getConversations(),
     {
       refreshInterval: 5000,
       revalidateOnFocus: true,
+      dedupingInterval: 2000,
     }
   );
 
   return {
     conversations,
-    loading: isLoading,
+    loading: isLoading || isAuthLoading,
     error,
-    refresh: () => mutate('/conversations')
+    refresh: () => mutate('/conversations'),
   };
 }
 
@@ -28,39 +32,46 @@ export function useConversations() {
  * Hook for managing messages in a specific conversation
  */
 export function useMessages(conversationId: string | null) {
+  const { accessToken, isLoading: isAuthLoading } = useApi();
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
-  // Fetch messages using SWR
+  const swrKey = accessToken && conversationId
+    ? `/conversations/${conversationId}/messages`
+    : null;
+
   const { data: remoteMessages = [], error, isLoading } = useSWR(
-    conversationId ? `/conversations/${conversationId}/messages` : null,
+    swrKey,
     () => MessagingAPI.getMessages(conversationId!),
     {
       refreshInterval: 3000,
       revalidateOnFocus: true,
+      dedupingInterval: 1500,
     }
   );
 
-  // Combine remote and optimistic messages, deduplicating by content for local feel
-  // We filter out optimistic messages that match the content of a remote message
-  // from the same sender within the last minute, to prevent duplication during polling.
+  // Remove optimistic messages already confirmed by the server
   const filteredOptimistic = optimisticMessages.filter(opt => {
-    const isAlreadyInRemote = remoteMessages.some(rem =>
-      rem.sender_id === opt.sender_id &&
-      rem.content === opt.content &&
-      Math.abs(new Date(rem.timestamp).getTime() - new Date(opt.timestamp).getTime()) < 60000
+    const isAlreadyInRemote = remoteMessages.some(
+      rem =>
+        rem.sender_id === opt.sender_id &&
+        rem.content === opt.content &&
+        Math.abs(
+          new Date(rem.timestamp).getTime() - new Date(opt.timestamp).getTime()
+        ) < 60_000
     );
     return !isAlreadyInRemote;
   });
 
-  const messages = [...remoteMessages, ...filteredOptimistic].sort((a, b) =>
-     new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  const messages = [...remoteMessages, ...filteredOptimistic].sort(
+    (a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
   const sendMessage = async (content: string, senderId: string) => {
     if (!conversationId || !content.trim()) return;
 
-    // Optimistic Update
+    // Optimistic update
     const optimisticMessage: Message = {
       id: `opt-${Date.now()}`,
       conversation_id: conversationId,
@@ -69,7 +80,7 @@ export function useMessages(conversationId: string | null) {
       timestamp: new Date().toISOString(),
       status: 'sent',
       is_optimistic: true,
-    };
+    } as any;
 
     setOptimisticMessages(prev => [...prev, optimisticMessage]);
 
@@ -77,14 +88,17 @@ export function useMessages(conversationId: string | null) {
       setIsSending(true);
       const realMessage = await MessagingAPI.sendMessage(conversationId, content);
 
-      // Update SWR cache and remove optimistic
-      mutate(`/conversations/${conversationId}/messages`, [...remoteMessages, realMessage], false);
-      setOptimisticMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      // Update cache and clear optimistic
+      mutate(swrKey, [...remoteMessages, realMessage], false);
+      setOptimisticMessages(prev =>
+        prev.filter(m => m.id !== optimisticMessage.id)
+      );
 
       return realMessage;
     } catch (err) {
-      // Remove optimistic message on failure
-      setOptimisticMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      setOptimisticMessages(prev =>
+        prev.filter(m => m.id !== optimisticMessage.id)
+      );
       throw err;
     } finally {
       setIsSending(false);
@@ -96,19 +110,19 @@ export function useMessages(conversationId: string | null) {
     loading: isLoading,
     error,
     isSending,
-    sendMessage
+    sendMessage,
   };
 }
 
 /**
  * Hook for typing indicators
+ * NOTE: exports `isOtherTyping` (not `isTyping`) — used in MessagingSection
  */
 export function useTyping(conversationId: string | null) {
   const [isLocalTyping, setIsLocalTyping] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Send typing status to backend
   const handleTyping = useCallback(() => {
     if (!conversationId) return;
 
@@ -127,21 +141,18 @@ export function useTyping(conversationId: string | null) {
     }, 2000);
   }, [conversationId, isLocalTyping]);
 
-  // Simulate receiving typing status from others
-  // In a real app, this would be fetched via polling or WebSockets
+  // Poll for typing status from others
   useSWR(
     conversationId ? `/conversations/${conversationId}/typing` : null,
     async () => {
-      // Logic to check if others are typing
-      // Mocking 20% chance of other user typing
-      if (Math.random() > 0.8) {
-        setIsOtherTyping(true);
-        setTimeout(() => setIsOtherTyping(false), 3000);
-      }
+      // Replace with real API call when backend supports it
       return null;
     },
-    { refreshInterval: 10000 }
+    { refreshInterval: 10_000 }
   );
 
-  return { isOtherTyping, handleTyping };
+  return {
+    isOtherTyping,  // ← correct export name consumed by MessagingSection
+    handleTyping,
+  };
 }

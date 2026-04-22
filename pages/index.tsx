@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import { z } from 'zod';
+import { apiClient } from "../lib/api/api-client"; 
 import FrontPageLayout from "../components/Layouts/FrontPageLayout";
 import DesktopHome from "../components/FrontPageComponents/DesktopHome";
 import LoadingSpinner from "../components/spinners/LoadingSpinner";
 import clientPromise from "../lib/mongodb";
+
+// ========================
+// SCHEMAS
+// ========================
+const UserSchema = z.object({
+  auth0_id: z.string(),
+  name: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  roles: z.array(z.string()).default(["default_role"]),
+}).passthrough();
 
 const Home = ({ schools }) => {
   const { user, isLoading: authLoading } = useUser();
@@ -15,112 +27,105 @@ const Home = ({ schools }) => {
     isProcessing: true,
   });
 
-  // ✅ Helper: get Management API access token
+  // ========================
+  // API HELPERS
+  // ========================
+
+  /**
+   * Fetches the Management API token from your local Next.js API route
+   */
   const getAccessTokenFromAPI = async () => {
     const response = await fetch("/api/getAccessToken", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
-    if (!response.ok) throw new Error("Failed to fetch access token");
+    if (!response.ok) throw new Error("Failed to fetch Management API token");
     const { accessToken } = await response.json();
     return accessToken;
   };
 
-  // ✅ Step 1: Check and Save User
-  const checkAndSaveUser = async (token, authUser) => {
+  /**
+   * Checks if user exists in backend; if not (404), creates them.
+   * Uses apiClient which respects your NEXT_PUBLIC_API_BASE_URL config.
+   */
+  const checkAndSaveUser = async (authUser) => {
     const userId = encodeURIComponent(authUser.sub);
-    const checkUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/${userId}`;
-    const postUserUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/`;
-
-    console.log("[checkAndSaveUser] Checking user:", userId);
-
-    const response = await fetch(checkUserUrl, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        "ngrok-skip-browser-warning": "true" 
-      },
-    });
-
-    if (response.status === 404) {
-      console.log("[checkAndSaveUser] User not found, creating...");
-      const userPayload = {
-        auth0_id: authUser.sub,
-        name: authUser.name,
-        email: authUser.email,
-        roles: ["default_role"],
-      };
-
-      const createResponse = await fetch(postUserUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "ngrok-skip-browser-warning": "true",
-        },
-        body: JSON.stringify(userPayload),
-      });
-
-      if (!createResponse.ok)
-        throw new Error("Failed to create user in backend");
-
-      const createdUser = await createResponse.json();
-      console.log("[checkAndSaveUser] User created:", createdUser);
-      return createdUser;
+    
+    try {
+      // GET /api/v1/users/{id}
+      return await apiClient.get(`/users/${userId}`, UserSchema);
+    } catch (error: any) {
+      // Handle 404 by creating the user
+      if (error.status === 404) {
+        console.log("[checkAndSaveUser] User record not found, creating...");
+        const userPayload = {
+          auth0_id: authUser.sub,
+          name: authUser.name,
+          email: authUser.email,
+          roles: ["default_role"],
+        };
+        // POST /api/v1/users/
+        return await apiClient.post(`/users/`, userPayload, UserSchema);
+      }
+      throw error;
     }
-
-    if (response.ok) {
-      const existingUser = await response.json();
-      console.log("[checkAndSaveUser] User exists:", existingUser);
-      return existingUser;
-    }
-
-    throw new Error("Failed to fetch or create user");
   };
 
-  // ✅ Step 2: Fetch user roles from Auth0
-  const fetchUserRoles = async (accessToken, userId) => {
+  /**
+   * Fetches roles directly from Auth0 Management API.
+   * Fixed to handle non-array responses to prevent .map() errors.
+   */
+  const fetchUserRoles = async (userId) => {
     const rolesUrl = `https://dev-q3l2f3kyx1zmv3iq.us.auth0.com/api/v2/users/${userId}/roles`;
-    const response = await fetch(rolesUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    
+    try {
+      const rolesData = await apiClient.get(rolesUrl, z.array(z.any()));
+      
+      // ✅ Critical fix: ensure rolesData is an array before mapping
+      if (!Array.isArray(rolesData)) {
+        console.error("[fetchUserRoles] Expected array, got:", rolesData);
+        return [];
+      }
 
-    if (!response.ok) throw new Error("Failed to fetch user roles");
-    const rolesData = await response.json();
-    console.log("[fetchUserRoles] Roles fetched:", rolesData);
-    return rolesData.map((role) => role.name);
+      return rolesData.map((role: any) => role.name);
+    } catch (err) {
+      console.error("[fetchUserRoles] Error fetching roles from Auth0:", err);
+      return []; // Return empty array so the page still loads
+    }
   };
 
-  // ✅ Step 3: Initialization flow
+  // ========================
+  // INITIALIZATION FLOW
+  // ========================
   useEffect(() => {
     const initializeUser = async () => {
       if (authLoading) return;
       if (!user) {
-        console.log("[initializeUser] No Auth0 user yet.");
         setState((prev) => ({ ...prev, isProcessing: false }));
         return;
       }
 
-      console.log("[initializeUser] Auth0 user ready:", user);
-
       try {
+        // 1. Get the Auth0 Management Token
         const token = await getAccessTokenFromAPI();
-        console.log("[initializeUser] Got access token.");
+        
+        // 2. Set it in the apiClient for all subsequent calls
+        apiClient.setAccessToken(token);
 
-        const userRecord = await checkAndSaveUser(token, user);
-        const roles = await fetchUserRoles(token, encodeURIComponent(user.sub));
+        // 3. Run user check and roles fetch in parallel for speed
+        const [userRecord, roles] = await Promise.all([
+          checkAndSaveUser(user),
+          fetchUserRoles(encodeURIComponent(user.sub))
+        ]);
 
-        setState((prev) => ({
-          ...prev,
+        setState({
           userData: userRecord,
           userRoles: roles,
+          error: null,
           isProcessing: false,
-        }));
-      } catch (err) {
-        console.error("[initializeUser] Error:", err);
+        });
+      } catch (err: any) {
+        console.error("[initializeUser] Fatal error:", err);
         setState((prev) => ({
           ...prev,
           error: err.message,
@@ -132,13 +137,14 @@ const Home = ({ schools }) => {
     initializeUser();
   }, [user, authLoading]);
 
+  // ========================
+  // RENDER LOGIC
+  // ========================
   const { error, userRoles, isProcessing } = state;
 
-  // ✅ Show loading spinner while processing user setup
   if (authLoading || isProcessing) return <LoadingSpinner />;
-  if (error) return <div>Error: {error}</div>;
+  if (error) return <div className="p-10 text-red-500">Error: {error}</div>;
 
-  // ✅ Render desktop layout only
   return (
     <FrontPageLayout user={user} schools={schools} userRoles={userRoles}>
       <DesktopHome schools={schools} />
@@ -146,7 +152,9 @@ const Home = ({ schools }) => {
   );
 };
 
-// ✅ Server-side props for school data
+// ========================
+// SERVER SIDE DATA
+// ========================
 export async function getServerSideProps() {
   try {
     const client = await clientPromise;
@@ -158,9 +166,13 @@ export async function getServerSideProps() {
       .limit(1000)
       .toArray();
 
-    return { props: { schools: JSON.parse(JSON.stringify(schools)) } };
+    return { 
+      props: { 
+        schools: JSON.parse(JSON.stringify(schools)) 
+      } 
+    };
   } catch (error) {
-    console.error("Error fetching schools:", error);
+    console.error("MongoDB fetch error:", error);
     return { props: { schools: [] } };
   }
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Conversation, Participant } from '@/lib/types/messaging';
-import { Search, User } from 'lucide-react';
+import { Search, User, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConversationListProps {
@@ -8,6 +8,8 @@ interface ConversationListProps {
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   currentUserId: string;
+  onNewMessage?: () => void;
+  contactMap?: Map<string, Participant>;
 }
 
 export default function ConversationList({
@@ -15,10 +17,23 @@ export default function ConversationList({
   activeConversationId,
   onSelectConversation,
   currentUserId,
+  onNewMessage,
+  contactMap,
 }: ConversationListProps) {
 
-  const getOtherParticipant = (participants: Participant[]) => {
-    return participants.find(p => p.id !== currentUserId) || participants[0];
+  const getOtherParticipant = (participants: any[]): any | null => {
+    const pList = participants || [];
+    if (pList.length === 0) return null;
+    const other = pList.find(p => (p.id?.toString() || p?.toString()) !== currentUserId?.toString()) || pList[0];
+
+    // Resolve from contactMap if possible
+    if (other && contactMap) {
+      const id = other.id?.toString() || other?.toString();
+      const resolved = contactMap.get(id);
+      if (resolved) return { ...(typeof other === 'object' ? other : {}), ...resolved };
+    }
+
+    return other;
   };
 
   const formatDate = (dateStr: string) => {
@@ -36,16 +51,45 @@ export default function ConversationList({
     }
   };
 
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const filteredConversations = conversations.filter(conv => {
+    // Pattern: const participants = conv.participant_ids || [];
+    const participants = (conv as any).participant_ids || conv.participants || [];
+
+    // Skip conversations that don't have valid participant data
+    if (!Array.isArray(participants) || participants.length === 0) return false;
+
+    const other = getOtherParticipant(participants);
+    if (!other) return false;
+
+    const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
+    if (!displayName) return false;
+
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="flex flex-col h-full bg-surface-container border-r border-white/5 overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-white/5 space-y-4">
-        <h2 className="text-xl font-bold text-white/90">Messages</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white/90">Messages</h2>
+          <button
+            onClick={onNewMessage}
+            className="p-2 bg-primary-accent/10 hover:bg-primary-accent/20 rounded-xl transition-all group"
+            title="New Message"
+          >
+            <Plus className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white/40 transition-colors" />
           <input
             type="text"
             placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all"
           />
         </div>
@@ -53,13 +97,21 @@ export default function ConversationList({
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {conversations.length === 0 ? (
+        {filteredConversations.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm text-white/20 font-medium">No conversations yet</p>
+            <p className="text-sm text-white/20 font-medium">
+              {searchQuery ? "No conversations found" : "No conversations yet"}
+            </p>
           </div>
         ) : (
-          conversations.map((conv) => {
-            const other = getOtherParticipant(conv.participants);
+          filteredConversations.map((conv) => {
+            const participants = (conv as any).participant_ids || conv.participants || [];
+            const other = getOtherParticipant(participants);
+
+            // Skip conversations that don't have valid participant data
+            if (!other) return null;
+
+            const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
             const isActive = activeConversationId === conv.id;
             const lastMsg = conv.last_message;
 
@@ -75,10 +127,10 @@ export default function ConversationList({
                 )}
               >
                 <div className="relative shrink-0">
-                  {other.avatar ? (
+                  {typeof other === 'object' && other.avatar ? (
                     <img
                       src={other.avatar}
-                      alt={other.name}
+                      alt={other.name || 'Avatar'}
                       className="w-12 h-12 rounded-2xl object-cover bg-surface-container"
                     />
                   ) : (
@@ -86,7 +138,7 @@ export default function ConversationList({
                       <User className="w-6 h-6 text-white/20" />
                     </div>
                   )}
-                  {other.online_status === 'online' && (
+                  {typeof other === 'object' && other.online_status === 'online' && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container"></span>
                   )}
                 </div>
@@ -94,7 +146,7 @@ export default function ConversationList({
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
                     <h4 className="font-bold text-white/90 truncate text-sm">
-                      {conv.title || other.name}
+                      {displayName}
                     </h4>
                     <span className="text-[10px] font-bold text-white/20 uppercase whitespace-nowrap">
                       {formatDate(conv.updated_at)}
@@ -109,7 +161,7 @@ export default function ConversationList({
                       {lastMsg ? lastMsg.content : "Start a conversation"}
                     </p>
                     {conv.unread_count > 0 && (
-                      <span className="shrink-0 bg-primary-accent text-on-primary-fixed text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                      <span className="shrink-0 bg-primary-accent text-on-primary-fixed text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center animate-pulse shadow-lg shadow-primary-accent/20">
                         {conv.unread_count}
                       </span>
                     )}
