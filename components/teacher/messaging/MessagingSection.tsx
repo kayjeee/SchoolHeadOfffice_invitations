@@ -8,7 +8,10 @@ import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { Participant } from '@/lib/types/messaging';
-import { Menu, User, Phone, Video, Search, MoreHorizontal, ArrowLeft, LayoutDashboard, Sparkles, Wand2, Users, GraduationCap, Shield } from 'lucide-react';
+import {
+  User, Phone, Video, Search, MoreHorizontal, ArrowLeft,
+  LayoutDashboard, Sparkles, Wand2, Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MessagingSectionProps {
@@ -27,39 +30,39 @@ export default function MessagingSection({
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [directory, setDirectory] = useState<{ admins: Participant[], teachers: Participant[], parents: Participant[] } | null>(null);
+  const [directory, setDirectory] = useState<{
+    admins: Participant[];
+    teachers: Participant[];
+    parents: Participant[];
+  } | null>(null);
 
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
-  const { isTyping: isOtherTyping, handleTyping } = useTyping(activeConvId);
 
+  // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
+  const { isOtherTyping, handleTyping } = useTyping(activeConvId);
+
+  // Fetch directory once for contact name resolution
   useEffect(() => {
-    const fetchDirectory = async () => {
-      try {
-        const data = await SchoolAPI.getDirectory(schoolId);
-        setDirectory(data);
-      } catch (err) {
-        console.error('Failed to fetch directory for naming:', err);
-      }
-    };
-    fetchDirectory();
+    SchoolAPI.getDirectory(schoolId)
+      .then(data => setDirectory(data))
+      .catch(err => console.error('Failed to fetch directory:', err));
   }, [schoolId]);
 
-  // Memoized map of all directory contacts for fast lookup
+  // Memoised ID → Participant map
   const contactMap = useMemo(() => {
     const map = new Map<string, Participant>();
     if (!directory) return map;
-
     [...directory.admins, ...directory.teachers, ...directory.parents].forEach(p => {
-      // Use string keys to handle any potential ID format mismatches
       map.set(p.id.toString(), p);
     });
     return map;
   }, [directory]);
 
-  const activeConversation = useMemo(() =>
-    conversations.find(c => c.id === activeConvId),
-  [conversations, activeConvId]);
+  const activeConversation = useMemo(
+    () => conversations.find(c => c.id === activeConvId),
+    [conversations, activeConvId]
+  );
 
   const resolvedParticipants = useMemo(() => {
     if (!activeConversation) return [];
@@ -67,17 +70,19 @@ export default function MessagingSection({
     const participants = activeConversation.participants || [];
     const participantIds = (activeConversation as any).participant_ids || [];
 
-    // Create a unique set of all participant IDs
-    const allIds = Array.from(new Set([
-      ...participants.map(p => p.id?.toString()),
-      ...participantIds.map((id: any) => id?.toString())
-    ])).filter(Boolean);
+    const allIds = Array.from(
+      new Set([
+        ...participants.map((p: any) => p.id?.toString()),
+        ...participantIds.map((id: any) => id?.toString()),
+      ])
+    ).filter(Boolean) as string[];
 
     return allIds.map(id => {
-      const fromDirectory = contactMap.get(id!);
-      const fromConv = participants.find(p => p.id?.toString() === id);
+      const fromDirectory = contactMap.get(id);
+      const fromConv = participants.find((p: any) => p.id?.toString() === id);
 
-      let resolved = fromConv || { id: id!, name: 'Contact', role: 'staff' } as Participant;
+      let resolved: Participant =
+        fromConv || ({ id, name: 'Contact', role: 'staff' } as Participant);
 
       if (fromDirectory) {
         resolved = { ...resolved, ...fromDirectory };
@@ -89,38 +94,39 @@ export default function MessagingSection({
     });
   }, [activeConversation, contactMap, currentUserId]);
 
-  const otherParticipant = useMemo(() => {
-    if (!activeConversation) return null;
-    return resolvedParticipants.find(p => p.id?.toString() !== currentUserId?.toString()) || resolvedParticipants[0];
-  }, [resolvedParticipants, currentUserId, activeConversation]);
+  const otherParticipant = useMemo(
+    () =>
+      resolvedParticipants.find(
+        p => p.id?.toString() !== currentUserId?.toString()
+      ) || resolvedParticipants[0] || null,
+    [resolvedParticipants, currentUserId]
+  );
 
+  // ✅ FIX: always close directory and update mobile state together
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
+    setShowDirectory(false);
     setShowMobileList(false);
-    setShowDirectory(false); // 💡 Ensure directory view is closed when a conversation is selected
   };
 
   const handleBackToList = () => {
     setShowMobileList(true);
   };
 
-  // Mark as read when active conversation changes
+  // Mark as read when switching conversations
   useEffect(() => {
-    if (activeConvId) {
-      MessagingAPI.markAsRead(activeConvId).then(() => {
-        refreshConvs();
-      }).catch(err => {
-        console.warn('Failed to mark conversation as read:', err);
-      });
-    }
-  }, [activeConvId]);
+    if (!activeConvId) return;
+    MessagingAPI.markAsRead(activeConvId)
+      .then(() => refreshConvs())
+      .catch(err => console.warn('markAsRead failed:', err));
+  }, [activeConvId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSendMessage = async (content: string) => {
     if (!activeConvId) return;
     try {
       await sendMessage(content, currentUserId);
       setAiSuggestion(null);
-      refreshConvs(); // Refresh list to update last message/timestamp
+      refreshConvs();
     } catch (err) {
       console.error('Failed to send message:', err);
     }
@@ -128,12 +134,10 @@ export default function MessagingSection({
 
   const handleAiSuggest = async () => {
     if (!activeConvId || messages.length === 0) return;
-
     setIsAiLoading(true);
     try {
-      const lastMsg = messages[messages.length - 1].content;
       const context = messages.slice(-5).map(m => m.content).join('\n');
-
+      const lastMsg = messages[messages.length - 1].content;
       const insight = await MessagingAgent.suggestResponse(context, lastMsg);
       setAiSuggestion(insight.metadata?.suggestedText || insight.message);
     } catch (err) {
@@ -144,58 +148,65 @@ export default function MessagingSection({
   };
 
   const useAiSuggestion = () => {
-    if (aiSuggestion) {
-      onSendMessage(aiSuggestion);
-    }
+    if (aiSuggestion) onSendMessage(aiSuggestion);
   };
 
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
-  const accentBorder = godMode ? 'border-secondary-accent/20' : 'border-primary-accent/20';
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] md:h-[700px] bg-surface-container/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
-
-      {/* Background Glow */}
-      <div className={cn(
-        "absolute -top-32 -left-32 w-64 h-64 blur-[120px] opacity-10 pointer-events-none transition-all duration-1000",
-        godMode ? "bg-secondary-accent" : "bg-primary-accent"
-      )}></div>
+      {/* Background glow */}
+      <div
+        className={cn(
+          'absolute -top-32 -left-32 w-64 h-64 blur-[120px] opacity-10 pointer-events-none transition-all duration-1000',
+          godMode ? 'bg-secondary-accent' : 'bg-primary-accent'
+        )}
+      />
 
       <div className="flex h-full relative z-10">
-
-        {/* Left Panel - Sidebar (Conversations or Directory on Mobile Only) */}
-        <div className={cn(
-          "w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300",
-          !showMobileList && "hidden md:flex"
-        )}>
-           {showDirectory && showMobileList ? (
-             <DirectoryList
-               schoolId={schoolId}
-               onSelectConversation={handleSelectConversation}
-               onBack={() => setShowDirectory(false)}
-               existingConversations={conversations}
-               currentUserId={currentUserId}
-             />
-           ) : (
-             <ConversationList
-               conversations={conversations}
-               activeConversationId={activeConvId}
-               onSelectConversation={handleSelectConversation}
-               currentUserId={currentUserId}
-               onNewMessage={() => setShowDirectory(true)}
-               contactMap={contactMap}
-             />
-           )}
+        {/* ── Left sidebar ── */}
+        <div
+          className={cn(
+            'w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col md:relative transition-all duration-300',
+            !showMobileList && 'hidden md:flex'
+          )}
+        >
+          {/* ✅ FIX: show directory in sidebar only on mobile; on desktop it opens in the right panel */}
+          {showDirectory && showMobileList ? (
+            <DirectoryList
+              schoolId={schoolId}
+              onSelectConversation={handleSelectConversation}
+              onBack={() => setShowDirectory(false)}
+              existingConversations={conversations}
+              currentUserId={currentUserId}
+            />
+          ) : (
+            <ConversationList
+              conversations={conversations}
+              activeConversationId={activeConvId}
+              onSelectConversation={handleSelectConversation}
+              currentUserId={currentUserId}
+              onNewMessage={() => {
+                setShowDirectory(true);
+                // On mobile: stay on left panel to show directory
+                // On desktop: right panel will render directory via showDirectory flag
+              }}
+              contactMap={contactMap}
+            />
+          )}
         </div>
 
-        {/* Right Panel - Main Content (Chat Window, Directory, or Placeholder) */}
-        <div className={cn(
-          "flex-1 flex flex-col min-w-0 transition-all duration-300",
-          showMobileList && "hidden md:flex"
-        )}>
+        {/* ── Right panel ── */}
+        <div
+          className={cn(
+            'flex-1 flex flex-col min-w-0 transition-all duration-300',
+            showMobileList && 'hidden md:flex'
+          )}
+        >
+          {/* ✅ FIX: Priority — activeConvId wins over showDirectory */}
           {activeConvId ? (
             <>
-              {/* Chat Header */}
+              {/* Chat header */}
               <div className="p-4 md:p-6 border-b border-white/5 bg-surface-container flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-4 min-w-0">
                   <button
@@ -218,7 +229,7 @@ export default function MessagingSection({
                       </div>
                     )}
                     {otherParticipant?.online_status === 'online' && (
-                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container"></span>
+                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
                     )}
                   </div>
 
@@ -229,8 +240,8 @@ export default function MessagingSection({
                     <p className="text-[10px] md:text-[11px] font-bold text-white/20 uppercase tracking-widest flex items-center gap-1.5">
                       {otherParticipant?.online_status === 'online' ? (
                         <>
-                           <span className="w-1 h-1 rounded-full bg-green-500"></span>
-                           Active now
+                          <span className="w-1 h-1 rounded-full bg-green-500" />
+                          Active now
                         </>
                       ) : (
                         'Offline'
@@ -255,7 +266,7 @@ export default function MessagingSection({
                 </div>
               </div>
 
-              {/* Chat Body */}
+              {/* Messages */}
               <ChatWindow
                 messages={messages}
                 participants={resolvedParticipants}
@@ -263,34 +274,38 @@ export default function MessagingSection({
                 loading={loadingMessages}
               />
 
-              {/* AI Suggestion Bar */}
+              {/* AI suggestion bar */}
               {aiSuggestion && (
                 <div className="mx-6 mb-2 p-4 bg-primary-accent/10 border border-primary-accent/20 rounded-2xl flex items-start gap-4 animate-in slide-in-from-bottom-2">
-                   <div className="shrink-0 p-2 bg-primary-accent/20 rounded-xl">
-                      <Sparkles className="w-4 h-4 text-primary-accent" />
-                   </div>
-                   <div className="flex-1 space-y-1">
-                      <p className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">AI Response Suggestion</p>
-                      <p className="text-sm text-white/80 leading-relaxed italic">"{aiSuggestion}"</p>
-                      <div className="flex gap-2 pt-2">
-                         <button
-                           onClick={useAiSuggestion}
-                           className="px-3 py-1.5 bg-primary-accent text-on-primary-fixed text-[10px] font-bold uppercase rounded-lg hover:bg-primary-accent/80 transition-colors"
-                         >
-                            Use This Response
-                         </button>
-                         <button
-                           onClick={() => setAiSuggestion(null)}
-                           className="px-3 py-1.5 bg-white/5 text-white/40 text-[10px] font-bold uppercase rounded-lg hover:bg-white/10 transition-colors"
-                         >
-                            Dismiss
-                         </button>
-                      </div>
-                   </div>
+                  <div className="shrink-0 p-2 bg-primary-accent/20 rounded-xl">
+                    <Sparkles className="w-4 h-4 text-primary-accent" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">
+                      AI Response Suggestion
+                    </p>
+                    <p className="text-sm text-white/80 leading-relaxed italic">
+                      "{aiSuggestion}"
+                    </p>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={useAiSuggestion}
+                        className="px-3 py-1.5 bg-primary-accent text-on-primary-fixed text-[10px] font-bold uppercase rounded-lg hover:bg-primary-accent/80 transition-colors"
+                      >
+                        Use This Response
+                      </button>
+                      <button
+                        onClick={() => setAiSuggestion(null)}
+                        className="px-3 py-1.5 bg-white/5 text-white/40 text-[10px] font-bold uppercase rounded-lg hover:bg-white/10 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Chat Input */}
+              {/* Input + AI trigger */}
               <div className="relative group">
                 <MessageInput
                   onSendMessage={onSendMessage}
@@ -298,63 +313,84 @@ export default function MessagingSection({
                   isSending={isSending}
                   isOtherTyping={isOtherTyping}
                 />
-
-                {/* AI Trigger Button */}
                 <div className="absolute right-24 md:right-32 bottom-8 md:bottom-10 flex items-center">
-                   <button
-                     onClick={handleAiSuggest}
-                     disabled={isAiLoading || messages.length === 0}
-                     className={cn(
-                       "p-2 rounded-xl transition-all active:scale-95 group/ai",
-                       isAiLoading ? "animate-pulse bg-primary-accent/20" : "hover:bg-white/5"
-                     )}
-                     title="Suggest AI Response"
-                   >
-                     <Wand2 className={cn("w-5 h-5", isAiLoading ? "text-primary-accent" : "text-white/20 group-hover/ai:text-primary-accent")} />
-                   </button>
+                  <button
+                    onClick={handleAiSuggest}
+                    disabled={isAiLoading || messages.length === 0}
+                    className={cn(
+                      'p-2 rounded-xl transition-all active:scale-95 group/ai',
+                      isAiLoading
+                        ? 'animate-pulse bg-primary-accent/20'
+                        : 'hover:bg-white/5'
+                    )}
+                    title="Suggest AI Response"
+                  >
+                    <Wand2
+                      className={cn(
+                        'w-5 h-5',
+                        isAiLoading
+                          ? 'text-primary-accent'
+                          : 'text-white/20 group-hover/ai:text-primary-accent'
+                      )}
+                    />
+                  </button>
                 </div>
               </div>
             </>
           ) : showDirectory ? (
-             <div className="flex-1 overflow-hidden">
-                <DirectoryList
-                  schoolId={schoolId}
-                  onSelectConversation={handleSelectConversation}
-                  onBack={() => setShowDirectory(false)}
-                  existingConversations={conversations}
-                  currentUserId={currentUserId}
-                />
-             </div>
+            /* ✅ FIX: directory renders in right panel on desktop */
+            <div className="flex-1 overflow-hidden">
+              <DirectoryList
+                schoolId={schoolId}
+                onSelectConversation={handleSelectConversation}
+                onBack={() => setShowDirectory(false)}
+                existingConversations={conversations}
+                currentUserId={currentUserId}
+              />
+            </div>
           ) : (
+            /* Empty state */
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
-               <div className="relative">
-                 <div className={cn("absolute -inset-4 blur-2xl opacity-10 rounded-full", godMode ? "bg-secondary-accent" : "bg-primary-accent")}></div>
-                 <div className="relative w-24 h-24 rounded-[40px] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
-                    <LayoutDashboard className={cn("w-10 h-10", accentColor)} />
-                 </div>
-               </div>
-               <div className="space-y-2">
-                 <h3 className="text-xl font-black text-white/90">Select a conversation</h3>
-                 <p className="text-sm text-white/40 max-w-xs mx-auto">
-                    Choose a contact from the left panel or open the school directory to start communicating with parents and faculty.
-                 </p>
-               </div>
-               <div className="flex flex-col sm:flex-row gap-3">
-                 <button
-                   onClick={() => setShowDirectory(true)}
-                   className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
-                 >
-                   <Users className={cn("w-4 h-4 transition-colors", godMode ? "group-hover/btn:text-secondary-accent" : "group-hover/btn:text-primary-accent")} />
-                   New Message
-                 </button>
-                 <button
-                   onClick={() => setShowDirectory(true)}
-                   className="px-8 py-3.5 bg-primary-accent/10 border border-primary-accent/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/20 transition-all active:scale-95 flex items-center justify-center gap-2 text-primary-accent min-w-[180px]"
-                 >
-                   <LayoutDashboard className="w-4 h-4" />
-                   Open Directory
-                 </button>
-               </div>
+              <div className="relative">
+                <div
+                  className={cn(
+                    'absolute -inset-4 blur-2xl opacity-10 rounded-full',
+                    godMode ? 'bg-secondary-accent' : 'bg-primary-accent'
+                  )}
+                />
+                <div className="relative w-24 h-24 rounded-[40px] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
+                  <LayoutDashboard className={cn('w-10 h-10', accentColor)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-white/90">Select a conversation</h3>
+                <p className="text-sm text-white/40 max-w-xs mx-auto">
+                  Choose a contact from the left panel or open the school directory to start communicating.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowDirectory(true)}
+                  className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
+                >
+                  <Users
+                    className={cn(
+                      'w-4 h-4 transition-colors',
+                      godMode
+                        ? 'group-hover/btn:text-secondary-accent'
+                        : 'group-hover/btn:text-primary-accent'
+                    )}
+                  />
+                  New Message
+                </button>
+                <button
+                  onClick={() => setShowDirectory(true)}
+                  className="px-8 py-3.5 bg-primary-accent/10 border border-primary-accent/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/20 transition-all active:scale-95 flex items-center justify-center gap-2 text-primary-accent min-w-[180px]"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Open Directory
+                </button>
+              </div>
             </div>
           )}
         </div>
