@@ -27,16 +27,16 @@ export default function ConversationList({
 
     // Filter out your own ID to find the other person
     // Using .toString() for robust comparison with BSON IDs
-    const otherId = pList.find(p => {
+    const other = pList.find(p => {
       const id = p.id?.toString() || p?.toString();
       return id !== currentUserId?.toString();
     });
 
-    if (otherId) {
-      const id = otherId.id?.toString() || otherId?.toString();
+    if (other) {
+      const id = other.id?.toString() || other?.toString();
       const fromMap = contactMap?.get(id);
       return {
-        ...(typeof otherId === 'object' ? otherId : {}),
+        ...(typeof other === 'object' ? other : {}),
         ...(fromMap || {}),
       };
     }
@@ -54,6 +54,15 @@ export default function ConversationList({
     }
 
     return null;
+  };
+
+  const getName = (participants: any[]) => {
+    const other = getOtherParticipant(participants);
+    if (!other) return "Contact";
+
+    // If getOtherParticipant returned the 'me' object (for self-conversations),
+    // it will already have name: 'Me (Private)' set inside getOtherParticipant.
+    return other.name || "Contact";
   };
 
   const formatDate = (dateStr: string) => {
@@ -74,17 +83,11 @@ export default function ConversationList({
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const filteredConversations = conversations.filter(conv => {
-    // Pattern: const participants = conv.participant_ids || [];
     const participants = (conv as any).participant_ids || conv.participants || [];
 
-    // Skip conversations that don't have valid participant data
     if (!Array.isArray(participants) || participants.length === 0) return false;
 
-    const other = getOtherParticipant(participants);
-    if (!other) return false;
-
-    const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
-    if (!displayName) return false;
+    const displayName = conv.title || getName(participants);
 
     return displayName.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -131,7 +134,7 @@ export default function ConversationList({
             // Skip conversations that don't have valid participant data
             if (!other) return null;
 
-            const displayName = conv.title || (typeof other === 'object' && other.name ? other.name : 'Contact');
+            const displayName = conv.title || getName(participants);
             const isActive = activeConversationId === conv.id;
             const lastMsg = conv.last_message;
 
@@ -178,7 +181,11 @@ export default function ConversationList({
                       "text-xs truncate transition-colors",
                       conv.unread_count > 0 ? "text-white/80 font-semibold" : "text-white/40"
                     )}>
-                      {lastMsg ? lastMsg.content : "Start a conversation"}
+                      {lastMsg
+                        ? (lastMsg.content.length > 30
+                            ? `${lastMsg.content.substring(0, 30)}...`
+                            : lastMsg.content)
+                        : "Start a conversation"}
                     </p>
                     {conv.unread_count > 0 && (
                       <span className="shrink-0 bg-primary-accent text-on-primary-fixed text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center animate-pulse shadow-lg shadow-primary-accent/20">
