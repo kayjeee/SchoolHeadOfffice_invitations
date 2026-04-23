@@ -1,21 +1,105 @@
-// components/parent/Dashboard/ParentDashboard.tsx
-import React from 'react';
+import React from "react";
+import OverviewTab from "./tabs/OverviewTab";
+import AcademicsTab from "./tabs/AcademicsTab";
+import AttendanceTab from "./tabs/AttendanceTab";
+import BehaviorTab from "./tabs/BehaviorTab";
+import MessagesTab from "./tabs/MessagesTab";
+import AssignmentsTab from "./tabs/AssignmentsTab";
+import ReportsTab from "./tabs/ReportsTab";
+import AnalyticsTab from "./tabs/AnalyticsTab";
+import PremiumTab from "./tabs/PremiumTab";
+import UpgradeBanner from "./widgets/UpgradeBanner";
+import DashboardLayout from "./DashboardLayout";
+import { useParentDashboard } from "./hooks/useParentDashboard";
+import { DashboardProps } from "./types/dashboard.types";
 
-export default function ParentDashboard({ user, profile, learners }) {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Welcome, {profile?.first_name}</h1>
-      <div className="mt-8">
-        <h2 className="text-xl font-bold">Your Learners</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          {learners.map((learner) => (
-            <div key={learner.id} className="bg-white p-4 rounded-lg shadow-md">
-              <h3 className="text-lg font-bold">{learner.first_name} {learner.last_name}</h3>
-              <p className="text-gray-600">{learner.grade}</p>
-            </div>
-          ))}
+export default function ParentDashboard({ user, profile, learners }: DashboardProps) {
+  const { activeTab, setActiveTab, stats, notifications, loading } = useParentDashboard(learners);
+
+  const isPremium = profile?.subscription === "premium";
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case "overview":
+        return <OverviewTab learners={learners} stats={stats} notifications={notifications} />;
+      case "academics":
+        return <AcademicsTab learners={learners} isPremium={isPremium} />;
+      case "attendance":
+        return <AttendanceTab learners={learners} />;
+      case "behavior":
+        return <BehaviorTab learners={learners} isPremium={isPremium} />;
+      case "messages":
+        return <MessagesTab />;
+      case "assignments":
+        return <AssignmentsTab learners={learners} />;
+      case "reports":
+        return <ReportsTab isPremium={isPremium} />;
+      case "analytics":
+        return <AnalyticsTab isPremium={isPremium} />;
+      case "premium":
+        return <PremiumTab />;
+      default:
+        return <OverviewTab learners={learners} />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {profile?.first_name || profile?.name?.split(" ")[0] || "Parent"}
+        </h1>
+
+        {!isPremium && (
+          <div className="hidden md:block">
+            <UpgradeBanner />
+          </div>
+        )}
       </div>
-    </div>
+
+      {!isPremium && (
+        <div className="mt-4 md:hidden">
+          <UpgradeBanner />
+        </div>
+      )}
+
+      <div className="flex gap-4 mt-8 border-b border-gray-200 overflow-x-auto no-scrollbar">
+        {[
+          "overview",
+          "academics",
+          "attendance",
+          "behavior",
+          "assignments",
+          "messages",
+          "reports",
+          "analytics",
+          "premium",
+        ].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`capitalize px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap border-b-2 -mb-[2px] ${
+              activeTab === tab
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-8">{renderTab()}</div>
+    </DashboardLayout>
   );
 }
