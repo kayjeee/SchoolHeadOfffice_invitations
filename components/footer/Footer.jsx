@@ -8,6 +8,9 @@ const Footer = () => {
           
           {/* Internal Links */}
           <div className="flex space-x-4 order-2 md:order-1 mb-4 md:mb-0 text-sm">
+            <Link href="/impact" className="text-gray-600 hover:text-gray-900 font-bold">
+              Our Impact
+            </Link>
             <Link href="/contact" className="text-gray-600 hover:text-gray-900">
               Contact Us
             </Link>

@@ -13,6 +13,7 @@ import AuthGate from "../../components/auth/AuthGate";
 import { InvitationAPI, InvitationData } from "../../lib/api/invitation-api";
 import { ParentService } from "../../lib/services/parent.service";
 import { useParentOnboarding } from "../../lib/hooks/useParentOnboarding";
+import { useRouter } from "next/router";
 
 /* -------------------------------------------------------------------------- */
 /*                                  DYNAMIC                                   */
@@ -54,8 +55,11 @@ export const getServerSideProps: GetServerSideProps<
   // Sanitize token to handle cases where query params are accidentally glued (e.g. via \u0026)
   const rawToken = typeof context.query.token === "string" ? context.query.token : null;
   const token = rawToken ? rawToken.split('&')[0].split('\\u0026')[0].trim() : null;
- console.log('🔑 rawToken:', rawToken);  // ← add this
-  console.log('🔑 sanitized token:', token);  // ← add this
+
+  console.log('🔍 [getServerSideProps] Query params:', context.query);
+  console.log('🔑 [getServerSideProps] rawToken:', rawToken);
+  console.log('🔑 [getServerSideProps] sanitized token:', token);
+
   let school = typeof context.query.school === "string" ? context.query.school : null;
 
   // Extract school if it was glued to the token via \u0026
@@ -147,6 +151,16 @@ export const getServerSideProps: GetServerSideProps<
 /* -------------------------------------------------------------------------- */
 
 export default function ParentPage(props: ParentPageProps) {
+  const router = useRouter();
+
+  console.log('🏠 [ParentPage] Render start. Props:', {
+    isAuthenticated: props.isAuthenticated,
+    invitationToken: props.invitationToken ? `${props.invitationToken.substring(0, 8)}...` : 'NONE',
+    school: props.school,
+    hasInvitationData: !!props.invitationData,
+    invitationDataSchool: props.invitationData?.school_name
+  });
+
   // ✅ Initialize onboarding hook at top level (Rules of Hooks)
   // Merge school name from query param into invitation context for onboarding
   const mergedInvitationData = React.useMemo(() => {
@@ -164,24 +178,74 @@ export default function ParentPage(props: ParentPageProps) {
     invitationData: mergedInvitationData as any,
   });
 
+  // 🚀 Redirect to school-specific dashboard if onboarding is complete
+  React.useEffect(() => {
+    // If we're fully logged in and onboarded, we need school context before redirecting
+    const shouldRedirect = props.isAuthenticated && onboarding.isOnboardingComplete && !onboarding.isLoading;
+
+    if (!shouldRedirect) return;
+
+    // Prioritize the linked learner's school name, then profile, then onboarding data, then invitation props
+    const fromLearner = onboarding.learners?.[0]?.school_name;
+    const fromProfile = onboarding.profile?.primary_school_name;
+    const fromOnboarding = onboarding.onboardingData?.school_name;
+    const fromInvitation = props.invitationData?.school_name;
+    const fromQuery = props.school;
+    const fromMerged = mergedInvitationData?.school_name;
+
+    const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
+
+    if (schoolName === 'School' && !onboarding.isLoading) {
+       // If we are onboarded but have no learners yet, they might still be fetching via SWR/React Query
+       if (onboarding.learners?.length === 0) return;
+    }
+
+    // We use router.replace to avoid adding the intermediate /parent to history
+    const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
+    console.log('🚀 [ParentPage] Onboarding complete. Navigating to:', targetPath);
+    router.replace(targetPath);
+  }, [
+    onboarding.isOnboardingComplete,
+    onboarding.isLoading,
+    onboarding.learners,
+    onboarding.profile,
+    onboarding.onboardingData,
+    props.invitationData,
+    props.school,
+    props.isAuthenticated,
+    mergedInvitationData,
+    router
+  ]);
+
   // 🚫 Logged out → SHOW LOGIN / LANDING IMMEDIATELY
   if (!props.isAuthenticated) {
     // Map invitation data to AuthGate format
     // We prioritize invitationData but fall back to the school query param
+    const schoolName = props.invitationData?.school_name || props.school;
     const authGateInvitation = {
-  token: props.invitationData?.token || props.invitationToken,
-  school_name: props.invitationData?.school_name || props.school,
-  school_logo: props.invitationData?.school_logo || null,  // ← ADD
-  grade_name: props.invitationData?.grade_name || null,
-  learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
-};
+      token: props.invitationData?.token || props.invitationToken || undefined,
+      school_name: schoolName || undefined,
+      school_logo: props.invitationData?.school_logo || null,
+      grade_name: props.invitationData?.grade_name || null,
+      learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
+    };
 
-    console.log('🏠 [ParentPage] Passing to AuthGate:', JSON.stringify(authGateInvitation, null, 2));
+    // Construct a dynamic returnTo path to the nested school route if a school name is present
+    const dynamicReturnTo = schoolName
+      ? `/parent/${encodeURIComponent(schoolName)}`
+      : "/parent";
+
+    console.log('🏠 [ParentPage] Logged out. Rendering AuthGate:', {
+      hasInvitation: !!authGateInvitation.token,
+      schoolName,
+      dynamicReturnTo,
+      invitationDetails: authGateInvitation
+    });
 
     return (
       <AuthGate
-        invitationData={authGateInvitation}
-        returnTo="/parent"
+        invitationData={authGateInvitation as any}
+        returnTo={dynamicReturnTo}
       />
     );
   }
@@ -213,4 +277,3 @@ export default function ParentPage(props: ParentPageProps) {
     </ErrorBoundary>
   );
 }
-
