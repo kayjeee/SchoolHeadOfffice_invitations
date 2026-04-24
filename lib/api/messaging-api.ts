@@ -1,4 +1,4 @@
-import { apiClient } from './api-client';
+import { apiClient, APIError } from './api-client';
 import { z } from 'zod';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -6,7 +6,8 @@ import { z } from 'zod';
 export interface ParticipantSnippet {
   id: string;
   name: string;
-  avatar?: string | null;
+  full_name: string;        // mirrors what the backend now sends
+  avatar: string | null;
   role: string;
   online_status: 'online' | 'offline';
 }
@@ -41,10 +42,28 @@ export interface Message {
   is_optimistic?: boolean;
 }
 
+// Structured error thrown by createConversation so the UI can branch on it.
+export class ConversationError extends Error {
+  constructor(
+    message: string,
+    public readonly code:
+      | 'SELF_MESSAGE'         // only participant is the current user
+      | 'PARTICIPANT_NOT_FOUND'// one or more IDs don't exist in the DB
+      | 'MISSING_SCHOOL'       // school_id was not provided
+      | 'VALIDATION_FAILED'    // Mongoid validation errors
+      | 'UNKNOWN',             // catch-all
+    public readonly details?: string[]
+  ) {
+    super(message);
+    this.name = 'ConversationError';
+  }
+}
+
 // ─── API class ───────────────────────────────────────────────────────────────
 
 export class MessagingAPI {
-  /** Fetch all conversations for the current user */
+
+  /** Fetch all conversations for the current user, newest first. */
   static async getConversations(): Promise<Conversation[]> {
     const response = await apiClient.get('/conversations', z.any()) as any;
     const raw = response?.data ?? response?.conversations ?? response;
@@ -52,18 +71,69 @@ export class MessagingAPI {
     return list.map(normalizeConversation);
   }
 
-  /** Create or retrieve a conversation */
-  static async createConversation(participantIds: string[], schoolId?: string): Promise<Conversation> {
+  /**
+   * Create or retrieve a conversation.
+   *
+   * Error handling:
+   *   - Throws ConversationError with a typed `code` so callers can show
+   *     specific UI messages instead of generic "Something went wrong".
+   *   - Never hangs: every backend error path is mapped and re-thrown.
+   *
+   * Self-messaging:
+   *   - Allowed. If participantIds contains only the current user's ID
+   *     (or is empty), the backend will create/return a "Note to self"
+   *     conversation.  The frontend should not block this.
+   */
+  static async createConversation(
+    participantIds: string[],
+    schoolId?: string
+  ): Promise<Conversation> {
+    if (!schoolId) {
+      throw new ConversationError(
+        'school_id is required to create a conversation',
+        'MISSING_SCHOOL'
+      );
+    }
+
     const payload = {
       participant_ids: participantIds,
-      ...(schoolId ? { conversation: { school_id: schoolId } } : {}),
+      conversation:   { school_id: schoolId },
     };
-    const response = await apiClient.post('/conversations', payload, z.any()) as any;
-    const raw = response?.data ?? response?.conversation ?? response;
+
+    let response: any;
+
+    try {
+      response = await apiClient.post('/conversations', payload, z.any());
+    } catch (err) {
+      // apiClient throws APIError for non-2xx responses.
+      // Map each backend error shape to a typed ConversationError.
+      if (err instanceof APIError) {
+        throw mapApiError(err);
+      }
+      // Network failure, timeout, etc.
+      throw new ConversationError(
+        'Network error — please check your connection and try again',
+        'UNKNOWN'
+      );
+    }
+
+    // Backend returns { success: true, data: { ... } }
+    // or { success: false, error: "..." } with a 2xx status (shouldn't happen, but guard it)
+    const body = response as any;
+
+    if (body?.success === false) {
+      throw new ConversationError(
+        body.error || 'Failed to create conversation',
+        classifyErrorMessage(body.error),
+        body.errors
+      );
+    }
+
+    const raw = body?.data ?? body?.conversation ?? body;
     return normalizeConversation(raw);
   }
 
-  /** Fetch messages for a conversation */
+  /** Fetch messages for a conversation, oldest first. */
   static async getMessages(conversationId: string): Promise<Message[]> {
     const response = await apiClient.get(
       `/conversations/${conversationId}/messages`,
@@ -74,7 +144,7 @@ export class MessagingAPI {
     return list.map(normalizeMessage);
   }
 
-  /** Send a message */
+  /** Send a message and return the server-confirmed copy. */
   static async sendMessage(conversationId: string, content: string): Promise<Message> {
     const response = await apiClient.post(
       `/conversations/${conversationId}/messages`,
@@ -85,7 +155,7 @@ export class MessagingAPI {
     return normalizeMessage(raw);
   }
 
-  /** Mark all messages as read */
+  /** Mark all messages in a conversation as read. Never throws. */
   static async markAsRead(conversationId: string): Promise<{ success: boolean }> {
     try {
       return await apiClient.put(
@@ -98,7 +168,7 @@ export class MessagingAPI {
     }
   }
 
-  /** Fire-and-forget typing notification */
+  /** Fire-and-forget typing notification. Never throws. */
   static async setTyping(conversationId: string, isTyping: boolean): Promise<void> {
     try {
       await apiClient.post(
@@ -106,33 +176,104 @@ export class MessagingAPI {
         { is_typing: isTyping },
         z.any()
       );
-    } catch { /* endpoint may not exist yet */ }
+    } catch { /* endpoint may not exist yet — intentionally swallowed */ }
   }
 }
 
-// ─── Normalizers ─────────────────────────────────────────────────────────────
+// ─── Error mapping ────────────────────────────────────────────────────────────
 
+/**
+ * Maps an APIError (HTTP-level) to a ConversationError (semantic-level).
+ * Called when the backend returns a non-2xx status from POST /conversations.
+ */
+function mapApiError(err: APIError): ConversationError {
+  const msg: string = err.message || '';
+
+  // 400 Bad Request
+  if (err.status === 400) {
+    return new ConversationError(msg, 'MISSING_SCHOOL');
+  }
+
+  // 422 Unprocessable Entity — backend sends different messages for each case
+  if (err.status === 422) {
+    const code = classifyErrorMessage(msg);
+    const details = (err.details as any)?.errors;
+    return new ConversationError(msg, code, Array.isArray(details) ? details : undefined);
+  }
+
+  // 404 — one or more participant IDs don't exist
+  if (err.status === 404) {
+    return new ConversationError(msg, 'PARTICIPANT_NOT_FOUND');
+  }
+
+  return new ConversationError(msg || 'An unexpected error occurred', 'UNKNOWN');
+}
+
+/**
+ * Reads the backend error message string and returns the closest semantic code.
+ * Keeps the classification in one place so it's easy to extend.
+ */
+function classifyErrorMessage(msg?: string): ConversationError['code'] {
+  if (!msg) return 'UNKNOWN';
+  const lower = msg.toLowerCase();
+  if (lower.includes('yourself') || lower.includes('self'))   return 'SELF_MESSAGE';
+  if (lower.includes('not found') || lower.includes('missing participant')) return 'PARTICIPANT_NOT_FOUND';
+  if (lower.includes('school'))                               return 'MISSING_SCHOOL';
+  if (lower.includes('validation') || lower.includes('invalid')) return 'VALIDATION_FAILED';
+  return 'UNKNOWN';
+}
+
+// ─── Normalizers ──────────────────────────────────────────────────────────────
+
+/**
+ * Converts a raw backend conversation object (any shape) into a typed Conversation.
+ * Handles all known field aliases from the Rails serializer.
+ */
 export function normalizeConversation(c: any): Conversation {
-  const participants: ParticipantSnippet[] = (c.participants || []).map((p: any) => ({
-    id:            String(p.id || p._id?.$oid || p._id || ''),
-    name:          p.name || [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Unknown',
-    avatar:        p.avatar || p.profile_image || null,
-    role:          p.role || 'staff',
-    online_status: p.online_status || 'offline',
-  }));
+  if (!c || typeof c !== 'object') {
+    throw new ConversationError(
+      'Received an invalid conversation object from the server',
+      'UNKNOWN'
+    );
+  }
 
-  const lastMsg = c.last_message ? normalizeLastMessage(c.last_message) : null;
+  const participants: ParticipantSnippet[] = (c.participants || []).map(
+    normalizeParticipant
+  );
 
   return {
     id:              String(c.id || c._id?.$oid || c._id || ''),
+    // title is now built server-side — fall back to client-side only if missing
     title:           c.title || buildTitle(participants) || null,
     participant_ids: (c.participant_ids || []).map(String),
     participants,
     school_id:       c.school_id ? String(c.school_id) : null,
-    last_message:    lastMsg,
-    unread_count:    c.unread_count ?? 0,
+    last_message:    c.last_message ? normalizeLastMessage(c.last_message) : null,
+    unread_count:    Number(c.unread_count ?? 0),
     updated_at:      c.updated_at || c.last_message_at || c.created_at || new Date().toISOString(),
     created_at:      c.created_at || new Date().toISOString(),
+  };
+}
+
+/**
+ * Normalizes a participant object.
+ * Priority for name: name → full_name → first+last → 'Unknown'
+ * This matches the `serialize_participant` method in the Rails controller.
+ */
+function normalizeParticipant(p: any): ParticipantSnippet {
+  const resolvedName =
+    p.name?.trim() ||
+    p.full_name?.trim() ||
+    [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
+    'Unknown';
+
+  return {
+    id:            String(p.id || p._id?.$oid || p._id || ''),
+    name:          resolvedName,
+    full_name:     resolvedName,
+    avatar:        p.avatar || p.profile_image || null,
+    role:          p.role || 'staff',
+    online_status: p.online_status === 'online' ? 'online' : 'offline',
   };
 }
 
@@ -158,7 +299,10 @@ export function normalizeMessage(m: any): Message {
   };
 }
 
-/** Client-side title builder — only used as a fallback if the backend omits title */
+/**
+ * Client-side title builder.
+ * Used only as a fallback when the backend omits the `title` field.
+ */
 function buildTitle(participants: ParticipantSnippet[]): string {
   if (participants.length === 0) return 'Conversation';
   if (participants.length === 1) return participants[0].name;
