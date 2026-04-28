@@ -1,24 +1,49 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
-import { MessagingAPI } from '@/lib/api/messaging-api';
+import { MessagingAPI, normalizeMessage } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
 import { useApi } from './useApi';
+import { getCable } from '@/lib/cable';
 
 /**
  * Hook for managing conversations list
  */
 export function useConversations() {
-  const { accessToken, isLoading: isAuthLoading } = useApi();
+  const { accessToken, user, isLoading: isAuthLoading } = useApi();
 
   const { data: conversations = [], error, isLoading } = useSWR(
     accessToken ? '/conversations' : null,
     () => MessagingAPI.getConversations(),
     {
-      refreshInterval: 5000,
       revalidateOnFocus: true,
       dedupingInterval: 2000,
     }
   );
+
+  // Real-time updates for the conversation list
+  useEffect(() => {
+    if (!conversations.length || !user?.email || !accessToken) return;
+
+    const cable = getCable(user.email);
+    if (!cable) return;
+
+    // Subscribe to each conversation to update the list (unread counts, last message)
+    // when any conversation receives a message.
+    const subs = conversations.map(conv => {
+      return cable.subscriptions.create(
+        { channel: 'ConversationChannel', id: conv.id },
+        {
+          received: () => {
+            mutate('/conversations');
+          }
+        }
+      );
+    });
+
+    return () => {
+      subs.forEach(s => s.unsubscribe());
+    };
+  }, [conversations.map(c => c.id).join(','), user?.email, accessToken]);
 
   return {
     conversations,
@@ -32,7 +57,7 @@ export function useConversations() {
  * Hook for managing messages in a specific conversation
  */
 export function useMessages(conversationId: string | null) {
-  const { accessToken, isLoading: isAuthLoading } = useApi();
+  const { accessToken, user, isLoading: isAuthLoading } = useApi();
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
@@ -40,15 +65,44 @@ export function useMessages(conversationId: string | null) {
     ? `/conversations/${conversationId}/messages`
     : null;
 
-  const { data: remoteMessages = [], error, isLoading } = useSWR(
+  const { data: remoteMessages = [], error, isLoading, mutate: mutateMessages } = useSWR(
     swrKey,
     () => MessagingAPI.getMessages(conversationId!),
     {
-      refreshInterval: 3000,
       revalidateOnFocus: true,
       dedupingInterval: 1500,
     }
   );
+
+  // Subscribe to real-time updates via Action Cable
+  useEffect(() => {
+    if (!conversationId || !user?.email || !accessToken) return;
+
+    const cable = getCable(user.email);
+    if (!cable) return;
+
+    const subscription = cable.subscriptions.create(
+      { channel: 'ConversationChannel', id: conversationId },
+      {
+        received: (data: any) => {
+          const newMessage = normalizeMessage(data);
+
+          // Update the specific conversation's messages
+          mutateMessages((current: Message[] = []) => {
+            if (current.some(m => m.id === newMessage.id)) return current;
+            return [...current, newMessage];
+          }, { revalidate: false });
+
+          // Refresh the conversation list to update last message and unread count
+          mutate('/conversations');
+        },
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [conversationId, user?.email, accessToken, mutateMessages]);
 
   // Remove optimistic messages already confirmed by the server
   const filteredOptimistic = optimisticMessages.filter(opt => {
@@ -141,15 +195,9 @@ export function useTyping(conversationId: string | null) {
     }, 2000);
   }, [conversationId, isLocalTyping]);
 
-  // Poll for typing status from others
-  useSWR(
-    conversationId ? `/conversations/${conversationId}/typing` : null,
-    async () => {
-      // Replace with real API call when backend supports it
-      return null;
-    },
-    { refreshInterval: 10_000 }
-  );
+  // Typing status can also be moved to ActionCable in the future,
+  // but for now we keep it simple as it wasn't explicitly requested
+  // and would require backend changes for broadcasting.
 
   return {
     isOtherTyping,  // ← correct export name consumed by MessagingSection
