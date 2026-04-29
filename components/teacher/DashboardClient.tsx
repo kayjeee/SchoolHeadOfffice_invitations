@@ -49,6 +49,12 @@ export default function DashboardClient({
   const [data, setData] = useState<DashboardData>(initialData);
   const [activeTab, setActiveTab] = useState<'overview' | 'messages'>('overview');
 
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      console.log('📑 [Dashboard] Tab changed to messages');
+    }
+  }, [activeTab]);
+
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
   const accentBg = godMode ? 'bg-secondary-accent/10' : 'bg-primary-accent/10';
   const accentBorder = godMode ? 'border-secondary-accent/20' : 'border-primary-accent/20';
@@ -162,8 +168,8 @@ export default function DashboardClient({
         {activeTab === 'messages' ? (
           <div className="pt-4">
             <MessagingSection
-              currentUserId={data.teacher.id}
-              schoolId={data.school.id}
+              currentUserId={data.teacher.id.toString()}
+              schoolId={data.school.id.toString()}
               godMode={godMode}
             />
           </div>

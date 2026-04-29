@@ -25,6 +25,10 @@ export default function MessagingSection({
   schoolId,
   godMode = false,
 }: MessagingSectionProps) {
+  useEffect(() => {
+    console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}`);
+  }, [currentUserId, schoolId]);
+
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
