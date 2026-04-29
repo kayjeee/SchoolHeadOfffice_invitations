@@ -65,7 +65,7 @@ export class MessagingAPI {
 
   /** Fetch all conversations for the current user, newest first. */
   static async getConversations(): Promise<Conversation[]> {
-    const response = await apiClient.get('/conversations', z.any()) as any;
+    const response = await apiClient.get('/api/v1/conversations', z.any()) as any;
     const raw = response?.data ?? response?.conversations ?? response;
     const list: any[] = Array.isArray(raw) ? raw : [];
     return list.map(normalizeConversation);
@@ -103,7 +103,7 @@ export class MessagingAPI {
     let response: any;
 
     try {
-      response = await apiClient.post('/conversations', payload, z.any());
+      response = await apiClient.post('/api/v1/conversations', payload, z.any());
     } catch (err) {
       // apiClient throws APIError for non-2xx responses.
       // Map each backend error shape to a typed ConversationError.
@@ -136,7 +136,7 @@ export class MessagingAPI {
   /** Fetch messages for a conversation, oldest first. */
   static async getMessages(conversationId: string): Promise<Message[]> {
     const response = await apiClient.get(
-      `/conversations/${conversationId}/messages`,
+      `/api/v1/conversations/${conversationId}/messages`,
       z.any()
     ) as any;
     const raw = response?.data ?? response?.messages ?? response;
@@ -147,7 +147,7 @@ export class MessagingAPI {
   /** Send a message and return the server-confirmed copy. */
   static async sendMessage(conversationId: string, content: string): Promise<Message> {
     const response = await apiClient.post(
-      `/conversations/${conversationId}/messages`,
+      `/api/v1/conversations/${conversationId}/messages`,
       { content },
       z.any()
     ) as any;
@@ -159,7 +159,7 @@ export class MessagingAPI {
   static async markAsRead(conversationId: string): Promise<{ success: boolean }> {
     try {
       return await apiClient.put(
-        `/conversations/${conversationId}/read`,
+        `/api/v1/conversations/${conversationId}/read`,
         {},
         z.object({ success: z.boolean() }).passthrough()
       );
@@ -172,7 +172,7 @@ export class MessagingAPI {
   static async setTyping(conversationId: string, isTyping: boolean): Promise<void> {
     try {
       await apiClient.post(
-        `/conversations/${conversationId}/typing`,
+        `/api/v1/conversations/${conversationId}/typing`,
         { is_typing: isTyping },
         z.any()
       );
