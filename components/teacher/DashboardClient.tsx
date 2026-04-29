@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGodmode } from '@/context/GodmodeContext';
 import PromptInput from '@/components/teacher/PromptInput';
 import ActivityFeed from '@/components/teacher/ActivityFeed';
