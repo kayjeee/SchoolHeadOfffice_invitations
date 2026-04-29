@@ -3,8 +3,10 @@ import { Message, Participant } from '@/lib/types/messaging';
 import { Check, CheckCheck, Loader2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConversationSubscription } from '@/lib/hooks/useMessaging';
 
 interface ChatWindowProps {
+  conversationId: string | null;
   messages: Message[];
   participants: Participant[];
   currentUserId: string;
@@ -12,11 +14,15 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({
+  conversationId,
   messages,
   participants,
   currentUserId,
   loading = false,
 }: ChatWindowProps) {
+  // Initialize real-time subscription
+  useConversationSubscription(conversationId);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [lastSeenTimestamp, setLastSeenTimestamp] = React.useState<string | null>(null);

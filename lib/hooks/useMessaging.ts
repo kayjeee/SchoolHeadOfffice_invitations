@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
 import { useApi } from './useApi';
+import { getCableConsumer } from '@/lib/cable';
 
 /**
  * Hook for managing conversations list
@@ -14,7 +15,6 @@ export function useConversations() {
     accessToken ? '/conversations' : null,
     () => MessagingAPI.getConversations(),
     {
-      refreshInterval: 5000,
       revalidateOnFocus: true,
       dedupingInterval: 2000,
     }
@@ -26,6 +26,50 @@ export function useConversations() {
     error,
     refresh: () => mutate('/conversations'),
   };
+}
+
+/**
+ * Hook for managing real-time conversation updates via Action Cable
+ */
+export function useConversationSubscription(conversationId: string | null) {
+  const { user, accessToken } = useApi();
+
+  useEffect(() => {
+    if (!conversationId || !user?.email || !accessToken) return;
+
+    const consumer = getCableConsumer(user.email);
+    console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${conversationId}`);
+
+    const subscription = consumer.subscriptions.create(
+      { channel: 'ConversationChannel', conversation_id: conversationId },
+      {
+        received(data: { message: Message }) {
+          console.log('📨 [ActionCable] New message received:', data.message);
+          const swrKey = `/conversations/${conversationId}/messages`;
+
+          mutate(swrKey, (currentData: Message[] | undefined) => {
+            const messages = currentData || [];
+            // Avoid duplicates
+            if (messages.some(m => m.id === data.message.id)) {
+              return messages;
+            }
+            return [...messages, data.message];
+          }, false);
+        },
+        connected() {
+          console.log(`✅ [ActionCable] Connected to conversation:${conversationId}`);
+        },
+        disconnected() {
+          console.log(`❌ [ActionCable] Disconnected from conversation:${conversationId}`);
+        }
+      }
+    );
+
+    return () => {
+      console.log(`🔌 [ActionCable] Unsubscribing from conversation:${conversationId}`);
+      subscription.unsubscribe();
+    };
+  }, [conversationId, user?.email, accessToken]);
 }
 
 /**
@@ -44,7 +88,6 @@ export function useMessages(conversationId: string | null) {
     swrKey,
     () => MessagingAPI.getMessages(conversationId!),
     {
-      refreshInterval: 3000,
       revalidateOnFocus: true,
       dedupingInterval: 1500,
     }
