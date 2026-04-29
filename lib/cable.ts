@@ -6,7 +6,8 @@ let consumer: Consumer | null = null;
  * Get or create the singleton Action Cable consumer.
  * In development, we append the X-User-Email for identification if provided.
  */
-export const getCableConsumer = (email?: string): Consumer => {
+export const getCableConsumer = (email?: string): Consumer | null => {
+  if (typeof window === 'undefined') return null;
   if (consumer) return consumer;
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';

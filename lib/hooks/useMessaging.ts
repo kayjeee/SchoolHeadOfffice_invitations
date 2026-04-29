@@ -11,8 +11,11 @@ import { getCableConsumer } from '@/lib/cable';
 export function useConversations() {
   const { accessToken, isLoading: isAuthLoading } = useApi();
 
+  const swrKey = accessToken ? '/api/v1/conversations' : null;
+  console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
+
   const { data: conversations = [], error, isLoading } = useSWR(
-    accessToken ? '/conversations' : null,
+    swrKey,
     () => MessagingAPI.getConversations(),
     {
       revalidateOnFocus: true,
@@ -38,6 +41,8 @@ export function useConversationSubscription(conversationId: string | null) {
     if (!conversationId || !user?.email || !accessToken) return;
 
     const consumer = getCableConsumer(user.email);
+    if (!consumer) return;
+
     console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${conversationId}`);
 
     const subscription = consumer.subscriptions.create(
@@ -45,7 +50,7 @@ export function useConversationSubscription(conversationId: string | null) {
       {
         received(data: { message: Message }) {
           console.log('📨 [ActionCable] New message received:', data.message);
-          const swrKey = `/conversations/${conversationId}/messages`;
+          const swrKey = `/api/v1/conversations/${conversationId}/messages`;
 
           mutate(swrKey, (currentData: Message[] | undefined) => {
             const messages = currentData || [];
@@ -81,8 +86,9 @@ export function useMessages(conversationId: string | null) {
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   const swrKey = accessToken && conversationId
-    ? `/conversations/${conversationId}/messages`
+    ? `/api/v1/conversations/${conversationId}/messages`
     : null;
+  console.log(`🔑 [useMessages] SWR Key generated: ${swrKey}`);
 
   const { data: remoteMessages = [], error, isLoading } = useSWR(
     swrKey,
