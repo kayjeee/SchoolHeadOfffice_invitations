@@ -1,26 +1,39 @@
-import { createConsumer, Consumer } from '@rails/actioncable';
+import type { Consumer } from '@rails/actioncable';
 
 let consumer: Consumer | null = null;
 
 /**
  * Get or create the singleton Action Cable consumer.
- * In development, we append the X-User-Email for identification if provided.
+ * Includes a "Safety wrapper" to prevent crashes during SSR or if the package is missing.
+ * The import is handled surgically inside the function to avoid top-level resolution issues.
  */
 export const getCableConsumer = (email?: string): Consumer | null => {
   if (typeof window === 'undefined') return null;
-  if (consumer) return consumer;
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
-  // Convert http(s) to ws(s) and remove /api/v1 for the cable endpoint
-  const wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+  try {
+    if (consumer) return consumer;
 
-  const cableUrl = email
-    ? `${wsUrl}?user_email=${encodeURIComponent(email)}`
-    : wsUrl;
+    // Surgical require to avoid silent crashes during import phase
+    const ActionCable = require('@rails/actioncable');
+    if (!ActionCable || !ActionCable.createConsumer) {
+      throw new Error('ActionCable module could not be loaded');
+    }
 
-  console.log(`🔌 [ActionCable] Connecting to ${cableUrl}`);
-  consumer = createConsumer(cableUrl);
-  return consumer;
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+    // Convert http(s) to ws(s) and remove /api/v1 for the cable endpoint
+    const wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+
+    const cableUrl = email
+      ? `${wsUrl}?user_email=${encodeURIComponent(email)}`
+      : wsUrl;
+
+    console.log(`🔌 [ActionCable] Connecting to ${cableUrl}`);
+    consumer = ActionCable.createConsumer(cableUrl);
+    return consumer;
+  } catch (error) {
+    console.error('❌ [ActionCable] Safety Wrapper caught initialization error:', error);
+    return null;
+  }
 };
 
 /**

@@ -12,7 +12,9 @@ export function useConversations() {
   const { accessToken, isLoading: isAuthLoading } = useApi();
 
   const swrKey = accessToken ? '/api/v1/conversations' : null;
-  console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
+  if (swrKey) {
+    console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
+  }
 
   const { data: conversations = [], error, isLoading } = useSWR(
     swrKey,
@@ -27,7 +29,7 @@ export function useConversations() {
     conversations,
     loading: isLoading || isAuthLoading,
     error,
-    refresh: () => mutate('/conversations'),
+    refresh: () => mutate(swrKey),
   };
 }
 
@@ -88,7 +90,10 @@ export function useMessages(conversationId: string | null) {
   const swrKey = accessToken && conversationId
     ? `/api/v1/conversations/${conversationId}/messages`
     : null;
-  console.log(`🔑 [useMessages] SWR Key generated: ${swrKey}`);
+
+  if (swrKey) {
+    console.log(`🔑 [useMessages] SWR Key generated: ${swrKey}`);
+  }
 
   const { data: remoteMessages = [], error, isLoading } = useSWR(
     swrKey,
@@ -191,8 +196,9 @@ export function useTyping(conversationId: string | null) {
   }, [conversationId, isLocalTyping]);
 
   // Poll for typing status from others
+  const swrKey = conversationId ? `/api/v1/conversations/${conversationId}/typing` : null;
   useSWR(
-    conversationId ? `/conversations/${conversationId}/typing` : null,
+    swrKey,
     async () => {
       // Replace with real API call when backend supports it
       return null;
