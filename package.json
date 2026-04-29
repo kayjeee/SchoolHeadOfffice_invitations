@@ -23,6 +23,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@rails/actioncable": "^8.1.300",
     "@react-hook/media-query": "^1.1.1",
     "@react-spring/web": "^9.7.5",
     "@sentry/nextjs": "^10.22.0",

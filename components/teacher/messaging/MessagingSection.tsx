@@ -286,6 +286,7 @@ export default function MessagingSection({
 
               {/* Messages */}
               <ChatWindow
+                conversationId={activeConvId}
                 messages={messages}
                 participants={resolvedParticipants}
                 currentUserId={currentUserId}
