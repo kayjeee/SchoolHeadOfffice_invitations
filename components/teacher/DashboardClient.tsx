@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DashboardData } from '@/lib/types/dashboard';
 import Link from 'next/link';
+import DashboardSkeleton from './DashboardSkeleton';
 
 const Activity = ({ className }: { className?: string }) => (
   <Zap className={className} />
@@ -53,11 +54,13 @@ export default function DashboardClient({
   const accentBorder = godMode ? 'border-secondary-accent/20' : 'border-primary-accent/20';
   const accentGradient = godMode ? 'from-secondary-accent to-secondary-accent/40' : 'from-primary-accent to-primary-accent/40';
 
+  if (!data) return <DashboardSkeleton />;
+
   const stats = [
-    { label: 'Total Learners', value: data.stats.totalLearners, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
-    { label: 'Active Grades', value: data.stats.activeGrades, icon: BookOpen, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
-    { label: 'Pending Invites', value: data.stats.pendingInvites, icon: Mail, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-    { label: 'Connection Rate', value: `${data.stats.parentConnectionRate}%`, icon: Heart, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
+    { label: 'Total Learners', value: data?.stats?.totalLearners ?? 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+    { label: 'Active Grades', value: data?.stats?.activeGrades ?? 0, icon: BookOpen, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
+    { label: 'Pending Invites', value: data?.stats?.pendingInvites ?? 0, icon: Mail, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+    { label: 'Connection Rate', value: `${data?.stats?.parentConnectionRate ?? 0}%`, icon: Heart, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
   ];
 
   return (
