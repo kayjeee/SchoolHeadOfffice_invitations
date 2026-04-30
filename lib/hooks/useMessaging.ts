@@ -64,13 +64,14 @@ export function useConversationSubscription(conversationId: string | null) {
           }, false);
         },
         connected() {
-          console.log(`✅ [ActionCable] Connected to conversation:${conversationId}`);
+          console.log(`✅ [ActionCable] Handshake successful! Connected to ConversationChannel for ID: ${conversationId}`);
         },
         disconnected() {
-          console.log(`❌ [ActionCable] Disconnected from conversation:${conversationId}`);
+          console.log(`❌ [ActionCable] Connection lost for conversation: ${conversationId}`);
         },
         rejected() {
-          console.error(`🚫 [ActionCable] Subscription rejected for conversation:${conversationId}`);
+          console.error(`🚫 [ActionCable] Subscription rejected for conversation: ${conversationId}`);
+          console.log(`💡 [ActionCable] Troubleshooting: Ensure the WebSocket URL includes ?user_email=${user.email} and that the Rails server's Connection#connect allows this user.`);
         }
       }
     );
