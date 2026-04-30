@@ -68,6 +68,9 @@ export function useConversationSubscription(conversationId: string | null) {
         },
         disconnected() {
           console.log(`❌ [ActionCable] Disconnected from conversation:${conversationId}`);
+        },
+        rejected() {
+          console.error(`🚫 [ActionCable] Subscription rejected for conversation:${conversationId}`);
         }
       }
     );
