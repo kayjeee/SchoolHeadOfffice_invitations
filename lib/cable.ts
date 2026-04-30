@@ -19,9 +19,15 @@ export const getCableConsumer = (email?: string): Consumer | null => {
       throw new Error('ActionCable module could not be loaded');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
-    // Convert http(s) to ws(s) and remove /api/v1 for the cable endpoint
-    const wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+
+    // Robust URL construction
+    let wsUrl: string;
+    if (baseUrl.includes('/api/v1')) {
+      wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+    } else {
+      wsUrl = `${baseUrl.replace(/^http/, 'ws').replace(/\/$/, '')}/cable`;
+    }
 
     const cableUrl = email
       ? `${wsUrl}?user_email=${encodeURIComponent(email)}`
