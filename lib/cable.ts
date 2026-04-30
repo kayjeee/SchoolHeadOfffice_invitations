@@ -1,6 +1,7 @@
 import type { Consumer } from '@rails/actioncable';
 
 let consumer: Consumer | null = null;
+let currentEmail: string | undefined = undefined;
 
 /**
  * Get or create the singleton Action Cable consumer.
@@ -11,6 +12,12 @@ export const getCableConsumer = (email?: string): Consumer | null => {
   if (typeof window === 'undefined') return null;
 
   try {
+    // If email changed, disconnect existing consumer to re-establish with new identity
+    if (consumer && currentEmail !== email) {
+      console.log(`🔌 [ActionCable] Email changed from ${currentEmail} to ${email}, reconnecting...`);
+      disconnectCable();
+    }
+
     if (consumer) return consumer;
 
     // Surgical require to avoid silent crashes during import phase
@@ -25,18 +32,27 @@ export const getCableConsumer = (email?: string): Consumer | null => {
     let wsUrl: string;
     const base = baseUrl.replace(/\/$/, ''); // Remove trailing slash
 
-    if (base.includes('/api/v1')) {
-      wsUrl = base.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+    // Replace http/https with ws/wss
+    const wsProtocol = base.startsWith('https') ? 'wss' : 'ws';
+    const baseWithoutProtocol = base.replace(/^https?:\/\//, '');
+
+    // Ensure it hits /cable and not the root or /api/v1
+    if (baseWithoutProtocol.includes('/api/v1')) {
+      wsUrl = `${wsProtocol}://${baseWithoutProtocol.replace(/\/api\/v1(\/|$)/, '/cable')}`;
     } else {
-      wsUrl = `${base.replace(/^http/, 'ws')}/cable`;
+      // If it doesn't have /api/v1, just append /cable but avoid double slashes
+      const cleanedBase = baseWithoutProtocol.replace(/\/$/, '');
+      wsUrl = `${wsProtocol}://${cleanedBase}/cable`;
     }
 
-    const cableUrl = email
+    // Add user_email as query param if provided
+    const cableUrl = (email && email.trim() !== '')
       ? `${wsUrl}?user_email=${encodeURIComponent(email)}`
       : wsUrl;
 
     console.log(`🔌 [ActionCable] Connecting to ${cableUrl}`);
     consumer = ActionCable.createConsumer(cableUrl);
+    currentEmail = email;
     return consumer;
   } catch (error) {
     console.error('❌ [ActionCable] Safety Wrapper caught initialization error:', error);
@@ -51,5 +67,6 @@ export const disconnectCable = () => {
   if (consumer) {
     consumer.disconnect();
     consumer = null;
+    currentEmail = undefined;
   }
 };
