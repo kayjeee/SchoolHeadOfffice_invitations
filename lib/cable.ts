@@ -21,12 +21,14 @@ export const getCableConsumer = (email?: string): Consumer | null => {
 
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
-    // Robust URL construction
+    // Robust URL construction to ensure it targets the /cable endpoint
     let wsUrl: string;
-    if (baseUrl.includes('/api/v1')) {
-      wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
+    const base = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+
+    if (base.includes('/api/v1')) {
+      wsUrl = base.replace(/^http/, 'ws').replace(/\/api\/v1$/, '/cable');
     } else {
-      wsUrl = `${baseUrl.replace(/^http/, 'ws').replace(/\/$/, '')}/cable`;
+      wsUrl = `${base.replace(/^http/, 'ws')}/cable`;
     }
 
     const cableUrl = email
