@@ -151,7 +151,13 @@ export function useMessages(conversationId: string | null) {
       const realMessage = await MessagingAPI.sendMessage(conversationId, content);
 
       // Update cache and clear optimistic
-      mutate(swrKey, [...remoteMessages, realMessage], false);
+      // Using functional update to avoid stale closures
+      mutate(swrKey, (current: Message[] | undefined) => {
+        const existing = current || [];
+        if (existing.some(m => m.id === realMessage.id)) return existing;
+        return [...existing, realMessage];
+      }, false);
+
       setOptimisticMessages(prev =>
         prev.filter(m => m.id !== optimisticMessage.id)
       );
@@ -182,7 +188,6 @@ export function useMessages(conversationId: string | null) {
  */
 export function useTyping(conversationId: string | null) {
   const [isLocalTyping, setIsLocalTyping] = useState(false);
-  const [isOtherTyping, setIsOtherTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = useCallback(() => {
@@ -203,16 +208,9 @@ export function useTyping(conversationId: string | null) {
     }, 2000);
   }, [conversationId, isLocalTyping]);
 
-  // Poll for typing status from others
-  const swrKey = conversationId ? `/api/v1/conversations/${conversationId}/typing` : null;
-  useSWR(
-    swrKey,
-    async () => {
-      // Replace with real API call when backend supports it
-      return null;
-    },
-    { refreshInterval: 10_000 }
-  );
+  // TODO: Add Action Cable typing indicator support when backend is ready
+  // PLACEHOLDER: Disable polling to save costs
+  const isOtherTyping = false;
 
   return {
     isOtherTyping,  // ← correct export name consumed by MessagingSection
