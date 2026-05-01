@@ -22,6 +22,7 @@ This document summarizes the changes made to stabilize the real-time messaging s
 ## 4. Race Condition & Stale Closure Fixes
 - **sendMessage Fix**: Switched `mutate` to use a functional update (updater function) in `useMessages`. This prevents race conditions where a concurrent WebSocket message could be overwritten by a stale REST response.
 - **Deduplication**: Both the `sendMessage` response and the WebSocket `received` callback perform ID-based deduplication before updating the cache.
+- **Hook Stability**: Restored hook counts in `useTyping` to prevent "Rendered fewer hooks than expected" errors during React reconciliation.
 
 ## 5. Real-time Subscription Enhancements
 - **Channel**: Switched to `MessagesChannel`.
