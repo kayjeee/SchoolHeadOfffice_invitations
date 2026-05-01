@@ -3,6 +3,8 @@ import ConversationList from './ConversationList';
 import DirectoryList from './DirectoryList';
 import ChatWindow from './ChatWindow';
 import MessageInput from './MessageInput';
+import GroupAvatar from './GroupAvatar';
+import GroupInfoPanel from './GroupInfoPanel';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
@@ -31,6 +33,7 @@ export default function MessagingSection({
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -239,28 +242,36 @@ export default function MessagingSection({
                   </button>
 
                   <div className="relative">
-                    {otherParticipant?.avatar ? (
-                      <img
-                        src={otherParticipant.avatar}
-                        alt={otherParticipant.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-2xl object-cover bg-surface-container"
-                      />
+                    {resolvedParticipants.length > 2 ? (
+                      <GroupAvatar participants={resolvedParticipants} size="lg" />
                     ) : (
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                        <User className="w-6 h-6 text-white/20" />
-                      </div>
-                    )}
-                    {otherParticipant?.online_status === 'online' && (
-                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
+                      <>
+                        {otherParticipant?.avatar ? (
+                          <img
+                            src={otherParticipant.avatar}
+                            alt={otherParticipant.name}
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl object-cover bg-surface-container"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                            <User className="w-6 h-6 text-white/20" />
+                          </div>
+                        )}
+                        {otherParticipant?.online_status === 'online' && (
+                          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
+                        )}
+                      </>
                     )}
                   </div>
 
                   <div className="min-w-0">
                     <h3 className="font-bold text-white/90 text-sm md:text-base truncate">
-                      {activeConversation?.title || otherParticipant?.name || 'Contact'}
+                      {activeConversation?.group_name || activeConversation?.title || otherParticipant?.name || 'Contact'}
                     </h3>
                     <p className="text-[10px] md:text-[11px] font-bold text-white/20 uppercase tracking-widest flex items-center gap-1.5">
-                      {otherParticipant?.online_status === 'online' ? (
+                      {resolvedParticipants.length > 2 ? (
+                        <>Group · {resolvedParticipants.length} members</>
+                      ) : otherParticipant?.online_status === 'online' ? (
                         <>
                           <span className="w-1 h-1 rounded-full bg-green-500" />
                           Active now
@@ -282,7 +293,15 @@ export default function MessagingSection({
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
                     <Search className="w-5 h-5" />
                   </button>
-                  <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
+                  <button
+                    onClick={() => setShowGroupInfo(!showGroupInfo)}
+                    className={cn(
+                      "p-2.5 md:p-3 rounded-2xl transition-all",
+                      showGroupInfo
+                        ? "text-primary-accent bg-primary-accent/10"
+                        : "text-white/20 hover:text-white/60 hover:bg-white/5"
+                    )}
+                  >
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
@@ -359,6 +378,18 @@ export default function MessagingSection({
                   </button>
                 </div>
               </div>
+
+              {/* Group Info Sidebar */}
+              {showGroupInfo && activeConversation && (
+                <GroupInfoPanel
+                  conversationId={activeConvId}
+                  participants={resolvedParticipants}
+                  currentUserId={currentUserId}
+                  onClose={() => setShowGroupInfo(false)}
+                  schoolId={schoolId}
+                  directory={directory}
+                />
+              )}
             </>
           ) : showDirectory ? (
             /* ✅ FIX: directory renders in right panel on desktop */
