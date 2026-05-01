@@ -188,6 +188,7 @@ export function useMessages(conversationId: string | null) {
  */
 export function useTyping(conversationId: string | null) {
   const [isLocalTyping, setIsLocalTyping] = useState(false);
+  const [isOtherTyping] = useState(false); // ✅ RESTORED to maintain hook count
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = useCallback(() => {
@@ -209,8 +210,8 @@ export function useTyping(conversationId: string | null) {
   }, [conversationId, isLocalTyping]);
 
   // TODO: Add Action Cable typing indicator support when backend is ready
-  // PLACEHOLDER: Disable polling to save costs
-  const isOtherTyping = false;
+  // RESTORED: useSWR call with null key to maintain hook count and avoid React errors
+  useSWR(null, async () => null);
 
   return {
     isOtherTyping,  // ← correct export name consumed by MessagingSection
