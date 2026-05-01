@@ -13,7 +13,7 @@ export const getCableConsumer = (email?: string): Consumer | null => {
 
   try {
     // If email changed, disconnect existing consumer to re-establish with new identity
-    if (consumer && currentEmail !== email) {
+    if (consumer && email && currentEmail !== email) {
       console.log(`🔌 [ActionCable] Email changed from ${currentEmail} to ${email}, reconnecting...`);
       disconnectCable();
     }
@@ -26,31 +26,20 @@ export const getCableConsumer = (email?: string): Consumer | null => {
       throw new Error('ActionCable module could not be loaded');
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
 
-    // Robust URL construction to ensure it targets the /cable endpoint
-    let wsUrl: string;
-    const base = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // Bulletproof URL construction:
+    // Strip trailing /api/v1 or similar suffixes, then append /cable
+    const wsBase = base
+      .replace(/\/api\/v1\/?$/, '')
+      .replace(/\/$/, '')
+      .replace(/^http/, 'ws');
 
-    // Replace http/https with ws/wss
-    const wsProtocol = base.startsWith('https') ? 'wss' : 'ws';
-    const baseWithoutProtocol = base.replace(/^https?:\/\//, '');
-
-    // Ensure it hits /cable and not the root or /api/v1
-    if (baseWithoutProtocol.includes('/api/v1')) {
-      wsUrl = `${wsProtocol}://${baseWithoutProtocol.replace(/\/api\/v1(\/|$)/, '/cable')}`;
-    } else {
-      // If it doesn't have /api/v1, just append /cable but avoid double slashes
-      const cleanedBase = baseWithoutProtocol.replace(/\/$/, '');
-      wsUrl = `${wsProtocol}://${cleanedBase}/cable`;
-    }
-
-    // Add user_email as query param if provided
     const cableUrl = (email && email.trim() !== '')
-      ? `${wsUrl}?user_email=${encodeURIComponent(email)}`
-      : wsUrl;
+      ? `${wsBase}/cable?user_email=${encodeURIComponent(email)}`
+      : `${wsBase}/cable`;
 
-    console.log(`🔌 [ActionCable] Connecting to ${cableUrl}`);
+    console.log(`🔌 [ActionCable] Connecting to: ${cableUrl}`);
     consumer = ActionCable.createConsumer(cableUrl);
     currentEmail = email;
     return consumer;
