@@ -20,8 +20,10 @@ export function useConversations() {
     swrKey,
     () => MessagingAPI.getConversations(),
     {
-      revalidateOnFocus: true,
-      dedupingInterval: 2000,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshInterval: 0,
+      dedupingInterval: 60000,
     }
   );
 
@@ -48,23 +50,23 @@ export function useConversationSubscription(conversationId: string | null) {
     console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${conversationId}`);
 
     const subscription = consumer.subscriptions.create(
-      { channel: 'ConversationChannel', conversation_id: conversationId },
+      { channel: 'MessagesChannel', conversation_id: conversationId },
       {
-        received(data: { message: Message }) {
-          console.log('📨 [ActionCable] New message received:', data.message);
+        received(data: Message) {
+          console.log('📨 [ActionCable] New message received:', data);
           const swrKey = `/api/v1/conversations/${conversationId}/messages`;
 
           mutate(swrKey, (currentData: Message[] | undefined) => {
             const messages = currentData || [];
             // Avoid duplicates
-            if (messages.some(m => m.id === data.message.id)) {
+            if (messages.some(m => m.id === data.id)) {
               return messages;
             }
-            return [...messages, data.message];
+            return [...messages, data];
           }, false);
         },
         connected() {
-          console.log(`✅ [ActionCable] Handshake successful! Connected to ConversationChannel for ID: ${conversationId}`);
+          console.log(`✅ [ActionCable] Handshake successful! Connected to MessagesChannel for ID: ${conversationId}`);
         },
         disconnected() {
           console.log(`❌ [ActionCable] Connection lost for conversation: ${conversationId}`);
@@ -103,8 +105,10 @@ export function useMessages(conversationId: string | null) {
     swrKey,
     () => MessagingAPI.getMessages(conversationId!),
     {
-      revalidateOnFocus: true,
-      dedupingInterval: 1500,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshInterval: 0,
+      dedupingInterval: 60000,
     }
   );
 
