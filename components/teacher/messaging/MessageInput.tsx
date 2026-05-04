@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Paperclip, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api/api-client';
+import { z } from 'zod';
+import FileUploadProgress from './FileUploadProgress';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachment?: { url: string; type: string; name: string }) => void;
   onTyping: () => void;
   isSending?: boolean;
   disabled?: boolean;
@@ -18,7 +21,13 @@ export default function MessageInput({
   isOtherTyping = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFile, setUploadFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 💡 Auto-focus textarea on mount (when chat window opens)
   useEffect(() => {
@@ -29,9 +38,14 @@ export default function MessageInput({
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (message.trim() && !isSending && !disabled) {
-      onSendMessage(message);
+    const hasValidAttachment = uploadFile && uploadFile.url && !uploadError;
+    const canSend = (message.trim() || hasValidAttachment) && !isSending && !disabled && !isUploading;
+
+    if (canSend) {
+      onSendMessage(message, hasValidAttachment ? uploadFile : undefined);
       setMessage('');
+      setUploadFile(null);
+      setUploadProgress(0);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -56,8 +70,97 @@ export default function MessageInput({
     }
   };
 
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadError(null);
+    setUploadFile({ name: file.name, type: file.type, url: '' });
+
+    try {
+      // Step 1: Get presigned URL
+      const { data: { url, fields, public_url } } = await apiClient.post<{ data: { url: string, fields: any, public_url: string } }>(
+        '/api/v1/uploads',
+        {
+          filename: file.name,
+          content_type: file.type,
+          byte_size: file.size
+        },
+        z.any()
+      );
+
+      setUploadProgress(30);
+
+      // Step 2: PUT file to presigned URL
+      // Since some presigned URLs (like S3) might require FormData or specific headers,
+      // we'll handle the PUT request. If 'fields' are provided, it's likely a POST to S3.
+      // If no fields, it's a direct PUT.
+
+      let uploadResponse;
+      if (fields) {
+        const formData = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          formData.append(key, value as string);
+        });
+        formData.append('file', file);
+
+        uploadResponse = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        uploadResponse = await fetch(url, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+      }
+
+      if (!uploadResponse.ok) throw new Error('Upload failed');
+
+      setUploadProgress(100);
+      setUploadFile({ name: file.name, type: file.type, url: public_url });
+
+      // Auto-focus the input after upload
+      textareaRef.current?.focus();
+
+    } catch (err) {
+      console.error('File upload error:', err);
+      setUploadError('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const cancelUpload = () => {
+    setIsUploading(false);
+    setUploadFile(null);
+    setUploadProgress(0);
+    setUploadError(null);
+  };
+
   return (
-    <div className="p-4 md:p-6 bg-surface-container border-t border-white/5 space-y-4">
+    <div className="relative p-4 md:p-6 bg-surface-container border-t border-white/5 space-y-4">
+      {/* Upload Progress Overlay */}
+      {(isUploading || uploadFile || uploadError) && (
+        <FileUploadProgress
+          fileName={uploadFile?.name || 'File'}
+          progress={uploadProgress}
+          onCancel={cancelUpload}
+          error={uploadError}
+        />
+      )}
+
       {/* Typing Indicator */}
       {isOtherTyping && (
         <div className="flex items-center gap-2 text-[10px] font-bold text-primary-accent uppercase tracking-widest px-4 animate-pulse">
@@ -75,9 +178,20 @@ export default function MessageInput({
         className="relative flex items-end gap-3 group"
       >
         <div className="flex shrink-0 items-center gap-1">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
           <button
             type="button"
-            className="p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all active:scale-95"
+            onClick={handleFileClick}
+            disabled={isUploading || disabled}
+            className={cn(
+              "p-3 rounded-2xl transition-all active:scale-95",
+              isUploading ? "text-primary-accent animate-pulse" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+            )}
             title="Attach File"
           >
             <Paperclip className="w-5 h-5" />
@@ -114,10 +228,10 @@ export default function MessageInput({
 
         <button
           type="submit"
-          disabled={!message.trim() || isSending || disabled}
+          disabled={(!message.trim() && !(uploadFile && uploadFile.url && !uploadError)) || isSending || disabled || isUploading}
           className={cn(
             "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-95",
-            message.trim() && !isSending && !disabled
+            (message.trim() || (uploadFile && uploadFile.url && !uploadError)) && !isSending && !disabled && !isUploading
               ? "bg-primary-accent text-on-primary-fixed shadow-primary-accent/20"
               : "bg-white/5 text-white/10 border border-white/10 cursor-not-allowed shadow-none"
           )}

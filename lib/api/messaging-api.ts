@@ -40,6 +40,9 @@ export interface Message {
   timestamp: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
   is_optimistic?: boolean;
+  attachment_url?: string;
+  attachment_type?: string;
+  attachment_name?: string;
 }
 
 // Structured error thrown by createConversation so the UI can branch on it.
@@ -145,10 +148,21 @@ export class MessagingAPI {
   }
 
   /** Send a message and return the server-confirmed copy. */
-  static async sendMessage(conversationId: string, content: string): Promise<Message> {
+  static async sendMessage(
+    conversationId: string,
+    content: string,
+    attachment?: { url: string; type: string; name: string }
+  ): Promise<Message> {
+    const payload: any = { content };
+    if (attachment) {
+      payload.attachment_url = attachment.url;
+      payload.attachment_type = attachment.type;
+      payload.attachment_name = attachment.name;
+    }
+
     const response = await apiClient.post(
       `/api/v1/conversations/${conversationId}/messages`,
-      { content },
+      payload,
       z.any()
     ) as any;
     const raw = response?.data ?? response?.message ?? response;
@@ -296,6 +310,9 @@ export function normalizeMessage(m: any): Message {
     timestamp:       m.timestamp || m.created_at || new Date().toISOString(),
     status:          m.status || 'sent',
     is_optimistic:   false,
+    attachment_url:  m.attachment_url,
+    attachment_type: m.attachment_type,
+    attachment_name: m.attachment_name,
   };
 }
 
