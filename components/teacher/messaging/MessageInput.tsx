@@ -84,50 +84,52 @@ export default function MessageInput({
     setUploadFile({ name: file.name, type: file.type, url: '' });
 
     try {
-      // Step 1: Get presigned URL
-      const { data: { url, fields, public_url } } = await apiClient.post<{ data: { url: string, fields: any, public_url: string } }>(
+      // Step 1: Get Cloudinary signature from backend
+      const response = await apiClient.get<{
+        signature: string;
+        timestamp: number;
+        api_key: string;
+        cloud_name: string;
+        folder?: string;
+      }>(
         '/api/v1/uploads',
-        {
-          filename: file.name,
-          content_type: file.type,
-          byte_size: file.size
-        },
         z.any()
       );
 
+      const { signature, timestamp, api_key, folder } = response;
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || response.cloud_name;
+
       setUploadProgress(30);
 
-      // Step 2: PUT file to presigned URL
-      // Since some presigned URLs (like S3) might require FormData or specific headers,
-      // we'll handle the PUT request. If 'fields' are provided, it's likely a POST to S3.
-      // If no fields, it's a direct PUT.
+      // Step 2: Upload directly to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', api_key);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+      if (folder) formData.append('folder', folder);
 
-      let uploadResponse;
-      if (fields) {
-        const formData = new FormData();
-        Object.entries(fields).forEach(([key, value]) => {
-          formData.append(key, value as string);
-        });
-        formData.append('file', file);
-
-        uploadResponse = await fetch(url, {
+      const uploadResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        {
           method: 'POST',
           body: formData,
-        });
-      } else {
-        uploadResponse = await fetch(url, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
-        });
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error?.message || 'Cloudinary upload failed');
       }
 
-      if (!uploadResponse.ok) throw new Error('Upload failed');
+      const result = await uploadResponse.json();
 
       setUploadProgress(100);
-      setUploadFile({ name: file.name, type: file.type, url: public_url });
+      setUploadFile({
+        name: file.name,
+        type: file.type,
+        url: result.secure_url
+      });
 
       // Auto-focus the input after upload
       textareaRef.current?.focus();
