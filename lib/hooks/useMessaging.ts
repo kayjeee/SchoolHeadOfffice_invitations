@@ -133,7 +133,7 @@ export function useMessages(conversationId: string | null) {
   const sendMessage = async (
     content: string,
     senderId: string,
-    attachment?: { url: string; type: string; name: string }
+    attachment?: { url: string; type: string; name: string; size?: number }
   ) => {
     if (!conversationId || (!content.trim() && !attachment)) return;
 
@@ -149,6 +149,7 @@ export function useMessages(conversationId: string | null) {
       attachment_url: attachment?.url,
       attachment_type: attachment?.type,
       attachment_name: attachment?.name,
+      attachment_size: attachment?.size,
     } as any;
 
     setOptimisticMessages(prev => [...prev, optimisticMessage]);
