@@ -86,19 +86,20 @@ export default function MessageInput({
     try {
       // Step 1: Get Cloudinary signature from backend
       // Backend generates signature using Cloudinary::Utils.api_sign_request
-      const response = await apiClient.get<{
-        signature: string;
-        timestamp: number;
-        api_key: string;
-        cloud_name: string;
-        folder?: string;
-      }>(
+      const data = await apiClient.get<any>(
         '/api/v1/uploads',
         z.any()
       );
 
-      const { signature, timestamp, api_key, folder } = response;
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || response.cloud_name;
+      // ✅ Fix the Crash: Ensure we have the signature before proceeding
+      // Add a check: if (!data.signature) return; before calling .toString()
+      if (!data || !data.signature) {
+        setIsUploading(false);
+        return;
+      }
+
+      const { signature, timestamp, api_key, folder, cloud_name } = data;
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || cloud_name || 'chameleon-techie';
 
       setUploadProgress(30);
 
