@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Paperclip, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { apiClient } from '@/lib/api/api-client';
-import { z } from 'zod';
 import FileUploadProgress from './FileUploadProgress';
 
 interface MessageInputProps {
@@ -84,32 +82,16 @@ export default function MessageInput({
     setUploadFile({ name: file.name, type: file.type, url: '' });
 
     try {
-      // Step 1: Get Cloudinary signature from backend
-      // Backend generates signature using Cloudinary::Utils.api_sign_request
-      const data = await apiClient.get<any>(
-        '/api/v1/uploads',
-        z.any()
-      );
-
-      // ✅ Fix the Crash: Ensure we have the signature before proceeding
-      // Add a check: if (!data.signature) return; before calling .toString()
-      if (!data || !data.signature) {
-        setIsUploading(false);
-        return;
-      }
-
-      const { signature, timestamp, api_key, folder, cloud_name } = data;
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || cloud_name || 'chameleon-techie';
+      // Cloudinary Unsigned Upload Logic
+      // Bypasses 401 Unauthorized by using an Upload Preset
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'chameleon-techie';
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'w1ofo4vi';
 
       setUploadProgress(30);
 
-      // Step 2: Upload directly to Cloudinary
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('api_key', api_key);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('signature', signature);
-      if (folder) formData.append('folder', folder);
+      formData.append('upload_preset', uploadPreset);
 
       const uploadResponse = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
