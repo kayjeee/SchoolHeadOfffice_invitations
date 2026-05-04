@@ -4,6 +4,7 @@ import { Check, CheckCheck, Loader2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConversationSubscription } from '@/lib/hooks/useMessaging';
+import AttachmentPreview from './AttachmentPreview';
 
 interface ChatWindowProps {
   conversationId: string | null;
@@ -144,7 +145,16 @@ export default function ChatWindow({
                           ? "bg-primary-fixed text-on-primary-fixed font-medium rounded-tr-none shadow-xl shadow-primary-fixed/10"
                           : "bg-surface-container text-white/90 rounded-tl-none border border-white/5"
                       )}>
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
+
+                        {msg.attachment_url && (
+                          <AttachmentPreview
+                            url={msg.attachment_url}
+                            type={msg.attachment_type || 'application/octet-stream'}
+                            name={msg.attachment_name || 'Attachment'}
+                            isMine={isMine}
+                          />
+                        )}
                       </div>
 
                       {/* Message Footer */}

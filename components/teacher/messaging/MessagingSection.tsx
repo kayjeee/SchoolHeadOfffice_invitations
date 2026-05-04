@@ -143,10 +143,10 @@ export default function MessagingSection({
       .catch(err => console.warn('markAsRead failed:', err));
   }, [activeConvId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onSendMessage = async (content: string) => {
+  const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string }) => {
     if (!activeConvId) return;
     try {
-      await sendMessage(content, currentUserId);
+      await sendMessage(content, currentUserId, attachment);
       setAiSuggestion(null);
       refreshConvs();
     } catch (err) {
