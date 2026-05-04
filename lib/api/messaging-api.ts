@@ -43,6 +43,7 @@ export interface Message {
   attachment_url?: string;
   attachment_type?: string;
   attachment_name?: string;
+  attachment_size?: number;
 }
 
 // Structured error thrown by createConversation so the UI can branch on it.
@@ -151,13 +152,14 @@ export class MessagingAPI {
   static async sendMessage(
     conversationId: string,
     content: string,
-    attachment?: { url: string; type: string; name: string }
+    attachment?: { url: string; type: string; name: string; size?: number }
   ): Promise<Message> {
     const payload: any = { content };
     if (attachment) {
       payload.attachment_url = attachment.url;
       payload.attachment_type = attachment.type;
       payload.attachment_name = attachment.name;
+      payload.attachment_size = attachment.size;
     }
 
     const response = await apiClient.post(
@@ -313,6 +315,7 @@ export function normalizeMessage(m: any): Message {
     attachment_url:  m.attachment_url,
     attachment_type: m.attachment_type,
     attachment_name: m.attachment_name,
+    attachment_size: m.attachment_size,
   };
 }
 

@@ -143,7 +143,7 @@ export default function MessagingSection({
       .catch(err => console.warn('markAsRead failed:', err));
   }, [activeConvId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string }) => {
+  const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => {
     if (!activeConvId) return;
     try {
       await sendMessage(content, currentUserId, attachment);

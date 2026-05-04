@@ -6,7 +6,7 @@ import { z } from 'zod';
 import FileUploadProgress from './FileUploadProgress';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, attachment?: { url: string; type: string; name: string }) => void;
+  onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => void;
   onTyping: () => void;
   isSending?: boolean;
   disabled?: boolean;
@@ -23,7 +23,7 @@ export default function MessageInput({
   const [message, setMessage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadFile, setUploadFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [uploadFile, setUploadFile] = useState<{ name: string; url: string; type: string; size?: number } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -85,6 +85,7 @@ export default function MessageInput({
 
     try {
       // Step 1: Get Cloudinary signature from backend
+      // Backend generates signature using Cloudinary::Utils.api_sign_request
       const response = await apiClient.get<{
         signature: string;
         timestamp: number;
@@ -125,11 +126,24 @@ export default function MessageInput({
       const result = await uploadResponse.json();
 
       setUploadProgress(100);
-      setUploadFile({
+      const newAttachment = {
         name: file.name,
         type: file.type,
-        url: result.secure_url
-      });
+        url: result.secure_url,
+        size: result.bytes || file.size
+      };
+
+      setUploadFile(newAttachment);
+
+      // ✅ Requirement: Auto-send the message once upload is successful
+      onSendMessage(message, newAttachment);
+      setMessage('');
+      setUploadFile(null);
+      setUploadProgress(0);
+
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
 
       // Auto-focus the input after upload
       textareaRef.current?.focus();
@@ -192,11 +206,15 @@ export default function MessageInput({
             disabled={isUploading || disabled}
             className={cn(
               "p-3 rounded-2xl transition-all active:scale-95",
-              isUploading ? "text-primary-accent animate-pulse" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+              isUploading ? "text-primary-accent" : "text-white/20 hover:text-white/60 hover:bg-white/5"
             )}
             title="Attach File"
           >
-            <Paperclip className="w-5 h-5" />
+            {isUploading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Paperclip className="w-5 h-5" />
+            )}
           </button>
           <button
             type="button"

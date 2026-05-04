@@ -19,6 +19,7 @@ export const MessageSchema = z.object({
   attachment_url: z.string().optional(),
   attachment_type: z.string().optional(),
   attachment_name: z.string().optional(),
+  attachment_size: z.number().optional(),
 });
 
 export const ConversationSchema = z.object({
