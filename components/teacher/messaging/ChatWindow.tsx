@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Message, Participant } from '@/lib/types/messaging';
-import { Check, CheckCheck, Loader2, User } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConversationSubscription } from '@/lib/hooks/useMessaging';
-import AttachmentPreview from './AttachmentPreview';
+import MessageBubble from './MessageBubble';
 
 interface ChatWindowProps {
   conversationId: string | null;
@@ -120,64 +120,16 @@ export default function ChatWindow({
                     isMine ? "justify-end" : "justify-start"
                   )}
                 >
-                  <div className={cn(
-                    "flex gap-3 max-w-[85%] md:max-w-[70%]",
-                    isMine ? "flex-row-reverse" : "flex-row"
-                  )}>
-                    {/* Avatar for others */}
-                    {!isMine && (
-                      <div className="shrink-0 mt-1">
-                        {sender?.avatar ? (
-                          <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-xl object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white/20" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Message Bubble */}
-                    <div className="space-y-1">
-                      <div className={cn(
-                        "relative p-4 rounded-2xl md:rounded-[24px] text-sm md:text-base transition-all",
-                        isMine
-                          ? "bg-primary-fixed text-on-primary-fixed font-medium rounded-tr-none shadow-xl shadow-primary-fixed/10"
-                          : "bg-surface-container text-white/90 rounded-tl-none border border-white/5"
-                      )}>
-                        {msg.content && <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>}
-
-                        {msg.attachment_url && (
-                          <AttachmentPreview
-                            url={msg.attachment_url}
-                            type={msg.attachment_type || 'application/octet-stream'}
-                            name={msg.attachment_name || 'Attachment'}
-                            isMine={isMine}
-                          />
-                        )}
-                      </div>
-
-                      {/* Message Footer */}
-                      <div className={cn(
-                        "flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-wider",
-                        isMine ? "flex-row-reverse text-white/20" : "flex-row text-white/20"
-                      )}>
-                        <span>{formatDate(msg.timestamp)}</span>
-                        {isMine && (
-                          <span className={cn(
-                            "flex items-center",
-                            msg.status === 'read' ? "text-primary-accent" : "text-white/20"
-                          )}>
-                            {msg.status === 'sent' ? (
-                               <Check className="w-3 h-3" />
-                            ) : (
-                               <CheckCheck className="w-3 h-3" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  {conversationId && (
+                    <MessageBubble
+                      conversationId={conversationId}
+                      message={msg}
+                      sender={sender}
+                      isMine={isMine}
+                      currentUserId={currentUserId}
+                      formattedTime={formatDate(msg.timestamp)}
+                    />
+                  )}
                 </motion.div>
                 </React.Fragment>
               );
