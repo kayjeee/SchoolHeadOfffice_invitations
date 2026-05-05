@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Conversation } from '@/lib/api/messaging-api';
 import { Search, User, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import GroupAvatar from './GroupAvatar';
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -29,6 +30,7 @@ export default function ConversationList({
    * 3. Last resort: "Conversation".
    */
   const getDisplayName = (conv: Conversation): string => {
+    if (conv.group_name) return conv.group_name;
     if (conv.title) return conv.title;
 
     const others = conv.participants.filter(p => p.id !== currentUserId);
@@ -146,19 +148,25 @@ export default function ConversationList({
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  {avatar ? (
-                    <img
-                      src={avatar}
-                      alt={displayName}
-                      className="w-12 h-12 rounded-2xl object-cover bg-surface-container"
-                    />
+                  {conv.participants.length > 2 ? (
+                    <GroupAvatar participants={conv.participants} size="lg" />
                   ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <User className="w-6 h-6 text-white/20" />
-                    </div>
-                  )}
-                  {isOnline && (
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
+                    <>
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt={displayName}
+                          className="w-12 h-12 rounded-2xl object-cover bg-surface-container"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+                          <User className="w-6 h-6 text-white/20" />
+                        </div>
+                      )}
+                      {isOnline && (
+                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
+                      )}
+                    </>
                   )}
                 </div>
 

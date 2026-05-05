@@ -30,6 +30,7 @@ export const ConversationSchema = z.object({
   unread_count: z.number().default(0),
   updated_at: z.string(),
   title: z.string().optional(),
+  group_name: z.string().optional(),
 });
 
 export type Participant = z.infer<typeof ParticipantSchema>;

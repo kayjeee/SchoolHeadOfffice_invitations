@@ -23,6 +23,7 @@ export interface LastMessage {
 export interface Conversation {
   id: string;
   title: string | null;
+  group_name: string | null;
   participant_ids: string[];
   participants: ParticipantSnippet[];
   school_id: string | null;
@@ -194,6 +195,20 @@ export class MessagingAPI {
       );
     } catch { /* endpoint may not exist yet — intentionally swallowed */ }
   }
+
+  /** Add/remove participants. */
+  static async updateParticipants(
+    conversationId: string,
+    participantIds: string[]
+  ): Promise<Conversation> {
+    const response = await apiClient.put(
+      `/api/v1/conversations/${conversationId}/participants`,
+      { participant_ids: participantIds },
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.conversation ?? response;
+    return normalizeConversation(raw);
+  }
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
@@ -261,6 +276,7 @@ export function normalizeConversation(c: any): Conversation {
     id:              String(c.id || c._id?.$oid || c._id || ''),
     // title is now built server-side — fall back to client-side only if missing
     title:           c.title || buildTitle(participants) || null,
+    group_name:      c.group_name || null,
     participant_ids: (c.participant_ids || []).map(String),
     participants,
     school_id:       c.school_id ? String(c.school_id) : null,
