@@ -16,6 +16,9 @@ Implemented an interactive messaging UI layer for emoji reactions and visual mes
 - Updated ActionCable message handling so status and reaction broadcasts update the local SWR message cache immediately.
 - Added optimistic reaction updates so emoji pill counts change immediately on click and reconcile with the API/broadcast payload.
 - Added focused-window and bottom-scroll read signals via `MessagingAPI.markAsRead`.
+- Added `emoji-picker-react` and wired the MessageInput smiley button to open the dark-theme picker.
+- Input picker selections now append the selected emoji at the current cursor position in the message composer.
+- Added click-away handling for both composer and reaction pickers.
 
 ## Backend Broadcast Note
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
-import { Plus, User } from 'lucide-react';
+import { Smile, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessagingAPI, MessageReaction, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
 import { Message, Participant } from '@/lib/types/messaging';
@@ -27,8 +27,20 @@ export default function MessageBubble({
 }: MessageBubbleProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
+  const reactionPickerRef = useRef<HTMLDivElement>(null);
   const reactions = message.reactions || [];
   const swrKey = `/api/v1/conversations/${conversationId}/messages`;
+
+  useEffect(() => {
+    const handleClickAway = (event: MouseEvent) => {
+      if (!isPickerOpen) return;
+      if (reactionPickerRef.current?.contains(event.target as Node)) return;
+      setIsPickerOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickAway);
+    return () => document.removeEventListener('mousedown', handleClickAway);
+  }, [isPickerOpen]);
 
   const handleReaction = async (emoji: string) => {
     setIsPickerOpen(false);
@@ -111,7 +123,7 @@ export default function MessageBubble({
       )}
 
       <div className="space-y-1">
-        <div className="relative">
+        <div ref={reactionPickerRef} className="relative overflow-visible">
           <button
             type="button"
             className={cn(
@@ -123,7 +135,7 @@ export default function MessageBubble({
             aria-label="Add reaction"
             title="Add reaction"
           >
-            <Plus className="h-4 w-4" />
+            <Smile className="h-4 w-4" />
           </button>
 
           {isPickerOpen && (

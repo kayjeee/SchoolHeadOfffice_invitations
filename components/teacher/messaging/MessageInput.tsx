@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Smile, Paperclip, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FileUploadProgress from './FileUploadProgress';
+import EmojiPicker from './EmojiPicker';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => void;
@@ -23,9 +24,11 @@ export default function MessageInput({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFile, setUploadFile] = useState<{ name: string; url: string; type: string; size?: number } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // 💡 Auto-focus textarea on mount (when chat window opens)
   useEffect(() => {
@@ -33,6 +36,17 @@ export default function MessageInput({
       textareaRef.current.focus();
     }
   }, [disabled]);
+
+  useEffect(() => {
+    const handleClickAway = (event: MouseEvent) => {
+      if (!showEmojiPicker) return;
+      if (emojiPickerRef.current?.contains(event.target as Node)) return;
+      setShowEmojiPicker(false);
+    };
+
+    document.addEventListener('mousedown', handleClickAway);
+    return () => document.removeEventListener('mousedown', handleClickAway);
+  }, [showEmojiPicker]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -42,6 +56,7 @@ export default function MessageInput({
     if (canSend) {
       onSendMessage(message, hasValidAttachment ? uploadFile : undefined);
       setMessage('');
+      setShowEmojiPicker(false);
       setUploadFile(null);
       setUploadProgress(0);
       if (textareaRef.current) {
@@ -70,6 +85,30 @@ export default function MessageInput({
 
   const handleFileClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setMessage(current => `${current}${emoji}`);
+      onTyping();
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart ?? message.length;
+    const selectionEnd = textarea.selectionEnd ?? message.length;
+    const nextMessage = `${message.slice(0, selectionStart)}${emoji}${message.slice(selectionEnd)}`;
+    const nextCursorPosition = selectionStart + emoji.length;
+
+    setMessage(nextMessage);
+    onTyping();
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(nextCursorPosition, nextCursorPosition);
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,12 +240,26 @@ export default function MessageInput({
           </button>
           <button
             type="button"
-            className="p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all active:scale-95 hidden md:flex"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setShowEmojiPicker(open => !open)}
+            disabled={disabled}
+            className={cn(
+              "p-3 rounded-2xl transition-all active:scale-95 hidden md:flex",
+              showEmojiPicker ? "text-primary-accent bg-white/5" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+            )}
             title="Add Emoji"
+            aria-expanded={showEmojiPicker}
+            aria-label="Add emoji"
           >
             <Smile className="w-5 h-5" />
           </button>
         </div>
+
+        {showEmojiPicker && (
+          <div ref={emojiPickerRef} className="absolute bottom-full left-12 z-50 mb-3">
+            <EmojiPicker onSelect={handleEmojiSelect} variant="grid" />
+          </div>
+        )}
 
         <div className="flex-1 relative">
            <textarea
