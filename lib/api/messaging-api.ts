@@ -154,17 +154,17 @@ export class MessagingAPI {
     content: string,
     attachment?: { url: string; type: string; name: string; size?: number }
   ): Promise<Message> {
-    const payload: any = { content };
+    const messagePayload: any = { content };
     if (attachment) {
-      payload.attachment_url = attachment.url;
-      payload.attachment_type = attachment.type;
-      payload.attachment_name = attachment.name;
-      payload.attachment_size = attachment.size;
+      messagePayload.attachment_url = attachment.url;
+      messagePayload.attachment_type = attachment.type;
+      messagePayload.attachment_name = attachment.name;
+      messagePayload.attachment_size = attachment.size;
     }
 
     const response = await apiClient.post(
       `/api/v1/conversations/${conversationId}/messages`,
-      payload,
+      { message: messagePayload },
       z.any()
     ) as any;
     const raw = response?.data ?? response?.message ?? response;
