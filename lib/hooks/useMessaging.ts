@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
-import { MessagingAPI } from '@/lib/api/messaging-api';
+import { MessagingAPI, normalizeMessage } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
 import { useApi } from './useApi';
 import { getCableConsumer } from '@/lib/cable';
@@ -52,17 +52,18 @@ export function useConversationSubscription(conversationId: string | null) {
     const subscription = consumer.subscriptions.create(
       { channel: 'MessagesChannel', conversation_id: conversationId },
       {
-        received(data: Message) {
+        received(data: any) {
           console.log('📨 [ActionCable] New message received:', data);
+          const normalized = normalizeMessage(data);
           const swrKey = `/api/v1/conversations/${conversationId}/messages`;
 
           mutate(swrKey, (currentData: Message[] | undefined) => {
             const messages = currentData || [];
             // Avoid duplicates
-            if (messages.some(m => m.id === data.id)) {
+            if (messages.some(m => m.id === normalized.id)) {
               return messages;
             }
-            return [...messages, data];
+            return [...messages, normalized];
           }, false);
         },
         connected() {
