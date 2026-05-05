@@ -28,6 +28,7 @@ export default function MessageBubble({
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
   const reactions = message.reactions || [];
+  const swrKey = `/api/v1/conversations/${conversationId}/messages`;
 
   const handleReaction = async (emoji: string) => {
     setIsPickerOpen(false);
@@ -35,12 +36,29 @@ export default function MessageBubble({
 
     try {
       setIsReacting(true);
+      mutate(swrKey, (current: Message[] | undefined) => {
+        const messages = current || [];
+
+        return messages.map((existingMessage) =>
+          existingMessage.id === message.id
+            ? {
+                ...existingMessage,
+                reactions: applyOptimisticReaction(
+                  existingMessage.reactions || [],
+                  emoji,
+                  currentUserId
+                ),
+              }
+            : existingMessage
+        );
+      }, false);
+
       const response = await MessagingAPI.reactToMessage(conversationId, message.id, emoji);
       const updatedMessage = response?.message || response;
       const reactions = updatedMessage?.reactions || response?.reactions || response?.reaction;
 
       if (updatedMessage?.id || reactions) {
-        mutate(`/api/v1/conversations/${conversationId}/messages`, (current: Message[] | undefined) => {
+        mutate(swrKey, (current: Message[] | undefined) => {
           const messages = current || [];
 
           return messages.map((existingMessage) => {
@@ -51,6 +69,22 @@ export default function MessageBubble({
         }, false);
       }
     } catch (error) {
+      mutate(swrKey, (current: Message[] | undefined) => {
+        const messages = current || [];
+
+        return messages.map((existingMessage) =>
+          existingMessage.id === message.id
+            ? {
+                ...existingMessage,
+                reactions: applyOptimisticReaction(
+                  existingMessage.reactions || [],
+                  emoji,
+                  currentUserId
+                ),
+              }
+            : existingMessage
+        );
+      }, false);
       console.error('Failed to react to message', error);
     } finally {
       setIsReacting(false);
@@ -95,7 +129,7 @@ export default function MessageBubble({
           {isPickerOpen && (
             <EmojiPicker
               onSelect={handleReaction}
-              className={cn('absolute bottom-full z-20 mb-2', isMine ? 'right-0' : 'left-0')}
+              className={cn('absolute bottom-full z-50 mb-2', isMine ? 'right-0' : 'left-0')}
             />
           )}
 
@@ -159,4 +193,48 @@ export default function MessageBubble({
       </div>
     </div>
   );
+}
+
+function applyOptimisticReaction(
+  reactions: MessageReaction[],
+  emoji: string,
+  currentUserId: string
+): MessageReaction[] {
+  const currentUserIdString = String(currentUserId);
+  const existingReaction = reactions.find(reaction => reaction.emoji === emoji);
+
+  if (!existingReaction) {
+    return [
+      ...reactions,
+      {
+        emoji,
+        count: 1,
+        current_user_reacted: true,
+        user_ids: [currentUserIdString],
+      },
+    ];
+  }
+
+  const hasReacted =
+    existingReaction.current_user_reacted ||
+    existingReaction.user_ids?.map(String).includes(currentUserIdString) ||
+    false;
+
+  const nextCount = Math.max(0, existingReaction.count + (hasReacted ? -1 : 1));
+  const nextUserIds = hasReacted
+    ? existingReaction.user_ids?.filter(id => String(id) !== currentUserIdString)
+    : [...(existingReaction.user_ids || []), currentUserIdString];
+
+  return reactions
+    .map(reaction =>
+      reaction.emoji === emoji
+        ? {
+            ...reaction,
+            count: nextCount,
+            current_user_reacted: !hasReacted,
+            user_ids: nextUserIds,
+          }
+        : reaction
+    )
+    .filter(reaction => reaction.count > 0);
 }
