@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
-import { MessagingAPI, normalizeMessage } from '@/lib/api/messaging-api';
+import { MessagingAPI, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
 import { useApi } from './useApi';
 import { getCableConsumer } from '@/lib/cable';
@@ -54,14 +54,58 @@ export function useConversationSubscription(conversationId: string | null) {
       {
         received(data: any) {
           console.log('📨 [ActionCable] New message received:', data);
-          const normalized = normalizeMessage(data);
           const swrKey = `/api/v1/conversations/${conversationId}/messages`;
 
           mutate(swrKey, (currentData: Message[] | undefined) => {
             const messages = currentData || [];
-            // Avoid duplicates
+            const incoming = data?.message || data;
+            const messageId = String(
+              incoming?.id ||
+              incoming?.message_id ||
+              incoming?._id?.$oid ||
+              incoming?._id ||
+              ''
+            );
+
+            if (!messageId) return messages;
+
+            if (
+              data?.type === 'message_status' ||
+              incoming?.status_update ||
+              (data?.message_id && data?.status && !data?.content)
+            ) {
+              return messages.map(message =>
+                message.id === messageId
+                  ? { ...message, status: data?.status || incoming?.status || message.status }
+                  : message
+              );
+            }
+
+            if (
+              data?.type === 'message_reaction' ||
+              data?.reaction ||
+              data?.reactions ||
+              incoming?.reaction ||
+              incoming?.reactions
+            ) {
+              const reactions = normalizeReactions(
+                data?.reactions || incoming?.reactions || data?.reaction || incoming?.reaction
+              );
+
+              return messages.map(message =>
+                message.id === messageId
+                  ? { ...message, reactions }
+                  : message
+              );
+            }
+
+            const normalized = normalizeMessage(incoming);
             if (messages.some(m => m.id === normalized.id)) {
-              return messages;
+              return messages.map(message =>
+                message.id === normalized.id
+                  ? { ...message, ...normalized }
+                  : message
+              );
             }
             return [...messages, normalized];
           }, false);

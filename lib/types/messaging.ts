@@ -20,6 +20,12 @@ export const MessageSchema = z.object({
   attachment_type: z.string().optional(),
   attachment_name: z.string().optional(),
   attachment_size: z.number().optional(),
+  reactions: z.array(z.object({
+    emoji: z.string(),
+    count: z.number(),
+    current_user_reacted: z.boolean().optional(),
+    user_ids: z.array(z.string()).optional(),
+  })).optional(),
 });
 
 export const ConversationSchema = z.object({

@@ -44,6 +44,14 @@ export interface Message {
   attachment_type?: string;
   attachment_name?: string;
   attachment_size?: number;
+  reactions?: MessageReaction[];
+}
+
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  current_user_reacted?: boolean;
+  user_ids?: string[];
 }
 
 // Structured error thrown by createConversation so the UI can branch on it.
@@ -169,6 +177,21 @@ export class MessagingAPI {
     ) as any;
     const raw = response?.data ?? response?.message ?? response;
     return normalizeMessage(raw);
+  }
+
+  /** React to a message and return the backend-confirmed payload. */
+  static async reactToMessage(
+    conversationId: string,
+    messageId: string,
+    emoji: string
+  ): Promise<any> {
+    const response = await apiClient.post(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/react`,
+      { emoji },
+      z.any()
+    ) as any;
+
+    return response?.data ?? response?.message ?? response;
   }
 
   /** Mark all messages in a conversation as read. Never throws. */
@@ -316,7 +339,63 @@ export function normalizeMessage(m: any): Message {
     attachment_type: m.attachment_type,
     attachment_name: m.attachment_name,
     attachment_size: m.attachment_size,
+    reactions:       normalizeReactions(m.reactions || m.reaction_counts || []),
   };
+}
+
+export function normalizeReactions(raw: any): MessageReaction[] {
+  if (!raw) return [];
+
+  if (typeof raw === 'object' && raw.emoji) {
+    return [{
+      emoji: String(raw.emoji),
+      count: Number(raw.count ?? raw.total ?? 1),
+      current_user_reacted: Boolean(
+        raw.current_user_reacted ?? raw.reacted_by_current_user ?? raw.mine
+      ),
+      user_ids: Array.isArray(raw.user_ids)
+        ? raw.user_ids.map(String)
+        : undefined,
+    }].filter(reaction => reaction.emoji && reaction.count > 0);
+  }
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map((reaction: any) => ({
+        emoji: String(reaction.emoji || reaction.name || ''),
+        count: Number(reaction.count ?? reaction.total ?? 0),
+        current_user_reacted: Boolean(
+          reaction.current_user_reacted ?? reaction.reacted_by_current_user ?? reaction.mine
+        ),
+        user_ids: Array.isArray(reaction.user_ids)
+          ? reaction.user_ids.map(String)
+          : undefined,
+      }))
+      .filter(reaction => reaction.emoji && reaction.count > 0);
+  }
+
+  if (typeof raw === 'object') {
+    return Object.entries(raw)
+      .map(([emoji, value]: [string, any]) => {
+        if (typeof value === 'number') {
+          return { emoji, count: value };
+        }
+
+        return {
+          emoji,
+          count: Number(value?.count ?? value?.total ?? 0),
+          current_user_reacted: Boolean(
+            value?.current_user_reacted ?? value?.reacted_by_current_user ?? value?.mine
+          ),
+          user_ids: Array.isArray(value?.user_ids)
+            ? value.user_ids.map(String)
+            : undefined,
+        };
+      })
+      .filter(reaction => reaction.emoji && reaction.count > 0);
+  }
+
+  return [];
 }
 
 /**
