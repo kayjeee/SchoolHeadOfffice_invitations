@@ -69,44 +69,15 @@ export function useConversationSubscription(conversationId: string | null) {
 
             if (!messageId) return messages;
 
-            if (
-              data?.type === 'message_status' ||
-              incoming?.status_update ||
-              (data?.message_id && data?.status && !data?.content)
-            ) {
+            if (messages.some(m => m.id === messageId)) {
               return messages.map(message =>
                 message.id === messageId
-                  ? { ...message, status: data?.status || incoming?.status || message.status }
-                  : message
-              );
-            }
-
-            if (
-              data?.type === 'message_reaction' ||
-              data?.reaction ||
-              data?.reactions ||
-              incoming?.reaction ||
-              incoming?.reactions
-            ) {
-              const reactions = normalizeReactions(
-                data?.reactions || incoming?.reactions || data?.reaction || incoming?.reaction
-              );
-
-              return messages.map(message =>
-                message.id === messageId
-                  ? { ...message, reactions }
+                  ? mergeMessageUpdate(message, incoming, data)
                   : message
               );
             }
 
             const normalized = normalizeMessage(incoming);
-            if (messages.some(m => m.id === normalized.id)) {
-              return messages.map(message =>
-                message.id === normalized.id
-                  ? { ...message, ...normalized }
-                  : message
-              );
-            }
             return [...messages, normalized];
           }, false);
         },
@@ -128,6 +99,41 @@ export function useConversationSubscription(conversationId: string | null) {
       subscription.unsubscribe();
     };
   }, [conversationId, user?.email, accessToken]);
+}
+
+function mergeMessageUpdate(
+  currentMessage: Message,
+  incoming: any,
+  broadcast: any
+): Message {
+  const hasFullMessage =
+    incoming?.content !== undefined ||
+    incoming?.body !== undefined ||
+    incoming?.text !== undefined ||
+    incoming?.timestamp ||
+    incoming?.created_at;
+
+  const nextMessage = hasFullMessage
+    ? { ...currentMessage, ...normalizeMessage(incoming) }
+    : { ...currentMessage };
+
+  const status = broadcast?.status || incoming?.status || incoming?.status_update;
+  if (status) {
+    nextMessage.status = status;
+  }
+
+  const reactionPayload =
+    broadcast?.reactions ||
+    incoming?.reactions ||
+    broadcast?.reaction ||
+    incoming?.reaction ||
+    incoming?.reaction_counts;
+
+  if (reactionPayload) {
+    nextMessage.reactions = normalizeReactions(reactionPayload);
+  }
+
+  return nextMessage;
 }
 
 /**

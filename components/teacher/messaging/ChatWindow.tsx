@@ -4,6 +4,7 @@ import { Loader2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConversationSubscription } from '@/lib/hooks/useMessaging';
+import { MessagingAPI } from '@/lib/api/messaging-api';
 import MessageBubble from './MessageBubble';
 
 interface ChatWindowProps {
@@ -26,6 +27,7 @@ export default function ChatWindow({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastReadSignalRef = useRef<string | null>(null);
   const [lastSeenTimestamp, setLastSeenTimestamp] = React.useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +45,55 @@ export default function ChatWindow({
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, currentUserId]);
+
+  const isNearBottom = React.useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return true;
+
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 96;
+  }, []);
+
+  const sendReadSignal = React.useCallback((requireBottom: boolean) => {
+    if (!conversationId) return;
+    if (typeof document !== 'undefined') {
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+    }
+    if (requireBottom && !isNearBottom()) return;
+
+    const latestIncomingMessage = [...messages]
+      .reverse()
+      .find(message => message.sender_id !== currentUserId);
+    if (!latestIncomingMessage) return;
+
+    const readSignature = `${conversationId}:${latestIncomingMessage.id}`;
+    if (lastReadSignalRef.current === readSignature) return;
+
+    lastReadSignalRef.current = readSignature;
+    MessagingAPI.markAsRead(conversationId).catch(error => {
+      lastReadSignalRef.current = null;
+      console.warn('markAsRead failed:', error);
+    });
+  }, [conversationId, currentUserId, isNearBottom, messages]);
+
+  useEffect(() => {
+    sendReadSignal(false);
+  }, [sendReadSignal]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    const handleFocusRead = () => sendReadSignal(false);
+    const handleScrollRead = () => sendReadSignal(true);
+
+    window.addEventListener('focus', handleFocusRead);
+    document.addEventListener('visibilitychange', handleFocusRead);
+    container?.addEventListener('scroll', handleScrollRead, { passive: true });
+
+    return () => {
+      window.removeEventListener('focus', handleFocusRead);
+      document.removeEventListener('visibilitychange', handleFocusRead);
+      container?.removeEventListener('scroll', handleScrollRead);
+    };
+  }, [sendReadSignal]);
 
   const getParticipant = (id: string) => {
     return participants.find(p => p.id?.toString() === id?.toString());
