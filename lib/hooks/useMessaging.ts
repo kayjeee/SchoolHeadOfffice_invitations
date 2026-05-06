@@ -54,6 +54,19 @@ export function useConversationSubscription(conversationId: string | null) {
       {
         received(data: any) {
           console.log('📨 [ActionCable] New message received:', data);
+
+          // Handle typing indicator events
+          if (data?.type === 'typing') {
+            const event = new CustomEvent(`typing:${conversationId}`, {
+              detail: {
+                userId: data.user_id,
+                isTyping: data.is_typing
+              }
+            });
+            window.dispatchEvent(event);
+            return;
+          }
+
           const messagesSwrKey = `/api/v1/conversations/${conversationId}/messages`;
           const convsSwrKey = '/api/v1/conversations';
 
@@ -257,15 +270,46 @@ export function useMessages(conversationId: string | null) {
  * NOTE: exports `isOtherTyping` (not `isTyping`) — used in MessagingSection
  */
 export function useTyping(conversationId: string | null) {
-  const [isLocalTyping, setIsLocalTyping] = useState(false);
-  const [isOtherTyping] = useState(false); // ✅ RESTORED to maintain hook count
+  const { user } = useApi();
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const isLocalTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const remoteTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const handleTypingEvent = (event: any) => {
+      const { userId, isTyping } = event.detail;
+
+      // Don't show typing indicator for self
+      if (user?.sub && userId === user.sub) return;
+      // Also handle cases where userId might be an email or different format
+      if (user?.email && userId === user.email) return;
+
+      setIsOtherTyping(isTyping);
+
+      // Safety timeout: clear typing indicator after 5 seconds if no "stopped typing" event arrives
+      if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
+      if (isTyping) {
+        remoteTypingTimeoutRef.current = setTimeout(() => {
+          setIsOtherTyping(false);
+        }, 5000);
+      }
+    };
+
+    window.addEventListener(`typing:${conversationId}` as any, handleTypingEvent);
+    return () => {
+      window.removeEventListener(`typing:${conversationId}` as any, handleTypingEvent);
+      if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
+    };
+  }, [conversationId, user]);
 
   const handleTyping = useCallback(() => {
     if (!conversationId) return;
 
-    if (!isLocalTyping) {
-      setIsLocalTyping(true);
+    if (!isLocalTypingRef.current) {
+      isLocalTypingRef.current = true;
       MessagingAPI.setTyping(conversationId, true).catch(() => {});
     }
 
@@ -274,17 +318,13 @@ export function useTyping(conversationId: string | null) {
     }
 
     typingTimeoutRef.current = setTimeout(() => {
-      setIsLocalTyping(false);
+      isLocalTypingRef.current = false;
       MessagingAPI.setTyping(conversationId, false).catch(() => {});
     }, 2000);
-  }, [conversationId, isLocalTyping]);
-
-  // TODO: Add Action Cable typing indicator support when backend is ready
-  // RESTORED: useSWR call with null key to maintain hook count and avoid React errors
-  useSWR(null, async () => null);
+  }, [conversationId]);
 
   return {
-    isOtherTyping,  // ← correct export name consumed by MessagingSection
+    isOtherTyping,
     handleTyping,
   };
 }

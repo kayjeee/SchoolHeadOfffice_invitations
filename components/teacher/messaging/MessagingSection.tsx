@@ -151,6 +151,7 @@ export default function MessagingSection({
       refreshConvs();
     } catch (err) {
       console.error('Failed to send message:', err);
+      throw err; // Propagate error to MessageInput so it doesn't clear the field
     }
   };
 
