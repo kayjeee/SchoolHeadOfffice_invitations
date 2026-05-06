@@ -54,11 +54,17 @@ export default function ChatWindow({
   }, []);
 
   const sendReadSignal = React.useCallback((requireBottom: boolean) => {
-    if (!conversationId) return;
+    if (!conversationId || messages.length === 0) return;
     if (typeof document !== 'undefined') {
       if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
     }
     if (requireBottom && !isNearBottom()) return;
+
+    // Check if there are any unread messages from others
+    const unreadFromOthers = messages.some(
+      m => m.sender_id !== currentUserId && m.status !== 'read'
+    );
+    if (!unreadFromOthers) return;
 
     const latestIncomingMessage = [...messages]
       .reverse()
@@ -68,6 +74,7 @@ export default function ChatWindow({
     const readSignature = `${conversationId}:${latestIncomingMessage.id}`;
     if (lastReadSignalRef.current === readSignature) return;
 
+    console.log(`🔵 [ChatWindow] Sending read signal for conversation: ${conversationId}`);
     lastReadSignalRef.current = readSignature;
     MessagingAPI.markAsRead(conversationId).catch(error => {
       lastReadSignalRef.current = null;

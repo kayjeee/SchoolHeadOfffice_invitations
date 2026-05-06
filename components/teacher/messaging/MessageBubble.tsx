@@ -109,7 +109,7 @@ export default function MessageBubble({
   };
 
   return (
-    <div className={cn('flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
+    <div className={cn('group flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
       {!isMine && (
         <div className="mt-1 shrink-0">
           {sender?.avatar ? (
@@ -123,11 +123,11 @@ export default function MessageBubble({
       )}
 
       <div className="space-y-1">
-        <div ref={reactionPickerRef} className="relative overflow-visible">
+        <div ref={reactionPickerRef} className="relative">
           <button
             type="button"
             className={cn(
-              'absolute top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 opacity-0 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-accent/60 group-hover:opacity-100',
+              'absolute top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 opacity-0 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-accent/60 group-hover:opacity-100',
               isMine ? '-left-9' : '-right-9'
             )}
             onClick={() => setIsPickerOpen(open => !open)}
@@ -139,10 +139,12 @@ export default function MessageBubble({
           </button>
 
           {isPickerOpen && (
-            <EmojiPicker
-              onSelect={handleReaction}
-              className={cn('absolute bottom-full z-50 mb-2', isMine ? 'right-0' : 'left-0')}
-            />
+            <div className={cn('absolute bottom-full z-[100] mb-2', isMine ? 'right-0' : 'left-0')}>
+              <EmojiPicker
+                onSelect={handleReaction}
+                className="shadow-2xl"
+              />
+            </div>
           )}
 
           <div
@@ -195,8 +197,8 @@ export default function MessageBubble({
 
         <div
           className={cn(
-            'flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-wider',
-            isMine ? 'flex-row-reverse text-white/20' : 'flex-row text-white/20'
+            'flex items-center gap-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-white/20',
+            isMine ? 'justify-end' : 'justify-start'
           )}
         >
           <span>{formattedTime}</span>

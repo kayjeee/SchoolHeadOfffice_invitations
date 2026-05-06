@@ -54,11 +54,19 @@ export function useConversationSubscription(conversationId: string | null) {
       {
         received(data: any) {
           console.log('📨 [ActionCable] New message received:', data);
-          const swrKey = `/api/v1/conversations/${conversationId}/messages`;
+          const messagesSwrKey = `/api/v1/conversations/${conversationId}/messages`;
+          const convsSwrKey = '/api/v1/conversations';
 
-          mutate(swrKey, (currentData: Message[] | undefined) => {
+          // Update messages list
+          mutate(messagesSwrKey, (currentData: Message[] | undefined) => {
             const messages = currentData || [];
             const incoming = data?.message || data;
+
+            // Handle bulk status updates (e.g. { status: 'read', conversation_id: '...' })
+            if (data?.status && !data?.id && !data?.message_id) {
+              return messages.map(m => ({ ...m, status: data.status }));
+            }
+
             const messageId = String(
               incoming?.id ||
               incoming?.message_id ||
@@ -80,6 +88,9 @@ export function useConversationSubscription(conversationId: string | null) {
             const normalized = normalizeMessage(incoming);
             return [...messages, normalized];
           }, false);
+
+          // Update conversation list to reflect last message/unread count
+          mutate(convsSwrKey);
         },
         connected() {
           console.log(`✅ [ActionCable] Handshake successful! Connected to MessagesChannel for ID: ${conversationId}`);
