@@ -5,7 +5,7 @@ import FileUploadProgress from './FileUploadProgress';
 import EmojiPicker from './EmojiPicker';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => void;
+  onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => Promise<void> | void;
   onTyping: () => void;
   isSending?: boolean;
   disabled?: boolean;
@@ -48,19 +48,27 @@ export default function MessageInput({
     return () => document.removeEventListener('mousedown', handleClickAway);
   }, [showEmojiPicker]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const hasValidAttachment = uploadFile && uploadFile.url && !uploadError;
     const canSend = (message.trim() || hasValidAttachment) && !isSending && !disabled && !isUploading;
 
     if (canSend) {
-      onSendMessage(message, hasValidAttachment ? uploadFile : undefined);
-      setMessage('');
-      setShowEmojiPicker(false);
-      setUploadFile(null);
-      setUploadProgress(0);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      try {
+        const result = onSendMessage(message, hasValidAttachment ? uploadFile : undefined);
+        if (result instanceof Promise) {
+          await result;
+        }
+        setMessage('');
+        setShowEmojiPicker(false);
+        setUploadFile(null);
+        setUploadProgress(0);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+      } catch (err) {
+        // Keep the message if it failed
+        console.error('Failed to send message in MessageInput:', err);
       }
     }
   };
