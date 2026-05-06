@@ -194,6 +194,18 @@ export class MessagingAPI {
     return response?.data ?? response?.message ?? response;
   }
 
+  /** Search messages in a conversation. */
+  static async searchMessages(conversationId: string, query: string): Promise<Message[]> {
+    if (!query.trim()) return [];
+    const response = await apiClient.get(
+      `/api/v1/conversations/${conversationId}/messages/search?q=${encodeURIComponent(query)}`,
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.messages ?? response;
+    const list: any[] = Array.isArray(raw) ? raw : [];
+    return list.map(normalizeMessage);
+  }
+
   /** Mark all messages in a conversation as read. Never throws. */
   static async markAsRead(conversationId: string): Promise<{ success: boolean }> {
     try {
