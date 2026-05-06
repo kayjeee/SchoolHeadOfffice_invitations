@@ -3,6 +3,7 @@ import ConversationList from './ConversationList';
 import DirectoryList from './DirectoryList';
 import ChatWindow from './ChatWindow';
 import MessageInput from './MessageInput';
+import SearchPanel from './SearchPanel';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
@@ -31,6 +32,8 @@ export default function MessagingSection({
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -128,7 +131,9 @@ export default function MessagingSection({
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
     setShowDirectory(false);
+    setShowSearch(false);
     setShowMobileList(false);
+    setHighlightedMessageId(null);
   };
 
   const handleBackToList = () => {
@@ -280,7 +285,10 @@ export default function MessagingSection({
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all hidden sm:flex">
                     <Video className="w-5 h-5" />
                   </button>
-                  <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
+                  <button
+                    onClick={() => setShowSearch(true)}
+                    className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all"
+                  >
                     <Search className="w-5 h-5" />
                   </button>
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
@@ -296,6 +304,22 @@ export default function MessagingSection({
                 participants={resolvedParticipants}
                 currentUserId={currentUserId}
                 loading={loadingMessages}
+                highlightedMessageId={highlightedMessageId}
+              />
+
+              {/* Search Panel */}
+              <SearchPanel
+                isOpen={showSearch}
+                onClose={() => setShowSearch(false)}
+                conversationId={activeConvId}
+                onJumpToMessage={(messageId) => {
+                  setHighlightedMessageId(messageId);
+                  setShowSearch(false);
+                  // Clear highlight after 3 seconds
+                  setTimeout(() => {
+                    setHighlightedMessageId(null);
+                  }, 3000);
+                }}
               />
 
               {/* AI suggestion bar */}

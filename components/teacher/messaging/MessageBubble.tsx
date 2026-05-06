@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   isMine: boolean;
   currentUserId: string;
   formattedTime: string;
+  isHighlighted?: boolean;
 }
 
 export default function MessageBubble({
@@ -24,6 +25,7 @@ export default function MessageBubble({
   isMine,
   currentUserId,
   formattedTime,
+  isHighlighted = false,
 }: MessageBubbleProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
@@ -152,7 +154,10 @@ export default function MessageBubble({
               'relative rounded-2xl p-4 text-sm transition-all md:rounded-[24px] md:text-base',
               isMine
                 ? 'rounded-tr-none bg-primary-fixed font-medium text-on-primary-fixed shadow-xl shadow-primary-fixed/10'
-                : 'rounded-tl-none border border-white/5 bg-surface-container text-white/90'
+                : 'rounded-tl-none border border-white/5 bg-surface-container text-white/90',
+              isHighlighted && (isMine
+                ? 'bg-primary-accent ring-4 ring-primary-accent ring-offset-4 ring-offset-black/20 scale-[1.02] shadow-2xl shadow-primary-accent/40'
+                : 'bg-primary-accent/20 ring-4 ring-primary-accent ring-offset-4 ring-offset-black/20 scale-[1.02] shadow-2xl shadow-primary-accent/20')
             )}
           >
             {message.content && <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>}

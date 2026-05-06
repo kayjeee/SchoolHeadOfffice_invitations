@@ -13,6 +13,7 @@ interface ChatWindowProps {
   participants: Participant[];
   currentUserId: string;
   loading?: boolean;
+  highlightedMessageId?: string | null;
 }
 
 export default function ChatWindow({
@@ -21,6 +22,7 @@ export default function ChatWindow({
   participants,
   currentUserId,
   loading = false,
+  highlightedMessageId = null,
 }: ChatWindowProps) {
   // Initialize real-time subscription
   useConversationSubscription(conversationId);
@@ -40,11 +42,20 @@ export default function ChatWindow({
   useEffect(() => {
     // Auto-scroll to bottom on new messages if already at bottom
     // or if the message is from the current user
-    if (bottomRef.current) {
-      const isMyMessage = messages.length > 0 && messages[messages.length - 1].sender_id === currentUserId;
+    if (bottomRef.current && !highlightedMessageId) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, currentUserId]);
+  }, [messages, currentUserId, highlightedMessageId]);
+
+  // Jump to highlighted message
+  useEffect(() => {
+    if (highlightedMessageId) {
+      const element = document.getElementById(`message-${highlightedMessageId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedMessageId]);
 
   const isNearBottom = React.useCallback(() => {
     const container = scrollRef.current;
@@ -170,6 +181,7 @@ export default function ChatWindow({
                   </div>
                 )}
                 <motion.div
+                  id={`message-${msg.id}`}
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.2 }}
@@ -186,6 +198,7 @@ export default function ChatWindow({
                       isMine={isMine}
                       currentUserId={currentUserId}
                       formattedTime={formatDate(msg.timestamp)}
+                      isHighlighted={highlightedMessageId === msg.id}
                     />
                   )}
                 </motion.div>
