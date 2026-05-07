@@ -40,6 +40,7 @@ export default function MessageInput({
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
+  const isHoldingRef = useRef(false);
 
   // 💡 Auto-focus textarea on mount (when chat window opens)
   useEffect(() => {
@@ -168,7 +169,7 @@ export default function MessageInput({
       setUploadProgress(100);
       const newAttachment = {
         name: fileName,
-        type: isAudio ? 'audio/webm' : fileType, // Normalize audio type
+        type: isAudio ? 'audio' : fileType, // Use 'audio' as requested
         url: result.secure_url,
         size: result.bytes || (file instanceof File ? file.size : file.size)
       };
@@ -203,8 +204,15 @@ export default function MessageInput({
 
   // Recording Logic
   const startRecording = async () => {
+    isHoldingRef.current = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      if (!isHoldingRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -239,11 +247,13 @@ export default function MessageInput({
 
     } catch (err) {
       console.error('Error accessing microphone:', err);
+      isHoldingRef.current = false;
       alert('Could not access microphone. Please check permissions.');
     }
   };
 
   const stopRecording = () => {
+    isHoldingRef.current = false;
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -252,6 +262,7 @@ export default function MessageInput({
   };
 
   const cancelRecording = () => {
+    isHoldingRef.current = false;
     if (mediaRecorderRef.current && isRecording) {
       audioChunksRef.current = []; // Clear chunks so it doesn't upload
       mediaRecorderRef.current.stop();

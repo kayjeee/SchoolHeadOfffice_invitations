@@ -162,7 +162,10 @@ export class MessagingAPI {
     content: string,
     attachment?: { url: string; type: string; name: string; size?: number }
   ): Promise<Message> {
-    const messagePayload: any = { content };
+    const messagePayload: any = {
+      content: content?.trim() || null
+    };
+
     if (attachment) {
       messagePayload.attachment_url = attachment.url;
       messagePayload.attachment_type = attachment.type;

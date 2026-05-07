@@ -22,7 +22,7 @@ export default function AttachmentPreview({
 
   const isImage = type.startsWith('image/');
   const isVideo = type.startsWith('video/');
-  const isAudio = type.startsWith('audio/');
+  const isAudio = type.startsWith('audio/') || type === 'audio';
   const isPdf = type === 'application/pdf';
 
   const [isPlaying, setIsPlaying] = useState(false);
