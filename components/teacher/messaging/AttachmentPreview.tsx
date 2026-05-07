@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { FileIcon, Download, ExternalLink, Play, Eye, FileText, Loader2, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { FileIcon, Download, ExternalLink, Play, Pause, Eye, FileText, Loader2, X, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Dialog from '@radix-ui/react-dialog';
+import WaveSurfer from 'wavesurfer.js';
 
 interface AttachmentPreviewProps {
   url: string;
@@ -21,7 +22,66 @@ export default function AttachmentPreview({
 
   const isImage = type.startsWith('image/');
   const isVideo = type.startsWith('video/');
+  const isAudio = type.startsWith('audio/');
   const isPdf = type === 'application/pdf';
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const waveformRef = useRef<HTMLDivElement>(null);
+  const wavesurferRef = useRef<WaveSurfer | null>(null);
+
+  useEffect(() => {
+    if (isAudio && waveformRef.current && !wavesurferRef.current) {
+      const ws = WaveSurfer.create({
+        container: waveformRef.current,
+        waveColor: isMine ? 'rgba(255, 255, 255, 0.3)' : 'rgba(100, 116, 139, 0.5)',
+        progressColor: isMine ? '#FFFFFF' : '#3B82F6',
+        cursorColor: 'transparent',
+        barWidth: 2,
+        barRadius: 3,
+        responsive: true,
+        height: 32,
+        normalize: true,
+        partialRender: true,
+      });
+
+      ws.load(url);
+
+      ws.on('ready', () => {
+        setDuration(ws.getDuration());
+      });
+
+      ws.on('audioprocess', () => {
+        setCurrentTime(ws.getCurrentTime());
+      });
+
+      ws.on('play', () => setIsPlaying(true));
+      ws.on('pause', () => setIsPlaying(false));
+      ws.on('finish', () => {
+        setIsPlaying(false);
+        ws.setTime(0);
+      });
+
+      wavesurferRef.current = ws;
+
+      return () => {
+        ws.destroy();
+        wavesurferRef.current = null;
+      };
+    }
+  }, [isAudio, url, isMine]);
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    wavesurferRef.current?.playPause();
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,6 +169,55 @@ export default function AttachmentPreview({
               <p className="text-xs font-bold uppercase tracking-widest text-red-400/60">Processing Video...</p>
             </div>
          )}
+      </div>
+    );
+  }
+
+  if (isAudio) {
+    return (
+      <div
+        className={cn(
+          "mt-2 flex items-center gap-4 p-4 rounded-2xl border transition-all max-w-[300px] sm:max-w-md",
+          isMine
+            ? "bg-white/10 border-white/10"
+            : "bg-white/5 border-white/10 shadow-sm"
+        )}
+      >
+        <button
+          onClick={togglePlay}
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-95",
+            isMine
+              ? "bg-white text-primary-accent"
+              : "bg-primary-accent text-white"
+          )}
+        >
+          {isPlaying ? (
+            <Pause className="w-5 h-5 fill-current" />
+          ) : (
+            <Play className="w-5 h-5 fill-current ml-0.5" />
+          )}
+        </button>
+
+        <div className="flex-1 flex flex-col gap-1 min-w-0">
+          <div ref={waveformRef} className="w-full" />
+          <div className="flex justify-between items-center">
+            <span className={cn(
+              "text-[10px] font-bold tabular-nums",
+              isMine ? "text-white/60" : "text-white/40"
+            )}>
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+            <div className="flex items-center gap-2">
+               <Volume2 className={cn("w-3 h-3", isMine ? "text-white/40" : "text-white/20")} />
+               {isMine && (
+                 <button onClick={handleDownload} className="p-1 hover:bg-white/10 rounded transition-colors">
+                   <Download className="w-3 h-3 text-white/40" />
+                 </button>
+               )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

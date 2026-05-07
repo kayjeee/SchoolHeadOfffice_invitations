@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Smile, Paperclip, MoreHorizontal, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Smile, Paperclip, MoreHorizontal, Loader2, Mic, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FileUploadProgress from './FileUploadProgress';
 import EmojiPicker from './EmojiPicker';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => Promise<void> | void;
@@ -26,9 +27,19 @@ export default function MessageInput({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   // 💡 Auto-focus textarea on mount (when chat window opens)
   useEffect(() => {
@@ -119,20 +130,19 @@ export default function MessageInput({
     });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadToCloudinary = async (file: File | Blob, fileName: string, fileType: string) => {
     setIsUploading(true);
     setUploadProgress(10);
     setUploadError(null);
-    setUploadFile({ name: file.name, type: file.type, url: '' });
+    setUploadFile({ name: fileName, type: fileType, url: '' });
 
     try {
-      // Cloudinary Unsigned Upload Logic
-      // Bypasses 401 Unauthorized by using an Upload Preset
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'chameleon-techie';
       const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'w1ofo4vi';
+
+      // For audio, use 'video' resource type as per Cloudinary requirements
+      const isAudio = fileType.startsWith('audio/');
+      const resourceType = isAudio ? 'video' : 'auto';
 
       setUploadProgress(30);
 
@@ -141,7 +151,7 @@ export default function MessageInput({
       formData.append('upload_preset', uploadPreset);
 
       const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
         {
           method: 'POST',
           body: formData,
@@ -157,15 +167,15 @@ export default function MessageInput({
 
       setUploadProgress(100);
       const newAttachment = {
-        name: file.name,
-        type: file.type,
+        name: fileName,
+        type: isAudio ? 'audio/webm' : fileType, // Normalize audio type
         url: result.secure_url,
-        size: result.bytes || file.size
+        size: result.bytes || (file instanceof File ? file.size : file.size)
       };
 
       setUploadFile(newAttachment);
 
-      // ✅ Requirement: Auto-send the message once upload is successful
+      // ✅ Auto-send the message once upload is successful
       onSendMessage(message, newAttachment);
       setMessage('');
       setUploadFile(null);
@@ -175,17 +185,85 @@ export default function MessageInput({
         textareaRef.current.style.height = 'auto';
       }
 
-      // Auto-focus the input after upload
       textareaRef.current?.focus();
-
     } catch (err) {
-      console.error('File upload error:', err);
-      setUploadError('Failed to upload file. Please try again.');
+      console.error('Upload error:', err);
+      setUploadError('Failed to upload. Please try again.');
     } finally {
       setIsUploading(false);
-      // Reset file input
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadToCloudinary(file, file.name, file.type);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Recording Logic
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+
+        // Auto-upload after stopping if not cancelled
+        if (audioChunksRef.current.length > 0) {
+           await uploadToCloudinary(audioBlob, `voice-message-${Date.now()}.webm`, 'audio/webm');
+        }
+
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingStartTimeRef.current = Date.now();
+
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
+      }, 1000);
+
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      alert('Could not access microphone. Please check permissions.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      audioChunksRef.current = []; // Clear chunks so it doesn't upload
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const cancelUpload = () => {
@@ -270,42 +348,102 @@ export default function MessageInput({
         )}
 
         <div className="flex-1 relative">
-           <textarea
-             ref={textareaRef}
-             rows={1}
-             value={message}
-             onChange={handleChange}
-             onKeyDown={handleKeyDown}
-             placeholder="Type your message..."
-             disabled={disabled}
-             className="w-full bg-white/5 border border-white/10 rounded-[28px] py-3.5 px-6 pr-12 text-sm md:text-base text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all resize-none max-h-32 custom-scrollbar"
-           />
-           <div className="absolute right-2 bottom-2">
-              <button
-                type="button"
-                className="p-1.5 text-white/10 hover:text-white/30 transition-colors hidden md:block"
+          <AnimatePresence mode="wait">
+            {isRecording ? (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex items-center justify-between w-full bg-primary-accent/10 border border-primary-accent/20 rounded-[28px] py-3 px-6 h-[52px]"
               >
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
-           </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm font-medium text-white/90">
+                    Recording... {formatDuration(recordingDuration)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 animate-pulse hidden sm:inline">
+                    Release to send • Slide to cancel
+                  </span>
+                  <button
+                    type="button"
+                    onClick={cancelRecording}
+                    className="p-1.5 text-white/40 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative"
+              >
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={message}
+                  onChange={handleChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your message..."
+                  disabled={disabled}
+                  className="w-full bg-white/5 border border-white/10 rounded-[28px] py-3.5 px-6 pr-12 text-sm md:text-base text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all resize-none max-h-32 custom-scrollbar"
+                />
+                <div className="absolute right-2 bottom-2">
+                   <button
+                     type="button"
+                     className="p-1.5 text-white/10 hover:text-white/30 transition-colors hidden md:block"
+                   >
+                     <MoreHorizontal className="w-5 h-5" />
+                   </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <button
-          type="submit"
-          disabled={(!message.trim() && !(uploadFile && uploadFile.url && !uploadError)) || isSending || disabled || isUploading}
-          className={cn(
-            "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-95",
-            (message.trim() || (uploadFile && uploadFile.url && !uploadError)) && !isSending && !disabled && !isUploading
-              ? "bg-primary-accent text-on-primary-fixed shadow-primary-accent/20"
-              : "bg-white/5 text-white/10 border border-white/10 cursor-not-allowed shadow-none"
-          )}
-        >
-          {isSending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
-        </button>
+        {message.trim() || (uploadFile && uploadFile.url && !uploadError) ? (
+          <button
+            type="submit"
+            disabled={isSending || disabled || isUploading}
+            className={cn(
+              "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-95",
+              "bg-primary-accent text-on-primary-fixed shadow-primary-accent/20"
+            )}
+          >
+            {isSending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={cancelRecording} // Cancel if mouse leaves the button area while holding
+            onTouchStart={(e) => {
+              e.preventDefault();
+              startRecording();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              stopRecording();
+            }}
+            disabled={disabled || isUploading}
+            className={cn(
+              "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-105 touch-none",
+              isRecording
+                ? "bg-red-500 text-white shadow-red-500/20 scale-110"
+                : "bg-white/5 text-white/40 border border-white/10 hover:text-white/60 hover:bg-white/10"
+            )}
+          >
+            <Mic className={cn("w-5 h-5", isRecording && "animate-pulse")} />
+          </button>
+        )}
       </form>
     </div>
   );
