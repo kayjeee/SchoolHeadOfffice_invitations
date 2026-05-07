@@ -13,6 +13,18 @@ interface MessageInputProps {
   isOtherTyping?: boolean;
 }
 
+// Converts any MIME string to the short backend type token.
+// "audio/webm;codecs=opus" → "audio"
+// "audio/webm"             → "audio"
+// "image/jpeg"             → "image"
+// "video/mp4"              → "video"
+// "application/pdf"        → "pdf"   (explicit, not "application")
+function toAttachmentType(mimeType: string): string {
+  const base = mimeType.split(';')[0].trim(); // drop ;codecs=... or ;charset=...
+  if (base === 'application/pdf') return 'pdf';
+  return base.split('/')[0]; // "audio", "image", "video", etc.
+}
+
 export default function MessageInput({
   onSendMessage,
   onTyping,
@@ -41,7 +53,7 @@ export default function MessageInput({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
 
-  // 💡 Auto-focus textarea on mount (when chat window opens)
+  // Auto-focus textarea on mount
   useEffect(() => {
     if (textareaRef.current && !disabled) {
       textareaRef.current.focus();
@@ -78,7 +90,6 @@ export default function MessageInput({
           textareaRef.current.style.height = 'auto';
         }
       } catch (err) {
-        // Keep the message if it failed
         console.error('Failed to send message in MessageInput:', err);
       }
     }
@@ -95,7 +106,6 @@ export default function MessageInput({
     setMessage(e.target.value);
     onTyping();
 
-    // Auto-resize textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
@@ -140,8 +150,8 @@ export default function MessageInput({
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'chameleon-techie';
       const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'w1ofo4vi';
 
-      // For audio, use 'video' resource type as per Cloudinary requirements
-      const isAudio = fileType.startsWith('audio/');
+      // Cloudinary requires resource_type "video" for all audio files
+      const isAudio = fileType.startsWith('audio/') || fileType === 'audio';
       const resourceType = isAudio ? 'video' : 'auto';
 
       setUploadProgress(30);
@@ -164,18 +174,20 @@ export default function MessageInput({
       }
 
       const result = await uploadResponse.json();
-
       setUploadProgress(100);
+
       const newAttachment = {
         name: fileName,
-        type: isAudio ? 'audio/webm' : fileType, // Normalize audio type
+        // Strip codec params and MIME subtype → "audio", "image", "video", "pdf"
+        // "audio/webm;codecs=opus" → "audio"  ✓  backend allowlist accepts this
+        type: toAttachmentType(fileType),
         url: result.secure_url,
-        size: result.bytes || (file instanceof File ? file.size : file.size)
+        size: result.bytes ?? file.size,
       };
 
       setUploadFile(newAttachment);
 
-      // ✅ Auto-send the message once upload is successful
+      // Auto-send once upload is complete
       onSendMessage(message, newAttachment);
       setMessage('');
       setUploadFile(null);
@@ -184,7 +196,6 @@ export default function MessageInput({
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-
       textareaRef.current?.focus();
     } catch (err) {
       console.error('Upload error:', err);
@@ -201,7 +212,10 @@ export default function MessageInput({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Recording Logic
+  // ---------------------------------------------------------------------------
+  // Recording logic
+  // ---------------------------------------------------------------------------
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -216,15 +230,15 @@ export default function MessageInput({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(audioBlob);
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
 
-        // Auto-upload after stopping if not cancelled
         if (audioChunksRef.current.length > 0) {
-           await uploadToCloudinary(audioBlob, `voice-message-${Date.now()}.webm`, 'audio/webm');
+          // Pass the raw MIME — toAttachmentType() inside uploadToCloudinary
+          // normalizes it to "audio" before it ever reaches the backend
+          await uploadToCloudinary(blob, `voice-message-${Date.now()}.webm`, 'audio/webm');
         }
 
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -236,29 +250,26 @@ export default function MessageInput({
       timerRef.current = setInterval(() => {
         setRecordingDuration(Math.floor((Date.now() - recordingStartTimeRef.current) / 1000));
       }, 1000);
-
     } catch (err) {
       console.error('Error accessing microphone:', err);
       alert('Could not access microphone. Please check permissions.');
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-  };
+  const stopRecording = useCallback(() => {
+    if (!mediaRecorderRef.current || !isRecording) return;
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, [isRecording]);
 
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      audioChunksRef.current = []; // Clear chunks so it doesn't upload
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-  };
+  const cancelRecording = useCallback(() => {
+    if (!mediaRecorderRef.current || !isRecording) return;
+    audioChunksRef.current = []; // clear before stop so onstop skips upload
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, [isRecording]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -289,9 +300,9 @@ export default function MessageInput({
       {isOtherTyping && (
         <div className="flex items-center gap-2 text-[10px] font-bold text-primary-accent uppercase tracking-widest px-4 animate-pulse">
           <span className="flex gap-1">
-             <span className="w-1 h-1 rounded-full bg-current animate-bounce"></span>
-             <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-75"></span>
-             <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-150"></span>
+            <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
+            <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-75" />
+            <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-150" />
           </span>
           Someone is typing...
         </div>
@@ -313,8 +324,10 @@ export default function MessageInput({
             onClick={handleFileClick}
             disabled={isUploading || disabled}
             className={cn(
-              "p-3 rounded-2xl transition-all active:scale-95",
-              isUploading ? "text-primary-accent" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+              'p-3 rounded-2xl transition-all active:scale-95',
+              isUploading
+                ? 'text-primary-accent'
+                : 'text-white/20 hover:text-white/60 hover:bg-white/5',
             )}
             title="Attach File"
           >
@@ -330,8 +343,10 @@ export default function MessageInput({
             onClick={() => setShowEmojiPicker(open => !open)}
             disabled={disabled}
             className={cn(
-              "p-3 rounded-2xl transition-all active:scale-95 hidden md:flex",
-              showEmojiPicker ? "text-primary-accent bg-white/5" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+              'p-3 rounded-2xl transition-all active:scale-95 hidden md:flex',
+              showEmojiPicker
+                ? 'text-primary-accent bg-white/5'
+                : 'text-white/20 hover:text-white/60 hover:bg-white/5',
             )}
             title="Add Emoji"
             aria-expanded={showEmojiPicker}
@@ -351,6 +366,7 @@ export default function MessageInput({
           <AnimatePresence mode="wait">
             {isRecording ? (
               <motion.div
+                key="recording"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -377,6 +393,7 @@ export default function MessageInput({
               </motion.div>
             ) : (
               <motion.div
+                key="text"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="relative"
@@ -392,12 +409,12 @@ export default function MessageInput({
                   className="w-full bg-white/5 border border-white/10 rounded-[28px] py-3.5 px-6 pr-12 text-sm md:text-base text-white/80 placeholder:text-white/20 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all resize-none max-h-32 custom-scrollbar"
                 />
                 <div className="absolute right-2 bottom-2">
-                   <button
-                     type="button"
-                     className="p-1.5 text-white/10 hover:text-white/30 transition-colors hidden md:block"
-                   >
-                     <MoreHorizontal className="w-5 h-5" />
-                   </button>
+                  <button
+                    type="button"
+                    className="p-1.5 text-white/10 hover:text-white/30 transition-colors hidden md:block"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -409,8 +426,8 @@ export default function MessageInput({
             type="submit"
             disabled={isSending || disabled || isUploading}
             className={cn(
-              "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-95",
-              "bg-primary-accent text-on-primary-fixed shadow-primary-accent/20"
+              'shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-95',
+              'bg-primary-accent text-on-primary-fixed shadow-primary-accent/20',
             )}
           >
             {isSending ? (
@@ -424,7 +441,7 @@ export default function MessageInput({
             type="button"
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
-            onMouseLeave={cancelRecording} // Cancel if mouse leaves the button area while holding
+            onMouseLeave={cancelRecording}
             onTouchStart={(e) => {
               e.preventDefault();
               startRecording();
@@ -435,13 +452,13 @@ export default function MessageInput({
             }}
             disabled={disabled || isUploading}
             className={cn(
-              "shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-105 touch-none",
+              'shrink-0 p-4 rounded-[28px] transition-all shadow-xl active:scale-105 touch-none',
               isRecording
-                ? "bg-red-500 text-white shadow-red-500/20 scale-110"
-                : "bg-white/5 text-white/40 border border-white/10 hover:text-white/60 hover:bg-white/10"
+                ? 'bg-red-500 text-white shadow-red-500/20 scale-110'
+                : 'bg-white/5 text-white/40 border border-white/10 hover:text-white/60 hover:bg-white/10',
             )}
           >
-            <Mic className={cn("w-5 h-5", isRecording && "animate-pulse")} />
+            <Mic className={cn('w-5 h-5', isRecording && 'animate-pulse')} />
           </button>
         )}
       </form>
