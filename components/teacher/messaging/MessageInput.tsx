@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Smile, Paperclip, MoreHorizontal, Loader2, Mic, Trash2, X } from 'lucide-react';
+import { Send, Smile, Paperclip, MoreHorizontal, Loader2, Mic, Trash2, X, CornerUpLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FileUploadProgress from './FileUploadProgress';
 import EmojiPicker from './EmojiPicker';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Message } from '@/lib/types/messaging';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => Promise<void> | void;
@@ -11,6 +12,8 @@ interface MessageInputProps {
   isSending?: boolean;
   disabled?: boolean;
   isOtherTyping?: boolean;
+  replyTo?: (Message & { sender_name: string }) | null;
+  onClearReply?: () => void;
 }
 
 // Converts any MIME string to the short backend type token.
@@ -31,6 +34,8 @@ export default function MessageInput({
   isSending = false,
   disabled = false,
   isOtherTyping = false,
+  replyTo = null,
+  onClearReply,
 }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -286,6 +291,37 @@ export default function MessageInput({
 
   return (
     <div className="relative p-4 md:p-6 bg-surface-container border-t border-white/5 space-y-4">
+      {/* Reply Preview Bar */}
+      <AnimatePresence>
+        {replyTo && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center gap-3 px-4 py-3 bg-secondary/30 border-l-4 border-primary-accent/50 rounded-lg mb-2 group relative"
+          >
+            <div className="shrink-0 text-primary-accent">
+              <CornerUpLeft className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-primary-accent uppercase tracking-widest truncate">
+                Replying to {replyTo.reply_to_preview?.sender_name || replyTo.sender_name || 'Contact'}
+              </p>
+              <p className="text-sm text-white/60 truncate italic">
+                {replyTo.content || (replyTo.attachment_url ? `[${replyTo.attachment_type || 'Attachment'}]` : '...')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClearReply}
+              className="p-1 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Upload Progress Overlay */}
       {(isUploading || uploadFile || uploadError) && (
         <FileUploadProgress

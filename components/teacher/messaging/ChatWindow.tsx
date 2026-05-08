@@ -14,6 +14,7 @@ interface ChatWindowProps {
   currentUserId: string;
   loading?: boolean;
   highlightedMessageId?: string | null;
+  onReply?: (message: Message & { sender_name: string }) => void;
 }
 
 export default function ChatWindow({
@@ -23,6 +24,7 @@ export default function ChatWindow({
   currentUserId,
   loading = false,
   highlightedMessageId = null,
+  onReply,
 }: ChatWindowProps) {
   // Initialize real-time subscription
   useConversationSubscription(conversationId);
@@ -199,6 +201,7 @@ export default function ChatWindow({
                       currentUserId={currentUserId}
                       formattedTime={formatDate(msg.timestamp)}
                       isHighlighted={highlightedMessageId === msg.id}
+                      onReply={onReply}
                     />
                   )}
                 </motion.div>
