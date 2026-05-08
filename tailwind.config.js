@@ -31,9 +31,14 @@ module.exports = {
           "50%": { transform: "translateX(0%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "pulse-quick": {
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0.5 },
+        },
       },
       animation: {
         "progress-indeterminate": "progress-indeterminate 1.5s infinite linear",
+        "pulse-quick": "pulse-quick 0.5s ease-in-out 4",
       },
     },
   },

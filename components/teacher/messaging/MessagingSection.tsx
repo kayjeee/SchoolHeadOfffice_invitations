@@ -8,7 +8,7 @@ import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessagi
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { SchoolAPI } from '@/lib/api/school-api';
-import { Participant } from '@/lib/types/messaging';
+import { Message, Participant } from '@/lib/types/messaging';
 import {
   User, Phone, Video, Search, MoreHorizontal, ArrowLeft,
   LayoutDashboard, Sparkles, Wand2, Users,
@@ -34,6 +34,7 @@ export default function MessagingSection({
   const [showDirectory, setShowDirectory] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<(Message & { sender_name: string }) | null>(null);
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -134,6 +135,7 @@ export default function MessagingSection({
     setShowSearch(false);
     setShowMobileList(false);
     setHighlightedMessageId(null);
+    setReplyTo(null);
   };
 
   const handleBackToList = () => {
@@ -151,8 +153,9 @@ export default function MessagingSection({
   const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => {
     if (!activeConvId) return;
     try {
-      await sendMessage(content, currentUserId, attachment);
+      await sendMessage(content, currentUserId, attachment, replyTo?.id);
       setAiSuggestion(null);
+      setReplyTo(null);
       refreshConvs();
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -305,6 +308,7 @@ export default function MessagingSection({
                 currentUserId={currentUserId}
                 loading={loadingMessages}
                 highlightedMessageId={highlightedMessageId}
+                onReply={setReplyTo}
               />
 
               {/* Search Panel */}
@@ -360,6 +364,8 @@ export default function MessagingSection({
                   onTyping={handleTyping}
                   isSending={isSending}
                   isOtherTyping={isOtherTyping}
+                  replyTo={replyTo}
+                  onClearReply={() => setReplyTo(null)}
                 />
                 <div className="absolute right-24 md:right-32 bottom-8 md:bottom-10 flex items-center">
                   <button

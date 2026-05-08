@@ -45,6 +45,12 @@ export interface Message {
   attachment_name?: string;
   attachment_size?: number;
   reactions?: MessageReaction[];
+  reply_to_id?: string;
+  reply_to_preview?: {
+    content: string;
+    sender_name: string;
+    attachment_type?: string;
+  };
 }
 
 export interface MessageReaction {
@@ -160,7 +166,8 @@ export class MessagingAPI {
   static async sendMessage(
     conversationId: string,
     content: string,
-    attachment?: { url: string; type: string; name: string; size?: number }
+    attachment?: { url: string; type: string; name: string; size?: number },
+    replyToId?: string
   ): Promise<Message> {
     const messagePayload: any = { content };
     if (attachment) {
@@ -168,6 +175,9 @@ export class MessagingAPI {
       messagePayload.attachment_type = attachment.type;
       messagePayload.attachment_name = attachment.name;
       messagePayload.attachment_size = attachment.size;
+    }
+    if (replyToId) {
+      messagePayload.reply_to_id = replyToId;
     }
 
     const response = await apiClient.post(
@@ -352,6 +362,12 @@ export function normalizeMessage(m: any): Message {
     attachment_name: m.attachment_name,
     attachment_size: m.attachment_size,
     reactions:       normalizeReactions(m.reactions || m.reaction_counts || []),
+    reply_to_id:      m.reply_to_id ? String(m.reply_to_id) : undefined,
+    reply_to_preview: m.reply_to_preview ? {
+      content: String(m.reply_to_preview.content || ''),
+      sender_name: String(m.reply_to_preview.sender_name || 'Contact'),
+      attachment_type: m.reply_to_preview.attachment_type ? String(m.reply_to_preview.attachment_type) : undefined,
+    } : undefined,
   };
 }
 

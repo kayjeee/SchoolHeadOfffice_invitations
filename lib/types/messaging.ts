@@ -26,6 +26,12 @@ export const MessageSchema = z.object({
     current_user_reacted: z.boolean().optional(),
     user_ids: z.array(z.string()).optional(),
   })).optional(),
+  reply_to_id: z.string().optional(),
+  reply_to_preview: z.object({
+    content: z.string(),
+    sender_name: z.string(),
+    attachment_type: z.string().optional(),
+  }).optional(),
 });
 
 export const ConversationSchema = z.object({

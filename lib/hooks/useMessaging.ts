@@ -208,7 +208,8 @@ export function useMessages(conversationId: string | null) {
   const sendMessage = async (
     content: string,
     senderId: string,
-    attachment?: { url: string; type: string; name: string; size?: number }
+    attachment?: { url: string; type: string; name: string; size?: number },
+    replyToId?: string
   ) => {
     if (!conversationId || (!content.trim() && !attachment)) return;
 
@@ -225,13 +226,14 @@ export function useMessages(conversationId: string | null) {
       attachment_type: attachment?.type,
       attachment_name: attachment?.name,
       attachment_size: attachment?.size,
+      reply_to_id: replyToId,
     } as any;
 
     setOptimisticMessages(prev => [...prev, optimisticMessage]);
 
     try {
       setIsSending(true);
-      const realMessage = await MessagingAPI.sendMessage(conversationId, content, attachment);
+      const realMessage = await MessagingAPI.sendMessage(conversationId, content, attachment, replyToId);
 
       // Update cache and clear optimistic
       // Using functional update to avoid stale closures

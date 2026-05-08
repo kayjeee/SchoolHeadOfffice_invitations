@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
-import { Smile, User } from 'lucide-react';
+import { Smile, User, CornerUpLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessagingAPI, MessageReaction, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
 import { Message, Participant } from '@/lib/types/messaging';
@@ -16,6 +16,7 @@ interface MessageBubbleProps {
   currentUserId: string;
   formattedTime: string;
   isHighlighted?: boolean;
+  onReply?: (message: Message & { sender_name: string }) => void;
 }
 
 export default function MessageBubble({
@@ -26,6 +27,7 @@ export default function MessageBubble({
   currentUserId,
   formattedTime,
   isHighlighted = false,
+  onReply,
 }: MessageBubbleProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
@@ -110,6 +112,16 @@ export default function MessageBubble({
     return reaction.user_ids?.map(String).includes(String(currentUserId)) || false;
   };
 
+  const scrollToMessage = (id: string) => {
+    const element = document.getElementById(`message-${id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash the message
+      element.classList.add('animate-pulse-quick');
+      setTimeout(() => element.classList.remove('animate-pulse-quick'), 2000);
+    }
+  };
+
   return (
     <div className={cn('group flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
       {!isMine && (
@@ -126,19 +138,34 @@ export default function MessageBubble({
 
       <div className="space-y-1">
         <div ref={reactionPickerRef} className="relative">
-          <button
-            type="button"
+          <div
             className={cn(
-              'absolute top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 opacity-0 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-accent/60 group-hover:opacity-100',
-              isMine ? '-left-9' : '-right-9'
+              'absolute top-1/2 z-20 flex -translate-y-1/2 items-center gap-1 opacity-0 transition group-hover:opacity-100',
+              isMine ? '-left-16' : '-right-16'
             )}
-            onClick={() => setIsPickerOpen(open => !open)}
-            disabled={message.is_optimistic || isReacting}
-            aria-label="Add reaction"
-            title="Add reaction"
           >
-            <Smile className="h-4 w-4" />
-          </button>
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-accent/60"
+              onClick={() => setIsPickerOpen(open => !open)}
+              disabled={message.is_optimistic || isReacting}
+              aria-label="Add reaction"
+              title="Add reaction"
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-accent/60"
+              onClick={() => onReply?.({ ...message, sender_name: isMine ? 'You' : (sender?.name || 'Contact') })}
+              disabled={message.is_optimistic}
+              aria-label="Reply"
+              title="Reply"
+            >
+              <CornerUpLeft className="h-4 w-4" />
+            </button>
+          </div>
 
           {isPickerOpen && (
             <div className={cn('absolute bottom-full z-[100] mb-2', isMine ? 'right-0' : 'left-0')}>
@@ -160,6 +187,30 @@ export default function MessageBubble({
                 : 'bg-primary-accent/20 ring-4 ring-primary-accent ring-offset-4 ring-offset-black/20 scale-[1.02] shadow-2xl shadow-primary-accent/20')
             )}
           >
+            {/* Quoted Reply Preview */}
+            {message.reply_to_preview && (
+              <button
+                type="button"
+                onClick={() => message.reply_to_id && scrollToMessage(message.reply_to_id)}
+                className={cn(
+                  'mb-2 flex w-full flex-col items-start gap-0.5 rounded-lg border-l-4 py-1.5 pl-3 pr-2 text-left transition-colors',
+                  isMine
+                    ? 'border-white/30 bg-white/10 hover:bg-white/20'
+                    : 'border-primary-accent/50 bg-white/5 hover:bg-white/10'
+                )}
+              >
+                <span className={cn(
+                  'text-[10px] font-bold uppercase tracking-widest',
+                  isMine ? 'text-white/60' : 'text-primary-accent'
+                )}>
+                  {message.reply_to_preview.sender_name}
+                </span>
+                <span className="line-clamp-1 text-xs text-white/40 italic">
+                  {message.reply_to_preview.content || (message.reply_to_preview.attachment_type ? `[${message.reply_to_preview.attachment_type}]` : '...')}
+                </span>
+              </button>
+            )}
+
             {message.content && <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>}
 
             {message.attachment_url && (
