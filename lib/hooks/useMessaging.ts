@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import { MessagingAPI, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
-import { Message, Conversation } from '@/lib/types/messaging';
+import { Message, Conversation, Participant } from '@/lib/types/messaging';
 import { useApi } from './useApi';
 import { getCableConsumer } from '@/lib/cable';
 
@@ -269,64 +269,92 @@ export function useMessages(conversationId: string | null) {
 
 /**
  * Hook for typing indicators
- * NOTE: exports `isOtherTyping` (not `isTyping`) — used in MessagingSection
+ * Manages outgoing "typing" signals and incoming broadcasts.
  */
-export function useTyping(conversationId: string | null) {
+export function useTyping(conversationId: string | null, participants: Participant[] = []) {
   const { user } = useApi();
-  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
+  const remoteTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   const isLocalTypingRef = useRef(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const remoteTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const startDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const stopTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!conversationId) return;
 
     const handleTypingEvent = (event: any) => {
       const { userId, isTyping } = event.detail;
+      const uid = String(userId);
 
       // Don't show typing indicator for self
-      if (user?.sub && userId === user.sub) return;
-      // Also handle cases where userId might be an email or different format
-      if (user?.email && userId === user.email) return;
+      if (user?.sub && uid === String(user.sub)) return;
+      if (user?.email && uid === user.email) return;
 
-      setIsOtherTyping(isTyping);
-
-      // Safety timeout: clear typing indicator after 5 seconds if no "stopped typing" event arrives
-      if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
       if (isTyping) {
-        remoteTypingTimeoutRef.current = setTimeout(() => {
-          setIsOtherTyping(false);
-        }, 5000);
+        setTypingUserIds(prev => prev.includes(uid) ? prev : [...prev, uid]);
+
+        if (remoteTimeoutsRef.current[uid]) clearTimeout(remoteTimeoutsRef.current[uid]);
+        remoteTimeoutsRef.current[uid] = setTimeout(() => {
+          setTypingUserIds(prev => prev.filter(id => id !== uid));
+          delete remoteTimeoutsRef.current[uid];
+        }, 5000); // 5s safety timeout
+      } else {
+        setTypingUserIds(prev => prev.filter(id => id !== uid));
+        if (remoteTimeoutsRef.current[uid]) {
+          clearTimeout(remoteTimeoutsRef.current[uid]);
+          delete remoteTimeoutsRef.current[uid];
+        }
       }
     };
 
     window.addEventListener(`typing:${conversationId}` as any, handleTypingEvent);
     return () => {
       window.removeEventListener(`typing:${conversationId}` as any, handleTypingEvent);
-      if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
+      // Clean up all timeouts
+      Object.values(remoteTimeoutsRef.current).forEach(clearTimeout);
+      if (startDebounceRef.current) clearTimeout(startDebounceRef.current);
+      if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
     };
   }, [conversationId, user]);
 
   const handleTyping = useCallback(() => {
     if (!conversationId) return;
 
-    if (!isLocalTypingRef.current) {
-      isLocalTypingRef.current = true;
-      MessagingAPI.setTyping(conversationId, true).catch(() => {});
+    // Outgoing Logic
+    if (stopTimeoutRef.current) clearTimeout(stopTimeoutRef.current);
+
+    if (!isLocalTypingRef.current && !startDebounceRef.current) {
+      // User started typing, wait 500ms to be sure they are typing
+      startDebounceRef.current = setTimeout(() => {
+        isLocalTypingRef.current = true;
+        MessagingAPI.setTyping(conversationId, true).catch(() => {});
+        startDebounceRef.current = null;
+      }, 500);
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      isLocalTypingRef.current = false;
-      MessagingAPI.setTyping(conversationId, false).catch(() => {});
-    }, 2000);
+    // Refresh stop timeout
+    stopTimeoutRef.current = setTimeout(() => {
+      if (startDebounceRef.current) {
+        clearTimeout(startDebounceRef.current);
+        startDebounceRef.current = null;
+      }
+      if (isLocalTypingRef.current) {
+        isLocalTypingRef.current = false;
+        MessagingAPI.setTyping(conversationId, false).catch(() => {});
+      }
+    }, 3000); // 3s stop timeout
   }, [conversationId]);
 
+  const typingUsers = useMemo(() => {
+    return typingUserIds.map(id => {
+      return participants.find(p => String(p.id) === id) || { id, name: 'Someone', role: 'staff' } as Participant;
+    });
+  }, [typingUserIds, participants]);
+
   return {
-    isOtherTyping,
+    typingUsers,
+    isOtherTyping: typingUsers.length > 0,
     handleTyping,
   };
 }
