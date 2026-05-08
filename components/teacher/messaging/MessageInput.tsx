@@ -332,17 +332,6 @@ export default function MessageInput({
         />
       )}
 
-      {/* Typing Indicator */}
-      {isOtherTyping && (
-        <div className="flex items-center gap-2 text-[10px] font-bold text-primary-accent uppercase tracking-widest px-4 animate-pulse">
-          <span className="flex gap-1">
-            <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
-            <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-75" />
-            <span className="w-1 h-1 rounded-full bg-current animate-bounce delay-150" />
-          </span>
-          Someone is typing...
-        </div>
-      )}
 
       <form
         onSubmit={handleSubmit}

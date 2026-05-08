@@ -15,6 +15,7 @@ interface ChatWindowProps {
   loading?: boolean;
   highlightedMessageId?: string | null;
   onReply?: (message: Message & { sender_name: string }) => void;
+  typingUsers?: Participant[];
 }
 
 export default function ChatWindow({
@@ -25,6 +26,7 @@ export default function ChatWindow({
   loading = false,
   highlightedMessageId = null,
   onReply,
+  typingUsers = [],
 }: ChatWindowProps) {
   // Initialize real-time subscription
   useConversationSubscription(conversationId);
@@ -212,6 +214,34 @@ export default function ChatWindow({
           </div>
         </div>
       ))}
+
+      {/* Typing Indicator */}
+      <AnimatePresence>
+        {typingUsers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center gap-3 px-4 py-2"
+          >
+            <div className="flex gap-1 items-center bg-white/5 border border-white/10 px-3 py-2 rounded-2xl rounded-bl-none">
+              <span className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-accent animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-accent animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-accent animate-bounce" />
+              </span>
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-2">
+                {typingUsers.length === 1
+                  ? `${typingUsers[0].name} is typing...`
+                  : typingUsers.length === 2
+                    ? `${typingUsers[0].name} & ${typingUsers[1].name} are typing...`
+                    : 'Several people are typing...'}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div ref={bottomRef} className="h-2" />
     </div>
   );

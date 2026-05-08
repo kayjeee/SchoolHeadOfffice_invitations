@@ -47,9 +47,6 @@ export default function MessagingSection({
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
 
-  // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
-  const { isOtherTyping, handleTyping } = useTyping(activeConvId);
-
   // Fetch directory once for contact name resolution
   useEffect(() => {
     SchoolAPI.getDirectory(schoolId)
@@ -57,7 +54,6 @@ export default function MessagingSection({
       .catch(err => console.error('Failed to fetch directory:', err));
   }, [schoolId]);
 
-  // Memoised ID → Participant map
   const contactMap = useMemo(() => {
     const map = new Map<string, Participant>();
     if (!directory) return map;
@@ -101,6 +97,8 @@ export default function MessagingSection({
       return resolved;
     });
   }, [activeConversation, contactMap, currentUserId]);
+
+  const { typingUsers, isOtherTyping, handleTyping } = useTyping(activeConvId, resolvedParticipants);
 
   const otherParticipant = useMemo(() => {
     if (resolvedParticipants.length === 0) return null;
@@ -309,6 +307,7 @@ export default function MessagingSection({
                 loading={loadingMessages}
                 highlightedMessageId={highlightedMessageId}
                 onReply={setReplyTo}
+                typingUsers={typingUsers}
               />
 
               {/* Search Panel */}
