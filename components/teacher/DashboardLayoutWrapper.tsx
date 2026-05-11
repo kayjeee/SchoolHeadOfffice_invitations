@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,11 +19,18 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CourierProvider } from '@trycourier/react-provider';
+import { Inbox } from '@trycourier/react-inbox';
+import { Toast } from '@trycourier/react-toast';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { usePresence } from '@/lib/hooks/usePresence';
+import NotificationBanner from './NotificationBanner';
 
 interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
   schoolSlug: string;
   teacherSlug: string;
+  userId?: string;
 }
 
 function InnerLayout({
@@ -37,6 +44,26 @@ function InnerLayout({
   const pathname = nextPathname || pagesRouter?.asPath || '';
 
   const { godMode } = useGodmode();
+  const { user } = useUser();
+
+  // Wire up the "Heartbeat" presence tracker
+  usePresence();
+
+  useEffect(() => {
+    // Register Courier service worker for background push notifications
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(
+          (registration) => {
+            console.log('✅ [ServiceWorker] Registration successful with scope: ', registration.scope);
+          },
+          (err) => {
+            console.log('❌ [ServiceWorker] Registration failed: ', err);
+          }
+        );
+      });
+    }
+  }, []);
 
   const navItems = [
     { name: 'Home', href: `/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`, icon: Home },
@@ -75,10 +102,32 @@ function InnerLayout({
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button className="p-2 hover:bg-white/5 rounded-full relative">
-              <Bell className="w-5 h-5 text-white/70" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-surface"></span>
-            </button>
+            <div className="relative pt-1">
+              <Inbox
+                theme={{
+                  container: {
+                    background: '#121212',
+                    color: 'white',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                  },
+                  header: {
+                    background: '#1A1A1A',
+                    color: 'white',
+                  },
+                  footer: {
+                    background: '#1A1A1A',
+                    color: 'white',
+                  },
+                  icon: {
+                    color: 'white',
+                  },
+                  unvisited: {
+                    background: 'rgba(173, 198, 255, 0.1)',
+                  },
+                }}
+              />
+            </div>
             <div className="h-8 w-px bg-white/10 mx-1 hidden md:block"></div>
             <button className="flex items-center gap-2 p-1 pr-3 hover:bg-white/5 rounded-full transition-colors">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-accent to-secondary-accent p-px">
@@ -98,6 +147,9 @@ function InnerLayout({
           {children}
         </main>
       </div>
+
+      <Toast />
+      <NotificationBanner />
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-xl border-t border-white/10 px-6 py-3">
@@ -125,9 +177,17 @@ function InnerLayout({
 }
 
 export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProps) {
+  const { user } = useUser();
+  const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY || 'YOUR_COURIER_CLIENT_KEY';
+
+  // Prioritize the passed userId (database ID) over the Auth0 sub
+  const finalUserId = props.userId || user?.sub || '';
+
   return (
     <GodmodeProvider>
-      <InnerLayout {...props} />
+      <CourierProvider userId={finalUserId} clientKey={courierClientKey}>
+        <InnerLayout {...props} />
+      </CourierProvider>
     </GodmodeProvider>
   );
 }

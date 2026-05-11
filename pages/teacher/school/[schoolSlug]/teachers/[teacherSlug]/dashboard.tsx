@@ -18,6 +18,7 @@ export default function DashboardPage({ initialData, schoolSlug, teacherSlug }: 
     <DashboardLayoutWrapper
       schoolSlug={schoolSlug}
       teacherSlug={teacherSlug}
+      userId={initialData.teacher.id.toString()}
     >
       <DashboardClient
         initialData={initialData}
