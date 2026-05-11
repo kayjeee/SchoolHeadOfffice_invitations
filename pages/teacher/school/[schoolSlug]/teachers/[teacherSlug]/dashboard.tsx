@@ -14,11 +14,22 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({ initialData, schoolSlug, teacherSlug }: DashboardPageProps) {
+  if (!initialData) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center text-white p-8">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold">Error Loading Dashboard</h2>
+          <p className="text-white/40">We couldn't retrieve your dashboard data. Please try refreshing or contact support.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DashboardLayoutWrapper
       schoolSlug={schoolSlug}
       teacherSlug={teacherSlug}
-      userId={initialData.teacher.id.toString()}
+      userId={initialData.teacher?.id?.toString()}
     >
       <DashboardClient
         initialData={initialData}

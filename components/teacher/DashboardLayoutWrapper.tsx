@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
@@ -178,10 +176,19 @@ function InnerLayout({
 
 export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProps) {
   const { user } = useUser();
-  const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY || 'YOUR_COURIER_CLIENT_KEY';
+  const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY;
 
   // Prioritize the passed userId (database ID) over the Auth0 sub
   const finalUserId = props.userId || user?.sub || '';
+
+  // If we don't have a client key, we can't initialize Courier
+  if (!courierClientKey) {
+    return (
+      <GodmodeProvider>
+        <InnerLayout {...props} />
+      </GodmodeProvider>
+    );
+  }
 
   return (
     <GodmodeProvider>
