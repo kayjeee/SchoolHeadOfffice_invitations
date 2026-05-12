@@ -25,6 +25,7 @@ import { Toast } from '@trycourier/react-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { usePresence } from '@/lib/hooks/usePresence';
 import NotificationBanner from './NotificationBanner';
+import OneSignal from 'react-onesignal';
 
 interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
@@ -50,6 +51,27 @@ function InnerLayout({
   usePresence(user?.sub);
 
   useEffect(() => {
+    const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+    const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY;
+
+    if (oneSignalAppId) {
+      OneSignal.init({
+        appId: oneSignalAppId,
+        allowLocalhostAsSecureOrigin: true,
+        notifyButton: {
+          enable: false, // We use our own NotificationBanner
+        }
+      }).then(() => {
+        console.log('✅ [OneSignal] Initialized');
+
+        // Use the database ID as the external ID for both Courier and OneSignal
+        if (props.userId) {
+          OneSignal.setExternalUserId(props.userId);
+          console.log(`🔗 [OneSignal] External User ID set to: ${props.userId}`);
+        }
+      });
+    }
+
     // Register Courier service worker for background push notifications
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -63,7 +85,7 @@ function InnerLayout({
         );
       });
     }
-  }, []);
+  }, [user]);
 
   const navItems = [
     { name: 'Home', href: `/teacher/school/${schoolSlug}/teachers/${teacherSlug}/dashboard`, icon: Home },
