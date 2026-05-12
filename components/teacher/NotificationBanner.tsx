@@ -1,22 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
+import OneSignal from 'react-onesignal';
 
 export default function NotificationBanner() {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        setShowBanner(true);
+    // Check if notifications are already enabled or blocked
+    const checkNotificationStatus = async () => {
+      if (typeof window !== 'undefined') {
+        const permission = Notification.permission;
+        const isSubscribed = await OneSignal.isPushNotificationsEnabled();
+
+        if (permission === 'default' && !isSubscribed) {
+          setShowBanner(true);
+        }
       }
-    }
+    };
+
+    checkNotificationStatus();
   }, []);
 
   const handleRequestPermission = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        setShowBanner(false);
+    try {
+      // Trigger OneSignal slide prompt or standard permission request
+      await OneSignal.showNativePrompt();
+      setShowBanner(false);
+    } catch (error) {
+      console.error('❌ [NotificationBanner] Error requesting permission:', error);
+
+      // Fallback to standard API if OneSignal prompt fails
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setShowBanner(false);
+        }
       }
     }
   };
