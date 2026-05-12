@@ -20,12 +20,29 @@ export default function NotificationBanner() {
     };
 
     checkNotificationStatus();
+
+    // Listen for subscription changes to close the banner
+    const handleSubscriptionChange = (event: any) => {
+      if (event.current.optedIn) {
+        setShowBanner(false);
+      }
+    };
+
+    OneSignal.User.PushSubscription.addEventListener('change', handleSubscriptionChange);
+
+    return () => {
+      OneSignal.User.PushSubscription.removeEventListener('change', handleSubscriptionChange);
+    };
   }, []);
 
   const handleRequestPermission = async () => {
     try {
-      // Trigger OneSignal slide prompt (react-onesignal v3+)
-      await OneSignal.Slidedown.promptPush();
+      // Request native permission directly (react-onesignal v3+)
+      const permission = await OneSignal.Notifications.requestPermission();
+      console.log('🔔 [NotificationBanner] Permission result:', permission);
+
+      // If granted, OneSignal will handle the subscription.
+      // We close the banner immediately if they interacted.
       setShowBanner(false);
     } catch (error) {
       console.error('❌ [NotificationBanner] Error requesting permission:', error);
