@@ -32,13 +32,11 @@ interface DashboardLayoutWrapperProps {
   schoolSlug: string;
   teacherSlug: string;
   userId?: string;
+  courierClientKey?: string;
 }
 
-function InnerLayout({
-  children,
-  schoolSlug,
-  teacherSlug
-}: DashboardLayoutWrapperProps) {
+function InnerLayout(props: DashboardLayoutWrapperProps) {
+  const { children, schoolSlug, teacherSlug, userId, courierClientKey } = props;
   // Support both App Router and Pages Router
   const nextPathname = usePathname();
   const pagesRouter = useRouter();
@@ -65,9 +63,9 @@ function InnerLayout({
         console.log('✅ [OneSignal] Initialized');
 
         // Use the database ID as the external ID for both Courier and OneSignal
-        if (props.userId) {
-          OneSignal.setExternalUserId(props.userId);
-          console.log(`🔗 [OneSignal] External User ID set to: ${props.userId}`);
+        if (userId) {
+          OneSignal.setExternalUserId(userId);
+          console.log(`🔗 [OneSignal] External User ID set to: ${userId}`);
         }
       });
     }
@@ -124,32 +122,39 @@ function InnerLayout({
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="relative pt-1">
-              <Inbox
-                theme={{
-                  container: {
-                    background: '#121212',
-                    color: 'white',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                  },
-                  header: {
-                    background: '#1A1A1A',
-                    color: 'white',
-                  },
-                  footer: {
-                    background: '#1A1A1A',
-                    color: 'white',
-                  },
-                  icon: {
-                    color: 'white',
-                  },
-                  unvisited: {
-                    background: 'rgba(173, 198, 255, 0.1)',
-                  },
-                }}
-              />
-            </div>
+            {courierClientKey && (
+              <div className="relative pt-1">
+                <Inbox
+                  theme={{
+                    container: {
+                      background: '#121212',
+                      color: 'white',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    },
+                    header: {
+                      background: '#1A1A1A',
+                      color: 'white',
+                    },
+                    footer: {
+                      background: '#1A1A1A',
+                      color: 'white',
+                    },
+                    icon: {
+                      color: 'white',
+                    },
+                    unvisited: {
+                      background: 'rgba(173, 198, 255, 0.1)',
+                    },
+                  }}
+                />
+              </div>
+            )}
+            {!courierClientKey && (
+              <button className="p-2 hover:bg-white/5 rounded-full relative">
+                <Bell className="w-5 h-5 text-white/70" />
+              </button>
+            )}
             <div className="h-8 w-px bg-white/10 mx-1 hidden md:block"></div>
             <button className="flex items-center gap-2 p-1 pr-3 hover:bg-white/5 rounded-full transition-colors">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-accent to-secondary-accent p-px">
@@ -170,7 +175,7 @@ function InnerLayout({
         </main>
       </div>
 
-      <Toast />
+      {courierClientKey && <Toast />}
       <NotificationBanner />
 
       {/* Mobile Bottom Navigation Bar */}
@@ -205,20 +210,15 @@ export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProp
   // Prioritize the passed userId (database ID) over the Auth0 sub
   const finalUserId = props.userId || user?.sub || '';
 
-  // If we don't have a client key, we can't initialize Courier
-  if (!courierClientKey) {
-    return (
-      <GodmodeProvider>
-        <InnerLayout {...props} />
-      </GodmodeProvider>
-    );
-  }
-
   return (
     <GodmodeProvider>
-      <CourierProvider userId={finalUserId} clientKey={courierClientKey}>
+      {courierClientKey ? (
+        <CourierProvider userId={finalUserId} clientKey={courierClientKey}>
+          <InnerLayout {...props} courierClientKey={courierClientKey} />
+        </CourierProvider>
+      ) : (
         <InnerLayout {...props} />
-      </CourierProvider>
+      )}
     </GodmodeProvider>
   );
 }
