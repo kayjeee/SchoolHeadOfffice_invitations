@@ -64,8 +64,9 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
 
         // Use the database ID as the external ID for both Courier and OneSignal
         if (userId) {
-          OneSignal.setExternalUserId(userId);
-          console.log(`🔗 [OneSignal] External User ID set to: ${userId}`);
+          // In react-onesignal v3+, use login() to set external ID
+          OneSignal.login(userId);
+          console.log(`🔗 [OneSignal] External User ID set via login: ${userId}`);
         }
       });
     }

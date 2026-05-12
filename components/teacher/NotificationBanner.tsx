@@ -10,7 +10,8 @@ export default function NotificationBanner() {
     const checkNotificationStatus = async () => {
       if (typeof window !== 'undefined') {
         const permission = Notification.permission;
-        const isSubscribed = await OneSignal.isPushNotificationsEnabled();
+        // In react-onesignal v3+, use User.PushSubscription.optedIn
+        const isSubscribed = OneSignal.User?.PushSubscription?.optedIn ?? false;
 
         if (permission === 'default' && !isSubscribed) {
           setShowBanner(true);
@@ -23,8 +24,8 @@ export default function NotificationBanner() {
 
   const handleRequestPermission = async () => {
     try {
-      // Trigger OneSignal slide prompt or standard permission request
-      await OneSignal.showNativePrompt();
+      // Trigger OneSignal slide prompt (react-onesignal v3+)
+      await OneSignal.Slidedown.promptPush();
       setShowBanner(false);
     } catch (error) {
       console.error('❌ [NotificationBanner] Error requesting permission:', error);
