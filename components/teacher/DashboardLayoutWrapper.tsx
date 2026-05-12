@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { GodmodeProvider, useGodmode } from '@/context/GodmodeContext';
 import Link from 'next/link';
@@ -44,8 +46,8 @@ function InnerLayout({
   const { godMode } = useGodmode();
   const { user } = useUser();
 
-  // Wire up the "Heartbeat" presence tracker
-  usePresence();
+  // Wire up the "Heartbeat" presence tracker with periodic updates
+  usePresence(user?.sub);
 
   useEffect(() => {
     // Register Courier service worker for background push notifications
