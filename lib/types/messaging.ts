@@ -26,6 +26,8 @@ export const MessageSchema = z.object({
     current_user_reacted: z.boolean().optional(),
     user_ids: z.array(z.string()).optional(),
   })).optional(),
+  is_pinned: z.boolean().optional().default(false),
+  starred_by: z.array(z.string()).optional().default([]),
   reply_to_id: z.string().optional(),
   reply_to_preview: z.object({
     content: z.string(),
