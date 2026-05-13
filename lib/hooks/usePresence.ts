@@ -1,62 +1,75 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { UsersAPI } from '@/lib/api/users-api';
+// lib/hooks/usePresence.ts
+//
+// Sends a heartbeat to the Rails backend every 30 seconds so
+// NotificationService can determine whether a user is online.
+//
+// IMPORTANT: POST /api/v1/users/:auth0_id/heartbeat returns
+// head :ok — an HTTP 200 with NO response body. Never call
+// response.json() on it; use a raw fetch and check status only.
 
-const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+import { useCallback, useEffect, useRef } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
-// Singleton to track last heartbeat across hook instances/remounts
-let globalLastHeartbeat = 0;
+const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
 
-export function usePresence(auth0Id: string | undefined) {
+export function usePresence() {
+  const { user } = useUser();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const sendHeartbeat = useCallback(async () => {
+    const auth0Id = user?.sub;
     if (!auth0Id) return;
-
-    // Guard: Only trigger if the document is visible
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
-      return;
-    }
-
-    const now = Date.now();
-    // Throttle: Ensure the heartbeat isn't fired more than once every 30 seconds
-    if (now - globalLastHeartbeat < HEARTBEAT_INTERVAL_MS) {
-      return;
-    }
 
     try {
-      // Update global timestamp BEFORE the call to prevent race conditions from visibility events
-      globalLastHeartbeat = now;
-      await UsersAPI.heartbeat(auth0Id);
-      console.log('💓 [Presence] Heartbeat sent');
-    } catch (error) {
-      // Reset if it failed so we can retry sooner?
-      // Actually, let's keep the throttle to avoid spamming a failing endpoint
-      console.error('❌ [Presence] Heartbeat failed:', error);
+      // Get a fresh access token for the Rails API
+      const tokenRes = await fetch('/api/auth/token');
+      const { accessToken } = await tokenRes.json();
+
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+      const res = await fetch(
+        `${apiBase}/api/v1/users/${encodeURIComponent(auth0Id)}/heartbeat`,
+        {
+          method:  'POST',
+          headers: {
+            Authorization:  `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // head :ok returns 200 with an empty body — do NOT call res.json().
+      // Just check the status code.
+      if (!res.ok) {
+        console.warn(`[Presence] Heartbeat returned ${res.status}`);
+      }
+    } catch (err) {
+      // Fire-and-forget: never let heartbeat errors surface to the user
+      console.error('❌ [Presence] Heartbeat failed:', err);
     }
-  }, [auth0Id]);
+  }, [user?.sub]);
 
   useEffect(() => {
-    if (!auth0Id) return;
+    if (!user?.sub) return;
 
-    // Initial heartbeat on mount (subject to throttle)
+    // Send immediately on mount / user change
     sendHeartbeat();
 
-    // Setup periodic interval
-    const interval = setInterval(() => {
-      sendHeartbeat();
-    }, HEARTBEAT_INTERVAL_MS);
+    // Then repeat on the interval
+    intervalRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
 
-    const handleVisibilityChange = () => {
+    // Also send when the tab becomes visible again
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         sendHeartbeat();
       }
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [auth0Id, sendHeartbeat]);
-
-  return { sendHeartbeat };
+  }, [user?.sub, sendHeartbeat]);
 }
