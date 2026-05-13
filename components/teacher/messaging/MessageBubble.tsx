@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
-import { Smile, User, CornerUpLeft } from 'lucide-react';
+import { Smile, User, CornerUpLeft, Pin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessagingAPI, MessageReaction, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
 import { Message, Participant } from '@/lib/types/messaging';
@@ -34,6 +34,8 @@ export default function MessageBubble({
   const reactionPickerRef = useRef<HTMLDivElement>(null);
   const reactions = message.reactions || [];
   const swrKey = `/api/v1/conversations/${conversationId}/messages`;
+  const isStarred = message.starred_by?.includes(String(currentUserId));
+  const isPinned = message.is_pinned;
 
   useEffect(() => {
     const handleClickAway = (event: MouseEvent) => {
@@ -107,6 +109,49 @@ export default function MessageBubble({
     }
   };
 
+  const handleTogglePin = async () => {
+    if (message.is_optimistic) return;
+
+    try {
+      // Optimistic update
+      mutate(swrKey, (current: Message[] | undefined) => {
+        return (current || []).map(m =>
+          m.id === message.id ? { ...m, is_pinned: !m.is_pinned } : m
+        );
+      }, false);
+
+      await MessagingAPI.togglePin(conversationId, message.id);
+      // SWR will revalidate or we can rely on ActionCable
+    } catch (error) {
+      console.error('Failed to toggle pin:', error);
+      mutate(swrKey); // Rollback
+    }
+  };
+
+  const handleToggleStar = async () => {
+    if (message.is_optimistic) return;
+
+    try {
+      // Optimistic update
+      mutate(swrKey, (current: Message[] | undefined) => {
+        return (current || []).map(m => {
+          if (m.id !== message.id) return m;
+          const currentStarredBy = m.starred_by || [];
+          const userIdStr = String(currentUserId);
+          const nextStarredBy = currentStarredBy.includes(userIdStr)
+            ? currentStarredBy.filter(id => id !== userIdStr)
+            : [...currentStarredBy, userIdStr];
+          return { ...m, starred_by: nextStarredBy };
+        });
+      }, false);
+
+      await MessagingAPI.toggleStar(conversationId, message.id);
+    } catch (error) {
+      console.error('Failed to toggle star:', error);
+      mutate(swrKey); // Rollback
+    }
+  };
+
   const hasCurrentUserReacted = (reaction: MessageReaction) => {
     if (reaction.current_user_reacted) return true;
     return reaction.user_ids?.map(String).includes(String(currentUserId)) || false;
@@ -165,6 +210,34 @@ export default function MessageBubble({
             >
               <CornerUpLeft className="h-4 w-4" />
             </button>
+
+            <button
+              type="button"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 shadow-lg shadow-black/20 transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-accent/60",
+                isPinned ? "text-primary-accent" : "text-white/60 hover:text-white"
+              )}
+              onClick={handleTogglePin}
+              disabled={message.is_optimistic}
+              aria-label={isPinned ? "Unpin" : "Pin"}
+              title={isPinned ? "Unpin" : "Pin"}
+            >
+              <Pin className={cn("h-4 w-4", isPinned && "fill-primary-accent")} />
+            </button>
+
+            <button
+              type="button"
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 shadow-lg shadow-black/20 transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-accent/60",
+                isStarred ? "text-yellow-400" : "text-white/60 hover:text-white"
+              )}
+              onClick={handleToggleStar}
+              disabled={message.is_optimistic}
+              aria-label={isStarred ? "Unstar" : "Star"}
+              title={isStarred ? "Unstar" : "Star"}
+            >
+              <Star className={cn("h-4 w-4", isStarred && "fill-yellow-400")} />
+            </button>
           </div>
 
           {isPickerOpen && (
@@ -182,6 +255,8 @@ export default function MessageBubble({
               isMine
                 ? 'rounded-tr-none bg-primary-fixed font-medium text-on-primary-fixed shadow-xl shadow-primary-fixed/10'
                 : 'rounded-tl-none border border-white/5 bg-surface-container text-white/90',
+              isPinned && !isMine && 'bg-primary-accent/5 border-primary-accent/20',
+              isPinned && isMine && 'bg-primary-fixed/90 ring-1 ring-white/20',
               isHighlighted && (isMine
                 ? 'bg-primary-accent ring-4 ring-primary-accent ring-offset-4 ring-offset-black/20 scale-[1.02] shadow-2xl shadow-primary-accent/40'
                 : 'bg-primary-accent/20 ring-4 ring-primary-accent ring-offset-4 ring-offset-black/20 scale-[1.02] shadow-2xl shadow-primary-accent/20')
@@ -212,6 +287,24 @@ export default function MessageBubble({
             )}
 
             {message.content && <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>}
+
+            {isStarred && (
+              <div className={cn(
+                "absolute top-2 right-2",
+                isMine ? "text-yellow-200" : "text-yellow-400"
+              )}>
+                <Star className="h-3 w-3 fill-current" />
+              </div>
+            )}
+
+            {isPinned && (
+              <div className={cn(
+                "absolute top-2 right-6",
+                isMine ? "text-white/40" : "text-primary-accent"
+              )}>
+                <Pin className="h-3 w-3 fill-current" />
+              </div>
+            )}
 
             {message.attachment_url && (
               <AttachmentPreview

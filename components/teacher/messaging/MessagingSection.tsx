@@ -4,6 +4,8 @@ import DirectoryList from './DirectoryList';
 import ChatWindow from './ChatWindow';
 import MessageInput from './MessageInput';
 import SearchPanel from './SearchPanel';
+import PinnedMessagesPanel from './PinnedMessagesPanel';
+import SavedMessagesView from './SavedMessagesView';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
@@ -11,7 +13,7 @@ import { SchoolAPI } from '@/lib/api/school-api';
 import { Message, Participant } from '@/lib/types/messaging';
 import {
   User, Phone, Video, Search, MoreHorizontal, ArrowLeft,
-  LayoutDashboard, Sparkles, Wand2, Users,
+  LayoutDashboard, Sparkles, Wand2, Users, Pin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +35,8 @@ export default function MessagingSection({
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showPinned, setShowPinned] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<(Message & { sender_name: string }) | null>(null);
   const [showMobileList, setShowMobileList] = useState(true);
@@ -70,6 +74,11 @@ export default function MessagingSection({
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === activeConvId),
     [conversations, activeConvId]
+  );
+
+  const pinnedMessages = useMemo(
+    () => messages.filter(m => m.is_pinned),
+    [messages]
   );
 
   const resolvedParticipants = useMemo(() => {
@@ -133,6 +142,7 @@ export default function MessagingSection({
     setActiveConvId(id);
     setShowDirectory(false);
     setShowSearch(false);
+    setShowSaved(false);
     setShowMobileList(false);
     setHighlightedMessageId(null);
     setReplyTo(null);
@@ -219,8 +229,15 @@ export default function MessagingSection({
               currentUserId={currentUserId}
               onNewMessage={() => {
                 setShowDirectory(true);
+                setShowSaved(false);
                 // On mobile: stay on left panel to show directory
                 // On desktop: right panel will render directory via showDirectory flag
+              }}
+              onShowSaved={() => {
+                setShowSaved(true);
+                setShowDirectory(false);
+                setActiveConvId(null);
+                setShowMobileList(false);
               }}
               contactMap={contactMap}
             />
@@ -234,7 +251,7 @@ export default function MessagingSection({
             showMobileList && 'hidden md:flex'
           )}
         >
-          {/* ✅ FIX: Priority — activeConvId wins over showDirectory */}
+          {/* ✅ FIX: Priority — activeConvId wins over showDirectory and showSaved */}
           {activeConvId ? (
             <>
               {/* Chat header */}
@@ -290,15 +307,43 @@ export default function MessagingSection({
                   </button>
                   <button
                     onClick={() => setShowSearch(true)}
-                    className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all"
+                    className={cn(
+                      "p-2.5 md:p-3 transition-all rounded-2xl",
+                      showSearch ? "bg-white/10 text-white" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+                    )}
                   >
                     <Search className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setShowPinned(!showPinned)}
+                    className={cn(
+                      "p-2.5 md:p-3 transition-all rounded-2xl relative",
+                      showPinned ? "bg-primary-accent/20 text-primary-accent" : "text-white/20 hover:text-white/60 hover:bg-white/5"
+                    )}
+                  >
+                    <Pin className={cn("w-5 h-5", showPinned && "fill-current")} />
+                    {pinnedMessages.length > 0 && (
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-primary-accent rounded-full border-2 border-surface-container" />
+                    )}
                   </button>
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
               </div>
+
+              {/* Pinned Messages Panel */}
+              <PinnedMessagesPanel
+                isOpen={showPinned}
+                onClose={() => setShowPinned(false)}
+                pinnedMessages={pinnedMessages}
+                participants={resolvedParticipants}
+                onJumpToMessage={(messageId) => {
+                  setHighlightedMessageId(messageId);
+                  // Optional: Close panel on jump? Usually better to keep open if user wants to see others.
+                  // For now keep it open.
+                }}
+              />
 
               {/* Messages */}
               <ChatWindow
@@ -400,6 +445,20 @@ export default function MessagingSection({
                 onBack={() => setShowDirectory(false)}
                 existingConversations={conversations}
                 currentUserId={currentUserId}
+              />
+            </div>
+          ) : showSaved ? (
+            <div className="flex-1 overflow-hidden">
+              <SavedMessagesView
+                onBack={() => {
+                  setShowSaved(false);
+                  setShowMobileList(true);
+                }}
+                onJumpToConversation={(convId, msgId) => {
+                  setActiveConvId(convId);
+                  setHighlightedMessageId(msgId);
+                  setShowSaved(false);
+                }}
               />
             </div>
           ) : (

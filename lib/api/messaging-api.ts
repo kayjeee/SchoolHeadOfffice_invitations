@@ -45,6 +45,8 @@ export interface Message {
   attachment_name?: string;
   attachment_size?: number;
   reactions?: MessageReaction[];
+  is_pinned?: boolean;
+  starred_by?: string[];
   reply_to_id?: string;
   reply_to_preview?: {
     content: string;
@@ -239,6 +241,36 @@ export class MessagingAPI {
       );
     } catch { /* endpoint may not exist yet — intentionally swallowed */ }
   }
+
+  /** Toggle pin status of a message. */
+  static async togglePin(conversationId: string, messageId: string): Promise<Message> {
+    const response = await apiClient.post(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/pin`,
+      {},
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.message ?? response;
+    return normalizeMessage(raw);
+  }
+
+  /** Toggle star status of a message. */
+  static async toggleStar(conversationId: string, messageId: string): Promise<Message> {
+    const response = await apiClient.post(
+      `/api/v1/conversations/${conversationId}/messages/${messageId}/star`,
+      {},
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.message ?? response;
+    return normalizeMessage(raw);
+  }
+
+  /** Fetch all starred messages for the current user. */
+  static async getStarredMessages(): Promise<Message[]> {
+    const response = await apiClient.get('/api/v1/messages/starred', z.any()) as any;
+    const raw = response?.data ?? response?.messages ?? response;
+    const list: any[] = Array.isArray(raw) ? raw : [];
+    return list.map(normalizeMessage);
+  }
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
@@ -362,6 +394,8 @@ export function normalizeMessage(m: any): Message {
     attachment_name: m.attachment_name,
     attachment_size: m.attachment_size,
     reactions:       normalizeReactions(m.reactions || m.reaction_counts || []),
+    is_pinned:       Boolean(m.is_pinned ?? false),
+    starred_by:      (m.starred_by || []).map(String),
     reply_to_id:      m.reply_to_id ? String(m.reply_to_id) : undefined,
     reply_to_preview: m.reply_to_preview ? {
       content: String(m.reply_to_preview.content || ''),
