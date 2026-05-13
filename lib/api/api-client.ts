@@ -88,7 +88,14 @@ class ApiClient {
         const duration = Date.now() - start;
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          let errorData = {};
+          try {
+            const text = await response.text();
+            errorData = text ? JSON.parse(text) : {};
+          } catch (e) {
+            errorData = {};
+          }
+
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
 
           if (response.status === 401 && typeof window !== 'undefined') {
@@ -98,7 +105,8 @@ class ApiClient {
           throw new APIError(response.status, response.statusText, errorData);
         }
 
-        const data = await response.json();
+        const responseText = await response.text();
+        const data = responseText ? JSON.parse(responseText) : {};
         const parseResult = schema.safeParse(data);
         
         if (!parseResult.success) {
