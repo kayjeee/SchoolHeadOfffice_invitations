@@ -78,9 +78,17 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
         OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
           if (event.current.optedIn && event.current.token) {
             console.log('🔔 [OneSignal] Push opted in, syncing token with Courier');
-            // Sync with Courier using the provider's subscription management
-            // Courier's React SDK handles most of this via the provider if configured,
-            // but we can explicitly set/update here if needed.
+
+            // Explicitly sync the OneSignal push token to Courier's "push" channel
+            // This ensures Courier can route push notifications through OneSignal
+            if (courier && typeof courier.setSubscription === 'function') {
+              courier.setSubscription({
+                id: 'onesignal',
+                enabled: true,
+                status: 'OPTED_IN',
+              });
+              console.log('✅ [Courier] Push subscription state synced');
+            }
           }
         });
       });

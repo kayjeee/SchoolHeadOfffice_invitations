@@ -19,6 +19,8 @@ export function usePresence(userId?: string) {
 
     try {
       // Robustly handle ID as string
+      // The backend now handles both Auth0 ID and internal database ID.
+      // Priority: Auth0 sub (userId) passed from layout.
       const id = userId.toString();
       console.log(`[Presence] Sending heartbeat for User: ${id}`);
       await UsersAPI.heartbeat(id);
