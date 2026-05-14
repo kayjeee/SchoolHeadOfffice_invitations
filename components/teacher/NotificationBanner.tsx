@@ -38,11 +38,12 @@ export default function NotificationBanner() {
   const handleRequestPermission = async () => {
     try {
       // Request native permission directly (react-onesignal v3+)
-      const permission = await OneSignal.Notifications.requestPermission();
-      console.log('🔔 [NotificationBanner] Permission result:', permission);
+      // Note: requestPermission() returns a Promise<void> or Promise<string> depending on environment,
+      // but the key is that it triggers the browser prompt.
+      await OneSignal.Notifications.requestPermission();
 
-      // If granted, OneSignal will handle the subscription.
-      // We close the banner immediately if they interacted.
+      // We close the banner immediately when they click "Enable" to provide instant feedback.
+      // OneSignal will handle the actual subscription state in the background.
       setShowBanner(false);
     } catch (error) {
       console.error('❌ [NotificationBanner] Error requesting permission:', error);

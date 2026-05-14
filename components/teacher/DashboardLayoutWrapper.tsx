@@ -45,8 +45,12 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
   const { godMode } = useGodmode();
   const { user } = useUser();
 
+  // Prioritize the passed userId (database ID) over the Auth0 sub
+  const finalUserId = userId || user?.sub || '';
+
   // Wire up the "Heartbeat" presence tracker with periodic updates
-  usePresence(user?.sub);
+  // Pass the same identifier used for OneSignal and Courier
+  usePresence(finalUserId);
 
   useEffect(() => {
     const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -63,10 +67,10 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
         console.log('✅ [OneSignal] Initialized');
 
         // Use the database ID as the external ID for both Courier and OneSignal
-        if (userId) {
+        if (finalUserId) {
           // In react-onesignal v3+, use login() to set external ID
-          OneSignal.login(userId);
-          console.log(`🔗 [OneSignal] External User ID set via login: ${userId}`);
+          OneSignal.login(finalUserId);
+          console.log(`🔗 [OneSignal] External User ID set via login: ${finalUserId}`);
         }
       });
     }
