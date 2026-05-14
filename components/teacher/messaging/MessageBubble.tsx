@@ -112,16 +112,17 @@ export default function MessageBubble({
   const handleTogglePin = async () => {
     if (message.is_optimistic) return;
 
+    const updateFn = (current: Message[] | undefined) => {
+      return (current || []).map(m =>
+        m.id === message.id ? { ...m, is_pinned: !m.is_pinned } : m
+      );
+    };
+
     try {
       // Optimistic update
-      mutate(swrKey, (current: Message[] | undefined) => {
-        return (current || []).map(m =>
-          m.id === message.id ? { ...m, is_pinned: !m.is_pinned } : m
-        );
-      }, false);
+      mutate(swrKey, updateFn, false);
 
       await MessagingAPI.togglePin(conversationId, message.id);
-      // SWR will revalidate or we can rely on ActionCable
     } catch (error) {
       console.error('Failed to toggle pin:', error);
       mutate(swrKey); // Rollback
@@ -131,24 +132,29 @@ export default function MessageBubble({
   const handleToggleStar = async () => {
     if (message.is_optimistic) return;
 
+    const updateFn = (current: Message[] | undefined) => {
+      return (current || []).map(m => {
+        if (m.id !== message.id) return m;
+        const currentStarredBy = m.starred_by || [];
+        const userIdStr = String(currentUserId);
+        const nextStarredBy = currentStarredBy.includes(userIdStr)
+          ? currentStarredBy.filter(id => id !== userIdStr)
+          : [...currentStarredBy, userIdStr];
+        return { ...m, starred_by: nextStarredBy };
+      });
+    };
+
     try {
       // Optimistic update
-      mutate(swrKey, (current: Message[] | undefined) => {
-        return (current || []).map(m => {
-          if (m.id !== message.id) return m;
-          const currentStarredBy = m.starred_by || [];
-          const userIdStr = String(currentUserId);
-          const nextStarredBy = currentStarredBy.includes(userIdStr)
-            ? currentStarredBy.filter(id => id !== userIdStr)
-            : [...currentStarredBy, userIdStr];
-          return { ...m, starred_by: nextStarredBy };
-        });
-      }, false);
+      mutate(swrKey, updateFn, false);
+      // Also update the starred messages global cache
+      mutate('/api/v1/messages/starred', updateFn, false);
 
       await MessagingAPI.toggleStar(conversationId, message.id);
     } catch (error) {
       console.error('Failed to toggle star:', error);
       mutate(swrKey); // Rollback
+      mutate('/api/v1/messages/starred');
     }
   };
 

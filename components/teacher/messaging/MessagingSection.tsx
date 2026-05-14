@@ -459,6 +459,8 @@ export default function MessagingSection({
                   setHighlightedMessageId(msgId);
                   setShowSaved(false);
                 }}
+                currentUserId={currentUserId}
+                contactMap={contactMap}
               />
             </div>
           ) : (
