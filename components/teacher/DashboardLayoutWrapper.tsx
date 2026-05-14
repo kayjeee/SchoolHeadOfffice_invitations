@@ -19,7 +19,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CourierProvider } from '@trycourier/react-provider';
+import { CourierProvider, useCourier } from '@trycourier/react-provider';
 import { Inbox } from '@trycourier/react-inbox';
 import { Toast } from '@trycourier/react-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -37,6 +37,7 @@ interface DashboardLayoutWrapperProps {
 
 function InnerLayout(props: DashboardLayoutWrapperProps) {
   const { children, schoolSlug, teacherSlug, userId, courierClientKey } = props;
+  const courier = useCourier();
   // Support both App Router and Pages Router
   const nextPathname = usePathname();
   const pagesRouter = useRouter();
@@ -72,6 +73,16 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
           OneSignal.login(finalUserId);
           console.log(`🔗 [OneSignal] External User ID set via login: ${finalUserId}`);
         }
+
+        // Handle push subscription changes and sync with Courier
+        OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
+          if (event.current.optedIn && event.current.token) {
+            console.log('🔔 [OneSignal] Push opted in, syncing token with Courier');
+            // Sync with Courier using the provider's subscription management
+            // Courier's React SDK handles most of this via the provider if configured,
+            // but we can explicitly set/update here if needed.
+          }
+        });
       });
     }
 

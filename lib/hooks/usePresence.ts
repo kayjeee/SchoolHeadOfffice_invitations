@@ -19,7 +19,9 @@ export function usePresence(userId?: string) {
 
     try {
       // Robustly handle ID as string
-      await UsersAPI.heartbeat(userId.toString());
+      const id = userId.toString();
+      console.log(`[Presence] Sending heartbeat for User: ${id}`);
+      await UsersAPI.heartbeat(id);
     } catch (error) {
       // Fire-and-forget: we don't want to interrupt the user experience if heartbeat fails
       console.warn('📡 [Presence] Heartbeat failed:', error);
