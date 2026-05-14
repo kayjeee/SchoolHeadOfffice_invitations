@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { mutate } from 'swr';
+import toast from 'react-hot-toast';
 import { Smile, User, CornerUpLeft, Pin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessagingAPI, MessageReaction, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
@@ -145,10 +146,22 @@ export default function MessageBubble({
     };
 
     try {
+      const isStarring = !isStarred;
       // Optimistic update
       mutate(swrKey, updateFn, false);
       // Also update the starred messages global cache
       mutate('/api/v1/messages/starred', updateFn, false);
+
+      if (isStarring) {
+        const hasStarredBefore = localStorage.getItem('has_starred_message');
+        if (!hasStarredBefore) {
+          toast.success('Saved to Stars', {
+            icon: '⭐',
+            duration: 3000,
+          });
+          localStorage.setItem('has_starred_message', 'true');
+        }
+      }
 
       await MessagingAPI.toggleStar(conversationId, message.id);
     } catch (error) {
