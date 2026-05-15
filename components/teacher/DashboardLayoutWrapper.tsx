@@ -46,8 +46,8 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
   const { godMode } = useGodmode();
   const { user } = useUser();
 
-  // Prioritize the passed userId (database ID) over the Auth0 sub
-  const finalUserId = userId || user?.sub || '';
+  // Prioritize Auth0 sub as the primary identifier for notifications and presence
+  const finalUserId = user?.sub || userId || '';
 
   // Wire up the "Heartbeat" presence tracker with periodic updates
   // Pass the same identifier used for OneSignal and Courier
