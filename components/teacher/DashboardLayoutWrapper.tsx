@@ -231,8 +231,8 @@ export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProp
   const { user } = useUser();
   const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY;
 
-  // Prioritize the passed userId (database ID) over the Auth0 sub
-  const finalUserId = props.userId || user?.sub || '';
+  // Prioritize Auth0 sub as the primary identifier for notifications and presence
+  const finalUserId = user?.sub || props.userId || '';
 
   return (
     <GodmodeProvider>
