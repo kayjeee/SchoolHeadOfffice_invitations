@@ -7,6 +7,7 @@ import SearchPanel from './SearchPanel';
 import PinnedMessagesPanel from './PinnedMessagesPanel';
 import SavedMessagesView from './SavedMessagesView';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
+import { useApi } from '@/lib/hooks/useApi';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { SchoolAPI } from '@/lib/api/school-api';
