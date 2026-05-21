@@ -86,7 +86,12 @@ export default function DirectoryList({
     // ── Create new conversation ──────────────────────────────────────────
     setCreatingConvId(contactId);
     try {
-      const conv = await MessagingAPI.createConversation([contactId], schoolId);
+      // If messaging self, send an empty array or just the current user's ID.
+      // Backend guidelines suggest empty array for auto-computing current user relationship.
+      const isSelf = contactId.toString() === currentUserId?.toString();
+      const participantIds = isSelf ? [] : [contactId];
+
+      const conv = await MessagingAPI.createConversation(participantIds, schoolId);
       onSelectConversation(conv.id);
     } catch (err) {
       // Map ConversationError codes to user-friendly messages

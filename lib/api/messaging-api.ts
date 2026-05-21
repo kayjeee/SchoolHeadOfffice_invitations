@@ -115,9 +115,13 @@ export class MessagingAPI {
       );
     }
 
+    // Clean configuration for conversations / notes to self
+    // If participantIds is empty, the backend treats it as a "Note to self"
     const payload = {
-      participant_ids: participantIds,
-      conversation:   { school_id: schoolId },
+      conversation: {
+        school_id: schoolId,
+        participant_ids: participantIds
+      }
     };
 
     let response: any;
