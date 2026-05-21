@@ -40,6 +40,11 @@ class ApiClient {
     this.userEmail = email;
   }
 
+  public clearAuth() {
+    this.accessToken = null;
+    this.userEmail = null;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit,

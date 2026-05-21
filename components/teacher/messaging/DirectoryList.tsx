@@ -7,6 +7,7 @@ import {
   ChevronRight, Loader2, MessageSquare, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useApi } from '@/lib/hooks/useApi';
 
 interface DirectoryListProps {
   schoolId: string;
@@ -51,15 +52,19 @@ export default function DirectoryList({
   const [searchQuery, setSearchQuery]       = useState('');
   const [creatingConvId, setCreatingConvId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg]             = useState<string | null>(null);
+  const { accessToken }                     = useApi();
 
   useEffect(() => {
+    // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
+    if (!accessToken) return;
+
     let mounted = true;
     setLoading(true);
     SchoolAPI.getDirectory(schoolId)
       .then(data  => { if (mounted) { setDirectory(data); setLoading(false); } })
       .catch(_err => { if (mounted) { setLoading(false); } });
     return () => { mounted = false; };
-  }, [schoolId]);
+  }, [schoolId, accessToken]);
 
   const handleContactClick = async (contactId: string) => {
     setErrorMsg(null);

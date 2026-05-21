@@ -50,16 +50,20 @@ export default function MessagingSection({
 
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
+  const { accessToken } = useApi();
 
   // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
   const { isOtherTyping, handleTyping } = useTyping(activeConvId);
 
   // Fetch directory once for contact name resolution
   useEffect(() => {
+    // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
+    if (!accessToken) return;
+
     SchoolAPI.getDirectory(schoolId)
       .then(data => setDirectory(data))
       .catch(err => console.error('Failed to fetch directory:', err));
-  }, [schoolId]);
+  }, [schoolId, accessToken]);
 
   // Memoised ID → Participant map
   const contactMap = useMemo(() => {
