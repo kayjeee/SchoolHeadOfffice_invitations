@@ -67,11 +67,16 @@ export default function MessagingSection({
   }, [schoolId, accessToken]);
 
   // Memoised ID → Participant map
+  // We index by both 'id' (legacy/profile) and 'user_id' (core account)
+  // to ensure name resolution works across different reference layers.
   const contactMap = useMemo(() => {
     const map = new Map<string, Participant>();
     if (!directory) return map;
     [...directory.admins, ...directory.teachers, ...directory.parents].forEach(p => {
       map.set(p.id.toString(), p);
+      if (p.user_id) {
+        map.set(p.user_id.toString(), p);
+      }
     });
     return map;
   }, [directory]);

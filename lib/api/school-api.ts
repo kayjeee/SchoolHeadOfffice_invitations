@@ -17,6 +17,7 @@ export interface School {
 
 export interface Teacher {
   id: string;
+  user_id?: string;
   name: string;
   slug: string;
   avatar?: string;
@@ -373,6 +374,7 @@ export class SchoolAPI {
 
     const ParticipantSchema = z.object({
       id: z.string(),
+      user_id: z.string().optional(),
       name: z.string(),
       avatar: z.string().optional(),
       role: z.enum(['teacher', 'parent', 'principal', 'admin', 'staff']),

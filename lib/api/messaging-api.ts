@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 export interface ParticipantSnippet {
   id: string;
+  user_id?: string;
   name: string;
   full_name: string;        // mirrors what the backend now sends
   avatar: string | null;
@@ -366,6 +367,7 @@ function normalizeParticipant(p: any): ParticipantSnippet {
 
   return {
     id:            String(p.id || p._id?.$oid || p._id || ''),
+    user_id:       p.user_id ? String(p.user_id) : undefined,
     name:          resolvedName,
     full_name:     resolvedName,
     avatar:        p.avatar || p.profile_image || null,
