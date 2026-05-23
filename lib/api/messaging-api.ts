@@ -362,6 +362,7 @@ function normalizeParticipant(p: any): ParticipantSnippet {
   const resolvedName =
     p.name?.trim() ||
     p.full_name?.trim() ||
+    p.user_name?.trim() ||
     [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
     'Unknown';
 

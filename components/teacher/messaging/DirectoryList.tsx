@@ -70,9 +70,18 @@ export default function DirectoryList({
     setErrorMsg(null);
 
     // ── Target correct User ID reference when dealing with a teacher contact wrapper ──
-    const targetParticipantId = contact.role === 'teacher' && (contact as any).user_id
-      ? (contact as any).user_id
+    const targetParticipantId = contact.role === 'teacher' && contact.user_id
+      ? contact.user_id
       : contact.id;
+
+    const isMessageable = contact.role === 'teacher'
+      ? contact.messageable
+      : true;
+
+    if (!isMessageable) {
+      setErrorMsg(`${contact.name} is not available for messaging at this time.`);
+      return;
+    }
 
     // ── Check for an existing conversation first ─────────────────────────
     const existing = existingConversations.find(conv => {
@@ -206,15 +215,25 @@ export default function DirectoryList({
                 {/* Contact rows */}
                 <div className="space-y-1 px-2">
                   {filtered.map(contact => {
-                    const isSelf      = contact.id === currentUserId;
+                    const targetId = contact.role === 'teacher' && contact.user_id
+                      ? contact.user_id
+                      : contact.id;
+
+                    const isSelf      = targetId.toString() === currentUserId?.toString();
                     const isCreating  = creatingConvId === contact.id;
 
                     return (
                       <button
                         key={contact.id}
                         onClick={() => handleContactClick(contact)}
-                        disabled={isCreating}
-                        className="w-full p-3 flex items-center gap-4 transition-all hover:bg-white/5 rounded-2xl group disabled:opacity-60"
+                        disabled={isCreating || !contact.messageable}
+                        className={cn(
+                          "w-full p-3 flex items-center gap-4 transition-all rounded-2xl group",
+                          contact.messageable
+                            ? "hover:bg-white/5 cursor-pointer"
+                            : "opacity-40 cursor-not-allowed grayscale-[0.5]",
+                          isCreating && "opacity-60"
+                        )}
                       >
                         {/* Avatar */}
                         <div className="relative shrink-0">
@@ -253,15 +272,23 @@ export default function DirectoryList({
                         <div className="flex items-center gap-2">
                           {isCreating ? (
                             <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
-                          ) : (
+                          ) : contact.messageable ? (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-accent/10 rounded-xl group-hover:bg-primary-accent/20 transition-all">
                               <MessageSquare className="w-3.5 h-3.5 text-primary-accent" />
                               <span className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">
                                 {isSelf ? 'Notes' : 'Message'}
                               </span>
                             </div>
+                          ) : (
+                            <div className="px-3 py-1.5 bg-white/5 rounded-xl">
+                              <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                                Unavailable
+                              </span>
+                            </div>
                           )}
-                          <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                          {contact.messageable && (
+                            <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                          )}
                         </div>
                       </button>
                     );
