@@ -66,19 +66,20 @@ export default function DirectoryList({
     return () => { mounted = false; };
   }, [schoolId, accessToken]);
 
-  const handleContactClick = async (contactId: string) => {
+  const handleContactClick = async (contact: Participant) => {
     setErrorMsg(null);
 
-    // ── Self-message detection (frontend guard) ──────────────────────────
-    // We allow it — the backend will return/create a "Note to self" conv.
-    // No UI block here; just let it flow through normally.
+    // ── Target correct User ID reference when dealing with a teacher contact wrapper ──
+    const targetParticipantId = contact.role === 'teacher' && (contact as any).user_id
+      ? (contact as any).user_id
+      : contact.id;
 
     // ── Check for an existing conversation first ─────────────────────────
     const existing = existingConversations.find(conv => {
       const ids = (conv.participant_ids || conv.participants || [])
         .map((p: any) => (p.id ?? p).toString());
       return (
-        ids.includes(contactId.toString()) &&
+        ids.includes(targetParticipantId.toString()) &&
         ids.includes(currentUserId?.toString())
       );
     });
@@ -89,12 +90,11 @@ export default function DirectoryList({
     }
 
     // ── Create new conversation ──────────────────────────────────────────
-    setCreatingConvId(contactId);
+    setCreatingConvId(contact.id);
     try {
-      // If messaging self, send an empty array or just the current user's ID.
-      // Backend guidelines suggest empty array for auto-computing current user relationship.
-      const isSelf = contactId.toString() === currentUserId?.toString();
-      const participantIds = isSelf ? [] : [contactId];
+      // Secure Clean Note-to-Self/Self-Conversation Payloads
+      const isSelf = targetParticipantId.toString() === currentUserId?.toString();
+      const participantIds = isSelf ? [] : [targetParticipantId];
 
       const conv = await MessagingAPI.createConversation(participantIds, schoolId);
       onSelectConversation(conv.id);
@@ -212,7 +212,7 @@ export default function DirectoryList({
                     return (
                       <button
                         key={contact.id}
-                        onClick={() => handleContactClick(contact.id)}
+                        onClick={() => handleContactClick(contact)}
                         disabled={isCreating}
                         className="w-full p-3 flex items-center gap-4 transition-all hover:bg-white/5 rounded-2xl group disabled:opacity-60"
                       >
