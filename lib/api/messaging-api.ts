@@ -276,6 +276,22 @@ export class MessagingAPI {
     const list: any[] = Array.isArray(raw) ? raw : [];
     return list.map(normalizeMessage);
   }
+
+  /** Initiate a group conversation for broadcasts, grades, or classes. */
+  static async groupInitiation(payload: {
+    school_id: string;
+    scope_type: 'broadcast' | 'grade' | 'classroom';
+    target_id: string;
+    custom_name?: string | null;
+  }): Promise<Conversation> {
+    const response = await apiClient.post(
+      '/api/v1/conversations/group_initiation',
+      payload,
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.conversation ?? response;
+    return normalizeConversation(raw);
+  }
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────

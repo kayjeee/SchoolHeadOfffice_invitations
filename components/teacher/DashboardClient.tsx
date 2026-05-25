@@ -171,6 +171,7 @@ export default function DashboardClient({
               currentUserId={data.teacher?.id?.toString() || ''}
               schoolId={data.school?.id?.toString() || ''}
               godMode={godMode}
+              classes={data.classes}
             />
           </div>
         ) : (
