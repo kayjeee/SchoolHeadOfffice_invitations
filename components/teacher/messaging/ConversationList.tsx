@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Conversation } from '@/lib/api/messaging-api';
-import { Search, User, Plus, Star } from 'lucide-react';
+import { Search, User, Plus, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConversationListProps {
@@ -9,6 +9,7 @@ interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   currentUserId: string;
   onNewMessage?: () => void;
+  onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function ConversationList({
   onSelectConversation,
   currentUserId,
   onNewMessage,
+  onNewGroupMessage,
   onShowSaved,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,11 +107,18 @@ export default function ConversationList({
               <Star className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
             </button>
             <button
+              onClick={onNewGroupMessage}
+              className="p-2 bg-primary-accent text-on-primary-fixed hover:bg-primary-accent/90 rounded-xl transition-all group shadow-lg shadow-primary-accent/20"
+              title="New Group Message"
+            >
+              <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+            <button
               onClick={onNewMessage}
-              className="p-2 bg-primary-accent/10 hover:bg-primary-accent/20 rounded-xl transition-all group"
+              className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all group border border-white/10"
               title="New Message"
             >
-              <Plus className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
+              <Plus className="w-5 h-5 text-white/60 group-hover:scale-110 transition-transform" />
             </button>
           </div>
         </div>
