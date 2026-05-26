@@ -19,6 +19,19 @@ module.exports = {
         "on-tertiary-fixed": "#2d003a",
         "primary-accent": "#ADC6FF",
         "secondary-accent": "#BCC5FF",
+        school: {
+          primary: 'var(--school-primary)',
+          secondary: 'var(--school-secondary)',
+        }
+      },
+      borderColor: {
+        school: 'var(--school-border-color)',
+      },
+      borderRadius: {
+        school: 'var(--school-radius)',
+      },
+      borderWidth: {
+        school: 'var(--school-border-weight)',
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
