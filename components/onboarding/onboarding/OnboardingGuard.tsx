@@ -1,7 +1,9 @@
 import React from "react";
+import { useRouter } from "next/router";
 import { useOnboardingFlow, OnboardingFlowProvider } from "./hooks/useOnboardingFlow";
 import { STEPS } from "./OnboardingFlow";
 import { useAppTheme } from "../../Layouts/context/ThemeContext";
+import { onboardingService } from "./services/onboardingService";
 import {
   generateColorPalette,
   getComplementaryColor,
@@ -10,6 +12,7 @@ import {
 } from "./NavbarTheming/colorUtils";
 
 const OnboardingContent = ({ user, schools, onboardingStatus }) => {
+  const router = useRouter();
   const { currentSchool, getPrimaryColorValue } = useAppTheme();
   const {
     currentStep,
@@ -62,7 +65,24 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
 
   const userId = user?._id || user?.id || user?.auth0_id;
 
+  const handleCompleteOnboarding = async () => {
+    setIsLoading(true);
+    try {
+      await onboardingService.completeOnboarding(userId);
+      router.push('/dashboard?welcome=true');
+    } catch (error) {
+      console.error('Redirection engine failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleNext = async () => {
+    if (currentStepIndex === STEPS.length - 1) {
+      handleCompleteOnboarding();
+      return;
+    }
+
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));

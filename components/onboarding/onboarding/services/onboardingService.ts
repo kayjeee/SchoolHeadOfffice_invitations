@@ -71,6 +71,15 @@ export async function updateOnboardingStatus(userId, updates) {
     body: JSON.stringify(updates),
   });
 }
+
+export async function completeOnboarding(userId?: string) {
+  console.log("🎉 Completing onboarding...");
+  return apiFetch(`${API_BASE_URL}/api/v1/onboarding/complete`, {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
+  });
+}
+
 export async function fetchSchoolGrades(schoolId: string) {
 
   const response = await fetch(`${API_BASE_URL}/api/v1/schools/${schoolId}/grades`, {
@@ -110,6 +119,7 @@ export const onboardingService = {
   skipStep,
   resetOnboarding,
   updateOnboardingStatus,
+  completeOnboarding,
   fetchSchoolGrades,
   bulkUploadLearners
 };

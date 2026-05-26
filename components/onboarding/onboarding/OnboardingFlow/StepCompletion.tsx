@@ -1,13 +1,29 @@
 import React from "react";
+import { useRouter } from "next/router";
 import OnboardingLayout from "../layouts/OnboardingLayout";
 import StepLayout from "../layouts/StepLayout";
 import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
+import { onboardingService } from "../services/onboardingService";
 
 const StepCompletion: React.FC = () => {
-  const { onboardingStatus } = useOnboardingFlow();
+  const router = useRouter();
+  const { onboardingStatus, primarySchool } = useOnboardingFlow();
 
-  // Determine redirection target (fallback to /parent for now)
-  const dashboardUrl = "/parent";
+  // Determine redirection target
+  const dashboardUrl = "/dashboard?welcome=true";
+
+  const handleGoToDashboard = async () => {
+    try {
+      // Use the user ID from the status or current context
+      const userId = onboardingStatus?.userId || '';
+      await onboardingService.completeOnboarding(userId);
+      router.push(dashboardUrl);
+    } catch (error) {
+      console.error('Redirection engine failed:', error);
+      // Fallback redirect even if API fails
+      router.push(dashboardUrl);
+    }
+  };
 
   return (
     <OnboardingLayout title="Onboarding Complete" description="You're all set!">
@@ -20,7 +36,7 @@ const StepCompletion: React.FC = () => {
             You can now access all the features available for your role.
           </p>
           <button
-            onClick={() => window.location.href = dashboardUrl}
+            onClick={handleGoToDashboard}
             className="px-4 py-2 bg-blue-500 text-white rounded mt-2"
           >
             Go to Dashboard
