@@ -80,12 +80,13 @@ export async function completeOnboarding(userId?: string) {
   });
 }
 
-export async function fetchSchoolGrades(schoolId: string) {
+export async function fetchSchoolGrades(schoolId: string, token?: string | null) {
 
   const response = await fetch(`${API_BASE_URL}/api/v1/schools/${schoolId}/grades`, {
     headers: {
 
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   });
 

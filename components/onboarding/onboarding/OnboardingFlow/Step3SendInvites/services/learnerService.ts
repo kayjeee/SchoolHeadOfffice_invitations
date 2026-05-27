@@ -1,4 +1,5 @@
 import { Learner } from "../types";
+import { API_BASE_URL } from "../utils/constants";
 
 export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> => {
   let page = 1;
@@ -8,7 +9,7 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
 
   do {
     const res = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`
+      `${API_BASE_URL}/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`
     );
 
     if (!res.ok) {
@@ -51,7 +52,7 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
 
 export const getLearnersBySchool = async (schoolId: string): Promise<Learner[]> => {
   const res = await fetch(
-    `https://shobackendv2-production.up.railway.app/api/v1/schools/${schoolId}/learners?page=1&per_page=1000` // Assuming a high per_page to get all learners
+    `${API_BASE_URL}/api/v1/schools/${schoolId}/learners?page=1&per_page=1000` // Assuming a high per_page to get all learners
   );
 
   if (!res.ok) {

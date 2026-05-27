@@ -1,4 +1,5 @@
 import { Learner } from '../../../types';
+import { API_BASE_URL } from '../../../utils/constants';
 
 export const learnerService = {
   getLearnersByGrade: async (gradeId: string): Promise<Learner[]> => {
@@ -16,7 +17,7 @@ export const learnerService = {
 
     try {
       do {
-        const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
