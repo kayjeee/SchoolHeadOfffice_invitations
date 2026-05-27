@@ -1,6 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
 import { useOnboardingFlow, OnboardingFlowProvider } from "./hooks/useOnboardingFlow";
+import { slugify } from "@/utils/slugify";
 import { STEPS } from "./OnboardingFlow";
 import { useAppTheme } from "../../Layouts/context/ThemeContext";
 import { onboardingService } from "./services/onboardingService";
@@ -66,10 +67,12 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   const userId = user?._id || user?.id || user?.auth0_id;
 
   const handleCompleteOnboarding = async () => {
+    const schoolSlug = slugify(school?.schoolName || 'my-school');
+    const dashboardUrl = `/admin/${schoolSlug}`;
     setIsLoading(true);
     try {
       await onboardingService.completeOnboarding(userId);
-      router.push('/dashboard?welcome=true');
+      router.push(dashboardUrl);
     } catch (error) {
       console.error('Redirection engine failed:', error);
     } finally {
