@@ -4,15 +4,16 @@ import OnboardingLayout from "../layouts/OnboardingLayout";
 import StepLayout from "../layouts/StepLayout";
 import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
 import { onboardingService } from "../services/onboardingService";
+import { slugify } from "@/utils/slugify";
 
 const StepCompletion: React.FC = () => {
   const router = useRouter();
   const { onboardingStatus, primarySchool } = useOnboardingFlow();
 
-  // Determine redirection target
-  const dashboardUrl = "/dashboard?welcome=true";
-
   const handleGoToDashboard = async () => {
+    const schoolSlug = slugify(primarySchool?.name || 'my-school');
+    const dashboardUrl = `/admin/${schoolSlug}`;
+
     try {
       // Use the user ID from the status or current context
       const userId = onboardingStatus?.userId || '';
