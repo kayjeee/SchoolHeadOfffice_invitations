@@ -29,15 +29,33 @@ export class APIError extends Error {
 }
 
 class ApiClient {
-  private accessToken: string | null = null;
+  public defaults: {
+    headers: {
+      common: Record<string, string>;
+    };
+  } = {
+    headers: {
+      common: {},
+    },
+  };
+
   private userEmail: string | null = null;
 
   public setAccessToken(token: string | null) {
-    this.accessToken = token;
+    if (token) {
+      this.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.defaults.headers.common['Authorization'];
+    }
   }
 
   public setUserEmail(email: string | null) {
     this.userEmail = email;
+  }
+
+  public clearAuth() {
+    this.defaults.headers.common = {};
+    this.userEmail = null;
   }
 
   private async request<T>(
@@ -73,12 +91,9 @@ class ApiClient {
         const start = Date.now();
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
+          ...this.defaults.headers.common,
           ...((options.headers as Record<string, string>) || {}),
         };
-
-        if (this.accessToken) {
-          headers['Authorization'] = `Bearer ${this.accessToken}`;
-        }
 
         if (this.userEmail && !headers['X-User-Email']) {
           headers['X-User-Email'] = this.userEmail;
@@ -144,3 +159,11 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+export const syncApiClientToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+  }
+};

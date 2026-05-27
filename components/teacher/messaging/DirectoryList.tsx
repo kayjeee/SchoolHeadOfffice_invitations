@@ -7,6 +7,7 @@ import {
   ChevronRight, Loader2, MessageSquare, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useApi } from '@/lib/hooks/useApi';
 
 interface DirectoryListProps {
   schoolId: string;
@@ -51,29 +52,43 @@ export default function DirectoryList({
   const [searchQuery, setSearchQuery]       = useState('');
   const [creatingConvId, setCreatingConvId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg]             = useState<string | null>(null);
+  const { accessToken }                     = useApi();
 
   useEffect(() => {
+    // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
+    if (!accessToken) return;
+
     let mounted = true;
     setLoading(true);
     SchoolAPI.getDirectory(schoolId)
       .then(data  => { if (mounted) { setDirectory(data); setLoading(false); } })
       .catch(_err => { if (mounted) { setLoading(false); } });
     return () => { mounted = false; };
-  }, [schoolId]);
+  }, [schoolId, accessToken]);
 
-  const handleContactClick = async (contactId: string) => {
+  const handleContactClick = async (contact: Participant) => {
     setErrorMsg(null);
 
-    // ── Self-message detection (frontend guard) ──────────────────────────
-    // We allow it — the backend will return/create a "Note to self" conv.
-    // No UI block here; just let it flow through normally.
+    // ── Target correct User ID reference when dealing with a teacher contact wrapper ──
+    const targetParticipantId = contact.role === 'teacher' && contact.user_id
+      ? contact.user_id
+      : contact.id;
+
+    const isMessageable = contact.role === 'teacher'
+      ? contact.messageable
+      : true;
+
+    if (!isMessageable) {
+      setErrorMsg(`${contact.name} is not available for messaging at this time.`);
+      return;
+    }
 
     // ── Check for an existing conversation first ─────────────────────────
     const existing = existingConversations.find(conv => {
       const ids = (conv.participant_ids || conv.participants || [])
         .map((p: any) => (p.id ?? p).toString());
       return (
-        ids.includes(contactId.toString()) &&
+        ids.includes(targetParticipantId.toString()) &&
         ids.includes(currentUserId?.toString())
       );
     });
@@ -84,9 +99,13 @@ export default function DirectoryList({
     }
 
     // ── Create new conversation ──────────────────────────────────────────
-    setCreatingConvId(contactId);
+    setCreatingConvId(contact.id);
     try {
-      const conv = await MessagingAPI.createConversation([contactId], schoolId);
+      // Secure Clean Note-to-Self/Self-Conversation Payloads
+      const isSelf = targetParticipantId.toString() === currentUserId?.toString();
+      const participantIds = isSelf ? [] : [targetParticipantId];
+
+      const conv = await MessagingAPI.createConversation(participantIds, schoolId);
       onSelectConversation(conv.id);
     } catch (err) {
       // Map ConversationError codes to user-friendly messages
@@ -196,15 +215,25 @@ export default function DirectoryList({
                 {/* Contact rows */}
                 <div className="space-y-1 px-2">
                   {filtered.map(contact => {
-                    const isSelf      = contact.id === currentUserId;
+                    const targetId = contact.role === 'teacher' && contact.user_id
+                      ? contact.user_id
+                      : contact.id;
+
+                    const isSelf      = targetId.toString() === currentUserId?.toString();
                     const isCreating  = creatingConvId === contact.id;
 
                     return (
                       <button
                         key={contact.id}
-                        onClick={() => handleContactClick(contact.id)}
-                        disabled={isCreating}
-                        className="w-full p-3 flex items-center gap-4 transition-all hover:bg-white/5 rounded-2xl group disabled:opacity-60"
+                        onClick={() => handleContactClick(contact)}
+                        disabled={isCreating || !contact.messageable}
+                        className={cn(
+                          "w-full p-3 flex items-center gap-4 transition-all rounded-2xl group",
+                          contact.messageable
+                            ? "hover:bg-white/5 cursor-pointer"
+                            : "opacity-40 cursor-not-allowed grayscale-[0.5]",
+                          isCreating && "opacity-60"
+                        )}
                       >
                         {/* Avatar */}
                         <div className="relative shrink-0">
@@ -243,15 +272,23 @@ export default function DirectoryList({
                         <div className="flex items-center gap-2">
                           {isCreating ? (
                             <Loader2 className="w-4 h-4 text-primary-accent animate-spin" />
-                          ) : (
+                          ) : contact.messageable ? (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-accent/10 rounded-xl group-hover:bg-primary-accent/20 transition-all">
                               <MessageSquare className="w-3.5 h-3.5 text-primary-accent" />
                               <span className="text-[10px] font-bold text-primary-accent uppercase tracking-widest">
                                 {isSelf ? 'Notes' : 'Message'}
                               </span>
                             </div>
+                          ) : (
+                            <div className="px-3 py-1.5 bg-white/5 rounded-xl">
+                              <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                                Unavailable
+                              </span>
+                            </div>
                           )}
-                          <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                          {contact.messageable && (
+                            <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                          )}
                         </div>
                       </button>
                     );

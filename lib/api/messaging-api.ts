@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 export interface ParticipantSnippet {
   id: string;
+  user_id?: string;
   name: string;
   full_name: string;        // mirrors what the backend now sends
   avatar: string | null;
@@ -115,9 +116,13 @@ export class MessagingAPI {
       );
     }
 
+    // Clean configuration for conversations / notes to self
+    // If participantIds is empty, the backend treats it as a "Note to self"
     const payload = {
-      participant_ids: participantIds,
-      conversation:   { school_id: schoolId },
+      conversation: {
+        school_id: schoolId,
+        participant_ids: participantIds
+      }
     };
 
     let response: any;
@@ -271,6 +276,22 @@ export class MessagingAPI {
     const list: any[] = Array.isArray(raw) ? raw : [];
     return list.map(normalizeMessage);
   }
+
+  /** Initiate a group conversation for broadcasts, grades, or classes. */
+  static async groupInitiation(payload: {
+    school_id: string;
+    scope_type: 'broadcast' | 'grade' | 'classroom';
+    target_id: string;
+    custom_name?: string | null;
+  }): Promise<Conversation> {
+    const response = await apiClient.post(
+      '/api/v1/conversations/group_initiation',
+      payload,
+      z.any()
+    ) as any;
+    const raw = response?.data ?? response?.conversation ?? response;
+    return normalizeConversation(raw);
+  }
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
@@ -357,11 +378,13 @@ function normalizeParticipant(p: any): ParticipantSnippet {
   const resolvedName =
     p.name?.trim() ||
     p.full_name?.trim() ||
+    p.user_name?.trim() ||
     [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
     'Unknown';
 
   return {
     id:            String(p.id || p._id?.$oid || p._id || ''),
+    user_id:       p.user_id ? String(p.user_id) : undefined,
     name:          resolvedName,
     full_name:     resolvedName,
     avatar:        p.avatar || p.profile_image || null,

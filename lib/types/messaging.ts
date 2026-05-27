@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const ParticipantSchema = z.object({
   id: z.string(),
+  user_id: z.string().optional(),
+  user_name: z.string().optional(),
+  messageable: z.boolean().optional().default(true),
   name: z.string(),
   avatar: z.string().optional(),
   role: z.enum(['teacher', 'parent', 'principal', 'admin', 'staff']),

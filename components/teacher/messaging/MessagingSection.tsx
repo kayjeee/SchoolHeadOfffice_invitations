@@ -2,18 +2,20 @@ import React, { useState, useMemo, useEffect } from 'react';
 import ConversationList from './ConversationList';
 import DirectoryList from './DirectoryList';
 import ChatWindow from './ChatWindow';
+import GroupInitiation from './GroupInitiation';
 import MessageInput from './MessageInput';
 import SearchPanel from './SearchPanel';
 import PinnedMessagesPanel from './PinnedMessagesPanel';
 import SavedMessagesView from './SavedMessagesView';
 import { useConversations, useMessages, useTyping } from '@/lib/hooks/useMessaging';
+import { useApi } from '@/lib/hooks/useApi';
 import { MessagingAgent } from '@/lib/ai/messaging-agent';
 import { MessagingAPI } from '@/lib/api/messaging-api';
 import { SchoolAPI } from '@/lib/api/school-api';
 import { Message, Participant } from '@/lib/types/messaging';
 import {
   User, Phone, Video, Search, MoreHorizontal, ArrowLeft,
-  LayoutDashboard, Sparkles, Wand2, Users, Pin,
+  LayoutDashboard, Sparkles, Wand2, Users, Pin, Plus as PlusIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,12 +23,18 @@ interface MessagingSectionProps {
   currentUserId: string;
   schoolId: string;
   godMode?: boolean;
+  classes?: {
+    id: string;
+    grade_name: string;
+    learner_count: number;
+  }[];
 }
 
 export default function MessagingSection({
   currentUserId,
   schoolId,
   godMode = false,
+  classes = [],
 }: MessagingSectionProps) {
   useEffect(() => {
     console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}`);
@@ -34,6 +42,7 @@ export default function MessagingSection({
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
+  const [showGroupInitiation, setShowGroupInitiation] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
@@ -50,23 +59,32 @@ export default function MessagingSection({
 
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
+  const { accessToken } = useApi();
 
   // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
   const { isOtherTyping, handleTyping } = useTyping(activeConvId);
 
   // Fetch directory once for contact name resolution
   useEffect(() => {
+    // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
+    if (!accessToken) return;
+
     SchoolAPI.getDirectory(schoolId)
       .then(data => setDirectory(data))
       .catch(err => console.error('Failed to fetch directory:', err));
-  }, [schoolId]);
+  }, [schoolId, accessToken]);
 
   // Memoised ID → Participant map
+  // We index by both 'id' (legacy/profile) and 'user_id' (core account)
+  // to ensure name resolution works across different reference layers.
   const contactMap = useMemo(() => {
     const map = new Map<string, Participant>();
     if (!directory) return map;
     [...directory.admins, ...directory.teachers, ...directory.parents].forEach(p => {
       map.set(p.id.toString(), p);
+      if (p.user_id) {
+        map.set(p.user_id.toString(), p);
+      }
     });
     return map;
   }, [directory]);
@@ -141,6 +159,7 @@ export default function MessagingSection({
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
     setShowDirectory(false);
+    setShowGroupInitiation(false);
     setShowSearch(false);
     setShowSaved(false);
     setShowMobileList(false);
@@ -212,16 +231,59 @@ export default function MessagingSection({
             !showMobileList && 'hidden md:flex'
           )}
         >
-          {/* ✅ FIX: show directory in sidebar only on mobile; on desktop it opens in the right panel */}
-          {showDirectory && showMobileList ? (
-            <DirectoryList
-              schoolId={schoolId}
-              onSelectConversation={handleSelectConversation}
-              onBack={() => setShowDirectory(false)}
-              existingConversations={conversations}
-              currentUserId={currentUserId}
-            />
-          ) : (
+          {/* ✅ FIX: show directory/group initiation in sidebar only on mobile; on desktop it always shows the conversation list in the sidebar */}
+          <div className="flex-1 flex flex-col md:hidden">
+            {(showDirectory || showGroupInitiation) && showMobileList ? (
+              showDirectory ? (
+                <DirectoryList
+                  schoolId={schoolId}
+                  onSelectConversation={handleSelectConversation}
+                  onBack={() => setShowDirectory(false)}
+                  existingConversations={conversations}
+                  currentUserId={currentUserId}
+                />
+              ) : (
+                <GroupInitiation
+                  schoolId={schoolId}
+                  currentUserId={currentUserId}
+                  classes={classes}
+                  onBack={() => setShowGroupInitiation(false)}
+                  onSuccess={handleSelectConversation}
+                  godMode={godMode}
+                />
+              )
+            ) : (
+              <ConversationList
+                conversations={conversations}
+                activeConversationId={activeConvId}
+                onSelectConversation={handleSelectConversation}
+                currentUserId={currentUserId}
+                onNewMessage={() => {
+                  setShowDirectory(true);
+                  setShowGroupInitiation(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                }}
+                onNewGroupMessage={() => {
+                  setShowGroupInitiation(true);
+                  setShowDirectory(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                  setShowMobileList(false);
+                }}
+                onShowSaved={() => {
+                  setShowSaved(true);
+                  setShowDirectory(false);
+                  setShowGroupInitiation(false);
+                  setActiveConvId(null);
+                  setShowMobileList(false);
+                }}
+                contactMap={contactMap}
+              />
+            )}
+          </div>
+
+          <div className="hidden md:flex flex-1 flex-col">
             <ConversationList
               conversations={conversations}
               activeConversationId={activeConvId}
@@ -229,19 +291,27 @@ export default function MessagingSection({
               currentUserId={currentUserId}
               onNewMessage={() => {
                 setShowDirectory(true);
+                setShowGroupInitiation(false);
                 setShowSaved(false);
-                // On mobile: stay on left panel to show directory
-                // On desktop: right panel will render directory via showDirectory flag
+                setActiveConvId(null);
+              }}
+              onNewGroupMessage={() => {
+                setShowGroupInitiation(true);
+                setShowDirectory(false);
+                setShowSaved(false);
+                setActiveConvId(null);
+                setShowMobileList(false);
               }}
               onShowSaved={() => {
                 setShowSaved(true);
                 setShowDirectory(false);
+                setShowGroupInitiation(false);
                 setActiveConvId(null);
                 setShowMobileList(false);
               }}
               contactMap={contactMap}
             />
-          )}
+          </div>
         </div>
 
         {/* ── Right panel ── */}
@@ -447,6 +517,18 @@ export default function MessagingSection({
                 currentUserId={currentUserId}
               />
             </div>
+          ) : showGroupInitiation ? (
+            /* Group initiation renders in right panel on desktop */
+            <div className="flex-1 overflow-hidden">
+              <GroupInitiation
+                schoolId={schoolId}
+                currentUserId={currentUserId}
+                classes={classes}
+                onBack={() => setShowGroupInitiation(false)}
+                onSuccess={handleSelectConversation}
+                godMode={godMode}
+              />
+            </div>
           ) : showSaved ? (
             <div className="flex-1 overflow-hidden">
               <SavedMessagesView
@@ -485,6 +567,17 @@ export default function MessagingSection({
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
+                  onClick={() => {
+                    setShowGroupInitiation(true);
+                    setShowDirectory(false);
+                    setShowSaved(false);
+                  }}
+                  className="px-8 py-3.5 bg-primary-accent text-on-primary-fixed rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/90 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px] shadow-xl shadow-primary-accent/20"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  New Group Message
+                </button>
+                <button
                   onClick={() => setShowDirectory(true)}
                   className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
                 >
@@ -496,13 +589,6 @@ export default function MessagingSection({
                         : 'group-hover/btn:text-primary-accent'
                     )}
                   />
-                  New Message
-                </button>
-                <button
-                  onClick={() => setShowDirectory(true)}
-                  className="px-8 py-3.5 bg-primary-accent/10 border border-primary-accent/20 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/20 transition-all active:scale-95 flex items-center justify-center gap-2 text-primary-accent min-w-[180px]"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
                   Open Directory
                 </button>
               </div>
