@@ -80,8 +80,13 @@ export default function AdminDashboardLayout({
 
   // Breadcrumb generation based on pathname
   const pathSegments = pathname.split('/').filter(Boolean);
+  const displayName = schoolSlug
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
   const breadcrumbs = [
-    { label: 'Far North Secondary School', href: `/admin/${schoolSlug}` },
+    { label: displayName, href: `/admin/${schoolSlug}` },
     { label: 'Dashboard', href: `/admin/${schoolSlug}` },
     ...pathSegments.slice(2).map((segment, idx) => ({
       label: segment.charAt(0).toUpperCase() + segment.slice(1),
@@ -114,7 +119,7 @@ export default function AdminDashboardLayout({
             </div>
             <div className="overflow-hidden">
               <h1 className="font-bold text-slate-900 truncate tracking-tight">
-                Far North Secondary
+                {displayName}
               </h1>
               <p className="text-[10px] uppercase font-bold text-school-primary tracking-widest">
                 Admin Portal

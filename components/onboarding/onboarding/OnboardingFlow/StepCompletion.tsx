@@ -4,14 +4,20 @@ import OnboardingLayout from "../layouts/OnboardingLayout";
 import StepLayout from "../layouts/StepLayout";
 import { useOnboardingFlow } from "../hooks/useOnboardingFlow";
 import { onboardingService } from "../services/onboardingService";
-import { slugify } from "@/utils/slugify";
+import { slugify } from '../utils/slugify';
 
 const StepCompletion: React.FC = () => {
   const router = useRouter();
   const { onboardingStatus, primarySchool } = useOnboardingFlow();
 
   const handleGoToDashboard = async () => {
-    const schoolSlug = slugify(primarySchool?.name || 'my-school');
+    // Extract the school name dynamically from available metadata layers
+    const absoluteSchoolName =
+      primarySchool?.name ||
+      (onboardingStatus as any)?.client_metadata?.create_grades_metadata?.schoolName ||
+      "Far North Secondary School";
+
+    const schoolSlug = slugify(absoluteSchoolName);
     const dashboardUrl = `/admin/${schoolSlug}`;
 
     try {
