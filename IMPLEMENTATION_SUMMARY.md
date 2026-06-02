@@ -1,59 +1,39 @@
-# Implementation Summary: Dashboard Stability & Real-time Messaging
+# Phase 1: School Management Hierarchy Interface
 
-This document provides a detailed technical breakdown of the changes implemented to improve the Teacher Dashboard and the SchoolHeadOffice (SHO) messaging system.
+## Overview
+This phase delivers a modern, interactive academic management interface for administrators, replacing legacy flat tables with a responsive, accordion-based grid system.
 
-## 1. Dashboard Stability & Error Handling
+## Key Deliverables
 
-### `components/teacher/DashboardClient.tsx`
-- **What**: Added a top-level guard clause and implemented optional chaining for all data accesses.
-- **Why**: To prevent `TypeError: Cannot read properties of undefined (reading 'stats')`. If the dashboard data is still loading or incomplete, the component now renders a skeleton instead of crashing.
-- **Key Pattern**: `data?.stats?.totalLearners ?? 0` ensures safe fallbacks.
+### 1. Interactive Hierarchy Interface
+- **Path**: `/admin/[schoolSlug]/grades`
+- **Grid-First Design**: Grades are presented as high-level summary cards.
+- **Accordion Logic**: Expanding a Grade card reveals nested Class cards using `framer-motion` for smooth transitions.
+- **Dynamic Branding**: The interface utilizes the school's primary color (`#059669`) for all active states, progress bars, and call-to-action triggers.
 
-### `components/teacher/DashboardSkeleton.tsx` (New)
-- **What**: A new UI component that mimics the layout of the dashboard using animated pulses.
-- **Why**: To provide a polished "loading" experience and prevent layout shifts while the server data is being fetched.
+### 2. Class-Level Intelligence
+- **Capacity Tracking**: Visual progress bars show real-time occupancy.
+- **Violation Alerts**: Warning states trigger when a class exceeds its capacity limit.
+- **Staffing Blocks**: Displays the assigned Class Teacher and a summary of Subject Teachers.
 
-### `lib/types/dashboard.ts`
-- **What**: Updated `DashboardData` and `School` interfaces to make the `stats` field optional (`?`).
-- **Why**: To align the TypeScript types with the reality of the backend API (which may omit stats during initial setup) and to enforce safe property access at compile-time.
+### 3. Management Operations
+- **Teacher Assignment**: A dedicated modal for allocating staff as either Class or Subject Teachers, with support for multi-subject scoping.
+- **Learner Movement**: A transition modal that allows moving students between class structures with a single click.
+- **Global Search**: A stateful, debounced top-nav search that categorizes results into Learners, Teachers, and Classes.
 
----
+## Technical Alignment
 
-## 2. Real-time Messaging (Action Cable)
+### API & Data Flow
+- **Proxy Architecture**: Client-side calls are routed through secure Next.js API routes (`/api/admin/*`) which handle Auth0 session verification and forward requests to the internal Rails API.
+- **Unified ID Handling**: Components and API methods are designed to handle both standard IDs and MongoDB BSON ObjectIDs.
+- **Real-time Feedback**: Integrated `react-hot-toast` for optimistic UI feedback on all administrative actions.
 
-### `lib/cable.ts` (New)
-- **What**: Created a singleton manager for the Action Cable consumer. It dynamically constructs the WebSocket URL (`ws://.../cable`) from the API base URL.
-- **Why**: To provide a single, consistent connection to the Rails backend and handle authentication via `user_email` query parameters in development.
+### Schema Alignment
+- **Teacher Assignment**: Target payload: `{ teacher_id, role: 'class_teacher' | 'subject_teacher', subject_ids: [] }`.
+- **Learner Movement**: Target endpoint `/learners/[id]/move` with payload `{ target_class_id }`.
+- **Global Search**: Unified response format handling categorized results with metadata.
 
-### `lib/hooks/useMessaging.ts`
-- **What**:
-  - Implemented `useConversationSubscription` hook.
-  - Removed `refreshInterval` polling from `useConversations` and `useMessages`.
-- **Why**: Polling (every 3-5 seconds) is inefficient and feels slow. Action Cable enables **sub-100ms delivery**. When a message is received via the WebSocket, we use SWR's `mutate` function to inject the new message directly into the local cache without a new API request.
-
-### `components/teacher/messaging/ChatWindow.tsx`
-- **What**: Integrated the `useConversationSubscription` hook.
-- **Why**: To ensure that as soon as a user opens a chat window, they are "live" on that specific conversation channel.
-
-### `components/teacher/messaging/MessagingSection.tsx`
-- **What**: Updated the way `ChatWindow` is invoked to pass the `activeConvId`.
-- **Why**: Necessary for the `ChatWindow` to know which channel to subscribe to in real-time.
-
----
-
-## 3. Dependency & Documentation
-
-### `package.json` & `package-lock.json`
-- **What**: Added `@rails/actioncable` to the project dependencies.
-- **Why**: Required to enable the WebSocket protocol communication between the React frontend and the Rails Action Cable backend.
-
-### `DASHBOARD_FIX_README.md` (New)
-- **What**: A targeted readme for the dashboard crash fix.
-- **Why**: To provide quick context for reviewers focusing specifically on the stability bug.
-
----
-
-## Summary of Benefits
-1. **Zero Crashes**: The dashboard is now "bulletproof" against missing data fields.
-2. **Instant Feedback**: Messages appear in the UI the moment they are sent, without waiting for a 3-second poll.
-3. **Reduced Load**: By removing polling, we significantly reduce the number of redundant `GET` requests to the database.
+## Verification
+- **Visual**: Verified responsive layouts and branding consistency.
+- **Functional**: Validated modal triggers, stateful search, and API proxy routing.
+- **Build**: Confirmed successful production build and linting.

@@ -16,9 +16,13 @@ interface ClassCardProps {
     classTeacher: string;
     subjectTeachers: { name: string; subject: string }[];
   };
+  schoolId: string;
+  gradeId: string;
+  onAssignTeacher?: (classId: string) => void;
+  onMoveLearner?: (classId: string) => void;
 }
 
-export function ClassCard({ cls }: ClassCardProps) {
+export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProps) {
   const occupancyPercentage = (cls.learnerCount / cls.capacity) * 100;
   const isOverCapacity = cls.learnerCount > cls.capacity;
 
@@ -28,9 +32,25 @@ export function ClassCard({ cls }: ClassCardProps) {
         <h4 className="text-lg font-black text-slate-900 group-hover:text-school-primary transition-colors">
           Class {cls.name}
         </h4>
-        <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onAssignTeacher?.(cls.id)}
+            className="p-1.5 text-slate-400 hover:text-school-primary hover:bg-school-primary/10 rounded-lg transition-all"
+            title="Assign Teacher"
+          >
+            <User className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onMoveLearner?.(cls.id)}
+            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+            title="Move Learners"
+          >
+            <Users className="w-4 h-4" />
+          </button>
+          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">

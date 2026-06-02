@@ -29,6 +29,7 @@ interface ClassData {
 interface GradeCardProps {
   grade: {
     id: string;
+    school_id: string;
     name: string;
     learnersCount: number;
     classes: ClassData[];
@@ -36,9 +37,18 @@ interface GradeCardProps {
   onAddClass: (gradeId: string) => void;
   onAddLearner: (gradeId: string) => void;
   onViewDetails: (gradeId: string) => void;
+  onAssignTeacher?: (classId: string) => void;
+  onMoveLearner?: (classId: string) => void;
 }
 
-export function GradeCard({ grade, onAddClass, onAddLearner, onViewDetails }: GradeCardProps) {
+export function GradeCard({
+  grade,
+  onAddClass,
+  onAddLearner,
+  onViewDetails,
+  onAssignTeacher,
+  onMoveLearner
+}: GradeCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -117,7 +127,14 @@ export function GradeCard({ grade, onAddClass, onAddLearner, onViewDetails }: Gr
             <div className="p-6 pt-0 border-t border-slate-100 bg-slate-50/30">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                 {grade.classes.map((cls) => (
-                  <ClassCard key={cls.id} cls={cls} />
+                  <ClassCard
+                    key={cls.id}
+                    cls={cls}
+                    schoolId={grade.school_id}
+                    gradeId={grade.id}
+                    onAssignTeacher={onAssignTeacher}
+                    onMoveLearner={onMoveLearner}
+                  />
                 ))}
               </div>
             </div>
