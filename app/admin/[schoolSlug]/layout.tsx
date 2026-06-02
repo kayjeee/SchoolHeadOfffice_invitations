@@ -15,9 +15,9 @@ import {
   School,
   LogOut,
   Bell,
-  Search,
   ShieldCheck
 } from 'lucide-react';
+import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -209,13 +209,8 @@ export default function AdminDashboardLayout({
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
-            <div className="relative hidden sm:block">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 bg-slate-100 border-transparent focus:bg-white focus:border-school-primary focus:ring-4 focus:ring-school-primary/10 rounded-full text-sm w-48 lg:w-64 transition-all outline-none"
-              />
+            <div className="hidden sm:block">
+              <GlobalSearch schoolId={schoolSlug} schoolSlug={schoolSlug} />
             </div>
             <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all relative">
               <Bell className="w-5 h-5" />
