@@ -8,15 +8,39 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { SchoolAPI, Teacher } from '@/lib/api/school-api';
+import { Loader2 } from 'lucide-react';
+
 interface TeacherAssignmentModalProps {
   isOpen: boolean;
+  schoolId: string;
   onClose: () => void;
   onAssign: (data: any) => void;
 }
 
-export function TeacherAssignmentModal({ isOpen, onClose, onAssign }: TeacherAssignmentModalProps) {
+export function TeacherAssignmentModal({ isOpen, schoolId, onClose, onAssign }: TeacherAssignmentModalProps) {
   const [role, setRole] = useState<'class' | 'subject'>('class');
+  const [selectedTeacher, setSelectedTeacher] = useState('');
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && schoolId) {
+      const fetchTeachers = async () => {
+        setIsLoading(true);
+        try {
+          const data = await SchoolAPI.getTeachers(schoolId);
+          setTeachers(data);
+        } catch (error) {
+          console.error('Failed to fetch teachers:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchTeachers();
+    }
+  }, [isOpen, schoolId]);
 
   const toggleSubject = (subject: string) => {
     setSelectedSubjects(prev =>
@@ -55,12 +79,22 @@ export function TeacherAssignmentModal({ isOpen, onClose, onAssign }: TeacherAss
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
                 Select Staff Member
               </label>
-              <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-700">
-                <option value="">Choose a teacher...</option>
-                <option value="1">Mrs Smith</option>
-                <option value="2">Mr Dhlamini</option>
-                <option value="3">Ms Peterson</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedTeacher}
+                  onChange={(e) => setSelectedTeacher(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-700 disabled:opacity-50 appearance-none"
+                >
+                  <option value="">{isLoading ? 'Loading teachers...' : 'Choose a teacher...'}</option>
+                  {teachers.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                {isLoading && (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-school-primary animate-spin" />
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -125,8 +159,16 @@ export function TeacherAssignmentModal({ isOpen, onClose, onAssign }: TeacherAss
               Cancel
             </button>
             <button
-              onClick={() => { onAssign({ role, subjects: selectedSubjects }); onClose(); }}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-school-primary text-white font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-lg shadow-school-primary/20"
+              onClick={() => {
+                onAssign({
+                  teacher_id: selectedTeacher,
+                  role,
+                  subjects: selectedSubjects
+                });
+                onClose();
+              }}
+              disabled={!selectedTeacher}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-school-primary text-white font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-lg shadow-school-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
               Confirm Assignment

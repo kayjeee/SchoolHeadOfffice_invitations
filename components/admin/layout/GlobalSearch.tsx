@@ -22,14 +22,10 @@ interface SearchResult {
 
 const SearchResponseSchema = z.object({
   data: z.object({
-    learners: z.array(z.any()).optional(),
-    teachers: z.array(z.any()).optional(),
-    classes: z.array(z.any()).optional(),
+    results: z.array(z.any()).optional()
   }).optional(),
-  learners: z.array(z.any()).optional(),
-  teachers: z.array(z.any()).optional(),
-  classes: z.array(z.any()).optional(),
-});
+  results: z.array(z.any()).optional(),
+}).passthrough();
 
 export function GlobalSearch({ schoolId, schoolSlug }: { schoolId: string; schoolSlug: string }) {
   const [query, setQuery] = useState('');
@@ -69,10 +65,21 @@ export function GlobalSearch({ schoolId, schoolSlug }: { schoolId: string; schoo
         );
 
         const data = response.data || response;
+        const rawResults = data.results || [];
+
+        // Normalize results to handle case-insensitivity and variations in property names
+        const normalizedResults = rawResults.map((r: any) => {
+          const type = (r.type || '').toLowerCase();
+          const id = r.id || r._id?.$oid || r._id || r.value;
+          const name = r.label || r.name || r.full_name || '';
+
+          return { ...r, type, id, name };
+        });
+
         setResults({
-          learners: data.learners || [],
-          teachers: data.teachers || [],
-          classes: data.classes || [],
+          learners: normalizedResults.filter((r: any) => r.type === 'learner' || r.type === 'student'),
+          teachers: normalizedResults.filter((r: any) => r.type === 'teacher' || r.type === 'staff'),
+          classes: normalizedResults.filter((r: any) => r.type === 'class' || r.type === 'grade'),
         });
         setIsOpen(true);
       } catch (error) {
@@ -156,19 +163,19 @@ export function GlobalSearch({ schoolId, schoolSlug }: { schoolId: string; schoo
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                        {learner.name?.charAt(0)}
+                        {(learner.label || learner.name)?.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900 group-hover:text-school-primary transition-colors">
-                          {learner.name}
+                          {learner.label || learner.name}
                         </p>
-                        <p className="text-xs text-slate-500">{learner.grade || 'No Grade'}</p>
+                        <p className="text-xs text-slate-500">{learner.metadata?.grade || learner.grade || 'No Grade'}</p>
                       </div>
                     </div>
-                    {learner.status && (
+                    {(learner.metadata?.status || learner.status) && (
                       <span className={cn(
                         "text-[10px] font-bold px-2 py-0.5 rounded-full border",
-                        learner.status === 'Linked'
+                        (learner.metadata?.status || learner.status) === 'Linked'
                           ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                           : "bg-slate-50 text-slate-500 border-slate-100"
                       )}>
@@ -194,13 +201,13 @@ export function GlobalSearch({ schoolId, schoolSlug }: { schoolId: string; schoo
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
-                        {teacher.name?.charAt(0)}
+                        {(teacher.label || teacher.name)?.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900 group-hover:text-school-primary transition-colors">
-                          {teacher.name}
+                          {teacher.label || teacher.name}
                         </p>
-                        <p className="text-xs text-slate-500">{teacher.email}</p>
+                        <p className="text-xs text-slate-500">{teacher.metadata?.email || teacher.email}</p>
                       </div>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-100">
@@ -225,13 +232,13 @@ export function GlobalSearch({ schoolId, schoolSlug }: { schoolId: string; schoo
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
-                        {cls.name?.charAt(0)}
+                        {(cls.label || cls.name)?.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-slate-900 group-hover:text-school-primary transition-colors">
-                          {cls.name}
+                          {cls.label || cls.name}
                         </p>
-                        <p className="text-xs text-slate-500">{cls.grade_name || 'Class'}</p>
+                        <p className="text-xs text-slate-500">{cls.metadata?.grade_name || cls.grade_name || 'Class'}</p>
                       </div>
                     </div>
                   </button>

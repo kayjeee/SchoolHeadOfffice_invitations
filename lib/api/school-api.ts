@@ -38,6 +38,18 @@ export interface Grade {
   id: string;
   name: string;
   school_id: string;
+  learnersCount?: number;
+  classes?: Class[];
+}
+
+export interface Class {
+  id: string;
+  name: string;
+  grade_id: string;
+  learnerCount: number;
+  capacity: number;
+  classTeacher?: string;
+  subjectTeachers?: { name: string; subject: string }[];
 }
 
 export interface Learner {
@@ -367,6 +379,77 @@ export class SchoolAPI {
       success: z.boolean(),
     });
     return await apiClient.post(`/learner_invitations/${invitationId}/resend`, {}, responseSchema);
+  }
+
+  static async getGrades(schoolId: string): Promise<Grade[]> {
+    console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
+
+    const response = await fetch(`/api/admin/grades?schoolId=${schoolId}`).then(res => res.json());
+    const grades = response.data || response.grades || response;
+
+    return Array.isArray(grades) ? grades.map((g: any) => ({
+      id: g.id || g._id?.$oid || g._id,
+      name: g.name || g.grade_name || g.name,
+      school_id: g.school_id || schoolId,
+      learnersCount: g.learners_count || g.learnersCount || 0,
+      classes: (g.classes || []).map((c: any) => ({
+        id: c.id || c._id?.$oid || c._id,
+        name: c.name || c.class_name,
+        grade_id: g.id || g._id?.$oid || g._id,
+        learnerCount: c.learner_count || c.learners_count || 0,
+        capacity: c.capacity || 40,
+        classTeacher: c.class_teacher || c.teacher_name,
+        subjectTeachers: c.subject_teachers || [],
+      }))
+    })) : [];
+  }
+
+  static async createGrade(schoolId: string, data: { name: string }): Promise<Grade> {
+    const response = await fetch(`/api/admin/grades?schoolId=${schoolId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grade: data })
+    }).then(res => res.json());
+    return response.grade || response.data?.grade || response;
+  }
+
+  static async getClasses(gradeId: string): Promise<Class[]> {
+    const response = await fetch(`/api/admin/classes?gradeId=${gradeId}`).then(res => res.json());
+    const classes = response.classes || response.data || response;
+
+    if (!Array.isArray(classes)) return [];
+
+    return classes.map((c: any) => ({
+      id: c.id || c._id?.$oid || c._id,
+      name: c.name || c.class_name,
+      grade_id: gradeId,
+      learnerCount: c.learner_count || c.learners_count || 0,
+      capacity: c.capacity || 40,
+      classTeacher: c.class_teacher || c.teacher_name,
+      subjectTeachers: c.subject_teachers || [],
+    }));
+  }
+
+  static async assignTeacher(classId: string, data: { teacher_id: string; role: string; subject_ids?: string[] }): Promise<{ success: boolean }> {
+    return await fetch(`/api/admin/assign-teacher?classId=${classId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        teacher_id: data.teacher_id,
+        role: data.role,
+        subject_ids: data.subject_ids
+      })
+    }).then(res => res.json());
+  }
+
+  static async moveLearner(learnerId: string, data: { target_class_id: string }): Promise<{ success: boolean }> {
+    return await fetch(`/api/admin/transition-learner?learnerId=${learnerId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_class_id: data.target_class_id
+      })
+    }).then(res => res.json());
   }
 
   static async getDirectory(schoolId: string): Promise<{ admins: Participant[]; teachers: Participant[]; parents: Participant[] }> {

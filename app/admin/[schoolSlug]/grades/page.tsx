@@ -19,6 +19,8 @@ import { twMerge } from 'tailwind-merge';
 import { GradeCard } from '@/components/admin/grades/GradeCard';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
+import { SchoolAPI, Grade } from '@/lib/api/school-api';
+import { toast } from 'react-hot-toast';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -49,89 +51,67 @@ const GradesSkeleton = () => (
 export default function SchoolGradesPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
   const [isLoading, setIsLoading] = useState(true);
-  const [grades, setGrades] = useState<any[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal states
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isLearnerModalOpen, setIsLearnerModalOpen] = useState(false);
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
+  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+
+  const fetchGrades = async () => {
+    setIsLoading(true);
+    try {
+      // In a real scenario, we'd resolve the schoolSlug to an ID
+      // For this phase, we use the slug as the ID or fetch it
+      const data = await SchoolAPI.getGrades(schoolSlug);
+      setGrades(data);
+    } catch (error) {
+      console.error('Failed to fetch grades:', error);
+      toast.error('Failed to load grades hierarchy');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Mock data based on requirements
-    const timer = setTimeout(() => {
-      setGrades([
-        {
-          id: '1',
-          name: 'Grade 8',
-          learnersCount: 124,
-          classes: [
-            {
-              id: '8a',
-              name: '8A',
-              learnerCount: 34,
-              capacity: 40,
-              classTeacher: 'Mr Dhlamini',
-              subjectTeachers: [
-                { name: 'Ms Peterson', subject: 'English' },
-                { name: 'Mr Botha', subject: 'Mathematics' }
-              ]
-            },
-            {
-              id: '8b',
-              name: '8B',
-              learnerCount: 36,
-              capacity: 40,
-              classTeacher: 'Mrs Smith',
-              subjectTeachers: [
-                { name: 'Mr Naidoo', subject: 'Science' }
-              ]
-            }
-          ]
-        },
-        {
-          id: '2',
-          name: 'Grade 9',
-          learnersCount: 138,
-          classes: [
-            {
-              id: '9a',
-              name: '9A',
-              learnerCount: 34,
-              capacity: 40,
-              classTeacher: 'Mrs Smith',
-              subjectTeachers: [
-                { name: 'Mr Naidoo', subject: 'Science' },
-                { name: 'Ms Zondi', subject: 'Zulu' }
-              ]
-            },
-            {
-              id: '9b',
-              name: '9B',
-              learnerCount: 42,
-              capacity: 40,
-              classTeacher: 'Mr Mabaso',
-              subjectTeachers: [
-                { name: 'Mrs White', subject: 'History' }
-              ]
-            }
-          ]
-        },
-        { id: '3', name: 'Grade 10', learnersCount: 142, classes: [] },
-        { id: '4', name: 'Grade 11', learnersCount: 118, classes: [] },
-        { id: '5', name: 'Grade 12', learnersCount: 105, classes: [] },
-      ]);
-      setIsLoading(false);
-    }, 1200);
-
-    return () => clearTimeout(timer);
+    fetchGrades();
   }, [schoolSlug]);
 
-  const displayName = "Far North Secondary School"; // Hardcoded for this phase as per context
+  const displayName = schoolSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const filteredGrades = grades.filter(g =>
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleAssignTeacher = async (data: any) => {
+    if (!activeClassId) return;
+    try {
+      await SchoolAPI.assignTeacher(activeClassId, {
+        teacher_id: data.teacher_id,
+        role: data.role === 'class' ? 'class_teacher' : 'subject_teacher',
+        subject_ids: data.subjects || []
+      });
+      toast.success('Teacher assigned successfully');
+      fetchGrades();
+    } catch (error) {
+      toast.error('Failed to assign teacher');
+    }
+  };
+
+  const handleTransitionLearner = async (data: any) => {
+    if (!data.learner_id) return;
+    try {
+      await SchoolAPI.moveLearner(data.learner_id, {
+        target_class_id: data.target_class_id
+      });
+      toast.success('Learner transition successful');
+      fetchGrades();
+    } catch (error) {
+      toast.error('Failed to transition learner');
+    }
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -175,7 +155,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Enrollment</p>
           <h4 className="text-3xl font-black text-slate-900">
-            {isLoading ? '...' : grades.reduce((acc, g) => acc + g.learnersCount, 0)}
+            {isLoading ? '...' : grades.reduce((acc, g) => acc + (g.learnersCount || 0), 0)}
           </h4>
           <div className="flex items-center gap-1.5 mt-2 text-emerald-500 font-bold text-xs">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -186,7 +166,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Class Structures</p>
           <h4 className="text-3xl font-black text-slate-900">
-            {isLoading ? '...' : grades.reduce((acc, g) => acc + g.classes.length, 0)} Active
+            {isLoading ? '...' : grades.reduce((acc, g) => acc + (g.classes?.length || 0), 0)} Active
           </h4>
           <p className="text-xs text-slate-500 font-medium mt-2">Across {grades.length} grades</p>
         </div>
@@ -239,9 +219,11 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
               <GradeCard
                 key={grade.id}
                 grade={grade}
-                onAddClass={(id) => { setActiveGradeId(id); setIsTeacherModalOpen(true); }}
+                onAddClass={(id) => { setActiveGradeId(id); toast('Add class function coming soon'); }}
                 onAddLearner={(id) => { setActiveGradeId(id); setIsLearnerModalOpen(true); }}
                 onViewDetails={(id) => console.log('View details', id)}
+                onAssignTeacher={(classId) => { setActiveClassId(classId); setIsTeacherModalOpen(true); }}
+                onMoveLearner={(classId) => { setActiveClassId(classId); setIsLearnerModalOpen(true); }}
               />
             ))}
           </div>
@@ -251,13 +233,17 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
       {/* Modals */}
       <TeacherAssignmentModal
         isOpen={isTeacherModalOpen}
+        schoolId={schoolSlug} // Using slug as ID for Phase 1 routing context
         onClose={() => setIsTeacherModalOpen(false)}
-        onAssign={(data) => console.log('Assign teacher', data)}
+        onAssign={handleAssignTeacher}
       />
       <LearnerTransitionModal
         isOpen={isLearnerModalOpen}
+        schoolId={schoolSlug}
+        gradeId={activeGradeId || ''}
+        classId={activeClassId || ''}
         onClose={() => setIsLearnerModalOpen(false)}
-        onTransition={(data) => console.log('Transition learner', data)}
+        onTransition={handleTransitionLearner}
       />
     </div>
   );

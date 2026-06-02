@@ -1,0 +1,42 @@
+import { getSession } from '@auth0/nextjs-auth0';
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function handleGrades(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getSession(req, res);
+
+  if (!session) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+
+  try {
+    if (req.method === 'GET') {
+      const { schoolId } = req.query;
+      const response = await fetch(`${internalApiUrl}/schools/${schoolId}/grades`, {
+        headers: {
+          'Authorization': `Bearer ${session.accessToken || ''}`,
+        },
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } else if (req.method === 'POST') {
+      const { schoolId } = req.query;
+      const response = await fetch(`${internalApiUrl}/schools/${schoolId}/grades`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.accessToken || ''}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } else {
+      res.status(405).json({ error: 'Method Not Allowed' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
