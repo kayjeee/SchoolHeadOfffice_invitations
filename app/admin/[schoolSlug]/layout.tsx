@@ -18,6 +18,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
+import { useApi } from '@/lib/hooks/useApi';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -55,6 +56,7 @@ export default function AdminDashboardLayout({
   params: Promise<{ schoolSlug: string }>;
 }) {
   const { schoolSlug } = use(params);
+  useApi(); // Initialize API authentication
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
 
