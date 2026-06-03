@@ -190,7 +190,7 @@ export default function AdminDashboardLayout({
             {/* Dynamic Breadcrumb */}
             <nav className="hidden md:flex items-center gap-2 text-sm">
               {breadcrumbs.map((crumb, idx) => (
-                <React.Fragment key={crumb.href}>
+                <React.Fragment key={`${crumb.href}-${crumb.label}`}>
                   {idx > 0 && <ChevronRight className="w-4 h-4 text-slate-400" />}
                   <Link
                     href={crumb.href}
