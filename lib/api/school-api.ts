@@ -384,8 +384,13 @@ export class SchoolAPI {
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
 
-    const response = await fetch(`/api/admin/grades?schoolId=${schoolId}`).then(res => res.json());
-    const grades = response.data || response.grades || response;
+    const responseSchema = z.object({
+      data: z.union([z.array(z.any()), z.object({ grades: z.array(z.any()) })]).optional(),
+      grades: z.array(z.any()).optional()
+    }).passthrough();
+
+    const response = await apiClient.get(`http://localhost:4000/api/admin/grades?schoolId=${schoolId}`, responseSchema);
+    const grades = (response as any).data?.grades || (response as any).data || response.grades || response;
 
     return Array.isArray(grades) ? grades.map((g: any) => ({
       id: g.id || g._id?.$oid || g._id,
@@ -405,17 +410,19 @@ export class SchoolAPI {
   }
 
   static async createGrade(schoolId: string, data: { name: string }): Promise<Grade> {
-    const response = await fetch(`/api/admin/grades?schoolId=${schoolId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grade: data })
-    }).then(res => res.json());
-    return response.grade || response.data?.grade || response;
+    const response = await apiClient.post(`http://localhost:4000/api/admin/grades?schoolId=${schoolId}`, { grade: data }, z.any());
+    const responseData = (response as any).data || response;
+    return responseData.grade || responseData;
   }
 
   static async getClasses(gradeId: string): Promise<Class[]> {
-    const response = await fetch(`/api/admin/classes?gradeId=${gradeId}`).then(res => res.json());
-    const classes = response.classes || response.data || response;
+    const responseSchema = z.object({
+      data: z.union([z.array(z.any()), z.object({ classes: z.array(z.any()) })]).optional(),
+      classes: z.array(z.any()).optional()
+    }).passthrough();
+
+    const response = await apiClient.get(`http://localhost:4000/api/admin/classes?gradeId=${gradeId}`, responseSchema);
+    const classes = (response as any).data?.classes || (response as any).data || response.classes || response;
 
     if (!Array.isArray(classes)) return [];
 
@@ -431,25 +438,17 @@ export class SchoolAPI {
   }
 
   static async assignTeacher(classId: string, data: { teacher_id: string; role: string; subject_ids?: string[] }): Promise<{ success: boolean }> {
-    return await fetch(`/api/admin/assign-teacher?classId=${classId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        teacher_id: data.teacher_id,
-        role: data.role,
-        subject_ids: data.subject_ids
-      })
-    }).then(res => res.json());
+    return await apiClient.post(`http://localhost:4000/api/admin/assign-teacher?classId=${classId}`, {
+      teacher_id: data.teacher_id,
+      role: data.role,
+      subject_ids: data.subject_ids
+    }, z.any());
   }
 
   static async moveLearner(learnerId: string, data: { target_class_id: string }): Promise<{ success: boolean }> {
-    return await fetch(`/api/admin/transition-learner?learnerId=${learnerId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        target_class_id: data.target_class_id
-      })
-    }).then(res => res.json());
+    return await apiClient.post(`http://localhost:4000/api/admin/transition-learner?learnerId=${learnerId}`, {
+      target_class_id: data.target_class_id
+    }, z.any());
   }
 
   static async getDirectory(schoolId: string): Promise<{ admins: Participant[]; teachers: Participant[]; parents: Participant[] }> {

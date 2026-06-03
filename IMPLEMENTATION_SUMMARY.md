@@ -24,7 +24,8 @@ This phase delivers a modern, interactive academic management interface for admi
 ## Technical Alignment
 
 ### API & Data Flow
-- **Proxy Architecture**: Client-side calls are routed through secure Next.js API routes (`/api/admin/*`) which handle Auth0 session verification and forward requests to the internal Rails API.
+- **Direct Backend Integration**: Administrative hierarchy actions (grades, classes, assignments) directly target the backend API at `http://localhost:4000/api/admin/*` as per requirements.
+- **Authenticated Client**: All requests are routed through the `apiClient` singleton, which is synchronized with Auth0 access tokens via the `useApi` hook in the dashboard layout.
 - **Unified ID Handling**: Components and API methods are designed to handle both standard IDs and MongoDB BSON ObjectIDs.
 - **Real-time Feedback**: Integrated `react-hot-toast` for optimistic UI feedback on all administrative actions.
 

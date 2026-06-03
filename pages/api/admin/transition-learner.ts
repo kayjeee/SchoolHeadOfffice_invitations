@@ -20,8 +20,8 @@ export default async function handleLearnerTransition(req: NextApiRequest, res: 
   const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
   try {
-    // Backend requirement: POST /move_learner with IDs in body
-    const response = await fetch(`${internalApiUrl}/move_learner`, {
+    // Backend requirement: POST /admin/transition-learner with IDs in body
+    const response = await fetch(`${internalApiUrl}/admin/transition-learner?learnerId=${learnerId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

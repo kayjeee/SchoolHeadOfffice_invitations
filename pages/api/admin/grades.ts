@@ -14,7 +14,7 @@ export default async function handleGrades(req: NextApiRequest, res: NextApiResp
   try {
     if (req.method === 'GET') {
       const { schoolId } = req.query;
-      const response = await fetch(`${internalApiUrl}/schools/${schoolId}/grades`, {
+      const response = await fetch(`${internalApiUrl}/admin/grades?schoolId=${schoolId}`, {
         headers: {
           'Authorization': `Bearer ${session.accessToken || ''}`,
         },
@@ -23,7 +23,7 @@ export default async function handleGrades(req: NextApiRequest, res: NextApiResp
       res.status(response.status).json(data);
     } else if (req.method === 'POST') {
       const { schoolId } = req.query;
-      const response = await fetch(`${internalApiUrl}/schools/${schoolId}/grades`, {
+      const response = await fetch(`${internalApiUrl}/admin/grades?schoolId=${schoolId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

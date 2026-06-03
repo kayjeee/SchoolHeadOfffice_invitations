@@ -18,7 +18,7 @@ export default async function handleTeacherAssignment(req: NextApiRequest, res: 
   const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
   try {
-    const response = await fetch(`${internalApiUrl}/classes/${classId}/assign_teacher`, {
+    const response = await fetch(`${internalApiUrl}/admin/assign-teacher?classId=${classId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

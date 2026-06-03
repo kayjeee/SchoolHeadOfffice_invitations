@@ -14,7 +14,7 @@ export default async function handleClasses(req: NextApiRequest, res: NextApiRes
   try {
     if (req.method === 'GET') {
       const { gradeId } = req.query;
-      const response = await fetch(`${internalApiUrl}/grades/${gradeId}/classes`, {
+      const response = await fetch(`${internalApiUrl}/admin/classes?gradeId=${gradeId}`, {
         headers: {
           'Authorization': `Bearer ${session.accessToken || ''}`,
         },
