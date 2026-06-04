@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Users, User, BookOpen, MoreHorizontal } from 'lucide-react';
+import { Users, User, BookOpen, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,21 +15,28 @@ interface ClassCardProps {
     name: string;
     learnerCount: number;
     capacity: number;
-    classTeacher: string;
-    subjectTeachers: { name: string; subject: string }[];
+    classTeacher?: string;
+    subjectTeachers?: { name: string; subject: string }[] | Record<string, string>;
   };
   schoolId: string;
   gradeId: string;
+  onEdit?: () => void;
   onAssignTeacher?: (classId: string) => void;
   onMoveLearner?: (classId: string) => void;
 }
 
-export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProps) {
+export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: ClassCardProps) {
   const occupancyPercentage = (cls.learnerCount / cls.capacity) * 100;
   const isOverCapacity = cls.learnerCount > cls.capacity;
+  const isNearCapacity = occupancyPercentage >= 90 && !isOverCapacity;
+
+  // Normalize subject teachers for rendering
+  const subjectTeachersArray = Array.isArray(cls.subjectTeachers)
+    ? cls.subjectTeachers
+    : Object.entries(cls.subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-school-primary transition-all group">
+    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-black text-slate-900 group-hover:text-school-primary transition-colors">
           Class {cls.name}
@@ -47,6 +56,13 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
           >
             <Users className="w-4 h-4" />
           </button>
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-slate-400 hover:text-school-primary hover:bg-school-primary/10 rounded-lg transition-all"
+            title="Edit Class"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
           <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
             <MoreHorizontal className="w-5 h-5" />
           </button>
@@ -62,7 +78,7 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
             </span>
             <span className={cn(
               "text-xs font-bold",
-              isOverCapacity ? "text-red-500" : "text-slate-700"
+              isOverCapacity ? "text-red-500" : isNearCapacity ? "text-amber-500" : "text-slate-700"
             )}>
               {cls.learnerCount} / {cls.capacity}
             </span>
@@ -71,7 +87,7 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
-                isOverCapacity ? "bg-red-500" : "bg-school-primary"
+                isOverCapacity ? "bg-red-500" : isNearCapacity ? "bg-amber-500" : "bg-school-primary"
               )}
               style={{ width: `${Math.min(occupancyPercentage, 100)}%` }}
             />
@@ -79,6 +95,11 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
           {isOverCapacity && (
             <p className="text-[10px] text-red-500 font-bold mt-1 animate-pulse">
               ⚠️ Warning: Capacity threshold violated
+            </p>
+          )}
+          {isNearCapacity && !isOverCapacity && (
+            <p className="text-[10px] text-amber-500 font-bold mt-1">
+              ⚠️ Near capacity: {Math.round(occupancyPercentage)}% full
             </p>
           )}
         </div>
@@ -91,7 +112,9 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Class Teacher</p>
-              <p className="text-sm font-bold text-slate-900">{cls.classTeacher}</p>
+              <p className="text-sm font-bold text-slate-900">
+                {cls.classTeacher || 'Not assigned'}
+              </p>
             </div>
           </div>
 
@@ -99,20 +122,23 @@ export function ClassCard({ cls, onAssignTeacher, onMoveLearner }: ClassCardProp
             <div className="flex items-center gap-2 px-1 mb-1">
               <BookOpen className="w-3 h-3 text-slate-400" />
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Subject Teachers
+                Subject Teachers ({subjectTeachersArray.length})
               </span>
             </div>
             <div className="grid grid-cols-1 gap-1">
-              {cls.subjectTeachers.slice(0, 2).map((st, idx) => (
+              {subjectTeachersArray.slice(0, 2).map((st, idx) => (
                 <div key={idx} className="flex items-center justify-between px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-xs">
                   <span className="font-bold text-slate-700">{st.name}</span>
                   <span className="text-slate-400 font-medium">{st.subject}</span>
                 </div>
               ))}
-              {cls.subjectTeachers.length > 2 && (
+              {subjectTeachersArray.length > 2 && (
                 <button className="text-[10px] font-bold text-school-primary hover:underline mt-1 px-1">
-                  + {cls.subjectTeachers.length - 2} more teachers
+                  + {subjectTeachersArray.length - 2} more teachers
                 </button>
+              )}
+              {subjectTeachersArray.length === 0 && (
+                <p className="text-xs text-slate-400 italic px-3 py-2">No subject teachers assigned</p>
               )}
             </div>
           </div>

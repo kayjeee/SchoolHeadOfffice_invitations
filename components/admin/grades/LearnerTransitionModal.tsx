@@ -1,9 +1,12 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Users, MoveRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, Users, Search, ChevronRight, Loader2, UserMinus } from 'lucide-react';
+import { SchoolAPI, Learner, Class } from '@/lib/api/school-api';
+import { toast } from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { SchoolAPI, Learner, Class } from '@/lib/api/school-api';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,128 +18,205 @@ interface LearnerTransitionModalProps {
   gradeId: string;
   classId: string;
   onClose: () => void;
-  onTransition: (data: any) => void;
+  onTransition: (data: { learner_id: string; target_class_id: string }) => void;
 }
 
-export function LearnerTransitionModal({ isOpen, schoolId, gradeId, classId, onClose, onTransition }: LearnerTransitionModalProps) {
-  const [targetClass, setTargetClass] = React.useState('');
-  const [learners, setLearners] = React.useState<Learner[]>([]);
-  const [selectedLearner, setSelectedLearner] = React.useState('');
-  const [targetClasses, setTargetClasses] = React.useState<Class[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
+export function LearnerTransitionModal({
+  isOpen,
+  schoolId,
+  gradeId,
+  classId,
+  onClose,
+  onTransition
+}: LearnerTransitionModalProps) {
+  const [learners, setLearners] = useState<Learner[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLearner, setSelectedLearner] = useState<Learner | null>(null);
+  const [targetClassId, setTargetClassId] = useState('');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && gradeId) {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          // In Phase 1, we can get learners for the grade or the specific class
-          // If classId is provided, we fetch learners for that class (to move them OUT)
-          const learnerData = await SchoolAPI.getGradeLearners(gradeId);
-          setLearners(learnerData);
-
-          // Also fetch available classes in the grade to move them TO
-          const classesData = await SchoolAPI.getClasses(gradeId);
-          setTargetClasses(classesData.filter(c => c.id !== classId));
+          const [learnersData, classesData] = await Promise.all([
+            SchoolAPI.getGradeLearners(gradeId),
+            SchoolAPI.getClasses(schoolId, gradeId)
+          ]);
+          setLearners(learnersData);
+          setClasses(classesData.filter(c => c.id !== classId));
         } catch (error) {
           console.error('Failed to fetch transition data:', error);
+          toast.error('Failed to load learners or classes');
         } finally {
           setIsLoading(false);
         }
       };
       fetchData();
+    } else {
+      setSelectedLearner(null);
+      setTargetClassId('');
+      setSearchQuery('');
     }
-  }, [isOpen, gradeId, classId]);
+  }, [isOpen, gradeId, schoolId, classId]);
+
+  const filteredLearners = learners.filter(l =>
+    l.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleTransition = () => {
+    if (!selectedLearner || !targetClassId) return;
+    onTransition({
+      learner_id: selectedLearner.id,
+      target_class_id: targetClassId
+    });
+    onClose();
+  };
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] animate-in fade-in duration-300" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-[101] overflow-hidden animate-in zoom-in-95 duration-200">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl z-[101] overflow-hidden animate-in zoom-in-95 duration-200">
           <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center">
-                <Users className="w-5 h-5" />
+                <UserMinus className="w-5 h-5" />
               </div>
               <div>
                 <Dialog.Title className="text-xl font-black text-slate-900 tracking-tight">
                   Learner Transition
                 </Dialog.Title>
                 <Dialog.Description className="text-xs text-slate-500 font-medium">
-                  Move individual students between class structures.
+                  Move students between class structures within the same grade.
                 </Dialog.Description>
               </div>
             </div>
-            <Dialog.Close className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-200">
+            <Dialog.Close className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-xl transition-all">
               <X className="w-5 h-5" />
             </Dialog.Close>
           </div>
 
-          <div className="p-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
-                Select Learner to Move
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedLearner}
-                  onChange={(e) => setSelectedLearner(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-school-primary focus:ring-4 focus:ring-school-primary/10 transition-all outline-none font-bold text-slate-700 disabled:opacity-50 appearance-none"
-                >
-                  <option value="">{isLoading ? 'Loading learners...' : 'Select learner...'}</option>
-                  {learners.map(l => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))}
-                </select>
-                {isLoading && (
-                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-school-primary animate-spin" />
+          <div className="flex flex-col md:flex-row h-[500px]">
+            {/* Step 1: Select Learner */}
+            <div className="w-full md:w-1/2 border-r border-slate-100 flex flex-col">
+              <div className="p-4 border-b border-slate-50 bg-slate-50/30">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Find learner..."
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-school-primary transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-school-primary" />
+                    <span className="text-xs font-medium">Loading learners...</span>
+                  </div>
+                ) : filteredLearners.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <span className="text-xs font-medium">No learners found</span>
+                  </div>
+                ) : (
+                  filteredLearners.map((learner) => (
+                    <button
+                      key={learner.id}
+                      onClick={() => setSelectedLearner(learner)}
+                      className={cn(
+                        "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group",
+                        selectedLearner?.id === learner.id
+                          ? "bg-school-primary text-white shadow-lg shadow-school-primary/20"
+                          : "hover:bg-slate-50"
+                      )}
+                    >
+                      <div>
+                        <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-white" : "text-slate-900")}>
+                          {learner.name}
+                        </p>
+                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-500")}>
+                          {learner.status}
+                        </p>
+                      </div>
+                      <ChevronRight className={cn("w-4 h-4", selectedLearner?.id === learner.id ? "text-white" : "text-slate-300")} />
+                    </button>
+                  ))
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-center py-2">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                <MoveRight className="w-6 h-6" />
-              </div>
-            </div>
+            {/* Step 2: Select Target Class */}
+            <div className="w-full md:w-1/2 flex flex-col bg-slate-50/20">
+              {selectedLearner ? (
+                <div className="flex flex-col h-full">
+                  <div className="p-6 border-b border-slate-100 bg-white">
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 mb-4">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Moving</p>
+                      <p className="text-lg font-black text-slate-900 leading-tight">{selectedLearner.name}</p>
+                    </div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                      Select Target Class
+                    </label>
+                  </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">
-                Target Destination Class
-              </label>
-              <select
-                value={targetClass}
-                onChange={(e) => setTargetClass(e.target.value)}
-                disabled={isLoading || targetClasses.length === 0}
-                className="w-full px-4 py-3 bg-white border-2 border-slate-100 rounded-xl focus:border-school-primary focus:ring-4 focus:ring-school-primary/10 transition-all outline-none font-bold text-slate-700 disabled:opacity-50"
-              >
-                <option value="">{targetClasses.length === 0 && !isLoading ? 'No other classes available' : 'Select target class...'}</option>
-                {targetClasses.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <p className="text-[10px] text-slate-400 font-medium px-1">
-                Note: This will update all academic records and timetable associations.
-              </p>
-            </div>
-          </div>
+                  <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 gap-2">
+                    {classes.map((cls) => (
+                      <button
+                        key={cls.id}
+                        onClick={() => setTargetClassId(cls.id)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
+                          targetClassId === cls.id
+                            ? "bg-white border-school-primary ring-4 ring-school-primary/5 shadow-sm"
+                            : "bg-white border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div>
+                          <p className="font-bold text-slate-900">Class {cls.name}</p>
+                          <p className="text-xs text-slate-500">{cls.current_learners} / {cls.capacity} Learners</p>
+                        </div>
+                        <div className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                          targetClassId === cls.id ? "border-school-primary bg-school-primary" : "border-slate-200"
+                        )}>
+                          {targetClassId === cls.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                      </button>
+                    ))}
+                    {classes.length === 0 && (
+                      <div className="text-center py-12 text-slate-400">
+                        <p className="text-xs font-medium">No other classes available in this grade.</p>
+                      </div>
+                    )}
+                  </div>
 
-          <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => { onTransition({ learner_id: selectedLearner, target_class_id: targetClass }); onClose(); }}
-              disabled={!targetClass || !selectedLearner}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Execute Move
-            </button>
+                  <div className="p-6 bg-white border-t border-slate-100">
+                    <button
+                      onClick={handleTransition}
+                      disabled={!targetClassId}
+                      className="w-full py-4 bg-school-primary text-white font-black rounded-2xl shadow-xl shadow-school-primary/20 hover:bg-school-primary/90 transition-all disabled:opacity-50 disabled:shadow-none"
+                    >
+                      Confirm Transition
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-10">
+                  <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-300 mb-4">
+                    <Users className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-lg font-bold text-slate-700 mb-1">No Student Selected</h4>
+                  <p className="text-sm text-slate-400">Please select a student from the left panel to begin transition.</p>
+                </div>
+              )}
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
