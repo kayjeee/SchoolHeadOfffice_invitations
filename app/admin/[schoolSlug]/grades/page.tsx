@@ -1,22 +1,11 @@
 'use client';
 
-import React, { use, useState, useEffect } from 'react';
-import {
-  Plus,
-  GraduationCap,
-  Search,
-  Filter,
-  Users,
-  LayoutGrid,
-  TrendingUp,
-  Download,
-  PlusCircle,
-  MoreVertical,
-  UserPlus
-} from 'lucide-react';
+import React, { useState, useEffect, use } from 'react';
+import { Plus, Search, Filter, GraduationCap, TrendingUp, Download, UserPlus, PlusCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { GradeCard } from '@/components/admin/grades/GradeCard';
+import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
 import { SchoolAPI, Grade } from '@/lib/api/school-api';
@@ -30,18 +19,13 @@ function cn(...inputs: ClassValue[]) {
 const GradesSkeleton = () => (
   <div className="space-y-6 animate-pulse">
     {[1, 2, 3].map((i) => (
-      <div key={i} className="bg-white p-8 rounded-3xl border border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl"></div>
+      <div key={i} className="bg-white p-8 rounded-3xl border border-slate-200">
+        <div className="flex items-center justify-between">
           <div className="space-y-3">
             <div className="h-6 w-48 bg-slate-200 rounded-lg"></div>
             <div className="h-4 w-32 bg-slate-100 rounded-md"></div>
           </div>
-        </div>
-        <div className="flex items-center gap-12">
-          <div className="h-5 w-24 bg-slate-100 rounded-md hidden md:block"></div>
-          <div className="h-5 w-24 bg-slate-100 rounded-md hidden md:block"></div>
-          <div className="h-10 w-10 bg-slate-50 rounded-xl"></div>
+          <div className="h-10 w-10 bg-slate-100 rounded-xl"></div>
         </div>
       </div>
     ))}
@@ -50,21 +34,24 @@ const GradesSkeleton = () => (
 
 export default function SchoolGradesPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
+
   const [isLoading, setIsLoading] = useState(true);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal states
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [gradeModalMode, setGradeModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
+
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isLearnerModalOpen, setIsLearnerModalOpen] = useState(false);
-  const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
 
   const fetchGrades = async () => {
     setIsLoading(true);
     try {
-      // In a real scenario, we'd resolve the schoolSlug to an ID
-      // For this phase, we use the slug as the ID or fetch it
       const data = await SchoolAPI.getGrades(schoolSlug);
       setGrades(data);
     } catch (error) {
@@ -85,6 +72,36 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Calculate statistics
+  const totalLearners = grades.reduce((acc, g) => acc + (g.total_learners || 0), 0);
+  const totalClasses = grades.reduce((acc, g) => acc + (g.total_classes || 0), 0);
+  const avgClassSize = totalClasses > 0 ? Math.round(totalLearners / totalClasses) : 0;
+  const capacityIssues = grades.flatMap(g =>
+    g.classes?.filter(c => (c.current_learners || 0) > c.capacity) || []
+  ).length;
+
+  const handleGradeSuccess = () => {
+    fetchGrades();
+  };
+
+  const handleEditGrade = (grade: Grade) => {
+    setSelectedGrade(grade);
+    setGradeModalMode('edit');
+    setIsGradeModalOpen(true);
+  };
+
+  const handleDeleteGrade = async (gradeId: string) => {
+    if (confirm('Are you sure you want to delete this grade? All associated classes will also be deleted.')) {
+      try {
+        await SchoolAPI.deleteGrade(gradeId);
+        toast.success('Grade deleted successfully');
+        fetchGrades();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to delete grade');
+      }
+    }
+  };
+
   const handleAssignTeacher = async (data: any) => {
     if (!activeClassId) return;
     try {
@@ -95,8 +112,8 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
       });
       toast.success('Teacher assigned successfully');
       fetchGrades();
-    } catch (error) {
-      toast.error('Failed to assign teacher');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to assign teacher');
     }
   };
 
@@ -104,12 +121,13 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     if (!data.learner_id) return;
     try {
       await SchoolAPI.moveLearner(data.learner_id, {
-        target_class_id: data.target_class_id
+        target_class_id: data.target_class_id,
+        school_id: schoolSlug
       });
       toast.success('Learner transition successful');
       fetchGrades();
-    } catch (error) {
-      toast.error('Failed to transition learner');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to transition learner');
     }
   };
 
@@ -134,13 +152,23 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
             Export Report
           </button>
           <button
-            onClick={() => setIsTeacherModalOpen(true)}
+            onClick={() => {
+              setActiveClassId(null);
+              setIsTeacherModalOpen(true);
+            }}
             className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
           >
             <UserPlus className="w-4 h-4" />
             Assign Teacher
           </button>
-          <button className="flex items-center gap-2 px-8 py-3 bg-school-primary text-white text-sm font-black rounded-2xl hover:bg-school-primary/90 transition-all shadow-xl shadow-school-primary/20">
+          <button
+            onClick={() => {
+              setSelectedGrade(null);
+              setGradeModalMode('create');
+              setIsGradeModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-8 py-3 bg-school-primary text-white text-sm font-black rounded-2xl hover:bg-school-primary/90 transition-all shadow-xl shadow-school-primary/20"
+          >
             <PlusCircle className="w-4 h-4" />
             New Grade Level
           </button>
@@ -155,7 +183,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
           </div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Enrollment</p>
           <h4 className="text-3xl font-black text-slate-900">
-            {isLoading ? '...' : grades.reduce((acc, g) => acc + (g.learnersCount || 0), 0)}
+            {isLoading ? '...' : totalLearners}
           </h4>
           <div className="flex items-center gap-1.5 mt-2 text-emerald-500 font-bold text-xs">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -166,21 +194,39 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Class Structures</p>
           <h4 className="text-3xl font-black text-slate-900">
-            {isLoading ? '...' : grades.reduce((acc, g) => acc + (g.classes?.length || 0), 0)} Active
+            {isLoading ? '...' : totalClasses} Active
           </h4>
           <p className="text-xs text-slate-500 font-medium mt-2">Across {grades.length} grades</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Avg Class Size</p>
-          <h4 className="text-3xl font-black text-slate-900">34.2</h4>
-          <p className="text-xs text-slate-500 font-medium mt-2">Optimal: 35.0</p>
+          <h4 className="text-3xl font-black text-slate-900">{avgClassSize}</h4>
+          <p className="text-xs text-slate-500 font-medium mt-2">Target: 35.0</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group border-amber-200 bg-amber-50/30">
-          <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Capacity Alerts</p>
-          <h4 className="text-3xl font-black text-amber-700">2 Issues</h4>
-          <p className="text-xs text-amber-600 font-medium mt-2 underline cursor-pointer">View violations</p>
+        <div className={cn(
+          "bg-white p-6 rounded-3xl border shadow-sm relative overflow-hidden group",
+          capacityIssues > 0 ? "border-amber-200 bg-amber-50/30" : "border-slate-200"
+        )}>
+          <p className={cn(
+            "text-xs font-bold uppercase tracking-widest mb-1",
+            capacityIssues > 0 ? "text-amber-600" : "text-slate-400"
+          )}>
+            Capacity Alerts
+          </p>
+          <h4 className={cn(
+            "text-3xl font-black",
+            capacityIssues > 0 ? "text-amber-700" : "text-slate-900"
+          )}>
+            {capacityIssues} {capacityIssues === 1 ? 'Issue' : 'Issues'}
+          </h4>
+          <p className={cn(
+            "text-xs font-medium mt-2 underline cursor-pointer",
+            capacityIssues > 0 ? "text-amber-600" : "text-slate-400"
+          )}>
+            {capacityIssues > 0 ? 'View violations' : 'No capacity issues'}
+          </p>
         </div>
       </div>
 
@@ -205,25 +251,54 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
             <div className="w-[1px] h-6 bg-slate-200"></div>
             <select className="bg-transparent border-none text-sm font-bold text-slate-900 focus:ring-0 cursor-pointer pr-8">
               <option>Alphabetical</option>
-              <option>Enrollment</option>
-              <option>Capacity</option>
+              <option>By Level</option>
+              <option>By Enrollment</option>
             </select>
           </div>
         </div>
 
         {isLoading ? (
           <GradesSkeleton />
+        ) : filteredGrades.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-3xl border border-slate-200">
+            <GraduationCap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-slate-700 mb-2">No grades found</h3>
+            <p className="text-slate-500 mb-6">
+              {searchQuery ? `No results matching "${searchQuery}"` : 'Get started by creating your first grade level'}
+            </p>
+            {!searchQuery && (
+              <button
+                onClick={() => {
+                  setSelectedGrade(null);
+                  setGradeModalMode('create');
+                  setIsGradeModalOpen(true);
+                }}
+                className="px-6 py-3 bg-school-primary text-white font-bold rounded-xl hover:bg-school-primary/90 transition-all"
+              >
+                Create Grade
+              </button>
+            )}
+          </div>
         ) : (
           <div className="space-y-4">
             {filteredGrades.map((grade) => (
               <GradeCard
                 key={grade.id}
                 grade={grade}
-                onAddClass={(id) => { setActiveGradeId(id); toast('Add class function coming soon'); }}
-                onAddLearner={(id) => { setActiveGradeId(id); setIsLearnerModalOpen(true); }}
-                onViewDetails={(id) => console.log('View details', id)}
-                onAssignTeacher={(classId) => { setActiveClassId(classId); setIsTeacherModalOpen(true); }}
-                onMoveLearner={(classId) => { setActiveClassId(classId); setIsLearnerModalOpen(true); }}
+                schoolId={schoolSlug}
+                onEditGrade={handleEditGrade}
+                onDeleteGrade={handleDeleteGrade}
+                onClassCreated={fetchGrades}
+                onAssignTeacher={(classId) => {
+                  setActiveGradeId(grade.id);
+                  setActiveClassId(classId);
+                  setIsTeacherModalOpen(true);
+                }}
+                onMoveLearner={(classId) => {
+                  setActiveGradeId(grade.id);
+                  setActiveClassId(classId);
+                  setIsLearnerModalOpen(true);
+                }}
               />
             ))}
           </div>
@@ -231,12 +306,22 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
       </div>
 
       {/* Modals */}
+      <GradeModal
+        isOpen={isGradeModalOpen}
+        onClose={() => setIsGradeModalOpen(false)}
+        mode={gradeModalMode}
+        grade={selectedGrade}
+        schoolId={schoolSlug}
+        onSuccess={handleGradeSuccess}
+      />
+
       <TeacherAssignmentModal
         isOpen={isTeacherModalOpen}
-        schoolId={schoolSlug} // Using slug as ID for Phase 1 routing context
+        schoolId={schoolSlug}
         onClose={() => setIsTeacherModalOpen(false)}
         onAssign={handleAssignTeacher}
       />
+
       <LearnerTransitionModal
         isOpen={isLearnerModalOpen}
         schoolId={schoolSlug}

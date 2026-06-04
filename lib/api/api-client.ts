@@ -156,6 +156,14 @@ class ApiClient {
   put<T>(endpoint: string, body: unknown, schema: z.ZodType<T>, options: RequestInit = {}): Promise<T> {
     return this.request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }, schema);
   }
+
+  patch<T>(endpoint: string, body: unknown, schema: z.ZodType<T>, options: RequestInit = {}): Promise<T> {
+    return this.request(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) }, schema);
+  }
+
+  delete<T>(endpoint: string, schema: z.ZodType<T>, options: RequestInit = {}): Promise<T> {
+    return this.request(endpoint, { ...options, method: 'DELETE' }, schema);
+  }
 }
 
 export const apiClient = new ApiClient();
