@@ -5,14 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School } from 'lucide-react';
 import { ClassCard } from './ClassCard';
 import { ClassModal } from './ClassModal';
-import { Grade } from '@/lib/api/school-api';
+import { Grade, Class } from '@/lib/api/school-api';
 
 interface GradeCardProps {
   grade: Grade;
   schoolId: string;
   onEditGrade: (grade: Grade) => void;
   onDeleteGrade: (gradeId: string) => void;
-  onClassCreated: () => void;
+  onClassUpdated: (gradeId: string, updatedClass: Class) => void;
   onAssignTeacher: (classId: string) => void;
   onMoveLearner: (classId: string) => void;
 }
@@ -22,7 +22,7 @@ export function GradeCard({
   schoolId,
   onEditGrade,
   onDeleteGrade,
-  onClassCreated,
+  onClassUpdated,
   onAssignTeacher,
   onMoveLearner
 }: GradeCardProps) {
@@ -31,11 +31,8 @@ export function GradeCard({
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [classModalMode, setClassModalMode] = useState<'create' | 'edit'>('create');
 
-  const handleClassSuccess = () => {
-    onClassCreated();
-    // Refresh expanded view
-    setIsExpanded(false);
-    setTimeout(() => setIsExpanded(true), 100);
+  const handleClassSuccess = (updatedClass: Class) => {
+    onClassUpdated(grade.id, updatedClass);
   };
 
   const handleEditClass = (classItem: any) => {
@@ -125,25 +122,33 @@ export function GradeCard({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                   {grade.classes && grade.classes.length > 0 ? (
-                    grade.classes.map((cls) => (
+                    grade.classes.map((schoolClass) => (
                       <ClassCard
-                        key={cls.id}
+                        key={schoolClass.id}
                         cls={{
-                          ...cls,
-                          learnerCount: cls.current_learners || cls.learnerCount || 0
+                          id: schoolClass.id,
+                          name: schoolClass.name,
+                          learnerCount: schoolClass.current_learners || 0,
+                          capacity: schoolClass.capacity || 40,
+                          classTeacher: schoolClass.class_teacher_name,
+                          subjectTeachers: schoolClass.subject_teachers,
                         }}
                         schoolId={schoolId}
                         gradeId={grade.id}
-                        onEdit={() => handleEditClass(cls)}
+                        onEdit={() => handleEditClass(schoolClass)}
                         onAssignTeacher={onAssignTeacher}
                         onMoveLearner={onMoveLearner}
                       />
                     ))
                   ) : (
-                    <div className="col-span-2 text-center py-12 text-slate-400">
-                      No classes yet. Click "Add Class" to create one.
+                    <div className="col-span-2 text-center py-12 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="w-8 h-8 text-slate-200" />
+                        <p className="font-medium">No classes yet</p>
+                        <p className="text-xs">Click "Add Class" to begin structuring this grade.</p>
+                      </div>
                     </div>
                   )}
                 </div>

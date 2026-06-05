@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Save, Trash2, Users } from 'lucide-react';
-import { SchoolAPI } from '@/lib/api/school-api';
+import { SchoolAPI, Class } from '@/lib/api/school-api';
 import { toast } from 'react-hot-toast';
 
 interface ClassModalProps {
@@ -18,14 +18,15 @@ interface ClassModalProps {
   } | null;
   gradeId: string;
   schoolId: string;
-  onSuccess: () => void;
+  onSuccess: (updatedClass: Class) => void;
 }
 
 export function ClassModal({ isOpen, onClose, mode, classItem, gradeId, schoolId, onSuccess }: ClassModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     capacity: 40,
-    class_teacher_id: ''
+    class_teacher_id: '',
+    grade_id: gradeId
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,30 +35,36 @@ export function ClassModal({ isOpen, onClose, mode, classItem, gradeId, schoolId
       setFormData({
         name: classItem.name || '',
         capacity: classItem.capacity || 40,
-        class_teacher_id: classItem.class_teacher_id || ''
+        class_teacher_id: classItem.class_teacher_id || '',
+        grade_id: gradeId
       });
     } else {
       setFormData({
         name: '',
         capacity: 40,
-        class_teacher_id: ''
+        class_teacher_id: '',
+        grade_id: gradeId
       });
     }
-  }, [mode, classItem, isOpen]);
+  }, [mode, classItem, isOpen, gradeId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      let result;
       if (mode === 'create') {
-        await SchoolAPI.createClass(schoolId, gradeId, formData);
+        result = await SchoolAPI.createClass(schoolId, gradeId, formData);
         toast.success('Class created successfully');
       } else if (mode === 'edit' && classItem) {
-        await SchoolAPI.updateClass(schoolId, gradeId, classItem.id, formData);
+        result = await SchoolAPI.updateClass(schoolId, gradeId, classItem.id, formData);
         toast.success('Class updated successfully');
       }
-      onSuccess();
+
+      if (result) {
+        onSuccess(result);
+      }
       onClose();
     } catch (error: any) {
       toast.error(error.message || `Failed to ${mode} class`);
