@@ -1,40 +1,22 @@
-# Phase 1: School Management Hierarchy Interface
+# Academic Structure Implementation Summary (Phase 1)
 
-## Overview
-This phase delivers a modern, interactive academic management interface for administrators, replacing legacy flat tables with a responsive, accordion-based grid system.
+## Architecture Overview
+The school management hierarchy is implemented as a modular grid-and-accordion system under `/admin/[schoolSlug]/grades`. This structure replaces flat tables with an interactive, data-rich management interface.
 
-## Key Deliverables
+## Key Features
+- **Dynamic Hierarchy:** Grades are rendered as cards that expand to reveal Class cards with specific management triggers.
+- **Intelligent Tracking:** `ClassCard.tsx` includes visual progress bars for learner capacity, featuring color-coded warning states for near-capacity (amber) and over-capacity (red) thresholds.
+- **Staff Assignment:** Integrated modals for assigning Class Teachers and Subject Teachers with role-specific parameters.
+- **Data Integrity:**
+  - Hierarchical CRUD operations for Grades and Classes.
+  - Zod schema validation for all incoming and outgoing API data.
+  - SWR-integrated optimistic state updates to ensure immediate UI visibility of new or modified entries.
+- **Authenticated Proxy Layer:** Implementation of `/api/admin/*` proxy routes ensures that all administrative operations are performed with valid Auth0 session tokens while targeting the backend service on port 4000.
+- **Global Search:** Categorized search lookup (Learners, Teachers, Classes) with custom status badges and dynamic routing.
 
-### 1. Interactive Hierarchy Interface
-- **Path**: `/admin/[schoolSlug]/grades`
-- **Grid-First Design**: Grades are presented as high-level summary cards.
-- **Accordion Logic**: Expanding a Grade card reveals nested Class cards using `framer-motion` for smooth transitions.
-- **Dynamic Branding**: The interface utilizes the school's primary color (`#059669`) for all active states, progress bars, and call-to-action triggers.
-
-### 2. Class-Level Intelligence
-- **Capacity Tracking**: Visual progress bars show real-time occupancy.
-- **Violation Alerts**: Warning states trigger when a class exceeds its capacity limit.
-- **Staffing Blocks**: Displays the assigned Class Teacher and a summary of Subject Teachers.
-
-### 3. Management Operations
-- **Teacher Assignment**: A dedicated modal for allocating staff as either Class or Subject Teachers, with support for multi-subject scoping.
-- **Learner Movement**: A transition modal that allows moving students between class structures with a single click.
-- **Global Search**: A stateful, debounced top-nav search that categorizes results into Learners, Teachers, and Classes.
-
-## Technical Alignment
-
-### API & Data Flow
-- **Direct Backend Integration**: Administrative hierarchy actions (grades, classes, assignments) directly target the backend API at `http://localhost:4000/api/admin/*` as per requirements.
-- **Authenticated Client**: All requests are routed through the `apiClient` singleton, which is synchronized with Auth0 access tokens via the `useApi` hook in the dashboard layout.
-- **Unified ID Handling**: Components and API methods are designed to handle both standard IDs and MongoDB BSON ObjectIDs.
-- **Real-time Feedback**: Integrated `react-hot-toast` for optimistic UI feedback on all administrative actions.
-
-### Schema Alignment
-- **Teacher Assignment**: Target payload: `{ teacher_id, role: 'class_teacher' | 'subject_teacher', subject_ids: [] }`.
-- **Learner Movement**: Target endpoint `/learners/[id]/move` with payload `{ target_class_id }`.
-- **Global Search**: Unified response format handling categorized results with metadata.
-
-## Verification
-- **Visual**: Verified responsive layouts and branding consistency.
-- **Functional**: Validated modal triggers, stateful search, and API proxy routing.
-- **Build**: Confirmed successful production build and linting.
+## Technology Stack
+- **Next.js 15 (App Router)** for routing and layouts.
+- **Tailwind CSS** with dynamic branding via school-primary tokens.
+- **Framer Motion** for interactive accordion expansions.
+- **Radix UI** for accessible modal and dialog overlays.
+- **Zod** for runtime type safety and API validation.

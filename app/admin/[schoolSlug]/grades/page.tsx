@@ -84,6 +84,24 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     fetchGrades();
   };
 
+  const handleClassUpdated = (gradeId: string, updatedClass: any) => {
+    setGrades(prevGrades => prevGrades.map(grade => {
+      if (grade.id === gradeId) {
+        const existingClasses = grade.classes || [];
+        const classExists = existingClasses.some(c => c.id === updatedClass.id);
+
+        return {
+          ...grade,
+          classes: classExists
+            ? existingClasses.map(c => c.id === updatedClass.id ? updatedClass : c)
+            : [...existingClasses, updatedClass],
+          total_classes: classExists ? grade.total_classes : (grade.total_classes || 0) + 1
+        };
+      }
+      return grade;
+    }));
+  };
+
   const handleEditGrade = (grade: Grade) => {
     setSelectedGrade(grade);
     setGradeModalMode('edit');
@@ -288,7 +306,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                 schoolId={schoolSlug}
                 onEditGrade={handleEditGrade}
                 onDeleteGrade={handleDeleteGrade}
-                onClassCreated={fetchGrades}
+                onClassUpdated={handleClassUpdated}
                 onAssignTeacher={(classId) => {
                   setActiveGradeId(grade.id);
                   setActiveClassId(classId);

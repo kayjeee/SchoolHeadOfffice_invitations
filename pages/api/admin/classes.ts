@@ -10,21 +10,45 @@ export default async function handleClasses(req: NextApiRequest, res: NextApiRes
   }
 
   const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+  const { schoolId, gradeId, classId } = req.query;
 
   try {
+    let response;
+    const headers = {
+      'Authorization': `Bearer ${session.accessToken || ''}`,
+      'Content-Type': 'application/json',
+    };
+
+    const baseUrl = `${internalApiUrl}/schools/${schoolId}/grades/${gradeId}/classes`;
+
     if (req.method === 'GET') {
-      const { gradeId } = req.query;
-      const response = await fetch(`${internalApiUrl}/admin/classes?gradeId=${gradeId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.accessToken || ''}`,
-        },
+      response = await fetch(classId ? `${baseUrl}/${classId}` : baseUrl, { headers });
+    } else if (req.method === 'POST') {
+      response = await fetch(baseUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(req.body),
       });
-      const data = await response.json();
-      res.status(response.status).json(data);
+    } else if (req.method === 'PATCH' || req.method === 'PUT') {
+      response = await fetch(`${baseUrl}/${classId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(req.body),
+      });
+    } else if (req.method === 'DELETE') {
+      response = await fetch(`${baseUrl}/${classId}`, {
+        method: 'DELETE',
+        headers,
+      });
     } else {
-      res.status(405).json({ error: 'Method Not Allowed' });
+      return res.status(405).json({ error: 'Method Not Allowed' });
     }
-  } catch (error) {
+
+    if (response.status === 204) return res.status(204).end();
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 }

@@ -10,33 +10,46 @@ export default async function handleGrades(req: NextApiRequest, res: NextApiResp
   }
 
   const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+  const { schoolId, gradeId } = req.query;
 
   try {
+    let response;
+    const headers = {
+      'Authorization': `Bearer ${session.accessToken || ''}`,
+      'Content-Type': 'application/json',
+    };
+
     if (req.method === 'GET') {
-      const { schoolId } = req.query;
-      const response = await fetch(`${internalApiUrl}/admin/grades?schoolId=${schoolId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.accessToken || ''}`,
-        },
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
+      const url = gradeId
+        ? `${internalApiUrl}/grades/${gradeId}`
+        : `${internalApiUrl}/schools/${schoolId}/grades`;
+      response = await fetch(url, { headers });
     } else if (req.method === 'POST') {
-      const { schoolId } = req.query;
-      const response = await fetch(`${internalApiUrl}/admin/grades?schoolId=${schoolId}`, {
+      response = await fetch(`${internalApiUrl}/schools/${schoolId}/grades`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.accessToken || ''}`,
-        },
+        headers,
         body: JSON.stringify(req.body),
       });
-      const data = await response.json();
-      res.status(response.status).json(data);
+    } else if (req.method === 'PATCH' || req.method === 'PUT') {
+      response = await fetch(`${internalApiUrl}/grades/${gradeId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(req.body),
+      });
+    } else if (req.method === 'DELETE') {
+      response = await fetch(`${internalApiUrl}/grades/${gradeId}`, {
+        method: 'DELETE',
+        headers,
+      });
     } else {
-      res.status(405).json({ error: 'Method Not Allowed' });
+      return res.status(405).json({ error: 'Method Not Allowed' });
     }
-  } catch (error) {
+
+    if (response.status === 204) return res.status(204).end();
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 }
