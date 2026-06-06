@@ -34,6 +34,8 @@ export const GradeSchema = z.object({
 export const LearnerSchema = z.object({
   id: z.string(),
   name: z.string(),
+  email: z.string().optional(),
+  admission_number: z.string().optional(),
   parent_name: z.string().optional(),
   parent_phone: z.string().optional(),
   status: z.enum(['Linked', 'Pending', 'Unlinked']).default('Unlinked'),

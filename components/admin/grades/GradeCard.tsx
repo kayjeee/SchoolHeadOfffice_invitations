@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School, Loader2 } from 'lucide-react';
 import { ClassCard } from './ClassCard';
 import { ClassModal } from './ClassModal';
-import { Grade, Class } from '@/lib/api/school-api';
+import { Grade, Class, SchoolAPI } from '@/lib/api/school-api';
 
 interface GradeCardProps {
   grade: Grade;
@@ -30,8 +30,41 @@ export function GradeCard({
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [classModalMode, setClassModalMode] = useState<'create' | 'edit'>('create');
+  const [localClasses, setLocalClasses] = useState<Class[]>(grade.classes || []);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+
+  useEffect(() => {
+    if (grade.classes) {
+      setLocalClasses(grade.classes);
+    }
+  }, [grade.classes]);
+
+  useEffect(() => {
+    const fetchGradeDetails = async () => {
+      if (isExpanded && localClasses.length === 0 && (grade.total_classes || 0) > 0) {
+        setIsLoadingClasses(true);
+        try {
+          const fullGrade = await SchoolAPI.getGrade(grade.id);
+          if (fullGrade.classes) {
+            setLocalClasses(fullGrade.classes);
+          }
+        } catch (error) {
+          console.error("Failed to fetch grade details:", error);
+        } finally {
+          setIsLoadingClasses(false);
+        }
+      }
+    };
+    fetchGradeDetails();
+  }, [isExpanded, grade.id, localClasses.length, grade.total_classes]);
 
   const handleClassSuccess = (updatedClass: Class) => {
+    setLocalClasses(prev => {
+      const exists = prev.some(c => c.id === updatedClass.id);
+      return exists
+        ? prev.map(c => c.id === updatedClass.id ? updatedClass : c)
+        : [...prev, updatedClass];
+    });
     onClassUpdated(grade.id, updatedClass);
   };
 
@@ -122,9 +155,14 @@ export function GradeCard({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                  {grade.classes && grade.classes.length > 0 ? (
-                    grade.classes.map((schoolClass) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  {isLoadingClasses ? (
+                    <div className="col-span-2 py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-slate-100">
+                      <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                      <p className="text-sm font-medium">Loading classes and learners...</p>
+                    </div>
+                  ) : localClasses.length > 0 ? (
+                    localClasses.map((schoolClass) => (
                       <ClassCard
                         key={schoolClass.id}
                         cls={{
@@ -134,6 +172,7 @@ export function GradeCard({
                           capacity: schoolClass.capacity || 40,
                           classTeacher: schoolClass.class_teacher_name,
                           subjectTeachers: schoolClass.subject_teachers,
+                          learners: schoolClass.learners,
                         }}
                         schoolId={schoolId}
                         gradeId={grade.id}
@@ -143,12 +182,8 @@ export function GradeCard({
                       />
                     ))
                   ) : (
-                    <div className="col-span-2 text-center py-12 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200">
-                      <div className="flex flex-col items-center gap-2">
-                        <Users className="w-8 h-8 text-slate-200" />
-                        <p className="font-medium">No classes yet</p>
-                        <p className="text-xs">Click "Add Class" to begin structuring this grade.</p>
-                      </div>
+                    <div className="col-span-2 text-center py-6 text-slate-400 bg-white rounded-xl border border-slate-100">
+                      No classes yet. Click "Add Class" to create one.
                     </div>
                   )}
                 </div>

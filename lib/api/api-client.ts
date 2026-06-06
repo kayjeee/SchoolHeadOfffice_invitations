@@ -72,7 +72,10 @@ class ApiClient {
       url = endpoint;
     } else {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      if (cleanEndpoint.startsWith('/api/v1')) {
+      // If it starts with /api/ but NOT /api/v1, it's likely a local Next.js API route
+      if (cleanEndpoint.startsWith('/api/') && !cleanEndpoint.startsWith('/api/v1')) {
+        url = cleanEndpoint;
+      } else if (cleanEndpoint.startsWith('/api/v1')) {
         // Strip the duplicate prefix if API_BASE_URL already has it
         const base = API_BASE_URL.endsWith('/api/v1')
           ? API_BASE_URL.replace(/\/api\/v1$/, '')

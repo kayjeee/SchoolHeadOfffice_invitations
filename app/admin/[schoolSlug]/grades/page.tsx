@@ -90,11 +90,19 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         const existingClasses = grade.classes || [];
         const classExists = existingClasses.some(c => c.id === updatedClass.id);
 
+        // Ensure the updated class has an empty learners array if none provided
+        const normalizedClass = {
+          ...updatedClass,
+          learners: updatedClass.learners || []
+        };
+
+        const newClasses = classExists
+          ? existingClasses.map(c => c.id === updatedClass.id ? normalizedClass : c)
+          : [...existingClasses, normalizedClass];
+
         return {
           ...grade,
-          classes: classExists
-            ? existingClasses.map(c => c.id === updatedClass.id ? updatedClass : c)
-            : [...existingClasses, updatedClass],
+          classes: newClasses,
           total_classes: classExists ? grade.total_classes : (grade.total_classes || 0) + 1
         };
       }
