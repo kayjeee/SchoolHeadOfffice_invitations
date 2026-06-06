@@ -125,3 +125,7 @@
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid code -- missing end-of-block
  ✓ Compiled in 2.7s (2112 modules)
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid code -- missing end-of-block
+ ✓ Compiled in 14.6s (2099 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid code -- missing end-of-block
+ ✓ Compiled in 14.3s (2112 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: invalid code -- missing end-of-block

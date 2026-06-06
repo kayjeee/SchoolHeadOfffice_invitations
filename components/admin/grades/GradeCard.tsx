@@ -30,23 +30,25 @@ export function GradeCard({
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [classModalMode, setClassModalMode] = useState<'create' | 'edit'>('create');
-  const [localClasses, setLocalClasses] = useState<Class[]>(grade.classes || []);
+  const [classesList, setClassesList] = useState<Class[]>(grade.classes || []);
+  const [gradeMetadata, setGradeMetadata] = useState<Grade | null>(grade);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
 
   useEffect(() => {
     if (grade.classes) {
-      setLocalClasses(grade.classes);
+      setClassesList(grade.classes);
     }
   }, [grade.classes]);
 
   useEffect(() => {
     const fetchGradeDetails = async () => {
-      if (isExpanded && localClasses.length === 0 && (grade.total_classes || 0) > 0) {
+      if (isExpanded && classesList.length === 0 && (grade.total_classes || 0) > 0) {
         setIsLoadingClasses(true);
         try {
           const fullGrade = await SchoolAPI.getGrade(grade.id);
-          if (fullGrade.classes) {
-            setLocalClasses(fullGrade.classes);
+          if (fullGrade) {
+            setGradeMetadata(fullGrade);
+            setClassesList(fullGrade.classes || []);
           }
         } catch (error) {
           console.error("Failed to fetch grade details:", error);
@@ -56,10 +58,10 @@ export function GradeCard({
       }
     };
     fetchGradeDetails();
-  }, [isExpanded, grade.id, localClasses.length, grade.total_classes]);
+  }, [isExpanded, grade.id, classesList.length, grade.total_classes]);
 
   const handleClassSuccess = (updatedClass: Class) => {
-    setLocalClasses(prev => {
+    setClassesList(prev => {
       const exists = prev.some(c => c.id === updatedClass.id);
       return exists
         ? prev.map(c => c.id === updatedClass.id ? updatedClass : c)
@@ -155,14 +157,14 @@ export function GradeCard({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                   {isLoadingClasses ? (
-                    <div className="col-span-2 py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-slate-100">
+                    <div className="col-span-2 lg:col-span-3 py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-slate-100">
                       <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
                       <p className="text-sm font-medium">Loading classes and learners...</p>
                     </div>
-                  ) : localClasses.length > 0 ? (
-                    localClasses.map((schoolClass) => (
+                  ) : classesList.length > 0 ? (
+                    classesList.map((schoolClass) => (
                       <ClassCard
                         key={schoolClass.id}
                         cls={{
@@ -182,8 +184,8 @@ export function GradeCard({
                       />
                     ))
                   ) : (
-                    <div className="col-span-2 text-center py-6 text-slate-400 bg-white rounded-xl border border-slate-100">
-                      No classes yet. Click "Add Class" to create one.
+                    <div className="col-span-2 lg:col-span-3 text-center py-8 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                      No classes found for this grade context. Click "Add Class" to get started.
                     </div>
                   )}
                 </div>

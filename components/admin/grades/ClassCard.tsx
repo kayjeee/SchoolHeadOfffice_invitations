@@ -37,9 +37,9 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
     : Object.entries(cls.subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
 
   return (
-    <div className="p-4 border border-slate-100 rounded-lg bg-slate-50 flex flex-col justify-between hover:shadow-md transition-all group">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-bold text-slate-800 text-base group-hover:text-school-primary transition-colors">
+    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-emerald-500 transition-colors duration-200 flex flex-col justify-between group">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-bold text-slate-800 text-lg group-hover:text-school-primary transition-colors">
           Class {cls.name}
         </h4>
         <div className="flex items-center gap-1">
@@ -72,20 +72,20 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
 
       <div className="space-y-4">
         {/* Capacity Tracking */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
+        <div className="space-y-1.5 text-xs text-slate-500">
+          <div className="flex justify-between items-center mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Capacity Tracking
+              Utilization
             </span>
-            <span className="text-xs font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
-              {cls.learnerCount}/{cls.capacity} Learners
+            <span className="font-medium text-slate-700">
+              {cls.learnerCount || 0} / {cls.capacity}
             </span>
           </div>
-          <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-full transition-all duration-500",
-                isOverCapacity ? "bg-red-500" : isNearCapacity ? "bg-amber-500" : "bg-school-primary"
+                "h-full transition-all duration-300",
+                isOverCapacity ? "bg-red-500" : isNearCapacity ? "bg-amber-500" : "bg-emerald-600"
               )}
               style={{ width: `${Math.min(occupancyPercentage, 100)}%` }}
             />

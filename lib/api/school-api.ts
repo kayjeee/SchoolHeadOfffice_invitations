@@ -31,6 +31,16 @@ export const GradeSchema = z.object({
   school_id: z.string(),
 }).passthrough();
 
+export const GradeResponseSchema = z.object({
+  success: z.boolean(),
+  grade: GradeSchema
+});
+
+export const GradesResponseSchema = z.object({
+  success: z.boolean(),
+  grades: z.array(GradeSchema)
+});
+
 export const LearnerSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -92,17 +102,13 @@ export class SchoolAPI {
   // Grade CRUD
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
-    const response = await apiClient.get(`/api/admin/grades?schoolId=${schoolId}`, z.any());
-    const data = (response as any).data || response;
-    const grades = data.grades || data;
-    return Array.isArray(grades) ? z.array(GradeSchema).parse(grades) : [];
+    const response = await apiClient.get(`/api/admin/grades?schoolId=${schoolId}`, GradesResponseSchema);
+    return response.grades || [];
   }
 
   static async getGrade(gradeId: string): Promise<Grade> {
-    const response = await apiClient.get(`/api/admin/grades?gradeId=${gradeId}`, z.any());
-    const data = (response as any).data || response;
-    const grade = data.grade || data;
-    return GradeSchema.parse(grade);
+    const response = await apiClient.get(`/api/admin/grades?gradeId=${gradeId}`, GradeResponseSchema);
+    return response.grade;
   }
 
   static async createGrade(schoolId: string, data: Partial<Grade>): Promise<Grade> {
