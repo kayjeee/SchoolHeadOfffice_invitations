@@ -17,6 +17,7 @@ interface ClassCardProps {
     capacity: number;
     classTeacher?: string;
     subjectTeachers?: { name: string; subject: string }[] | Record<string, string>;
+    learners?: any[];
   };
   schoolId: string;
   gradeId: string;
@@ -36,9 +37,9 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
     : Object.entries(cls.subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-black text-slate-900 group-hover:text-school-primary transition-colors">
+    <div className="p-4 border border-slate-100 rounded-lg bg-slate-50 flex flex-col justify-between hover:shadow-md transition-all group">
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="font-bold text-slate-800 text-base group-hover:text-school-primary transition-colors">
           Class {cls.name}
         </h4>
         <div className="flex items-center gap-1">
@@ -76,14 +77,11 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Capacity Tracking
             </span>
-            <span className={cn(
-              "text-xs font-bold",
-              isOverCapacity ? "text-red-500" : isNearCapacity ? "text-amber-500" : "text-slate-700"
-            )}>
-              {cls.learnerCount} / {cls.capacity}
+            <span className="text-xs font-medium px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+              {cls.learnerCount}/{cls.capacity} Learners
             </span>
           </div>
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
@@ -101,6 +99,23 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
             <p className="text-[10px] text-amber-500 font-bold mt-1">
               ⚠️ Near capacity: {Math.round(occupancyPercentage)}% full
             </p>
+          )}
+        </div>
+
+        {/* Nested Learners Section */}
+        <div className="mt-2 pt-2 border-t border-slate-200">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Enrolled Learners:</p>
+          {cls.learners && cls.learners.length > 0 ? (
+            <ul className="text-xs space-y-1 text-slate-600 max-h-24 overflow-y-auto">
+              {cls.learners.map((learner) => (
+                <li key={learner.id} className="flex justify-between py-0.5 border-b border-dashed border-slate-100">
+                  <span className="truncate mr-2">{learner.name || learner.email}</span>
+                  <span className="text-slate-400 font-mono shrink-0">{learner.admission_number || "LNR"}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs italic text-slate-400">No learners assigned to this class section yet.</p>
           )}
         </div>
 

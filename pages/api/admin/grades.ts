@@ -20,6 +20,7 @@ export default async function handleGrades(req: NextApiRequest, res: NextApiResp
     };
 
     if (req.method === 'GET') {
+      // Use the school-nested grades index to get classes and learners
       const url = gradeId
         ? `${internalApiUrl}/grades/${gradeId}`
         : `${internalApiUrl}/schools/${schoolId}/grades`;
