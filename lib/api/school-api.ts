@@ -48,6 +48,12 @@ export const LearnerSchema = z.object({
   admission_number: z.string().optional(),
   parent_name: z.string().optional(),
   parent_phone: z.string().optional(),
+  parents: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+  })).optional(),
   status: z.enum(['Linked', 'Pending', 'Unlinked']).default('Unlinked'),
   invitation_id: z.string().optional(),
 }).passthrough();
