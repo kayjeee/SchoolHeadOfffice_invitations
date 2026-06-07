@@ -102,21 +102,57 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
           )}
         </div>
 
-        {/* Nested Learners Section */}
-        <div className="mt-2 pt-2 border-t border-slate-200">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Enrolled Learners:</p>
-          {cls.learners && cls.learners.length > 0 ? (
-            <ul className="text-xs space-y-1 text-slate-600 max-h-24 overflow-y-auto">
-              {cls.learners.map((learner) => (
-                <li key={learner.id} className="flex justify-between py-0.5 border-b border-dashed border-slate-100">
-                  <span className="truncate mr-2">{learner.name || learner.email}</span>
-                  <span className="text-slate-400 font-mono shrink-0">{learner.admission_number || "LNR"}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs italic text-slate-400">No learners assigned to this class section yet.</p>
-          )}
+        {/* Nested Learners & Parents Section */}
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="space-y-3">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Enrolled Learners & Guarded Parents
+            </p>
+            {cls.learners && cls.learners.length > 0 ? (
+              <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+                <ul className="divide-y divide-slate-100 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                  {cls.learners.map((learner) => (
+                    <li
+                      key={learner.id}
+                      className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
+                    >
+                      {/* Left Block: Learner Info */}
+                      <div className="flex items-center">
+                        <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]" title={learner.name}>
+                          {learner.name}
+                        </span>
+                        <span className="ml-2 text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 shrink-0">
+                          {learner.admission_number || "LNR"}
+                        </span>
+                      </div>
+
+                      {/* Right Block: Linked Parents Section */}
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {learner.parents && learner.parents.length > 0 ? (
+                          learner.parents.map((parent: any) => (
+                            <div
+                              key={parent.id}
+                              title={`Email: ${parent.email || 'N/A'} | Phone: ${parent.phone || 'N/A'}`}
+                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 group/parent cursor-help"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                              <span className="truncate max-w-[100px]">Parent: {parent.name}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-[10px] font-bold italic text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
+                            No Parent Linked
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs italic text-slate-400">No learners assigned to this class section yet.</p>
+            )}
+          </div>
         </div>
 
         {/* Assignment Blocks */}
