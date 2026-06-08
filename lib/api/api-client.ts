@@ -106,12 +106,19 @@ class ApiClient {
         const duration = Date.now() - start;
 
         if (!response.ok) {
-          let errorData = {};
-          try {
-            const text = await response.text();
-            errorData = text ? JSON.parse(text) : {};
-          } catch (e) {
-            errorData = {};
+          const contentType = response.headers.get('content-type');
+          let errorData: any = {};
+          const text = await response.text();
+
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              errorData = text ? JSON.parse(text) : {};
+            } catch (e) {
+              errorData = { message: text };
+            }
+          } else {
+            console.error(`🔥 True Server HTML Error Output [${requestId}]:`, text);
+            errorData = { message: `Server returned ${response.status}. See console for HTML dump.` };
           }
 
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
@@ -123,7 +130,14 @@ class ApiClient {
           throw new APIError(response.status, response.statusText, errorData);
         }
 
+        const contentType = response.headers.get('content-type');
         const responseText = await response.text();
+
+        if (!contentType || !contentType.includes('application/json')) {
+          // If not JSON, return text or empty object
+          return (responseText || {}) as T;
+        }
+
         const data = responseText ? JSON.parse(responseText) : {};
         const parseResult = schema.safeParse(data);
         
