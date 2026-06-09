@@ -27,8 +27,12 @@ export default {
     return {
       afterFiles: [
         {
-          source: '/api/:path*',
-          destination: 'http://127.0.0.1:4000/api/:path*',
+          source: '/api/admin/:path*',
+          destination: 'http://127.0.0.1:4000/api/admin/:path*',
+        },
+        {
+          source: '/api/v1/:path*',
+          destination: 'http://127.0.0.1:4000/api/v1/:path*',
         },
       ],
       fallback: [

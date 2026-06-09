@@ -20,6 +20,12 @@ const API_BASE_URL = getApiBaseUrl();
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
+const isLocalNextOrigin = (url: URL) =>
+  url.port === '3000' &&
+  ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+
+const toRelativePath = (url: URL) => `${url.pathname}${url.search}${url.hash}`;
+
 export class APIError extends Error {
   constructor(
     public status: number,
@@ -73,8 +79,19 @@ class ApiClient {
     // ✅ FIX: Do not prepend API_BASE_URL if endpoint is already a full URL
     // Also handle /api/v1 prefixing correctly to avoid doubling
     let url: string;
-    if (endpoint.startsWith('http')) {
-      url = endpoint;
+    if (/^https?:\/\//i.test(endpoint)) {
+      const parsedEndpoint = new URL(endpoint);
+      const currentOrigin =
+        typeof window !== 'undefined' ? window.location.origin : null;
+
+      if (
+        typeof window !== 'undefined' &&
+        (parsedEndpoint.origin === currentOrigin || isLocalNextOrigin(parsedEndpoint))
+      ) {
+        url = toRelativePath(parsedEndpoint);
+      } else {
+        url = endpoint;
+      }
     } else {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
       // If it starts with /api/ but NOT /api/v1, it's likely a local Next.js API route
@@ -129,7 +146,8 @@ class ApiClient {
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
 
           if (response.status === 401 && typeof window !== 'undefined') {
-            window.location.href = '/api/auth/login';
+            const returnTo = `${window.location.pathname}${window.location.search}`;
+            window.location.assign(`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
           }
 
           throw new APIError(response.status, response.statusText, errorData);
