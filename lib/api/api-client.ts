@@ -1,13 +1,8 @@
 import { z } from 'zod';
 
 const getApiBaseUrl = () => {
-  // If we're on the client and using rewrites, we can use relative paths
-  if (typeof window !== 'undefined') {
-    return '/api/v1';
-  }
-
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!envUrl) return 'http://127.0.0.1:4000/api/v1';
+  if (!envUrl) return 'http://localhost:4000/api/v1';
 
   if (envUrl.includes('/api/v1')) {
     return envUrl.replace(/\/$/, '');
@@ -17,6 +12,7 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1$/, '');
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
@@ -25,6 +21,9 @@ const isLocalNextOrigin = (url: URL) =>
   ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
 
 const toRelativePath = (url: URL) => `${url.pathname}${url.search}${url.hash}`;
+
+const isBackendApiPath = (path: string) =>
+  path.startsWith('/api/v1') || path.startsWith('/api/admin');
 
 export class APIError extends Error {
   constructor(
@@ -88,21 +87,19 @@ class ApiClient {
         typeof window !== 'undefined' &&
         (parsedEndpoint.origin === currentOrigin || isLocalNextOrigin(parsedEndpoint))
       ) {
-        url = toRelativePath(parsedEndpoint);
+        const relativePath = toRelativePath(parsedEndpoint);
+        url = isBackendApiPath(parsedEndpoint.pathname)
+          ? `${API_ORIGIN}${relativePath}`
+          : relativePath;
       } else {
         url = endpoint;
       }
     } else {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      // If it starts with /api/ but NOT /api/v1, it's likely a local Next.js API route
-      if (cleanEndpoint.startsWith('/api/') && !cleanEndpoint.startsWith('/api/v1')) {
+      if (cleanEndpoint.startsWith('/api/') && !isBackendApiPath(cleanEndpoint)) {
         url = cleanEndpoint;
-      } else if (cleanEndpoint.startsWith('/api/v1')) {
-        // Strip the duplicate prefix if API_BASE_URL already has it
-        const base = API_BASE_URL.endsWith('/api/v1')
-          ? API_BASE_URL.replace(/\/api\/v1$/, '')
-          : API_BASE_URL;
-        url = `${base}${cleanEndpoint}`;
+      } else if (isBackendApiPath(cleanEndpoint)) {
+        url = `${API_ORIGIN}${cleanEndpoint}`;
       } else {
         url = `${API_BASE_URL}${cleanEndpoint}`;
       }
