@@ -21,7 +21,6 @@ export default async function handleGradeLearners(req: NextApiRequest, res: Next
     });
 
     const contentType = response.headers.get('content-type');
-
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
       res.status(response.status).json(data);
@@ -31,7 +30,7 @@ export default async function handleGradeLearners(req: NextApiRequest, res: Next
       res.status(response.status).json({
         success: false,
         error: `Upstream server returned ${response.status}`,
-        details: text.substring(0, 500) // Send a snippet of the HTML error for easier debugging in the UI
+        details: text.substring(0, 500)
       });
     }
   } catch (error: any) {
