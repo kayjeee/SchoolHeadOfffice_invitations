@@ -10,7 +10,7 @@ export default async function handleTeachers(req: NextApiRequest, res: NextApiRe
       return;
     }
 
-    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:4000/api/v1';
     const { schoolId } = req.query;
 
     const response = await fetch(`${internalApiUrl}/schools/${schoolId}/teachers`, {
