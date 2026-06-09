@@ -10,13 +10,13 @@ export const ClassSchema = z.object({
   current_learners: z.number().default(0),
   utilization: z.string().optional(),
   utilization_percentage: z.number().optional(),
-  class_teacher_id: z.string().optional(),
+  class_teacher_id: z.string().nullable().optional(),
   class_teacher_name: z.string().optional(),
   subject_teachers: z.union([
     z.array(z.object({ name: z.string(), subject: z.string() })),
     z.record(z.string())
   ]).optional(),
-  grade_id: z.string(),
+  grade_id: z.string().optional(),
 }).passthrough();
 
 export const GradeSchema = z.object({
@@ -108,36 +108,36 @@ export class SchoolAPI {
   // Grade CRUD
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
-    const response = await apiClient.get(`/api/admin/grades?schoolId=${schoolId}`, GradesResponseSchema);
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/grades`, GradesResponseSchema);
     return response.grades || [];
   }
 
   static async getGrade(gradeId: string): Promise<Grade> {
-    const response = await apiClient.get(`/api/admin/grades?gradeId=${gradeId}`, GradeResponseSchema);
+    const response = await apiClient.get(`/api/v1/grades/${gradeId}`, GradeResponseSchema);
     return response.grade;
   }
 
   static async createGrade(schoolId: string, data: Partial<Grade>): Promise<Grade> {
-    const response = await apiClient.post(`/api/admin/grades?schoolId=${schoolId}`, { grade: data }, z.any());
+    const response = await apiClient.post(`/api/v1/schools/${schoolId}/grades`, { grade: data }, z.any());
     const responseData = (response as any).data || response;
     const grade = responseData.grade || responseData;
     return GradeSchema.parse(grade);
   }
 
   static async updateGrade(gradeId: string, data: Partial<Grade>): Promise<Grade> {
-    const response = await apiClient.patch(`/api/admin/grades?gradeId=${gradeId}`, { grade: data }, z.any());
+    const response = await apiClient.patch(`/api/v1/grades/${gradeId}`, { grade: data }, z.any());
     const responseData = (response as any).data || response;
     const grade = responseData.grade || responseData;
     return GradeSchema.parse(grade);
   }
 
   static async deleteGrade(gradeId: string): Promise<void> {
-    await apiClient.delete(`/api/admin/grades?gradeId=${gradeId}`, z.any());
+    await apiClient.delete(`/api/v1/grades/${gradeId}`, z.any());
   }
 
   // Class CRUD
   static async getClasses(schoolId: string, gradeId: string): Promise<Class[]> {
-    const response = await apiClient.get(`/api/admin/classes?schoolId=${schoolId}&gradeId=${gradeId}`, z.any());
+    const response = await apiClient.get(`/api/v1/grades/${gradeId}/classes`, z.any());
     const data = (response as any).data || response;
     const classes = data.classes || data;
     return Array.isArray(classes) ? z.array(ClassSchema).parse(classes) : [];
@@ -145,7 +145,7 @@ export class SchoolAPI {
 
   static async createClass(schoolId: string, gradeId: string, data: Partial<Class>): Promise<Class> {
     const payload = { ...data, grade_id: gradeId };
-    const response = await apiClient.post(`/api/admin/classes?schoolId=${schoolId}&gradeId=${gradeId}`, { class: payload }, z.any());
+    const response = await apiClient.post(`/api/v1/grades/${gradeId}/classes`, { class: payload }, z.any());
     const responseData = (response as any).data || response;
     const cls = responseData.class || responseData;
     return ClassSchema.parse({ grade_id: gradeId, ...cls });
@@ -153,19 +153,19 @@ export class SchoolAPI {
 
   static async updateClass(schoolId: string, gradeId: string, classId: string, data: Partial<Class>): Promise<Class> {
     const payload = { ...data, grade_id: gradeId };
-    const response = await apiClient.patch(`/api/admin/classes?schoolId=${schoolId}&gradeId=${gradeId}&classId=${classId}`, { class: payload }, z.any());
+    const response = await apiClient.patch(`/api/v1/classes/${classId}`, { class: payload }, z.any());
     const responseData = (response as any).data || response;
     const cls = responseData.class || responseData;
     return ClassSchema.parse({ grade_id: gradeId, ...cls });
   }
 
   static async deleteClass(schoolId: string, gradeId: string, classId: string): Promise<void> {
-    await apiClient.delete(`/api/admin/classes?schoolId=${schoolId}&gradeId=${gradeId}&classId=${classId}`, z.any());
+    await apiClient.delete(`/api/v1/classes/${classId}`, z.any());
   }
 
   // Teacher Assignment
   static async assignTeacher(classId: string, data: { teacher_id: string; role: string; subject_ids?: string[] }): Promise<void> {
-    await apiClient.post(`/api/admin/assign-teacher?classId=${classId}`, {
+    await apiClient.post(`/api/v1/classes/${classId}/assign_teacher`, {
       teacher_id: data.teacher_id,
       role: data.role,
       subject_id: data.subject_ids?.[0],
@@ -174,7 +174,7 @@ export class SchoolAPI {
   }
 
   static async getTeachers(schoolId: string): Promise<Teacher[]> {
-    const response = await apiClient.get(`/api/admin/teachers?schoolId=${schoolId}`, z.any());
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/teachers`, z.any());
     const data = (response as any).data || response;
     const teachers = data.teachers || data;
     return Array.isArray(teachers) ? z.array(TeacherSchema).parse(teachers) : [];
@@ -182,7 +182,7 @@ export class SchoolAPI {
 
   // Learner Movement
   static async moveLearner(learnerId: string, data: { target_class_id: string; school_id?: string }): Promise<void> {
-    await apiClient.post(`/api/admin/transition-learner?learnerId=${learnerId}`, {
+    await apiClient.post(`/api/v1/learners/${learnerId}/move`, {
       learner_id: learnerId,
       ...data
     }, z.any());
@@ -190,7 +190,7 @@ export class SchoolAPI {
 
   // Grade Learners
   static async getGradeLearners(gradeId: string): Promise<Learner[]> {
-    const response = await apiClient.get(`/api/admin/learners?gradeId=${gradeId}`, z.any());
+    const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners`, z.any());
     const data = (response as any).data || response;
     const learners = data.learners || data;
     return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
@@ -198,7 +198,7 @@ export class SchoolAPI {
 
   // Global Search
   static async globalSearch(schoolId: string, query: string): Promise<any> {
-    const response = await apiClient.get(`/api/admin/global-search?schoolId=${schoolId}&q=${encodeURIComponent(query)}`, z.any());
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/global_search?q=${encodeURIComponent(query)}`, z.any());
     const data = (response as any).data || response;
     return data.results || [];
   }

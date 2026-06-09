@@ -24,15 +24,19 @@ export default {
   },
 
   async rewrites() {
-    return [
-      {
-        source: '/api/v1/:path*',
-        destination: 'http://127.0.0.1:4000/api/v1/:path*',
-      },
-      {
-        source: '/parent/school/:school_slug',
-        destination: '/parent/:school_slug',
-      },
-    ];
+    return {
+      afterFiles: [
+        {
+          source: '/api/:path*',
+          destination: 'http://127.0.0.1:4000/api/:path*',
+        },
+      ],
+      fallback: [
+        {
+          source: '/parent/school/:school_slug',
+          destination: '/parent/:school_slug',
+        },
+      ],
+    };
   },
 };
