@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 const getApiBaseUrl = () => {
+  // If we're on the client and using rewrites, we can use relative paths
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!envUrl) return 'http://localhost:4000/api/v1';
 
@@ -134,15 +139,21 @@ class ApiClient {
         const responseText = await response.text();
 
         if (!contentType || !contentType.includes('application/json')) {
-          // If not JSON, return text or empty object
           return (responseText || {}) as T;
         }
 
         const data = responseText ? JSON.parse(responseText) : {};
+
+        // Defensive check for common validation error keys in the response
+        if (data && (data.fieldErrors || data.formErrors)) {
+          console.warn(`⚠️ [API Response ${requestId}] Data contains validation errors:`, data);
+          return data as T;
+        }
+
         const parseResult = schema.safeParse(data);
         
         if (!parseResult.success) {
-          console.warn(`⚠️ [API Response ${requestId}] Validation failed. Returning raw data.`, parseResult.error.flatten());
+          console.warn(`⚠️ [API Response ${requestId}] Zod Validation failed. Returning raw data.`, parseResult.error.flatten());
           return data as T;
         }
 
