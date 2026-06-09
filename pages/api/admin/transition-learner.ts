@@ -18,7 +18,7 @@ export default async function handleLearnerTransition(req: NextApiRequest, res: 
     const { learnerId: queryLearnerId } = req.query;
     const learnerId = req.body.learner_id || queryLearnerId;
     const schoolId = req.body.school_id;
-    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
+    const internalApiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:4000/api/v1';
 
     const response = await fetch(`${internalApiUrl}/learners/${learnerId}/move`, {
       method: 'POST',
