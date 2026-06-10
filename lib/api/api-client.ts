@@ -1,8 +1,13 @@
 import { z } from 'zod';
 
 const getApiBaseUrl = () => {
+  // If we're on the client and using rewrites, we can use relative paths
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!envUrl) return 'http://localhost:4000/api/v1';
+  if (!envUrl) return 'http://127.0.0.1:4000/api/v1';
 
   if (envUrl.includes('/api/v1')) {
     return envUrl.replace(/\/$/, '');
@@ -12,18 +17,8 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1$/, '');
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
-
-const isLocalNextOrigin = (url: URL) =>
-  url.port === '3000' &&
-  ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
-
-const toRelativePath = (url: URL) => `${url.pathname}${url.search}${url.hash}`;
-
-const isBackendApiPath = (path: string) =>
-  path.startsWith('/api/v1') || path.startsWith('/api/admin');
 
 export class APIError extends Error {
   constructor(
@@ -78,28 +73,19 @@ class ApiClient {
     // ✅ FIX: Do not prepend API_BASE_URL if endpoint is already a full URL
     // Also handle /api/v1 prefixing correctly to avoid doubling
     let url: string;
-    if (/^https?:\/\//i.test(endpoint)) {
-      const parsedEndpoint = new URL(endpoint);
-      const currentOrigin =
-        typeof window !== 'undefined' ? window.location.origin : null;
-
-      if (
-        typeof window !== 'undefined' &&
-        (parsedEndpoint.origin === currentOrigin || isLocalNextOrigin(parsedEndpoint))
-      ) {
-        const relativePath = toRelativePath(parsedEndpoint);
-        url = isBackendApiPath(parsedEndpoint.pathname)
-          ? `${API_ORIGIN}${relativePath}`
-          : relativePath;
-      } else {
-        url = endpoint;
-      }
+    if (endpoint.startsWith('http')) {
+      url = endpoint;
     } else {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      if (cleanEndpoint.startsWith('/api/') && !isBackendApiPath(cleanEndpoint)) {
+      // If it starts with /api/ but NOT /api/v1, it's likely a local Next.js API route
+      if (cleanEndpoint.startsWith('/api/') && !cleanEndpoint.startsWith('/api/v1')) {
         url = cleanEndpoint;
-      } else if (isBackendApiPath(cleanEndpoint)) {
-        url = `${API_ORIGIN}${cleanEndpoint}`;
+      } else if (cleanEndpoint.startsWith('/api/v1')) {
+        // Strip the duplicate prefix if API_BASE_URL already has it
+        const base = API_BASE_URL.endsWith('/api/v1')
+          ? API_BASE_URL.replace(/\/api\/v1$/, '')
+          : API_BASE_URL;
+        url = `${base}${cleanEndpoint}`;
       } else {
         url = `${API_BASE_URL}${cleanEndpoint}`;
       }
@@ -143,8 +129,7 @@ class ApiClient {
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
 
           if (response.status === 401 && typeof window !== 'undefined') {
-            const returnTo = `${window.location.pathname}${window.location.search}`;
-            window.location.assign(`/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+            window.location.href = '/api/auth/login';
           }
 
           throw new APIError(response.status, response.statusText, errorData);

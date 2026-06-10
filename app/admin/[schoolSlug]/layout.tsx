@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { useApi } from '@/lib/hooks/useApi';
+import { useSchool } from '@/lib/hooks/useSchool';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -57,6 +58,7 @@ export default function AdminDashboardLayout({
 }) {
   const { schoolSlug } = use(params);
   useApi(); // Initialize API authentication
+  const { schoolId, schoolData, isLoading } = useSchool(schoolSlug);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
 
@@ -212,7 +214,7 @@ export default function AdminDashboardLayout({
 
           <div className="flex items-center gap-2 lg:gap-4">
             <div className="hidden sm:block">
-              <GlobalSearch schoolId={schoolSlug} schoolSlug={schoolSlug} />
+              <GlobalSearch schoolId={schoolId || schoolSlug} schoolSlug={schoolSlug} />
             </div>
             <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all relative">
               <Bell className="w-5 h-5" />
