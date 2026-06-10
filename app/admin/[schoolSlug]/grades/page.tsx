@@ -9,7 +9,7 @@ import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
 import { SchoolAPI, Grade } from '@/lib/api/school-api';
-import { useSchool } from '@/lib/hooks/useSchool';
+import { useSchoolContext } from '@/components/context/SchoolContext';
 import { toast } from 'react-hot-toast';
 
 function cn(...inputs: ClassValue[]) {
@@ -35,7 +35,10 @@ const GradesSkeleton = () => (
 
 export default function SchoolGradesPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
+  const { currentSchool } = useSchoolContext();
+
+  // 2. Safely capture the correct 24-character hexadecimal identifier token
+  const schoolId = currentSchool?.id || currentSchool?._id;
 
   const [isLoading, setIsLoading] = useState(true);
   const [grades, setGrades] = useState<Grade[]>([]);

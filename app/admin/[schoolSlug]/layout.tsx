@@ -20,6 +20,7 @@ import {
 import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { useApi } from '@/lib/hooks/useApi';
 import { useSchool } from '@/lib/hooks/useSchool';
+import { SchoolProvider } from '@/components/context/SchoolContext';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -101,6 +102,7 @@ export default function AdminDashboardLayout({
   );
 
   return (
+    <SchoolProvider initialSchool={schoolData}>
     <div style={themeVars} className="min-h-screen bg-slate-50 flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -241,5 +243,6 @@ export default function AdminDashboardLayout({
         </div>
       </main>
     </div>
+    </SchoolProvider>
   );
 }
