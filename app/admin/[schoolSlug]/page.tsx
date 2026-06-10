@@ -1,6 +1,7 @@
 'use client';
 
 import React, { use } from 'react';
+import { useSchool } from '@/lib/hooks/useSchool';
 import {
   Building2,
   Mail,
@@ -18,8 +19,9 @@ import {
 
 export default function AdminSettingsPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
+  const { schoolData, isLoading } = useSchool(schoolSlug);
 
-  const displayName = schoolSlug
+  const displayName = (schoolData?.schoolName || schoolSlug)
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
@@ -109,7 +111,7 @@ export default function AdminSettingsPage({ params }: { params: Promise<{ school
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    defaultValue="700400585"
+                    defaultValue={schoolData?.emisNumber || "700400585"}
                     disabled
                     className="w-full pl-10 pr-4 py-3 bg-slate-100 border border-slate-200 rounded-xl font-mono text-sm text-slate-500 cursor-not-allowed"
                   />
@@ -137,8 +139,8 @@ export default function AdminSettingsPage({ params }: { params: Promise<{ school
                     <Fingerprint className="w-6 h-6 text-slate-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900 tracking-tight">Auth0 Identifier</p>
-                    <p className="text-xs font-mono text-slate-500 select-all">auth0|65f8a2b3c4d5e6f7g8h9i0j</p>
+                    <p className="text-sm font-bold text-slate-900 tracking-tight">Internal School ID</p>
+                    <p className="text-xs font-mono text-slate-500 select-all">{schoolData?.id || schoolData?._id || "..."}</p>
                   </div>
                 </div>
                 <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-slate-200">

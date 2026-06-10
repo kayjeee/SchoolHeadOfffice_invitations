@@ -105,6 +105,13 @@ export interface LearnerInvitationDetail extends LearnerInvitation {
 }
 
 export class SchoolAPI {
+  // School Lookup
+  static async getSchoolBySlug(slug: string): Promise<any> {
+    const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
+    const schools = response.schools || [];
+    return schools.find((s: any) => s.slug === slug) || schools[0];
+  }
+
   // Grade CRUD
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);

@@ -9,6 +9,7 @@ import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
 import { SchoolAPI, Grade } from '@/lib/api/school-api';
+import { useSchool } from '@/lib/hooks/useSchool';
 import { toast } from 'react-hot-toast';
 
 function cn(...inputs: ClassValue[]) {
@@ -34,6 +35,7 @@ const GradesSkeleton = () => (
 
 export default function SchoolGradesPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
+  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
 
   const [isLoading, setIsLoading] = useState(true);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -50,9 +52,10 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
 
   const fetchGrades = async () => {
+    if (!schoolId) return;
     setIsLoading(true);
     try {
-      const data = await SchoolAPI.getGrades(schoolSlug);
+      const data = await SchoolAPI.getGrades(schoolId);
       setGrades(data);
     } catch (error) {
       console.error('Failed to fetch grades:', error);
@@ -63,8 +66,10 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   };
 
   useEffect(() => {
-    fetchGrades();
-  }, [schoolSlug]);
+    if (schoolId) {
+      fetchGrades();
+    }
+  }, [schoolId]);
 
   const displayName = schoolSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
@@ -337,20 +342,20 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         onClose={() => setIsGradeModalOpen(false)}
         mode={gradeModalMode}
         grade={selectedGrade}
-        schoolId={schoolSlug}
+        schoolId={schoolId || schoolSlug}
         onSuccess={handleGradeSuccess}
       />
 
       <TeacherAssignmentModal
         isOpen={isTeacherModalOpen}
-        schoolId={schoolSlug}
+        schoolId={schoolId || schoolSlug}
         onClose={() => setIsTeacherModalOpen(false)}
         onAssign={handleAssignTeacher}
       />
 
       <LearnerTransitionModal
         isOpen={isLearnerModalOpen}
-        schoolId={schoolSlug}
+        schoolId={schoolId || schoolSlug}
         gradeId={activeGradeId || ''}
         classId={activeClassId || ''}
         onClose={() => setIsLearnerModalOpen(false)}
