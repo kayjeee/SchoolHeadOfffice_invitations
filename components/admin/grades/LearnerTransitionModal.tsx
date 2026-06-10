@@ -37,12 +37,12 @@ export function LearnerTransitionModal({
   const [targetClassId, setTargetClassId] = useState('');
 
   useEffect(() => {
-    if (isOpen && gradeId) {
+    if (isOpen && gradeId && schoolId) {
       const fetchData = async () => {
         setIsLoading(true);
         try {
           const [learnersData, classesData] = await Promise.all([
-            SchoolAPI.getGradeLearners(gradeId),
+            SchoolAPI.getGradeLearners(schoolId, gradeId),
             SchoolAPI.getClasses(schoolId, gradeId)
           ]);
           setLearners(learnersData);
