@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
 const getApiBaseUrl = () => {
-  // If we're on the client and using rewrites, we can use relative paths
-  if (typeof window !== 'undefined') {
-    return '/api/v1';
-  }
-
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!envUrl) return 'http://127.0.0.1:4000/api/v1';
 
@@ -77,10 +72,7 @@ class ApiClient {
       url = endpoint;
     } else {
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      // If it starts with /api/ but NOT /api/v1, it's likely a local Next.js API route
-      if (cleanEndpoint.startsWith('/api/') && !cleanEndpoint.startsWith('/api/v1')) {
-        url = cleanEndpoint;
-      } else if (cleanEndpoint.startsWith('/api/v1')) {
+      if (cleanEndpoint.startsWith('/api/v1')) {
         // Strip the duplicate prefix if API_BASE_URL already has it
         const base = API_BASE_URL.endsWith('/api/v1')
           ? API_BASE_URL.replace(/\/api\/v1$/, '')
