@@ -188,11 +188,19 @@ export class SchoolAPI {
   }
 
   // Learner Movement
-  static async moveLearner(learnerId: string, data: { target_class_id: string; school_id?: string }): Promise<void> {
-    await apiClient.post(`/api/v1/learners/${learnerId}/move`, {
-      learner_id: learnerId,
-      ...data
+  static async moveLearner(learnerId: string, data: { target_class_id: string; school_id: string; grade_id: string }): Promise<void> {
+    const endpoint = `/api/v1/schools/${data.school_id}/grades/${data.grade_id}/classes/${data.target_class_id}/move_learner`;
+    await apiClient.post(endpoint, {
+      learner_id: learnerId
     }, z.any());
+  }
+
+  // School Learners
+  static async getSchoolLearners(schoolId: string): Promise<Learner[]> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, z.any());
+    const data = (response as any).data || response;
+    const learners = data.learners || data;
+    return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
   }
 
   // Grade Learners

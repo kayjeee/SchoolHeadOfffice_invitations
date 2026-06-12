@@ -9,7 +9,7 @@ import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
 import { BulkLearnerUpload } from '@/components/admin/grades/BulkLearnerUpload';
-import { SchoolAPI, Grade } from '@/lib/api/school-api';
+import { SchoolAPI, Grade, Learner } from '@/lib/api/school-api';
 import { useSchoolContext } from '@/components/context/SchoolContext';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +43,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
   const [isLoading, setIsLoading] = useState(true);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [allLearners, setAllLearners] = useState<Learner[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal states
@@ -60,8 +61,12 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     if (!schoolId) return;
     setIsLoading(true);
     try {
-      const data = await SchoolAPI.getGrades(schoolId);
-      setGrades(data);
+      const [gradesData, learnersData] = await Promise.all([
+        SchoolAPI.getGrades(schoolId),
+        SchoolAPI.getSchoolLearners(schoolId)
+      ]);
+      setGrades(gradesData);
+      setAllLearners(learnersData);
     } catch (error) {
       console.error('Failed to fetch grades:', error);
       toast.error('Failed to load grades hierarchy');
@@ -97,6 +102,29 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const handleBulkUploadSuccess = (result: any) => {
     toast.success(`Successfully uploaded ${result.inserted || result.learnersInserted || 0} learners`);
     fetchGrades();
+  };
+
+  const handleAllocateLearner = async (learner: Learner, classId: string) => {
+    if (!schoolId) return;
+
+    // Find the grade ID for the learner
+    const grade = grades.find(g => g.id === learner.grade_id);
+    if (!grade) {
+      toast.error("Could not determine grade context for learner allocation.");
+      return;
+    }
+
+    try {
+      await SchoolAPI.moveLearner(learner.id, {
+        target_class_id: classId,
+        school_id: schoolId,
+        grade_id: grade.id
+      });
+      toast.success(`${learner.name} allocated to Class ${classId}`);
+      fetchGrades(); // Refresh data
+    } catch (error: any) {
+      toast.error(error.message || "Failed to allocate learner");
+    }
   };
 
   const handleClassUpdated = (gradeId: string, updatedClass: any) => {
@@ -330,6 +358,9 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                 key={grade.id}
                 grade={grade}
                 schoolId={schoolSlug}
+                unassignedLearners={allLearners.filter(l =>
+                  l.grade_id === grade.id && (!l.class_id || l.class_id === "")
+                )}
                 onEditGrade={handleEditGrade}
                 onDeleteGrade={handleDeleteGrade}
                 onClassUpdated={handleClassUpdated}
@@ -343,6 +374,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                   setActiveClassId(classId);
                   setIsLearnerModalOpen(true);
                 }}
+                onAllocateLearner={handleAllocateLearner}
               />
             ))}
           </div>

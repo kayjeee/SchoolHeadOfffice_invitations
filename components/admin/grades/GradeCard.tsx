@@ -5,26 +5,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School, Loader2 } from 'lucide-react';
 import { ClassCard } from './ClassCard';
 import { ClassModal } from './ClassModal';
-import { Grade, Class, SchoolAPI } from '@/lib/api/school-api';
+import { UnassignedLearnersPanel } from './UnassignedLearnersPanel';
+import { Grade, Class, SchoolAPI, Learner } from '@/lib/api/school-api';
 
 interface GradeCardProps {
   grade: Grade;
   schoolId: string;
+  unassignedLearners?: Learner[];
   onEditGrade: (grade: Grade) => void;
   onDeleteGrade: (gradeId: string) => void;
   onClassUpdated: (gradeId: string, updatedClass: Class) => void;
   onAssignTeacher: (classId: string) => void;
   onMoveLearner: (classId: string) => void;
+  onAllocateLearner?: (learner: Learner, classId: string) => void;
 }
 
 export function GradeCard({
   grade,
   schoolId,
+  unassignedLearners = [],
   onEditGrade,
   onDeleteGrade,
   onClassUpdated,
   onAssignTeacher,
-  onMoveLearner
+  onMoveLearner,
+  onAllocateLearner
 }: GradeCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -157,7 +162,9 @@ export function GradeCard({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <div className="space-y-8">
+                  {/* Classes Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                   {isLoadingClasses ? (
                     <div className="col-span-2 lg:col-span-3 py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-xl border border-slate-100">
                       <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
@@ -188,6 +195,21 @@ export function GradeCard({
                       No classes found for this grade context. Click "Add Class" to get started.
                     </div>
                   )}
+                  </div>
+
+                  {/* Unassigned Learners Section */}
+                  <div className="pt-6 border-t border-slate-100">
+                    <UnassignedLearnersPanel
+                      learners={unassignedLearners}
+                      onMoveLearner={(learner) => {
+                        // For simplicity, we'll use a selection workflow or the first available class
+                        // In a real dragging scenario, this would be the drop target
+                        if (classesList.length > 0 && onAllocateLearner) {
+                          onAllocateLearner(learner, classesList[0].id);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>
