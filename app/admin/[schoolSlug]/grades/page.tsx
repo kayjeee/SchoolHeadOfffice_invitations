@@ -8,6 +8,7 @@ import { GradeCard } from '@/components/admin/grades/GradeCard';
 import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
+import { BulkLearnerUpload } from '@/components/admin/grades/BulkLearnerUpload';
 import { SchoolAPI, Grade } from '@/lib/api/school-api';
 import { useSchoolContext } from '@/components/context/SchoolContext';
 import { toast } from 'react-hot-toast';
@@ -51,6 +52,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isLearnerModalOpen, setIsLearnerModalOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
 
@@ -89,6 +91,11 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   ).length;
 
   const handleGradeSuccess = () => {
+    fetchGrades();
+  };
+
+  const handleBulkUploadSuccess = (result: any) => {
+    toast.success(`Successfully uploaded ${result.inserted || result.learnersInserted || 0} learners`);
     fetchGrades();
   };
 
@@ -181,9 +188,12 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+          <button
+            onClick={() => setIsBulkUploadOpen(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+          >
             <Download className="w-4 h-4" />
-            Export Report
+            Bulk Upload Learners
           </button>
           <button
             onClick={() => {
@@ -363,6 +373,12 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         classId={activeClassId || ''}
         onClose={() => setIsLearnerModalOpen(false)}
         onTransition={handleTransitionLearner}
+      />
+
+      <BulkLearnerUpload
+        isOpen={isBulkUploadOpen}
+        onClose={() => setIsBulkUploadOpen(false)}
+        onSuccess={handleBulkUploadSuccess}
       />
     </div>
   );
