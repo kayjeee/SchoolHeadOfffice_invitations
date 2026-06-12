@@ -11,5 +11,6 @@ export const getGrades = async (schoolId: string): Promise<Grade[]> => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
-  return data.data.grades;
+  // Support both { success: true, grades: [...] } and { success: true, data: { grades: [...] } }
+  return data.grades || data.data?.grades || [];
 };
