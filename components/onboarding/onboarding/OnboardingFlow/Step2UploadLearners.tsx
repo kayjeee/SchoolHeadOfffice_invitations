@@ -62,7 +62,9 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         const token = localStorage.getItem("authToken");
 
         const gradesData = await fetchSchoolGrades(targetSchoolId, token);
-        setGrades(gradesData.data?.grades || []);
+        // Backend returns { success: true, grades: [...] }
+        const resolvedGrades = gradesData.grades || gradesData.data?.grades || [];
+        setGrades(resolvedGrades);
       } catch (error: any) {
         setGradeError("Network error. Please check your connection.");
       } finally {
