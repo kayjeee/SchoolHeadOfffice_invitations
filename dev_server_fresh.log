@@ -1,0 +1,204 @@
+
+> dev
+> next
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+ ⚠ Port 3001 is in use, trying 3002 instead.
+ ⚠ Port 3002 is in use, trying 3003 instead.
+ ⚠ Port 3003 is in use, trying 3004 instead.
+ ⚠ Port 3004 is in use, trying 3005 instead.
+ ⚠ Port 3005 is in use, trying 3006 instead.
+ ⚠ Port 3006 is in use, trying 3007 instead.
+ ⚠ Port 3007 is in use, trying 3008 instead.
+   ▲ Next.js 15.0.7
+   - Local:        http://localhost:3008
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling /admin/[schoolSlug]/grades ...
+ ✓ Compiled /admin/[schoolSlug]/grades in 18.3s (1832 modules)
+🏫 [BulkUploadModal] Component mounted
+📦 [BulkUploadModal] Props received: {
+  isOpen: false,
+  selectedGrade: null,
+  schools: [],
+  schoolsCount: 0,
+  user: null
+}
+✅ [BulkUploadModal] School resolution complete: { original: [], safe: [], count: 0 }
+ GET /admin/far-north-secondary-school/grades 200 in 22012ms
+(node:15906) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to proxy http://127.0.0.1:4000/api?search=far-north-secondary-school Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ○ Compiling /api/auth/[...auth0] ...
+Failed to proxy http://127.0.0.1:4000/api?search=far-north-secondary-school Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?search=far-north-secondary-school Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ✓ Compiled /api/auth/[...auth0] in 12.2s (2177 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ⨯ ./components/admin/grades/GradeCard.tsx
+Error:   [31mx[0m Expression expected
+     ,-[[36;1;4m/app/components/admin/grades/GradeCard.tsx[0m:101:1]
+ [2m 98[0m |   };
+ [2m 99[0m |
+ [2m100[0m |   return (
+ [2m101[0m |     <>
+     : [35;1m     ^[0m
+ [2m102[0m |       <div
+ [2m103[0m |         onDragOver={handleDragOver}
+ [2m104[0m |         className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
+     `----
+  [31mx[0m Unexpected token `motion`. Expected jsx identifier
+     ,-[[36;1;4m/app/components/admin/grades/GradeCard.tsx[0m:161:1]
+ [2m158[0m |         {/* Expanded Classes Section */}
+ [2m159[0m |         <AnimatePresence>
+ [2m160[0m |           {isExpanded && (
+ [2m161[0m |             <motion.div
+     : [35;1m             ^^^^^^[0m
+ [2m162[0m |               initial={{ height: 0, opacity: 0 }}
+ [2m163[0m |               animate={{ height: 'auto', opacity: 1 }}
+ [2m164[0m |               exit={{ height: 0, opacity: 0 }}
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/admin/grades/GradeCard.tsx
+./app/admin/[schoolSlug]/grades/page.tsx

@@ -203,6 +203,14 @@ export class SchoolAPI {
     return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
   }
 
+  // Bulk Upload
+  static async bulkUploadLearners(schoolId: string, learners: any[]): Promise<any> {
+    return await apiClient.post(`/api/v1/learners/bulk_upload`, {
+      school_id: schoolId,
+      learners
+    }, z.any());
+  }
+
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string): Promise<Learner[]> {
     const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}`, z.any());

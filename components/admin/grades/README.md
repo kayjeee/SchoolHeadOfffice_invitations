@@ -6,41 +6,46 @@ This directory contains the components for the School Management Hierarchy Inter
 
 ### `GradeCard.tsx`
 The primary unit for grade-level management. It features an accordion design that expands to reveal classes.
-- **Features**: Grade metadata, class list, and unassigned learners panel.
-- **Interactions**: Acts as a container for class-level actions.
+- **Features**: Grade metadata, class list.
+- **Dynamic Fetching**: On expand, it triggers a fetch for classes under that specific grade if they haven't been loaded.
 
 ### `ClassCard.tsx`
 Represents individual class sections (e.g., 9A, 9B).
-- **Features**: Capacity tracking via dynamic progress bars, teacher assignments, and learner list.
+- **Features**: Capacity tracking via dynamic progress bars (Emerald -> Amber -> Red), teacher assignments, and learner list.
 - **Drag & Drop**: Acts as a **Drop Target** for learners. Highlighted visually when a learner is dragged over.
 
 ### `LearnersSidebar.tsx`
-A stateful sidebar providing a centralized view of all school learners.
+A dedicated, stateful sidebar on the right side of the main grid.
 - **Features**:
-  - Tabs for **Unassigned** vs **Assigned** learners.
-  - Grade-level filtering.
-  - Parent invitation status badges.
+  - Tabs for **Unassigned** vs **All Learners**.
+  - Search by name or accession number.
+  - Grade-level filtering dropdown.
+  - Parent invitation status badges ("Accepted", "Pending", "No Parent").
 - **Drag & Drop**: Acts as the **Drag Source** for unassigned learners.
 
 ### `BulkUploadModal.tsx`
 A high-performance wrapper around the onboarding CSV parser.
-- **Usage**: Triggered via the "Import Learners" button in the header or sidebar.
-- **Features**: CSV drag-and-drop, field mapping, and bulk backend insertion.
+- **Usage**: Triggered via the "Import" button in the sidebar header.
+- **API**: Sends records to `POST /api/v1/learners/bulk_upload`.
 
-### `Modals/`
-- `GradeModal.tsx`: CRUD for grade levels.
-- `TeacherAssignmentModal.tsx`: Role-based teacher allocation (Class vs Subject).
-- `LearnerTransitionModal.tsx`: Quick shifting of learners between classes.
+### `LearnerTransitionModal.tsx`
+A 2-step wizard for shifting learners between classes within the same grade.
+- **Step 1**: Search and select learner from the grade roster.
+- **Step 2**: Select target class stream.
+- **Action**: Dispatches `onTransition` callback which triggers `move_learner` API.
 
 ## State & Data Flow
-The interface uses a combination of **SWR** (for data fetching) and **Optimistic Updates** (for learner allocation) to ensure a zero-latency feel.
+The interface follows a **Single-Fetch Strategy** for global school data combined with **On-Demand Hydration** for nested resources.
 
-1. **Allocation**: When a learner is dropped onto a `ClassCard`, the `onAllocateLearner` handler in `page.tsx` is triggered.
-2. **Optimistic Update**: The UI immediately moves the learner and updates capacity counters.
-3. **API Sync**: A background request is sent to `POST /api/v1/.../move_learner`.
-4. **Revalidation**: Data is refetched to ensure consistency with the backend.
+1. **Initialization**: `page.tsx` fetches all school learners and grades once on mount.
+2. **Expansion**: `GradeCard` fetches its own classes when expanded.
+3. **Allocation**: Dragging a learner from `LearnersSidebar` to `ClassCard` triggers an **Optimistic Update**.
+4. **Optimistic Update**:
+   - `allLearners` state is updated to set the new `class_id`.
+   - `grades` state is updated to increment the `current_learners` of the target class.
+   - UI reflects the move immediately while the API request (`move_learner`) runs in the background.
 
-## Styling
-Components strictly adhere to the school's theme identity:
-- **Primary Color**: Emerald (#059669) for primary actions and accents.
-- **Secondary Colors**: Slate for text/borders, Amber for warnings/pending states.
+## Styling & UX
+- **Theme**: Strictly uses the school emerald primary color (#059669).
+- **Animations**: `framer-motion` for accordion transitions and layout shifts.
+- **Feedback**: `react-hot-toast` for success/error notifications.
