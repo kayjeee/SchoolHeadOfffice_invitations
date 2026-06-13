@@ -30,7 +30,7 @@ interface ClassCardProps {
 }
 
 export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner }: ClassCardProps) {
-  const learnerCount = classData.current_learners ?? classData.learnerCount || 0;
+  const learnerCount = (classData.current_learners ?? classData.learnerCount) || 0;
   const classTeacher = classData.class_teacher_name ?? classData.classTeacher;
   const subjectTeachers = classData.subject_teachers ?? classData.subjectTeachers;
 
