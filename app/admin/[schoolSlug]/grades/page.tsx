@@ -8,7 +8,8 @@ import { GradeCard } from '@/components/admin/grades/GradeCard';
 import { GradeModal } from '@/components/admin/grades/GradeModal';
 import { TeacherAssignmentModal } from '@/components/admin/grades/TeacherAssignmentModal';
 import { LearnerTransitionModal } from '@/components/admin/grades/LearnerTransitionModal';
-import { BulkLearnerUpload } from '@/components/admin/grades/BulkLearnerUpload';
+import { BulkUploadModal } from '@/components/admin/grades/BulkUploadModal';
+import { LearnersSidebar } from '@/components/admin/grades/LearnersSidebar';
 import { SchoolAPI, Grade, Learner } from '@/lib/api/school-api';
 import { useSchoolContext } from '@/components/context/SchoolContext';
 import { toast } from 'react-hot-toast';
@@ -56,6 +57,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
+  const [refreshSidebar, setRefreshSidebar] = useState(0);
 
   const fetchGrades = async () => {
     if (!schoolId) return;
@@ -88,7 +90,9 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   );
 
   // Calculate statistics
-  const totalLearners = grades.reduce((acc, g) => acc + (g.total_learners || 0), 0);
+  const totalLearners = allLearners.length;
+  const unassignedLearnersCount = allLearners.filter(l => !(l as any).class_id).length;
+  const assignedLearnersCount = totalLearners - unassignedLearnersCount;
   const totalClasses = grades.reduce((acc, g) => acc + (g.total_classes || 0), 0);
   const avgClassSize = totalClasses > 0 ? Math.round(totalLearners / totalClasses) : 0;
   const capacityIssues = grades.flatMap(g =>
@@ -107,22 +111,48 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const handleAllocateLearner = async (learner: Learner, classId: string) => {
     if (!schoolId) return;
 
-    // Find the grade ID for the learner
-    const grade = grades.find(g => g.id === learner.grade_id);
-    if (!grade) {
-      toast.error("Could not determine grade context for learner allocation.");
+    const targetGradeId = (learner as any).grade_id || (grades.length > 0 ? grades[0].id : '');
+
+    if (!targetGradeId) {
+      toast.error("Grade context missing for learner allocation.");
       return;
     }
+
+    // Optimistic Update
+    const previousLearners = [...allLearners];
+    const previousGrades = [...grades];
+
+    setAllLearners(prev => prev.map(l =>
+      l.id === learner.id ? { ...l, class_id: classId } : l
+    ));
+
+    setGrades(prev => prev.map(g => {
+      if (g.id === targetGradeId) {
+        return {
+          ...g,
+          classes: g.classes?.map(c => {
+            if (c.id === classId) {
+              return { ...c, current_learners: (c.current_learners || 0) + 1 };
+            }
+            return c;
+          })
+        };
+      }
+      return g;
+    }));
 
     try {
       await SchoolAPI.moveLearner(learner.id, {
         target_class_id: classId,
         school_id: schoolId,
-        grade_id: grade.id
+        grade_id: targetGradeId
       });
-      toast.success(`${learner.name} allocated to Class ${classId}`);
-      fetchGrades(); // Refresh data
+      toast.success(`${learner.name} successfully allocated!`);
+      setRefreshSidebar(prev => prev + 1);
+      fetchGrades();
     } catch (error: any) {
+      setAllLearners(previousLearners);
+      setGrades(previousGrades);
       toast.error(error.message || "Failed to allocate learner");
     }
   };
@@ -201,7 +231,8 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   };
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50/50">
+      <div className="flex-1 p-6 lg:p-10 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-y-auto">
       {/* Dynamic Header with Quick Actions */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
         <div>
@@ -257,9 +288,13 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
           <h4 className="text-3xl font-black text-slate-900">
             {isLoading ? '...' : totalLearners}
           </h4>
-          <div className="flex items-center gap-1.5 mt-2 text-emerald-500 font-bold text-xs">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>4.2% increase</span>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+              {assignedLearnersCount} Assigned
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
+              {unassignedLearnersCount} Unassigned
+            </span>
           </div>
         </div>
 
@@ -407,10 +442,19 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         onTransition={handleTransitionLearner}
       />
 
-      <BulkLearnerUpload
+      <BulkUploadModal
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
         onSuccess={handleBulkUploadSuccess}
+      />
+      </div>
+
+      {/* Learners Sidebar */}
+      <LearnersSidebar
+        schoolId={schoolId || schoolSlug}
+        grades={grades}
+        onImportClick={() => setIsBulkUploadOpen(true)}
+        refreshTrigger={refreshSidebar}
       />
     </div>
   );

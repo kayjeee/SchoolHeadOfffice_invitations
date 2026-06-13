@@ -79,9 +79,19 @@ export function GradeCard({
     setIsClassModalOpen(true);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isExpanded) {
+      setIsExpanded(true);
+    }
+  };
+
   return (
     <>
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+      <div
+        onDragOver={handleDragOver}
+        className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
+      >
         {/* Grade Header */}
         <div
           className="p-6 cursor-pointer hover:bg-slate-50/50 transition-colors"
@@ -178,6 +188,7 @@ export function GradeCard({
                         onEdit={() => handleEditClass(schoolClass)}
                         onAssignTeacher={onAssignTeacher}
                         onMoveLearner={onMoveLearner}
+                        onDropLearner={onAllocateLearner}
                       />
                     ))
                   ) : (

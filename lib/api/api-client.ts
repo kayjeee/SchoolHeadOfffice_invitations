@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const getApiBaseUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!envUrl) return 'http://127.0.0.1:4000/api/v1';
+  // Default to relative path for Next.js Proxy/Rewrites compatibility
+  if (!envUrl) return '/api/v1';
 
   if (envUrl.includes('/api/v1')) {
     return envUrl.replace(/\/$/, '');

@@ -29,7 +29,8 @@ interface ClassCardProps {
   onMoveLearner?: (classId: string) => void;
 }
 
-export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner }: ClassCardProps) {
+export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner, onDropLearner }: ClassCardProps & { onDropLearner?: (learner: any, classId: string) => void }) {
+  const [isOver, setIsOver] = React.useState(false);
   const learnerCount = (classData.current_learners ?? classData.learnerCount) || 0;
   const classTeacher = classData.class_teacher_name ?? classData.classTeacher;
   const subjectTeachers = classData.subject_teachers ?? classData.subjectTeachers;
@@ -43,8 +44,42 @@ export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner }:
     ? subjectTeachers
     : Object.entries(subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+    const learnerData = e.dataTransfer.getData('learner');
+    if (learnerData && onDropLearner) {
+      const learner = JSON.parse(learnerData);
+      onDropLearner(learner, classData.id);
+    }
+  };
+
   return (
-    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-emerald-500 transition-colors duration-200 flex flex-col justify-between group">
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={cn(
+        "p-4 bg-white rounded-lg border transition-all duration-200 flex flex-col justify-between group relative",
+        isOver ? "border-school-primary border-2 bg-school-primary/5 scale-[1.02] shadow-lg" : "border-slate-200 shadow-sm hover:border-emerald-500"
+      )}
+    >
+      {isOver && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="bg-school-primary text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-bounce">
+            DROP TO ALLOCATE
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-slate-800 text-lg group-hover:text-school-primary transition-colors">
           Class {classData.name}
