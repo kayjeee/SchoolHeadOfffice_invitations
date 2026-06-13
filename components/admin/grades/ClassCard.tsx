@@ -10,12 +10,15 @@ function cn(...inputs: ClassValue[]) {
 }
 
 interface ClassCardProps {
-  cls: {
+  classData: {
     id: string;
     name: string;
-    learnerCount: number;
+    current_learners?: number;
+    learnerCount?: number;
     capacity: number;
+    class_teacher_name?: string;
     classTeacher?: string;
+    subject_teachers?: { name: string; subject: string }[] | Record<string, string>;
     subjectTeachers?: { name: string; subject: string }[] | Record<string, string>;
     learners?: any[];
   };
@@ -26,32 +29,36 @@ interface ClassCardProps {
   onMoveLearner?: (classId: string) => void;
 }
 
-export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: ClassCardProps) {
-  const occupancyPercentage = (cls.learnerCount / cls.capacity) * 100;
-  const isOverCapacity = cls.learnerCount > cls.capacity;
+export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner }: ClassCardProps) {
+  const learnerCount = classData.current_learners ?? classData.learnerCount || 0;
+  const classTeacher = classData.class_teacher_name ?? classData.classTeacher;
+  const subjectTeachers = classData.subject_teachers ?? classData.subjectTeachers;
+
+  const occupancyPercentage = (learnerCount / classData.capacity) * 100;
+  const isOverCapacity = learnerCount > classData.capacity;
   const isNearCapacity = occupancyPercentage >= 90 && !isOverCapacity;
 
   // Normalize subject teachers for rendering
-  const subjectTeachersArray = Array.isArray(cls.subjectTeachers)
-    ? cls.subjectTeachers
-    : Object.entries(cls.subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
+  const subjectTeachersArray = Array.isArray(subjectTeachers)
+    ? subjectTeachers
+    : Object.entries(subjectTeachers || {}).map(([subject, name]) => ({ name: name as string, subject }));
 
   return (
     <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-emerald-500 transition-colors duration-200 flex flex-col justify-between group">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-slate-800 text-lg group-hover:text-school-primary transition-colors">
-          Class {cls.name}
+          Class {classData.name}
         </h4>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onAssignTeacher?.(cls.id)}
+            onClick={() => onAssignTeacher?.(classData.id)}
             className="p-1.5 text-slate-400 hover:text-school-primary hover:bg-school-primary/10 rounded-lg transition-all"
             title="Assign Teacher"
           >
             <User className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onMoveLearner?.(cls.id)}
+            onClick={() => onMoveLearner?.(classData.id)}
             className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
             title="Move Learners"
           >
@@ -78,7 +85,7 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
               Utilization
             </span>
             <span className="font-medium text-slate-700">
-              {cls.learnerCount || 0} / {cls.capacity}
+              {learnerCount} / {classData.capacity}
             </span>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
@@ -108,10 +115,10 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Enrolled Learners & Guarded Parents
             </p>
-            {cls.learners && cls.learners.length > 0 ? (
+            {classData.learners && classData.learners.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
                 <ul className="divide-y divide-slate-100 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                  {cls.learners.map((learner) => (
+                  {classData.learners.map((learner) => (
                     <li
                       key={learner.id}
                       className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
@@ -164,7 +171,7 @@ export function ClassCard({ cls, onEdit, onAssignTeacher, onMoveLearner }: Class
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Class Teacher</p>
               <p className="text-sm font-bold text-slate-900">
-                {cls.classTeacher || 'Not assigned'}
+                {classTeacher || 'Not assigned'}
               </p>
             </div>
           </div>

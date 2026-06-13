@@ -145,8 +145,8 @@ export class SchoolAPI {
   // Class CRUD
   static async getClasses(schoolId: string, gradeId: string): Promise<Class[]> {
     const response = await apiClient.get(`/api/v1/grades/${gradeId}/classes?school_id=${schoolId}`, z.any());
-    const data = (response as any).data || response;
-    const classes = data.classes || data;
+    // Backend returns { success: true, classes: [...] }
+    const classes = response.classes || response.data?.classes || [];
     return Array.isArray(classes) ? z.array(ClassSchema).parse(classes) : [];
   }
 

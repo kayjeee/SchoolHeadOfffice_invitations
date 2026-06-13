@@ -357,7 +357,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
               <GradeCard
                 key={grade.id}
                 grade={grade}
-                schoolId={schoolSlug}
+                schoolId={schoolId || schoolSlug}
                 unassignedLearners={allLearners.filter(l =>
                   l.grade_id === grade.id && (!l.class_id || l.class_id === "")
                 )}
