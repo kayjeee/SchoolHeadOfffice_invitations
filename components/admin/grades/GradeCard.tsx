@@ -5,8 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School, Loader2 } from 'lucide-react';
 import { ClassCard } from './ClassCard';
 import { ClassModal } from './ClassModal';
-import { UnassignedLearnersPanel } from './UnassignedLearnersPanel';
 import { Grade, Class, SchoolAPI, Learner } from '@/lib/api/school-api';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface GradeCardProps {
   grade: Grade;
@@ -98,12 +103,11 @@ export function GradeCard({
   };
 
   return (
-    <>
+    <React.Fragment>
       <div
         onDragOver={handleDragOver}
         className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
       >
-        {/* Grade Header */}
         <div
           className="p-6 cursor-pointer hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -155,7 +159,6 @@ export function GradeCard({
           </div>
         </div>
 
-        {/* Expanded Classes Section */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -166,7 +169,6 @@ export function GradeCard({
               className="border-t border-slate-100 bg-slate-50/30"
             >
               <div className="p-0">
-                {/* Tabs Header */}
                 <div className="flex items-center gap-6 px-6 pt-4 border-b border-slate-100 bg-white">
                   <button
                     onClick={() => setActiveTab('classes')}
@@ -201,144 +203,142 @@ export function GradeCard({
                 </div>
 
                 <div className="p-6">
-                {activeTab === 'classes' && (
-                  <>
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-slate-700">Class Streams</h4>
-                    <button
-                    onClick={() => {
-                      setSelectedClass(null);
-                      setClassModalMode('create');
-                      setIsClassModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-3 py-2 bg-school-primary text-white text-sm font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-md"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Class
-                  </button>
-                </div>
+                  {activeTab === 'classes' && (
+                    <React.Fragment>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold text-slate-700">Class Streams</h4>
+                        <button
+                          onClick={() => {
+                            setSelectedClass(null);
+                            setClassModalMode('create');
+                            setIsClassModalOpen(true);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 bg-school-primary text-white text-sm font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-md"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Class
+                        </button>
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {isLoadingClasses ? (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-400">
-                      <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
-                      <p className="text-sm font-medium">Hydrating classes...</p>
-                    </div>
-                  ) : classesList.length > 0 ? (
-                    classesList.map((schoolClass) => (
-                      <ClassCard
-                        key={schoolClass.id}
-                        classData={schoolClass}
-                        schoolId={schoolId}
-                        gradeId={grade.id}
-                        onEdit={() => handleEditClass(schoolClass)}
-                        onAssignTeacher={onAssignTeacher}
-                        onMoveLearner={onMoveLearner}
-                        onDropLearner={onAllocateLearner}
-                      />
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center py-8 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
-                      No classes found. Click "Add Class" to get started.
-                    </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {isLoadingClasses ? (
+                          <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-400">
+                            <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                            <p className="text-sm font-medium">Hydrating classes...</p>
+                          </div>
+                        ) : classesList.length > 0 ? (
+                          classesList.map((schoolClass) => (
+                            <ClassCard
+                              key={schoolClass.id}
+                              classData={schoolClass}
+                              schoolId={schoolId}
+                              gradeId={grade.id}
+                              onEdit={() => handleEditClass(schoolClass)}
+                              onAssignTeacher={onAssignTeacher}
+                              onMoveLearner={onMoveLearner}
+                              onDropLearner={onAllocateLearner}
+                            />
+                          ))
+                        ) : (
+                          <div className="col-span-full text-center py-8 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                            No classes found. Click "Add Class" to get started.
+                          </div>
+                        )}
+                      </div>
+                    </React.Fragment>
                   )}
-                  </div>
-                  </>
-                )}
 
-                {activeTab === 'learners' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
-                      <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
-                    </div>
-                    {isLoadingLearners ? (
-                      <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                      <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
-                        <p className="text-sm font-medium">Loading roster...</p>
-                    </div>
-                    ) : gradeLearners.length > 0 ? (
-                      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                            <tr>
-                              <th className="px-6 py-4">Name</th>
-                              <th className="px-6 py-4">Status</th>
-                              <th className="px-6 py-4">Class</th>
-                              <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                            {gradeLearners.map(l => (
-                              <tr key={l.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-4">
-                                  <p className="font-bold text-slate-900">{l.name}</p>
-                                  <p className="text-[10px] text-slate-400">{l.admission_number || 'No ID'}</p>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className={cn(
-                                    "px-2 py-1 rounded-full text-[10px] font-bold border",
-                                    l.status === 'Linked' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
-                                  )}>
-                                    {l.status}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="font-medium text-slate-600">{(l as any).class_name || 'Unassigned'}</span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => onMoveLearner((l as any).class_id || '')}
-                                    className="p-2 text-slate-400 hover:text-school-primary rounded-lg transition-all"
-                                  >
-                                    <Users className="w-4 h-4" />
-                                  </button>
-                                </td>
+                  {activeTab === 'learners' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
+                        <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
+                      </div>
+                      {isLoadingLearners ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                          <p className="text-sm font-medium">Loading roster...</p>
+                        </div>
+                      ) : gradeLearners.length > 0 ? (
+                        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                              <tr>
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Class</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                  ) : (
-                      <div className="text-center py-12 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
-                        No learners assigned to this grade yet.
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                              {gradeLearners.map(l => (
+                                <tr key={l.id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <p className="font-bold text-slate-900">{l.name}</p>
+                                    <p className="text-[10px] text-slate-400">{l.admission_number || 'No ID'}</p>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className={cn(
+                                      "px-2 py-1 rounded-full text-[10px] font-bold border",
+                                      l.status === 'Linked' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                                    )}>
+                                      {l.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className="font-medium text-slate-600">{(l as any).class_name || 'Unassigned'}</span>
+                                  </td>
+                                  <td className="px-6 py-4 text-right">
+                                    <button
+                                      onClick={() => onMoveLearner((l as any).class_id || '')}
+                                      className="p-2 text-slate-400 hover:text-school-primary rounded-lg transition-all"
+                                    >
+                                      <Users className="w-4 h-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-lg">
+                          No learners assigned to this grade yet.
+                        </div>
+                      )}
                     </div>
                   )}
-                  </div>
-                )}
 
-                {activeTab === 'move' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-700">Quick Transition</h4>
-                      <p className="text-xs text-slate-500">Shift students between streams</p>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
-                      <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Users className="w-8 h-8" />
+                  {activeTab === 'move' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-700">Quick Transition</h4>
+                        <p className="text-xs text-slate-500">Shift students between streams</p>
                       </div>
-                      <h5 className="font-bold text-slate-900 mb-2">Promote or Reassign</h5>
-                      <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
-                        Use the move tool to transfer learners to another grade or class for promotion or reassignment.
-                      </p>
-                      <button
-                        onClick={() => onMoveLearner('')}
-                        className="px-6 py-2 bg-school-primary text-white font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-lg shadow-school-primary/20"
-                      >
-                        Launch Transition Tool
-                      </button>
+                      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center">
+                        <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Users className="w-8 h-8" />
+                        </div>
+                        <h5 className="font-bold text-slate-900 mb-2">Promote or Reassign</h5>
+                        <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                          Use the move tool to transfer learners to another grade or class for promotion or reassignment.
+                        </p>
+                        <button
+                          onClick={() => onMoveLearner('')}
+                          className="px-6 py-2 bg-school-primary text-white font-bold rounded-xl hover:bg-school-primary/90 transition-all shadow-lg shadow-school-primary/20"
+                        >
+                          Launch Transition Tool
+                        </button>
+                      </div>
                     </div>
+                  )}
                 </div>
-                )}
-                </div>
-              </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Class Modal */}
       <ClassModal
         isOpen={isClassModalOpen}
         onClose={() => setIsClassModalOpen(false)}
@@ -348,6 +348,6 @@ export function GradeCard({
         schoolId={schoolId}
         onSuccess={handleClassSuccess}
       />
-    </>
+    </React.Fragment>
   );
 }
