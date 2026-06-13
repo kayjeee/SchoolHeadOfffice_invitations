@@ -47,23 +47,21 @@ export function GradeCard({
 
   useEffect(() => {
     const fetchGradeDetails = async () => {
-      if (isExpanded && classesList.length === 0 && (grade.total_classes || 0) > 0) {
+      if (isExpanded && classesList.length === 0 && schoolId) {
         setIsLoadingClasses(true);
         try {
-          const fullGrade = await SchoolAPI.getGrade(grade.id);
-          if (fullGrade) {
-            setGradeMetadata(fullGrade);
-            setClassesList(fullGrade.classes || []);
-          }
+          // Fetch classes directly using the school and grade context
+          const classes = await SchoolAPI.getClasses(schoolId, grade.id);
+          setClassesList(classes);
         } catch (error) {
-          console.error("Failed to fetch grade details:", error);
+          console.error("Failed to fetch classes for grade:", error);
         } finally {
           setIsLoadingClasses(false);
         }
       }
     };
     fetchGradeDetails();
-  }, [isExpanded, grade.id, classesList.length, grade.total_classes]);
+  }, [isExpanded, grade.id, schoolId, classesList.length]);
 
   const handleClassSuccess = (updatedClass: Class) => {
     setClassesList(prev => {
@@ -174,15 +172,7 @@ export function GradeCard({
                     classesList.map((schoolClass) => (
                       <ClassCard
                         key={schoolClass.id}
-                        cls={{
-                          id: schoolClass.id,
-                          name: schoolClass.name,
-                          learnerCount: schoolClass.current_learners || 0,
-                          capacity: schoolClass.capacity || 40,
-                          classTeacher: schoolClass.class_teacher_name,
-                          subjectTeachers: schoolClass.subject_teachers,
-                          learners: schoolClass.learners,
-                        }}
+                        classData={schoolClass}
                         schoolId={schoolId}
                         gradeId={grade.id}
                         onEdit={() => handleEditClass(schoolClass)}
