@@ -22,7 +22,7 @@ export const gradeService = {
       
       // Transform to match Grade interface
       return grades.map((grade: any) => ({
-        id: grade.id,
+        id: grade.id || grade._id,
         name: grade.name,
         description: grade.description,
         learnerCount: grade.learners_count || grade.stats?.learners_count || 0
