@@ -227,7 +227,10 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
           <ChannelSelection
             channels={CHANNELS}
             selectedChannels={selectedChannels}
-            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
+            learners={allLearners.filter(l => {
+              const gid = l.grade_id || l.gradeId;
+              return gid && selectedGrades.includes(gid);
+            })}
             selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))}
             onChannelSelection={handleChannelSelection}
             onSelectAllChannels={handleSelectAllChannels}
@@ -250,7 +253,10 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         return (
           <InviteResults
             selectedChannels={selectedChannels}
-            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
+            learners={allLearners.filter(l => {
+              const gid = l.grade_id || l.gradeId;
+              return gid && selectedGrades.includes(gid);
+            })}
             inviteMessage={inviteMessage}
             schools={schools}
             school={targetSchool}
