@@ -5,6 +5,16 @@ import SmsService from '../../../../../../../lib/services/SmsService';
 import { Grade, Learner } from '../../types';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
+const getLearnerFullName = (learner: Learner): string => {
+  if (learner.full_name && learner.full_name !== 'Unnamed Learner') {
+    return learner.full_name;
+  }
+  const fName = (learner as any).firstName || learner.first_name || '';
+  const lName = (learner as any).lastName || learner.last_name || '';
+  const fullName = `${fName} ${lName}`.trim();
+  return fullName || 'Unnamed Learner';
+};
+
 interface SmsModalContentProps {
   learners: Learner[];
   grades: Grade[];
@@ -49,7 +59,8 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
       learner.contact?.whatsapp,
       learner.contact?.tel_home,
       learner.contact?.tel_emergency,
-      learner.contact?.telegram
+      learner.contact?.telegram,
+      learner.telegram,
     ];
 
     return phoneFields.filter(phone => {
@@ -96,8 +107,8 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
     try {
       const recipients = learnersWithSms.map(l => ({
         phone: getBestPhoneNumber(l),
-        name: l.full_name,
-        learner_number: l.accession_number,
+        name: getLearnerFullName(l),
+        learner_number: (l as any).accession_number || (l as any).accessionNumber || l.id,
       }));
       const result = await SmsService.sendBulkMessages({
         schoolName,
@@ -203,7 +214,7 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
               <tbody>
                 {learnersWithSms.map((learner, index) => (
                   <tr key={learner.id} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                    <td className="p-2 border-b border-blue-100 text-gray-700">{learner.full_name}</td>
+                    <td className="p-2 border-b border-blue-100 text-gray-700">{getLearnerFullName(learner)}</td>
                     <td className="p-2 border-b border-blue-100 font-mono text-blue-700">{getBestPhoneNumber(learner)}</td>
                     <td className="p-2 border-b border-blue-100 text-gray-600">{grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'}</td>
                   </tr>
