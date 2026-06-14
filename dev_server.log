@@ -135,3 +135,7 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   4 |
  ✓ Compiled in 15.8s (1157 modules)
  ✓ Compiled in 2.3s (1157 modules)
+ ✓ Compiled in 21.3s (1157 modules)
+ ✓ Compiled in 4.8s (1157 modules)
+ ✓ Compiled in 1363ms (1157 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/app/.next/cache/webpack/client-development/0.pack.gz'

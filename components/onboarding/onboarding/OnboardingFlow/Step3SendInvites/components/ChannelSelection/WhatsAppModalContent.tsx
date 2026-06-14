@@ -34,6 +34,16 @@ interface ContactRow {
   hasWhatsApp: boolean;
 }
 
+const getLearnerFullName = (learner: Learner): string => {
+  if (learner.full_name && learner.full_name !== 'Unnamed Learner') {
+    return learner.full_name;
+  }
+  const fName = (learner as any).firstName || learner.first_name || '';
+  const lName = (learner as any).lastName || learner.last_name || '';
+  const fullName = `${fName} ${lName}`.trim();
+  return fullName || 'Unnamed Learner';
+};
+
 /* ───────────────────────── COMPONENT ───────────────────────── */
 
 export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
@@ -95,6 +105,8 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       (learner as any).contact?.whatsapp,
       (learner as any).contact?.tel_home,
       (learner as any).contact?.tel_emergency,
+      (learner as any).contact?.telegram,
+      (learner as any).telegram,
     ];
 
     return rawValues.filter((value): value is string => {
@@ -173,7 +185,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
 
       const recipients: BulkRecipient[] = learnersWithWhatsApp.map(c => ({
         phone: c.whatsappNumber!,
-        name: c.learner.full_name,
+        name: getLearnerFullName(c.learner),
         learner_number: c.accessionNumber,
       }));
 
@@ -224,7 +236,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     const text = learnersWithWhatsApp
       .map(
         c =>
-          `${c.learner.full_name}: ${c.whatsappNumber} (${c.accessionNumber})`
+          `${getLearnerFullName(c.learner)}: ${c.whatsappNumber} (${c.accessionNumber})`
       )
       .join('\n');
 
@@ -268,7 +280,11 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       {activeTab === 'contacts' && (
         <div className="space-y-4">
           <div className="flex gap-2">
-            <button onClick={handleCopyWhatsAppNumbers} className="btn-green">
+            <button
+              onClick={handleCopyWhatsAppNumbers}
+              disabled={learnersWithWhatsApp.length === 0}
+              className="btn-green disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               📋 Copy Names & Numbers
             </button>
             <button onClick={handleCopyPhoneNumbersOnly} className="btn-green-light">
@@ -289,7 +305,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
               <tbody>
                 {contacts.map(c => (
                   <tr key={c.learner.id} className="border-t">
-                    <td className="p-2">{c.learner.full_name}</td>
+                    <td className="p-2">{getLearnerFullName(c.learner)}</td>
                     <td className="p-2">{c.accessionNumber}</td>
                     <td className="p-2">
                       {c.whatsappNumber ?? '—'}
