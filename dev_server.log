@@ -133,3 +133,5 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
 > 3 | export default handleAuth();
     |                         ^
   4 |
+ ✓ Compiled in 15.8s (1157 modules)
+ ✓ Compiled in 2.3s (1157 modules)
