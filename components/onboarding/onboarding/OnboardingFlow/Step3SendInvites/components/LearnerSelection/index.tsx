@@ -52,7 +52,10 @@ export const LearnerSelection: React.FC<LearnerSelectionProps> = ({
   const isLoadingExpandedGradeLearners = expandedGradeId ? isLoadingLearners[expandedGradeId] : false;
 
   const allLearners = Object.values(learnersByGrade).flat();
-  const selectedLearners = allLearners.filter(l => selectedGrades.includes(l.grade_id));
+  const selectedLearners = allLearners.filter(l => {
+    const gid = l.grade_id || l.gradeId;
+    return gid && selectedGrades.includes(gid);
+  });
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 mb-8">
