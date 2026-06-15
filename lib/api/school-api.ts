@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { apiClient } from './api-client';
 import { Participant } from '../types/messaging';
+import { slugify } from '@/utils/slugify';
 
 // --- Schemas ---
 export const ClassSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
+  _id: z.string().optional(),
   name: z.string(),
   capacity: z.number().default(40),
   current_learners: z.number().default(0),
@@ -17,10 +19,14 @@ export const ClassSchema = z.object({
     z.record(z.string())
   ]).optional(),
   grade_id: z.string().optional(),
-}).passthrough();
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || ''
+}));
 
 export const GradeSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
+  _id: z.string().optional(),
   name: z.string(),
   level: z.number().default(0),
   description: z.string().optional(),
@@ -29,7 +35,10 @@ export const GradeSchema = z.object({
   total_learners: z.number().optional(),
   classes: z.array(ClassSchema).optional(),
   school_id: z.string(),
-}).passthrough();
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || ''
+}));
 
 export const GradeResponseSchema = z.object({
   success: z.boolean(),
@@ -115,14 +124,32 @@ export interface LearnerInvitationDetail extends LearnerInvitation {
 export class SchoolAPI {
   // School Lookup
   static async getSchoolBySlug(slug: string): Promise<any> {
+    console.log(`🔍 [SchoolAPI.getSchoolBySlug] Resolving slug: ${slug}`);
     const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
-    const schools = response.schools || response.data?.schools || [];
-    // Strict lookup: only return school if the slug matches exactly.
-    // This prevents falling back to a test school if the search returns multiple results or fails.
-    const school = schools.find((s: any) => s.slug === slug);
+    const schools = (response.schools || response.data?.schools || []) as any[];
+
+    // 1. First, try to find a school where the server-provided slug matches exactly.
+    let school = schools.find((s: any) => s.slug === slug);
+
+    // 2. If no direct slug match, try slugifying the schoolName and matching that.
     if (!school) {
-      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] No exact match found for slug: ${slug}`);
+      school = schools.find((s: any) => slugify(s.schoolName || s.name || '') === slug);
     }
+
+    // 3. If multiple matches might exist, we can't easily filter by current user here
+    // without passing it in, but we'll return the best match we found.
+
+    if (!school && schools.length > 0) {
+      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] No exact slug match for "${slug}", but found ${schools.length} results. Returning first result as fallback.`);
+      school = schools[0];
+    }
+
+    if (!school) {
+      console.error(`❌ [SchoolAPI.getSchoolBySlug] Failed to resolve school for slug: ${slug}`);
+    } else {
+      console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved to: ${school.schoolName} (${school.id || school._id})`);
+    }
+
     return school || null;
   }
 
