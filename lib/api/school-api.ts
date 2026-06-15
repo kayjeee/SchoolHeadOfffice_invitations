@@ -76,27 +76,27 @@ export const GradesResponseSchema = z.union([
   z.object({
     success: z.boolean(),
     grades: z.array(GradeSchema)
-  }),
+  }).passthrough(),
   z.object({
     success: z.boolean(),
     data: z.object({
       grades: z.array(GradeSchema)
-    })
-  })
-]).passthrough();
+    }).passthrough()
+  }).passthrough()
+]);
 
 export const LearnersResponseSchema = z.union([
   z.object({
     success: z.boolean(),
     learners: z.array(LearnerSchema)
-  }),
+  }).passthrough(),
   z.object({
     success: z.boolean(),
     data: z.object({
       learners: z.array(LearnerSchema)
-    })
-  })
-]).passthrough();
+    }).passthrough()
+  }).passthrough()
+]);
 
 export const ParentSchema = z.object({
   id: z.string().optional(),
