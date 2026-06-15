@@ -52,11 +52,13 @@ export function GradeCard({
 
   useEffect(() => {
     const fetchGradeDetails = async () => {
-      if (isExpanded && schoolId) {
+      if (isExpanded && schoolId && grade.id) {
         if (activeTab === 'classes' && classesList.length === 0) {
+          console.log(`🚀 [GradeCard] Expanding ${grade.name}: Fetching classes...`);
           setIsLoadingClasses(true);
           try {
             const classes = await SchoolAPI.getClasses(schoolId, grade.id);
+            console.log(`✅ [GradeCard] Found ${classes.length} classes for ${grade.name}`);
             setClassesList(classes);
           } catch (error) {
             console.error("Failed to fetch classes:", error);
@@ -64,9 +66,11 @@ export function GradeCard({
             setIsLoadingClasses(false);
           }
         } else if (activeTab === 'learners' && gradeLearners.length === 0) {
+          console.log(`🚀 [GradeCard] Switching to Learners: Fetching roster for ${grade.name}...`);
           setIsLoadingLearners(true);
           try {
             const learners = await SchoolAPI.getGradeLearners(schoolId, grade.id);
+            console.log(`✅ [GradeCard] Found ${learners.length} learners for ${grade.name}`);
             setGradeLearners(learners);
           } catch (error) {
             console.error("Failed to fetch grade learners:", error);
