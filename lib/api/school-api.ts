@@ -7,38 +7,65 @@ import { slugify } from '@/utils/slugify';
 export const ClassSchema = z.object({
   id: z.string().optional(),
   _id: z.string().optional(),
-  name: z.string(),
-  capacity: z.number().default(40),
-  current_learners: z.number().default(0),
+  name: z.string().optional(),
+  capacity: z.number().optional().default(40),
+  current_learners: z.number().optional().default(0),
+  learnerCount: z.number().optional(),
   utilization: z.string().optional(),
   utilization_percentage: z.number().optional(),
   class_teacher_id: z.string().nullable().optional(),
   class_teacher_name: z.string().optional(),
-  subject_teachers: z.union([
-    z.array(z.object({ name: z.string(), subject: z.string() })),
-    z.record(z.string())
-  ]).optional(),
+  classTeacher: z.string().optional(),
+  subject_teachers: z.any().optional(),
+  subjectTeachers: z.any().optional(),
   grade_id: z.string().optional(),
+  gradeId: z.string().optional(),
 }).passthrough().transform(data => ({
   ...data,
-  id: data.id || data._id || ''
+  id: data.id || data._id || '',
+  name: data.name || 'Unnamed Class',
+  current_learners: data.current_learners || data.learnerCount || 0,
+  class_teacher_name: data.class_teacher_name || data.classTeacher || '',
+  grade_id: data.grade_id || data.gradeId || ''
 }));
 
 export const GradeSchema = z.object({
   id: z.string().optional(),
   _id: z.string().optional(),
-  name: z.string(),
-  level: z.number().default(0),
+  name: z.string().optional(),
+  level: z.any().optional(),
+  grade_level: z.any().optional(),
   description: z.string().optional(),
-  order: z.number().default(0),
+  order: z.number().optional().default(0),
   total_classes: z.number().optional(),
+  totalClasses: z.number().optional(),
   total_learners: z.number().optional(),
+  totalLearners: z.number().optional(),
+  stats: z.object({
+    classes_count: z.number().optional(),
+    learners_count: z.number().optional(),
+    classesCount: z.number().optional(),
+    learnersCount: z.number().optional(),
+  }).optional(),
   classes: z.array(ClassSchema).optional(),
-  school_id: z.string(),
-}).passthrough().transform(data => ({
-  ...data,
-  id: data.id || data._id || ''
-}));
+  school_id: z.string().optional(),
+  schoolId: z.string().optional(),
+}).passthrough().transform(data => {
+  const resolvedLevel = typeof data.level === 'number' ? data.level :
+    parseInt((data.level || data.grade_level || '').toString().match(/\d+/)?.[0] || '0');
+
+  const levelFromName = parseInt(data.name?.match(/\d+/)?.[0] || '0');
+
+  return {
+    ...data,
+    id: data.id || data._id || '',
+    name: data.name || 'Unnamed Grade',
+    level: resolvedLevel || levelFromName,
+    total_classes: data.total_classes || data.totalClasses || data.stats?.classes_count || data.stats?.classesCount || data.classes?.length || 0,
+    total_learners: data.total_learners || data.totalLearners || data.stats?.learners_count || data.stats?.learnersCount || 0,
+    school_id: data.school_id || data.schoolId || ''
+  };
+});
 
 export const GradeResponseSchema = z.object({
   success: z.boolean(),
@@ -56,12 +83,40 @@ export const GradesResponseSchema = z.union([
       grades: z.array(GradeSchema)
     })
   })
-]);
+]).passthrough();
+
+export const LearnersResponseSchema = z.union([
+  z.object({
+    success: z.boolean(),
+    learners: z.array(LearnerSchema)
+  }),
+  z.object({
+    success: z.boolean(),
+    data: z.object({
+      learners: z.array(LearnerSchema)
+    })
+  })
+]).passthrough();
+
+export const ParentSchema = z.object({
+  id: z.string().optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  full_name: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  name: data.name || data.full_name || 'Unnamed Parent'
+}));
 
 export const LearnerSchema = z.object({
   id: z.string().optional(),
   _id: z.string().optional(),
   name: z.string().optional(),
+  fullName: z.string().optional(),
+  full_name: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   first_name: z.string().optional(),
@@ -73,24 +128,31 @@ export const LearnerSchema = z.object({
   accessionNumber: z.string().optional(),
   parent_name: z.string().optional(),
   parent_phone: z.string().optional(),
-  parents: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    email: z.string().optional(),
-    phone: z.string().optional(),
-  })).optional(),
+  parents: z.array(ParentSchema).optional(),
+  gender: z.string().optional(),
+  gender_text: z.string().optional(),
   status: z.string().optional(),
+  status_text: z.string().optional(),
   invitation_id: z.string().optional(),
+  class_id: z.string().optional(),
+  classId: z.string().optional(),
+  class_name: z.string().optional(),
+  className: z.string().optional(),
+  grade_id: z.string().optional(),
+  gradeId: z.string().optional(),
 }).passthrough().transform(data => {
   const fName = data.firstName || data.first_name || '';
   const lName = data.lastName || data.last_name || '';
-  const fullName = data.name || `${fName} ${lName}`.trim() || 'Unnamed Learner';
+  const fullName = data.name || data.full_name || data.fullName || `${fName} ${lName}`.trim() || 'Unnamed Learner';
 
   return {
     ...data,
     id: data.id || data._id || '',
     name: fullName,
-    admission_number: data.admission_number || data.admissionNumber || data.accession_number || data.accessionNumber || ''
+    admission_number: data.admission_number || data.admissionNumber || data.accession_number || data.accessionNumber || '',
+    class_id: data.class_id || data.classId || '',
+    class_name: data.class_name || data.className || '',
+    grade_id: data.grade_id || data.gradeId || ''
   };
 });
 
@@ -188,10 +250,12 @@ export class SchoolAPI {
   // Grade CRUD
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/grades`, GradesResponseSchema);
-    // Safely extract from both flat and nested 'data' structures
-    if ('grades' in response) return response.grades || [];
-    if ('data' in response) return response.data?.grades || [];
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/grades`, z.any());
+    const gradesData = response.grades || response.data?.grades || response.data || (Array.isArray(response) ? response : []);
+
+    if (Array.isArray(gradesData)) {
+      return gradesData.map(g => GradeSchema.parse(g));
+    }
     return [];
   }
 
@@ -272,9 +336,10 @@ export class SchoolAPI {
 
   // School Learners
   static async getSchoolLearners(schoolId: string): Promise<Learner[]> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, z.any());
-    const learners = response.learners || response.data?.learners || response.data || response;
-    return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, LearnersResponseSchema);
+    if ('learners' in response) return response.learners || [];
+    if ('data' in response) return response.data?.learners || [];
+    return [];
   }
 
   // Bulk Upload
@@ -287,9 +352,19 @@ export class SchoolAPI {
 
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string): Promise<Learner[]> {
+    console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
     const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}`, z.any());
-    const learners = response.learners || response.data?.learners || response.data || response;
-    return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
+
+    // Normalize response shape: { learners: [...] } or { data: { learners: [...] } } or [...]
+    const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
+
+    if (Array.isArray(learnersData)) {
+      console.log(`✅ [SchoolAPI.getGradeLearners] Found ${learnersData.length} learners for grade ${gradeId}`);
+      return learnersData.map(l => LearnerSchema.parse(l));
+    }
+
+    console.warn(`⚠️ [SchoolAPI.getGradeLearners] No learners found in response for grade ${gradeId}`, response);
+    return [];
   }
 
   // Global Search

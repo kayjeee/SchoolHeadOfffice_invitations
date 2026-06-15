@@ -160,6 +160,12 @@ class ApiClient {
           return data as T;
         }
 
+        // Return parsed data. If it's an object, merge with raw data to preserve extra fields.
+        // If it's an array or primitive, return as is.
+        if (Array.isArray(data)) {
+          return parseResult.data;
+        }
+
         return (typeof data === 'object' && data !== null 
           ? { ...data, ...parseResult.data } 
           : parseResult.data) as T;
