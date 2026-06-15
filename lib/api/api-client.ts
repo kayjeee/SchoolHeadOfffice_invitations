@@ -15,6 +15,7 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 15000; // 15 seconds
 
 export class APIError extends Error {
   constructor(
@@ -100,7 +101,16 @@ class ApiClient {
           headers['X-User-Email'] = this.userEmail;
         }
 
-        const response = await fetch(url, { ...options, headers });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
         const duration = Date.now() - start;
 
         if (!response.ok) {

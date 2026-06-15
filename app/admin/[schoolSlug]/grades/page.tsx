@@ -40,7 +40,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   // --- State Management ---
   const [grades, setGrades] = useState<Grade[]>([]);
   const [allLearners, setAllLearners] = useState<Learner[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals
@@ -55,7 +55,10 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
   // --- Data Hydration ---
   const fetchData = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.warn('⚠️ [SchoolGradesPage] schoolId is missing, skipping hydration');
+      return;
+    }
     setIsLoading(true);
     try {
       // Single-Fetch Strategy for Learners
