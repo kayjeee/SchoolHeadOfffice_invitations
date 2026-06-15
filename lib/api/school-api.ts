@@ -36,10 +36,18 @@ export const GradeResponseSchema = z.object({
   grade: GradeSchema
 });
 
-export const GradesResponseSchema = z.object({
-  success: z.boolean(),
-  grades: z.array(GradeSchema)
-});
+export const GradesResponseSchema = z.union([
+  z.object({
+    success: z.boolean(),
+    grades: z.array(GradeSchema)
+  }),
+  z.object({
+    success: z.boolean(),
+    data: z.object({
+      grades: z.array(GradeSchema)
+    })
+  })
+]);
 
 export const LearnerSchema = z.object({
   id: z.string(),
@@ -122,7 +130,10 @@ export class SchoolAPI {
   static async getGrades(schoolId: string): Promise<Grade[]> {
     console.log(`📚 [SchoolAPI.getGrades] Fetching grades for school: ${schoolId}`);
     const response = await apiClient.get(`/api/v1/schools/${schoolId}/grades`, GradesResponseSchema);
-    return response.grades || [];
+    // Safely extract from both flat and nested 'data' structures
+    if ('grades' in response) return response.grades || [];
+    if ('data' in response) return response.data?.grades || [];
+    return [];
   }
 
   static async getGrade(gradeId: string): Promise<Grade> {

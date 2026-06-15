@@ -59,7 +59,7 @@ export default function AdminDashboardLayout({
 }) {
   const { schoolSlug } = use(params);
   useApi(); // Initialize API authentication
-  const { schoolId, schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolId, schoolData, isLoading, error } = useSchool(schoolSlug);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
 
@@ -100,6 +100,39 @@ export default function AdminDashboardLayout({
   ].filter((crumb, index, self) =>
     index === self.findIndex((t) => t.label === crumb.label)
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 font-bold tracking-tight">Resolving School Context...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !schoolId) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-10 text-center">
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <School className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">School Not Found</h2>
+          <p className="text-slate-500 mb-8 font-medium">
+            We couldn't resolve a school for <span className="text-slate-900 font-bold italic">"{schoolSlug}"</span>. Please check the URL or contact support.
+          </p>
+          <Link
+            href="/admin"
+            className="block w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SchoolProvider initialSchool={schoolData}>
