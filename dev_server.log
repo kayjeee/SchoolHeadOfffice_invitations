@@ -153,3 +153,8 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
  ✓ Compiled in 844ms (2145 modules)
  ✓ Compiled in 7.5s (2147 modules)
  ✓ Compiled in 6.7s (2147 modules)
+ ✓ Compiled in 16.1s (2147 modules)
+ ✓ Compiled in 1376ms (2147 modules)
+ ✓ Compiled in 3.4s (2160 modules)
+ ✓ Compiled in 3.5s (2160 modules)
+[?25h
