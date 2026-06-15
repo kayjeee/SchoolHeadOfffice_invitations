@@ -66,9 +66,12 @@ export function LearnersSidebar({
     const id = `${learner.admission_number || learner.id}`.toLowerCase();
     const matchesSearch = name.includes(searchQuery.toLowerCase()) || id.includes(searchQuery.toLowerCase());
 
-    const isAssigned = !!(learner as any).class_id;
+    const classId = (learner as any).class_id || (learner as any).classId;
+    const gradeId = (learner as any).grade_id || (learner as any).gradeId;
+
+    const isAssigned = !!classId;
     const matchesTab = activeTab === 'all' ? true : !isAssigned;
-    const matchesGrade = selectedGradeId === 'all' || (learner as any).grade_id === selectedGradeId;
+    const matchesGrade = selectedGradeId === 'all' || gradeId === selectedGradeId;
 
     return matchesSearch && matchesTab && matchesGrade;
   });
@@ -160,7 +163,7 @@ export function LearnersSidebar({
             activeTab === 'unassigned' ? "bg-white text-school-primary shadow-md" : "text-slate-400 hover:text-slate-600"
           )}
         >
-          Unassigned ({learners.filter(l => !(l as any).class_id).length})
+          Unassigned ({learners.filter(l => !((l as any).class_id || (l as any).classId)).length})
         </button>
         <button
           onClick={() => setActiveTab('all')}
@@ -196,11 +199,11 @@ export function LearnersSidebar({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  draggable={!(learner as any).class_id}
+                  draggable={!((learner as any).class_id || (learner as any).classId)}
                   onDragStart={(e) => handleDragStart(e, learner)}
                   className={cn(
                     "p-4 rounded-2xl border border-slate-100 bg-white transition-all cursor-grab active:cursor-grabbing group shadow-sm",
-                    !(learner as any).class_id ? "hover:border-school-primary hover:shadow-lg" : "opacity-60 grayscale-[0.5]"
+                    !((learner as any).class_id || (learner as any).classId) ? "hover:border-school-primary hover:shadow-lg" : "opacity-60 grayscale-[0.5]"
                   )}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -218,15 +221,15 @@ export function LearnersSidebar({
                       </div>
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-tighter bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
-                      {grades.find(g => g.id === (learner as any).grade_id)?.name?.split(' ')[1] || 'N/A'}
+                      {grades.find(g => g.id === ((learner as any).grade_id || (learner as any).gradeId))?.name?.split(' ')[1] || 'N/A'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between mt-3">
-                    {getStatusBadge(learner.status)}
-                    {(learner as any).class_id && (
+                    {getStatusBadge(learner.status || '')}
+                    {((learner as any).class_id || (learner as any).classId) && (
                        <p className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                         Class {(learner as any).class_name || 'Assigned'}
+                         Class {(learner as any).class_name || (learner as any).className || 'Assigned'}
                        </p>
                     )}
                   </div>

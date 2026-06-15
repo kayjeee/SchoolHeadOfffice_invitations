@@ -286,11 +286,11 @@ export function GradeCard({
                                     </span>
                                   </td>
                                   <td className="px-6 py-4">
-                                    <span className="font-medium text-slate-600">{(l as any).class_name || 'Unassigned'}</span>
+                                    <span className="font-medium text-slate-600">{(l as any).class_name || (l as any).className || 'Unassigned'}</span>
                                   </td>
                                   <td className="px-6 py-4 text-right">
                                     <button
-                                      onClick={() => onMoveLearner((l as any).class_id || '')}
+                                      onClick={() => onMoveLearner((l as any).class_id || (l as any).classId || '')}
                                       className="p-2 text-slate-400 hover:text-school-primary rounded-lg transition-all"
                                     >
                                       <Users className="w-4 h-4" />

@@ -59,10 +59,18 @@ export const GradesResponseSchema = z.union([
 ]);
 
 export const LearnerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  id: z.string().optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
   email: z.string().optional(),
   admission_number: z.string().optional(),
+  admissionNumber: z.string().optional(),
+  accession_number: z.string().optional(),
+  accessionNumber: z.string().optional(),
   parent_name: z.string().optional(),
   parent_phone: z.string().optional(),
   parents: z.array(z.object({
@@ -71,21 +79,45 @@ export const LearnerSchema = z.object({
     email: z.string().optional(),
     phone: z.string().optional(),
   })).optional(),
-  status: z.enum(['Linked', 'Pending', 'Unlinked']).default('Unlinked'),
+  status: z.string().optional(),
   invitation_id: z.string().optional(),
-}).passthrough();
+}).passthrough().transform(data => {
+  const fName = data.firstName || data.first_name || '';
+  const lName = data.lastName || data.last_name || '';
+  const fullName = data.name || `${fName} ${lName}`.trim() || 'Unnamed Learner';
+
+  return {
+    ...data,
+    id: data.id || data._id || '',
+    name: fullName,
+    admission_number: data.admission_number || data.admissionNumber || data.accession_number || data.accessionNumber || ''
+  };
+});
 
 export const TeacherSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
+  _id: z.string().optional(),
   user_id: z.string().optional(),
-  name: z.string(),
-  slug: z.string(),
+  name: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  slug: z.string().optional(),
   avatar: z.string().optional(),
   grades: z.array(z.string()).optional(),
   auth0_id: z.string().optional(),
   bio: z.string().optional(),
   email: z.string().optional(),
-}).passthrough();
+}).passthrough().transform(data => {
+  const fName = data.firstName || '';
+  const lName = data.lastName || '';
+  const fullName = data.name || `${fName} ${lName}`.trim() || 'Unnamed Teacher';
+
+  return {
+    ...data,
+    id: data.id || data._id || '',
+    name: fullName
+  };
+});
 
 // --- Types ---
 export type Grade = z.infer<typeof GradeSchema>;
@@ -226,8 +258,7 @@ export class SchoolAPI {
 
   static async getTeachers(schoolId: string): Promise<Teacher[]> {
     const response = await apiClient.get(`/api/v1/schools/${schoolId}/teachers`, z.any());
-    const data = (response as any).data || response;
-    const teachers = data.teachers || data;
+    const teachers = response.teachers || response.data?.teachers || response.data || response;
     return Array.isArray(teachers) ? z.array(TeacherSchema).parse(teachers) : [];
   }
 
@@ -242,8 +273,7 @@ export class SchoolAPI {
   // School Learners
   static async getSchoolLearners(schoolId: string): Promise<Learner[]> {
     const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, z.any());
-    const data = (response as any).data || response;
-    const learners = data.learners || data;
+    const learners = response.learners || response.data?.learners || response.data || response;
     return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
   }
 
@@ -258,8 +288,7 @@ export class SchoolAPI {
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string): Promise<Learner[]> {
     const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}`, z.any());
-    const data = (response as any).data || response;
-    const learners = data.learners || data;
+    const learners = response.learners || response.data?.learners || response.data || response;
     return Array.isArray(learners) ? z.array(LearnerSchema).parse(learners) : [];
   }
 
