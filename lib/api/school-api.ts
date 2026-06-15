@@ -108,8 +108,14 @@ export class SchoolAPI {
   // School Lookup
   static async getSchoolBySlug(slug: string): Promise<any> {
     const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
-    const schools = response.schools || [];
-    return schools.find((s: any) => s.slug === slug) || schools[0];
+    const schools = response.schools || response.data?.schools || [];
+    // Strict lookup: only return school if the slug matches exactly.
+    // This prevents falling back to a test school if the search returns multiple results or fails.
+    const school = schools.find((s: any) => s.slug === slug);
+    if (!school) {
+      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] No exact match found for slug: ${slug}`);
+    }
+    return school || null;
   }
 
   // Grade CRUD

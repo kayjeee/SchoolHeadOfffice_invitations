@@ -22,10 +22,13 @@ export function useSchool(slug: string) {
       try {
         const school = await SchoolAPI.getSchoolBySlug(slug);
         if (school) {
-          setSchoolId(school.id || school._id);
+          const resolvedId = school.id || school._id || school.id?.toString() || school._id?.toString();
+          setSchoolId(resolvedId);
           setSchoolData(school);
         } else {
-          throw new Error('School not found');
+          setError(new Error(`School with slug "${slug}" not found`));
+          setSchoolId(null);
+          setSchoolData(null);
         }
       } catch (err: any) {
         console.error(`❌ [useSchool] Failed to resolve school slug "${slug}":`, err);
