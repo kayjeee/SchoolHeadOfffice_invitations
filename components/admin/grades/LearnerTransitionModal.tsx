@@ -141,7 +141,7 @@ export function LearnerTransitionModal({
                         <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-white" : "text-slate-900")}>
                           {learner.name}
                         </p>
-                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-500")}>
+                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-700 font-bold")}>
                           {learner.status}
                         </p>
                       </div>
@@ -201,7 +201,7 @@ export function LearnerTransitionModal({
                     <button
                       onClick={handleTransition}
                       disabled={!targetClassId}
-                      className="w-full py-4 bg-school-primary text-white font-black rounded-2xl shadow-xl shadow-school-primary/20 hover:bg-school-primary/90 transition-all disabled:opacity-50 disabled:shadow-none"
+                      className="w-full py-4 bg-school-primary text-slate-900 font-black rounded-2xl shadow-xl shadow-school-primary/20 hover:bg-school-primary/90 transition-all disabled:opacity-50 disabled:shadow-none"
                     >
                       Confirm Transition
                     </button>
