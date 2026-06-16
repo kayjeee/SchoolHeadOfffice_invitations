@@ -3,100 +3,7 @@ import { apiClient } from './api-client';
 import { Participant } from '../types/messaging';
 import { slugify } from '@/utils/slugify';
 
-// --- Schemas ---
-export const ClassSchema = z.object({
-  id: z.string().optional(),
-  _id: z.string().optional(),
-  name: z.string().optional(),
-  capacity: z.number().optional().default(40),
-  current_learners: z.number().optional().default(0),
-  learnerCount: z.number().optional(),
-  utilization: z.string().optional(),
-  utilization_percentage: z.number().optional(),
-  class_teacher_id: z.string().nullable().optional(),
-  class_teacher_name: z.string().optional(),
-  classTeacher: z.string().optional(),
-  subject_teachers: z.any().optional(),
-  subjectTeachers: z.any().optional(),
-  grade_id: z.string().optional(),
-  gradeId: z.string().optional(),
-}).passthrough().transform(data => ({
-  ...data,
-  id: data.id || data._id || '',
-  name: data.name || 'Unnamed Class',
-  current_learners: data.current_learners || data.learnerCount || 0,
-  class_teacher_name: data.class_teacher_name || data.classTeacher || '',
-  grade_id: data.grade_id || data.gradeId || ''
-}));
-
-export const GradeSchema = z.object({
-  id: z.string().optional(),
-  _id: z.string().optional(),
-  name: z.string().optional(),
-  level: z.any().optional(),
-  grade_level: z.any().optional(),
-  description: z.string().optional(),
-  order: z.number().optional().default(0),
-  total_classes: z.number().optional(),
-  totalClasses: z.number().optional(),
-  total_learners: z.number().optional(),
-  totalLearners: z.number().optional(),
-  stats: z.object({
-    classes_count: z.number().optional(),
-    learners_count: z.number().optional(),
-    classesCount: z.number().optional(),
-    learnersCount: z.number().optional(),
-  }).optional(),
-  classes: z.array(ClassSchema).optional(),
-  school_id: z.string().optional(),
-  schoolId: z.string().optional(),
-}).passthrough().transform(data => {
-  const resolvedLevel = typeof data.level === 'number' ? data.level :
-    parseInt((data.level || data.grade_level || '').toString().match(/\d+/)?.[0] || '0');
-
-  const levelFromName = parseInt(data.name?.match(/\d+/)?.[0] || '0');
-
-  return {
-    ...data,
-    id: data.id || data._id || '',
-    name: data.name || 'Unnamed Grade',
-    level: resolvedLevel || levelFromName,
-    total_classes: data.total_classes || data.totalClasses || data.stats?.classes_count || data.stats?.classesCount || data.classes?.length || 0,
-    total_learners: data.total_learners || data.totalLearners || data.stats?.learners_count || data.stats?.learnersCount || 0,
-    school_id: data.school_id || data.schoolId || ''
-  };
-});
-
-export const GradeResponseSchema = z.object({
-  success: z.boolean(),
-  grade: GradeSchema
-});
-
-export const GradesResponseSchema = z.union([
-  z.object({
-    success: z.boolean(),
-    grades: z.array(GradeSchema)
-  }).passthrough(),
-  z.object({
-    success: z.boolean(),
-    data: z.object({
-      grades: z.array(GradeSchema)
-    }).passthrough()
-  }).passthrough()
-]);
-
-export const LearnersResponseSchema = z.union([
-  z.object({
-    success: z.boolean(),
-    learners: z.array(LearnerSchema)
-  }).passthrough(),
-  z.object({
-    success: z.boolean(),
-    data: z.object({
-      learners: z.array(LearnerSchema)
-    }).passthrough()
-  }).passthrough()
-]);
+// --- Base Schemas ---
 
 export const ParentSchema = z.object({
   id: z.string().optional(),
@@ -180,6 +87,102 @@ export const TeacherSchema = z.object({
     name: fullName
   };
 });
+
+export const ClassSchema = z.object({
+  id: z.string().optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  capacity: z.number().optional().default(40),
+  current_learners: z.number().optional().default(0),
+  learnerCount: z.number().optional(),
+  utilization: z.string().optional(),
+  utilization_percentage: z.number().optional(),
+  class_teacher_id: z.string().nullable().optional(),
+  class_teacher_name: z.string().optional(),
+  classTeacher: z.string().optional(),
+  subject_teachers: z.any().optional(),
+  subjectTeachers: z.any().optional(),
+  grade_id: z.string().optional(),
+  gradeId: z.string().optional(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  name: data.name || 'Unnamed Class',
+  current_learners: data.current_learners || data.learnerCount || 0,
+  class_teacher_name: data.class_teacher_name || data.classTeacher || '',
+  grade_id: data.grade_id || data.gradeId || ''
+}));
+
+export const GradeSchema = z.object({
+  id: z.string().optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  level: z.any().optional(),
+  grade_level: z.any().optional(),
+  description: z.string().optional(),
+  order: z.number().optional().default(0),
+  total_classes: z.number().optional(),
+  totalClasses: z.number().optional(),
+  total_learners: z.number().optional(),
+  totalLearners: z.number().optional(),
+  stats: z.object({
+    classes_count: z.number().optional(),
+    learners_count: z.number().optional(),
+    classesCount: z.number().optional(),
+    learnersCount: z.number().optional(),
+  }).optional(),
+  classes: z.array(ClassSchema).optional(),
+  school_id: z.string().optional(),
+  schoolId: z.string().optional(),
+}).passthrough().transform(data => {
+  const resolvedLevel = typeof data.level === 'number' ? data.level :
+    parseInt((data.level || data.grade_level || '').toString().match(/\d+/)?.[0] || '0');
+
+  const levelFromName = parseInt(data.name?.match(/\d+/)?.[0] || '0');
+
+  return {
+    ...data,
+    id: data.id || data._id || '',
+    name: data.name || 'Unnamed Grade',
+    level: resolvedLevel || levelFromName,
+    total_classes: data.total_classes || data.totalClasses || data.stats?.classes_count || data.stats?.classesCount || data.classes?.length || 0,
+    total_learners: data.total_learners || data.totalLearners || data.stats?.learners_count || data.stats?.learnersCount || 0,
+    school_id: data.school_id || data.schoolId || ''
+  };
+});
+
+// --- Response Schemas ---
+
+export const GradeResponseSchema = z.object({
+  success: z.boolean(),
+  grade: GradeSchema
+});
+
+export const GradesResponseSchema = z.union([
+  z.object({
+    success: z.boolean(),
+    grades: z.array(GradeSchema)
+  }).passthrough(),
+  z.object({
+    success: z.boolean(),
+    data: z.object({
+      grades: z.array(GradeSchema)
+    }).passthrough()
+  }).passthrough()
+]);
+
+export const LearnersResponseSchema = z.union([
+  z.object({
+    success: z.boolean(),
+    learners: z.array(LearnerSchema)
+  }).passthrough(),
+  z.object({
+    success: z.boolean(),
+    data: z.object({
+      learners: z.array(LearnerSchema)
+    }).passthrough()
+  }).passthrough()
+]);
 
 // --- Types ---
 export type Grade = z.infer<typeof GradeSchema>;

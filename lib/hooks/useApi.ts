@@ -43,11 +43,14 @@ export function useApi() {
         syncApiClientToken(null);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch access token');
+        console.error('❌ [useApi] Token endpoint error:', errorData);
+        setAccessToken(null);
+        syncApiClientToken(null);
       }
     } catch (err: any) {
-      console.error('Error fetching access token:', err);
-      setError(err);
+      console.error('❌ [useApi] Error fetching access token:', err);
+      setAccessToken(null);
+      syncApiClientToken(null);
     } finally {
       setIsLoading(false);
     }
