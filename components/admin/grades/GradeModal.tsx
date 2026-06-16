@@ -111,7 +111,7 @@ export function GradeModal({ isOpen, onClose, mode, grade, schoolId, onSuccess }
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Grade 9"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
             </div>
 
@@ -127,7 +127,7 @@ export function GradeModal({ isOpen, onClose, mode, grade, schoolId, onSuccess }
                 value={formData.level}
                 onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) })}
                 placeholder="e.g., 9"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
             </div>
 
@@ -140,7 +140,7 @@ export function GradeModal({ isOpen, onClose, mode, grade, schoolId, onSuccess }
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Optional description of the grade level"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium resize-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium resize-none text-slate-900"
               />
             </div>
 
@@ -153,7 +153,7 @@ export function GradeModal({ isOpen, onClose, mode, grade, schoolId, onSuccess }
                 value={formData.order}
                 onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
                 placeholder="0 (lowest first)"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
             </div>
 

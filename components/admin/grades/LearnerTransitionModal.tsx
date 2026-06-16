@@ -110,7 +110,7 @@ export function LearnerTransitionModal({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Find learner..."
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-school-primary transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-school-primary transition-all text-slate-900"
                   />
                 </div>
               </div>

@@ -126,7 +126,7 @@ export function ClassModal({ isOpen, onClose, mode, classItem, gradeId, schoolId
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., 9A"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
             </div>
 
@@ -141,7 +141,7 @@ export function ClassModal({ isOpen, onClose, mode, classItem, gradeId, schoolId
                 max="100"
                 value={formData.capacity}
                 onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
             </div>
 
@@ -154,7 +154,7 @@ export function ClassModal({ isOpen, onClose, mode, classItem, gradeId, schoolId
                 value={formData.class_teacher_id}
                 onChange={(e) => setFormData({ ...formData, class_teacher_id: e.target.value })}
                 placeholder="auth0|..."
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none font-medium text-slate-900"
               />
               <p className="text-xs text-slate-400 mt-1">Enter the Auth0 ID of the teacher</p>
             </div>
