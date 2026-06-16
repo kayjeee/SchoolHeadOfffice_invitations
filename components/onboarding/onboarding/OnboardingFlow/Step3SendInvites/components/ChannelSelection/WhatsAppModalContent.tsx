@@ -107,7 +107,16 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       (learner as any).contact?.tel_emergency,
       (learner as any).contact?.telegram,
       (learner as any).telegram,
+      (learner as any).mobile,
+      (learner as any).cell,
+      (learner as any).contact_number,
     ];
+
+    // Heuristic: If accession number looks like a phone number, consider it
+    const accession = getAccessionNumber(learner);
+    if (accession && /^\d{10,13}$/.test(accession.replace(/\D/g, ''))) {
+      rawValues.push(accession);
+    }
 
     return rawValues.filter((value): value is string => {
       if (typeof value !== 'string') return false;
@@ -254,7 +263,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   /* ───────────────────────── RENDER ───────────────────────── */
 
   return (
-    <div className="mt-6 border-t pt-6">
+    <div className="mt-6 border-t pt-6 text-gray-900">
       {/* Tabs */}
       <div className="flex border-b mb-6">
         {(['contacts', 'test', 'schedule'] as const).map(tab => (
@@ -265,7 +274,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
             className={`px-4 py-2 border-b-2 text-sm font-medium ${
               activeTab === tab
                 ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab === 'contacts' &&
@@ -292,29 +301,33 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
             </button>
           </div>
 
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-left">
+          <div className="border rounded-lg overflow-hidden bg-white">
+            <table className="w-full text-sm text-gray-900">
+              <thead className="bg-gray-100 text-left text-gray-700">
                 <tr>
-                  <th className="p-2">Learner</th>
-                  <th className="p-2">Accession</th>
-                  <th className="p-2">WhatsApp</th>
-                  <th className="p-2">Status</th>
+                  <th className="p-3 border-b">Learner</th>
+                  <th className="p-3 border-b">Accession</th>
+                  <th className="p-3 border-b">WhatsApp</th>
+                  <th className="p-3 border-b">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {contacts.map(c => (
-                  <tr key={c.learner.id} className="border-t">
-                    <td className="p-2">{getLearnerFullName(c.learner)}</td>
-                    <td className="p-2">{c.accessionNumber}</td>
-                    <td className="p-2">
-                      {c.whatsappNumber ?? '—'}
+                  <tr key={c.learner.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-3 font-medium text-gray-900">{getLearnerFullName(c.learner)}</td>
+                    <td className="p-3 text-gray-600">{c.accessionNumber}</td>
+                    <td className="p-3 font-mono text-gray-900">
+                      {c.whatsappNumber ?? <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="p-2">
+                    <td className="p-3">
                       {c.hasWhatsApp ? (
-                        <span className="text-green-600">✔ Ready</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                          ✔ Ready
+                        </span>
                       ) : (
-                        <span className="text-red-500">✖ No WhatsApp</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          ✖ No WhatsApp
+                        </span>
                       )}
                     </td>
                   </tr>

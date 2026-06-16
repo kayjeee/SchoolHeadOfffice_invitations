@@ -61,7 +61,16 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
       learner.contact?.tel_emergency,
       learner.contact?.telegram,
       learner.telegram,
+      learner.mobile,
+      learner.cell,
+      learner.contact_number,
     ];
+
+    // Heuristic: If accession number looks like a phone number, consider it
+    const accession = learner.accession_number || learner.accessionNumber;
+    if (accession && /^\d{10,13}$/.test(accession.toString().replace(/\D/g, ''))) {
+      phoneFields.push(accession);
+    }
 
     return phoneFields.filter(phone => {
       if (!phone || typeof phone !== 'string') return false;
@@ -157,7 +166,7 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
   };
 
   return (
-    <div className="mt-6 border-t pt-6">
+    <div className="mt-6 border-t pt-6 text-gray-900">
       <div className="mb-6 p-4 bg-gray-50 border rounded-lg">
         <label className="block text-sm font-medium text-gray-700 mb-2">Select SMS Supplier</label>
         <div className="flex gap-4">
