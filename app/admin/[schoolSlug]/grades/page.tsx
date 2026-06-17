@@ -120,6 +120,23 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     fetchData();
   };
 
+  const handleMoveLearner = async (data: { learner_id: string; target_class_id: string }) => {
+    if (!schoolId || !activeGradeId) return;
+
+    try {
+      await SchoolAPI.moveLearner(data.learner_id, {
+        target_class_id: data.target_class_id,
+        school_id: schoolId,
+        grade_id: activeGradeId
+      });
+      toast.success('Learner moved successfully');
+      fetchData(); // Refresh all data to reflect changes
+    } catch (error) {
+      console.error('Failed to move learner:', error);
+      toast.error('Failed to move learner');
+    }
+  };
+
   // --- Metrics ---
   const totalGrades = grades.length;
   const totalClasses = grades.reduce((acc, g) => acc + (g.total_classes || 0), 0);
@@ -209,6 +226,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                   key={grade.id}
                   grade={grade}
                   schoolId={schoolId!}
+                  learners={allLearners.filter(l => (l as any).grade_id === grade.id || (l as any).gradeId === grade.id)}
                   onAllocateLearner={handleAllocateLearner}
                   onClassUpdated={() => fetchData()}
                   onEditGrade={() => {}}
@@ -257,7 +275,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         gradeId={activeGradeId!}
         classId={activeClassId!}
         onClose={() => setIsLearnerModalOpen(false)}
-        onTransition={() => fetchData()}
+        onTransition={handleMoveLearner}
       />
 
       <GradeModal

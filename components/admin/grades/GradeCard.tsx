@@ -16,6 +16,7 @@ function cn(...inputs: ClassValue[]) {
 interface GradeCardProps {
   grade: Grade;
   schoolId: string;
+  learners: Learner[];
   onEditGrade: (grade: Grade) => void;
   onDeleteGrade: (gradeId: string) => void;
   onClassUpdated: (gradeId: string, updatedClass: Class) => void;
@@ -27,6 +28,7 @@ interface GradeCardProps {
 export function GradeCard({
   grade,
   schoolId,
+  learners,
   onEditGrade,
   onDeleteGrade,
   onClassUpdated,
@@ -41,8 +43,6 @@ export function GradeCard({
   const [classModalMode, setClassModalMode] = useState<'create' | 'edit'>('create');
   const [classesList, setClassesList] = useState<Class[]>(grade.classes || []);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
-  const [gradeLearners, setGradeLearners] = useState<Learner[]>([]);
-  const [isLoadingLearners, setIsLoadingLearners] = useState(false);
 
   useEffect(() => {
     if (grade.classes) {
@@ -65,23 +65,11 @@ export function GradeCard({
           } finally {
             setIsLoadingClasses(false);
           }
-        } else if (activeTab === 'learners' && gradeLearners.length === 0) {
-          console.log(`🚀 [GradeCard] Switching to Learners: Fetching roster for ${grade.name}...`);
-          setIsLoadingLearners(true);
-          try {
-            const learners = await SchoolAPI.getGradeLearners(schoolId, grade.id);
-            console.log(`✅ [GradeCard] Found ${learners.length} learners for ${grade.name}`);
-            setGradeLearners(learners);
-          } catch (error) {
-            console.error("Failed to fetch grade learners:", error);
-          } finally {
-            setIsLoadingLearners(false);
-          }
         }
       }
     };
     fetchGradeDetails();
-  }, [isExpanded, activeTab, grade.id, schoolId, classesList.length, gradeLearners.length]);
+  }, [isExpanded, activeTab, grade.id, schoolId, classesList.length]);
 
   const handleClassSuccess = (updatedClass: Class) => {
     setClassesList(prev => {
@@ -256,14 +244,9 @@ export function GradeCard({
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
-                        <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
+                        <p className="text-xs text-slate-500">{learners.length} Students</p>
                       </div>
-                      {isLoadingLearners ? (
-                        <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
-                          <p className="text-sm font-medium">Loading roster...</p>
-                        </div>
-                      ) : gradeLearners.length > 0 ? (
+                      {learners.length > 0 ? (
                         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                           <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -275,7 +258,7 @@ export function GradeCard({
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                              {gradeLearners.map(l => (
+                              {learners.map(l => (
                                 <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                                   <td className="px-6 py-4">
                                     <p className="font-bold text-slate-900">{l.name}</p>
@@ -284,7 +267,7 @@ export function GradeCard({
                                   <td className="px-6 py-4">
                                     <span className={cn(
                                       "px-2 py-1 rounded-full text-[10px] font-bold border",
-                                      l.status === 'Linked' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                                      l.status === 'Linked' || l.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
                                     )}>
                                       {l.status}
                                     </span>

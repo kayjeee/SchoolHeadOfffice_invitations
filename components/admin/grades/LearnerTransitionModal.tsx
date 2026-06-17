@@ -133,19 +133,19 @@ export function LearnerTransitionModal({
                       className={cn(
                         "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group",
                         selectedLearner?.id === learner.id
-                          ? "bg-school-primary text-slate-900 shadow-lg shadow-school-primary/20"
+                          ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                           : "hover:bg-slate-50"
                       )}
                     >
                       <div>
-                        <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-slate-900" : "text-slate-900")}>
+                        <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-white" : "text-slate-900")}>
                           {learner.name}
                         </p>
-                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-slate-800 font-bold" : "text-slate-700 font-bold")}>
+                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-700 font-bold")}>
                           {learner.status}
                         </p>
                       </div>
-                      <ChevronRight className={cn("w-4 h-4", selectedLearner?.id === learner.id ? "text-slate-900" : "text-slate-300")} />
+                      <ChevronRight className={cn("w-4 h-4", selectedLearner?.id === learner.id ? "text-white" : "text-slate-300")} />
                     </button>
                   ))
                 )}
@@ -174,19 +174,19 @@ export function LearnerTransitionModal({
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
                           targetClassId === cls.id
-                            ? "bg-white border-school-primary ring-4 ring-school-primary/5 shadow-sm"
+                            ? "bg-slate-50 border-slate-900 ring-4 ring-slate-900/5 shadow-sm"
                             : "bg-white border-slate-200 hover:border-slate-300"
                         )}
                       >
                         <div>
                           <p className="font-bold text-slate-900">Class {cls.name}</p>
-                          <p className="text-xs text-slate-500">{cls.current_learners} / {cls.capacity} Learners</p>
+                          <p className="text-xs text-slate-700 font-medium">{cls.current_learners} / {cls.capacity} Learners</p>
                         </div>
                         <div className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                          targetClassId === cls.id ? "border-slate-900 bg-school-primary" : "border-slate-200"
+                          targetClassId === cls.id ? "border-slate-900 bg-white" : "border-slate-200"
                         )}>
-                          {targetClassId === cls.id && <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />}
+                          {targetClassId === cls.id && <div className="w-2 h-2 rounded-full bg-slate-900" />}
                         </div>
                       </button>
                     ))}
