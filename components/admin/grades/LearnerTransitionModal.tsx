@@ -133,19 +133,19 @@ export function LearnerTransitionModal({
                       className={cn(
                         "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group",
                         selectedLearner?.id === learner.id
-                          ? "bg-school-primary text-white shadow-lg shadow-school-primary/20"
+                          ? "bg-school-primary text-slate-900 shadow-lg shadow-school-primary/20"
                           : "hover:bg-slate-50"
                       )}
                     >
                       <div>
-                        <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-white" : "text-slate-900")}>
+                        <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-slate-900" : "text-slate-900")}>
                           {learner.name}
                         </p>
-                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-700 font-bold")}>
+                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-slate-800 font-bold" : "text-slate-700 font-bold")}>
                           {learner.status}
                         </p>
                       </div>
-                      <ChevronRight className={cn("w-4 h-4", selectedLearner?.id === learner.id ? "text-white" : "text-slate-300")} />
+                      <ChevronRight className={cn("w-4 h-4", selectedLearner?.id === learner.id ? "text-slate-900" : "text-slate-300")} />
                     </button>
                   ))
                 )}
