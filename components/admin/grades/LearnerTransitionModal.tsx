@@ -184,9 +184,9 @@ export function LearnerTransitionModal({
                         </div>
                         <div className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                          targetClassId === cls.id ? "border-school-primary bg-school-primary" : "border-slate-200"
+                          targetClassId === cls.id ? "border-slate-900 bg-school-primary" : "border-slate-200"
                         )}>
-                          {targetClassId === cls.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          {targetClassId === cls.id && <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />}
                         </div>
                       </button>
                     ))}
