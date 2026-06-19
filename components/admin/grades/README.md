@@ -30,8 +30,9 @@ A high-performance wrapper around the onboarding CSV parser.
 
 ### `LearnerTransitionModal.tsx`
 A 2-step wizard for shifting learners between classes within the same grade.
-- **Step 1**: Search and select learner from the grade roster.
+- **Step 1**: Search and select learner from the grade roster. Supports pre-selection when triggered from specific learner actions.
 - **Step 2**: Select target class stream.
+- **Visual Feedback**: High-contrast dark indicators for selected states (selected student and clicked class radio button) to ensure visibility across all brand themes.
 - **Action**: Dispatches `onTransition` callback which triggers `move_learner` API.
 
 ## State & Data Flow
