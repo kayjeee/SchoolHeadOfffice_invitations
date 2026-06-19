@@ -295,7 +295,7 @@ export class SchoolAPI {
 
   static async createClass(schoolId: string, gradeId: string, data: Partial<Class>): Promise<Class> {
     const payload = { ...data, grade_id: gradeId, school_id: schoolId };
-    const response = await apiClient.post(`/api/v1/grades/${gradeId}/classes`, { class: payload }, z.any());
+    const response = await apiClient.post(`/api/v1/schools/${schoolId}/grades/${gradeId}/classes`, { class: payload }, z.any());
     const responseData = (response as any).data || response;
     const cls = responseData.class || responseData;
     return ClassSchema.parse({ grade_id: gradeId, ...cls });
@@ -303,14 +303,14 @@ export class SchoolAPI {
 
   static async updateClass(schoolId: string, gradeId: string, classId: string, data: Partial<Class>): Promise<Class> {
     const payload = { ...data, grade_id: gradeId };
-    const response = await apiClient.patch(`/api/v1/classes/${classId}`, { class: payload }, z.any());
+    const response = await apiClient.patch(`/api/v1/schools/${schoolId}/grades/${gradeId}/classes/${classId}`, { class: payload }, z.any());
     const responseData = (response as any).data || response;
     const cls = responseData.class || responseData;
     return ClassSchema.parse({ grade_id: gradeId, ...cls });
   }
 
   static async deleteClass(schoolId: string, gradeId: string, classId: string): Promise<void> {
-    await apiClient.delete(`/api/v1/classes/${classId}`, z.any());
+    await apiClient.delete(`/api/v1/schools/${schoolId}/grades/${gradeId}/classes/${classId}`, z.any());
   }
 
   // Teacher Assignment
