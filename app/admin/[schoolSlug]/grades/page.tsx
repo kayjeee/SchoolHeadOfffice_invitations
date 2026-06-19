@@ -45,12 +45,15 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
   // Modals
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [gradeModalMode, setGradeModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isLearnerModalOpen, setIsLearnerModalOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
+  const [activeLearnerId, setActiveLearnerId] = useState<string | null>(null);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
 
   // --- Data Hydration ---
@@ -118,6 +121,27 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const handleBulkUploadSuccess = () => {
     toast.success('Learners imported successfully');
     fetchData();
+  };
+
+  const handleEditGrade = (grade: Grade) => {
+    setSelectedGrade(grade);
+    setGradeModalMode('edit');
+    setIsGradeModalOpen(true);
+  };
+
+  const handleDeleteGrade = async (gradeId: string) => {
+    const grade = grades.find(g => g.id === gradeId);
+    if (!grade) return;
+
+    if (!confirm(`Are you sure you want to delete ${grade.name}? This will also delete all associated classes.`)) return;
+
+    try {
+      await SchoolAPI.deleteGrade(gradeId);
+      toast.success('Grade deleted successfully');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete grade');
+    }
   };
 
   const handleMoveLearner = async (data: { learner_id: string; target_class_id: string }) => {
@@ -229,15 +253,16 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                   learners={allLearners.filter(l => (l as any).grade_id === grade.id || (l as any).gradeId === grade.id)}
                   onAllocateLearner={handleAllocateLearner}
                   onClassUpdated={() => fetchData()}
-                  onEditGrade={() => {}}
-                  onDeleteGrade={() => {}}
+                  onEditGrade={handleEditGrade}
+                  onDeleteGrade={handleDeleteGrade}
                   onAssignTeacher={(classId) => {
                     setActiveClassId(classId);
                     setIsTeacherModalOpen(true);
                   }}
-                  onMoveLearner={(classId) => {
+                  onMoveLearner={(classId, learnerId) => {
                     setActiveGradeId(grade.id);
                     setActiveClassId(classId);
+                    setActiveLearnerId(learnerId || null);
                     setIsLearnerModalOpen(true);
                   }}
                 />
@@ -274,14 +299,20 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         schoolId={schoolId!}
         gradeId={activeGradeId!}
         classId={activeClassId!}
+        initialLearnerId={activeLearnerId}
         onClose={() => setIsLearnerModalOpen(false)}
         onTransition={handleMoveLearner}
       />
 
       <GradeModal
         isOpen={isGradeModalOpen}
+        mode={gradeModalMode}
+        grade={selectedGrade}
         schoolId={schoolId!}
-        onClose={() => setIsGradeModalOpen(false)}
+        onClose={() => {
+          setIsGradeModalOpen(false);
+          setSelectedGrade(null);
+        }}
         onSuccess={() => fetchData()}
       />
     </div>

@@ -25,11 +25,12 @@ interface ClassCardProps {
   schoolId: string;
   gradeId: string;
   onEdit?: () => void;
+  onDelete?: () => void;
   onAssignTeacher?: (classId: string) => void;
   onMoveLearner?: (classId: string) => void;
 }
 
-export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner, onDropLearner }: ClassCardProps & { onDropLearner?: (learner: any, classId: string) => void }) {
+export function ClassCard({ classData, onEdit, onDelete, onAssignTeacher, onMoveLearner, onDropLearner }: ClassCardProps & { onDropLearner?: (learner: any, classId: string) => void }) {
   const [isOver, setIsOver] = React.useState(false);
   const learnerCount = (classData.current_learners ?? classData.learnerCount) || 0;
   const classTeacher = classData.class_teacher_name ?? classData.classTeacher;
@@ -106,8 +107,12 @@ export function ClassCard({ classData, onEdit, onAssignTeacher, onMoveLearner, o
           >
             <Edit className="w-4 h-4" />
           </button>
-          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
-            <MoreHorizontal className="w-5 h-5" />
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            title="Delete Class"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>

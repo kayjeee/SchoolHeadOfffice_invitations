@@ -21,7 +21,7 @@ interface GradeCardProps {
   onDeleteGrade: (gradeId: string) => void;
   onClassUpdated: (gradeId: string, updatedClass: Class) => void;
   onAssignTeacher: (classId: string) => void;
-  onMoveLearner: (classId: string) => void;
+  onMoveLearner: (classId: string, learnerId?: string) => void;
   onAllocateLearner?: (learner: Learner, classId: string) => void;
 }
 
@@ -85,6 +85,20 @@ export function GradeCard({
     setSelectedClass(classItem);
     setClassModalMode('edit');
     setIsClassModalOpen(true);
+  };
+
+  const handleDeleteClass = async (classId: string, className: string) => {
+    if (!confirm(`Are you sure you want to delete Class ${className}?`)) return;
+
+    try {
+      await SchoolAPI.deleteClass(schoolId, grade.id, classId);
+      toast.success(`Class ${className} deleted`);
+      setClassesList(prev => prev.filter(c => c.id !== classId));
+      onClassUpdated(grade.id, { id: classId } as Class); // Trigger parent refresh if needed
+    } catch (error) {
+      console.error("Failed to delete class:", error);
+      toast.error("Failed to delete class");
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -222,10 +236,14 @@ export function GradeCard({
                           classesList.map((schoolClass) => (
                             <ClassCard
                               key={schoolClass.id}
-                              classData={schoolClass}
+                              classData={{
+                                ...schoolClass,
+                                learners: learners.filter(l => (l as any).class_id === schoolClass.id || (l as any).classId === schoolClass.id)
+                              }}
                               schoolId={schoolId}
                               gradeId={grade.id}
                               onEdit={() => handleEditClass(schoolClass)}
+                              onDelete={() => handleDeleteClass(schoolClass.id, schoolClass.name)}
                               onAssignTeacher={onAssignTeacher}
                               onMoveLearner={onMoveLearner}
                               onDropLearner={onAllocateLearner}
@@ -277,7 +295,7 @@ export function GradeCard({
                                   </td>
                                   <td className="px-6 py-4 text-right">
                                     <button
-                                      onClick={() => onMoveLearner((l as any).class_id || (l as any).classId || '')}
+                                      onClick={() => onMoveLearner((l as any).class_id || (l as any).classId || '', l.id)}
                                       className="p-2 text-slate-400 hover:text-school-primary rounded-lg transition-all"
                                     >
                                       <Users className="w-4 h-4" />

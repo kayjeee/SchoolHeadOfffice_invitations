@@ -17,6 +17,7 @@ interface LearnerTransitionModalProps {
   schoolId: string;
   gradeId: string;
   classId: string;
+  initialLearnerId?: string | null;
   onClose: () => void;
   onTransition: (data: { learner_id: string; target_class_id: string }) => void;
 }
@@ -26,6 +27,7 @@ export function LearnerTransitionModal({
   schoolId,
   gradeId,
   classId,
+  initialLearnerId,
   onClose,
   onTransition
 }: LearnerTransitionModalProps) {
@@ -47,6 +49,13 @@ export function LearnerTransitionModal({
           ]);
           setLearners(learnersData);
           setClasses(classesData.filter(c => c.id !== classId));
+
+          if (initialLearnerId) {
+            const learner = learnersData.find(l => l.id === initialLearnerId);
+            if (learner) {
+              setSelectedLearner(learner);
+            }
+          }
         } catch (error) {
           console.error('Failed to fetch transition data:', error);
           toast.error('Failed to load learners or classes');
