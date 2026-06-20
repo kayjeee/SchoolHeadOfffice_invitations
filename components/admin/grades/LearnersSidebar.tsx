@@ -28,6 +28,7 @@ interface LearnersSidebarProps {
   schoolId: string;
   grades: Grade[];
   onImportClick: () => void;
+  onViewMasterRoster?: () => void;
   refreshTrigger?: number;
 }
 
@@ -35,6 +36,7 @@ export function LearnersSidebar({
   schoolId,
   grades,
   onImportClick,
+  onViewMasterRoster,
   refreshTrigger = 0
 }: LearnersSidebarProps) {
   const [learners, setLearners] = useState<Learner[]>([]);
@@ -113,13 +115,23 @@ export function LearnersSidebar({
             <h3 className="text-xl font-black text-slate-900 tracking-tight">Learners</h3>
             <p className="text-xs font-medium text-slate-400">Allocate students to classes</p>
           </div>
-          <button
-            onClick={onImportClick}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Import
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onViewMasterRoster}
+              className="flex items-center justify-center p-2 bg-slate-50 text-slate-600 hover:text-school-primary rounded-xl border border-slate-200 hover:border-school-primary transition-all shadow-sm"
+              title="View Master Roster"
+            >
+              <Users className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onImportClick}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-all shadow-sm"
+              title="Bulk Import Learners"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Import
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
