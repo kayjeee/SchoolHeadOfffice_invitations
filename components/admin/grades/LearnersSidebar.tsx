@@ -29,6 +29,7 @@ function cn(...inputs: ClassValue[]) {
 interface LearnersSidebarProps {
   schoolId: string;
   grades: Grade[];
+  learners?: Learner[];
   onImportClick: () => void;
   onViewMasterRoster?: () => void;
   refreshTrigger?: number;
@@ -37,11 +38,12 @@ interface LearnersSidebarProps {
 export function LearnersSidebar({
   schoolId,
   grades,
+  learners: initialLearners,
   onImportClick,
   onViewMasterRoster,
   refreshTrigger = 0
 }: LearnersSidebarProps) {
-  const [learners, setLearners] = useState<Learner[]>([]);
+  const [learners, setLearners] = useState<Learner[]>(initialLearners || []);
   const [searchResults, setSearchResults] = useState<Learner[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -74,8 +76,12 @@ export function LearnersSidebar({
   };
 
   useEffect(() => {
-    fetchLearners();
-  }, [schoolId, refreshTrigger]);
+    if (initialLearners && initialLearners.length > 0) {
+      setLearners(initialLearners);
+    } else {
+      fetchLearners();
+    }
+  }, [schoolId, refreshTrigger, initialLearners]);
 
   // 3. Server-Side Search Logic (Dual-Mode Fallback)
   useEffect(() => {

@@ -149,7 +149,12 @@ export function GradeCard({
                 </div>
                 <div className="flex items-center gap-2 text-slate-600">
                   <Users className="w-4 h-4" />
-                  <span className="text-sm font-medium">{grade.total_learners || 0} Learners</span>
+                  <span className="text-sm font-medium">
+                    {gradeLearners.length > 0 ? gradeLearners.length : (grade.total_learners || 0)} Learners
+                  </span>
+                  {gradeLearners.length > 0 && (
+                    <span className="flex h-2 w-2 rounded-full bg-school-primary animate-pulse" />
+                  )}
                 </div>
               </div>
             </div>
