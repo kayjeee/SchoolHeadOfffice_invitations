@@ -56,6 +56,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const [activeLearnerId, setActiveLearnerId] = useState<string | null>(null);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
   const [viewMode, setViewMode] = useState<'hierarchy' | 'master-roster'>('hierarchy');
+  const [rosterSearchQuery, setRosterSearchQuery] = useState('');
 
   // --- Data Hydration ---
   const fetchData = async () => {
@@ -317,6 +318,8 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="text"
+                          value={rosterSearchQuery}
+                          onChange={(e) => setRosterSearchQuery(e.target.value)}
                           placeholder="Search all learners..."
                           className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-school-primary transition-all text-slate-900"
                         />
@@ -340,7 +343,10 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {allLearners.map(learner => {
+                        {allLearners.filter(l =>
+                          l.name.toLowerCase().includes(rosterSearchQuery.toLowerCase()) ||
+                          l.admission_number?.toLowerCase().includes(rosterSearchQuery.toLowerCase())
+                        ).map(learner => {
                            const grade = grades.find(g => g.id === ((learner as any).grade_id || (learner as any).gradeId));
                            return (
                              <tr key={learner.id} className="hover:bg-slate-50/50 transition-colors">

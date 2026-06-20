@@ -269,12 +269,33 @@ export function GradeCard({
                   {activeTab === 'learners' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
+                        <div>
+                          <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Grade-Wide Roster</p>
+                        </div>
                         <div className="flex items-center gap-2">
                            {isLoadingLearners && <Loader2 className="w-3 h-3 animate-spin text-school-primary" />}
-                           <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
+                           <span className="px-2 py-1 bg-school-primary/10 text-school-primary text-xs font-black rounded-lg">
+                             {gradeLearners.length} Students
+                           </span>
                         </div>
                       </div>
+
+                      {/* Unallocated Quick-View */}
+                      {gradeLearners.filter(l => !((l as any).class_id || (l as any).classId)).length > 0 && (
+                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between">
+                           <div className="flex items-center gap-2 text-amber-700">
+                             <Users className="w-4 h-4" />
+                             <span className="text-xs font-bold">{gradeLearners.filter(l => !((l as any).class_id || (l as any).classId)).length} Unallocated Students</span>
+                           </div>
+                           <button
+                             onClick={() => setActiveTab('classes')}
+                             className="text-[10px] font-black uppercase text-amber-600 hover:underline"
+                           >
+                             Drop to Allocate →
+                           </button>
+                        </div>
+                      )}
                       {isLoadingLearners ? (
                         <div className="py-12 flex flex-col items-center justify-center text-slate-400">
                           <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />

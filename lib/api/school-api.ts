@@ -391,6 +391,17 @@ export class SchoolAPI {
     return data.results || [];
   }
 
+  // Learner Search
+  static async searchLearners(schoolId: string, query: string): Promise<Learner[]> {
+    const response = await apiClient.get(`/api/v1/learners/search?q=${encodeURIComponent(query)}&school_id=${schoolId}`, z.any());
+    const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
+
+    if (Array.isArray(learnersData)) {
+      return learnersData.map(l => LearnerSchema.parse(l));
+    }
+    return [];
+  }
+
   // Legacy/Directory Support
   static async getDirectory(schoolId: string): Promise<{ admins: Participant[]; teachers: Participant[]; parents: Participant[] }> {
     const response = await apiClient.get(`/schools/${schoolId}/directory`, z.any());
