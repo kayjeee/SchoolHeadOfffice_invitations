@@ -20,7 +20,7 @@ interface GradeCardProps {
   onDeleteGrade: (gradeId: string) => void;
   onClassUpdated: (gradeId: string, updatedClass: Class) => void;
   onAssignTeacher: (classId: string) => void;
-  onMoveLearner: (classId: string) => void;
+  onMoveLearner: (classId: string, learnerId?: string) => void;
   onAllocateLearner?: (learner: Learner, classId: string) => void;
 }
 
@@ -66,17 +66,16 @@ export function GradeCard({
             setIsLoadingClasses(false);
           }
         } else if (activeTab === 'learners' && gradeLearners.length === 0) {
-          console.log(`🚀 [GradeCard] Switching to Learners: Fetching roster for ${grade.name}...`);
-          setIsLoadingLearners(true);
-          try {
-            const learners = await SchoolAPI.getGradeLearners(schoolId, grade.id);
-            console.log(`✅ [GradeCard] Found ${learners.length} learners for ${grade.name}`);
-            setGradeLearners(learners);
-          } catch (error) {
-            console.error("Failed to fetch grade learners:", error);
-          } finally {
-            setIsLoadingLearners(false);
-          }
+           console.log(`🚀 [GradeCard] Switching to Learners: Fetching roster for ${grade.name}...`);
+           setIsLoadingLearners(true);
+           try {
+             const learners = await SchoolAPI.getGradeLearners(schoolId, grade.id);
+             setGradeLearners(learners);
+           } catch (error) {
+             console.error("Failed to fetch grade learners:", error);
+           } finally {
+             setIsLoadingLearners(false);
+           }
         }
       }
     };
@@ -97,6 +96,20 @@ export function GradeCard({
     setSelectedClass(classItem);
     setClassModalMode('edit');
     setIsClassModalOpen(true);
+  };
+
+  const handleDeleteClass = async (classId: string, className: string) => {
+    if (!confirm(`Are you sure you want to delete Class ${className}?`)) return;
+
+    try {
+      await SchoolAPI.deleteClass(schoolId, grade.id, classId);
+      toast.success(`Class ${className} deleted`);
+      setClassesList(prev => prev.filter(c => c.id !== classId));
+      onClassUpdated(grade.id, { id: classId } as Class); // Trigger parent refresh if needed
+    } catch (error) {
+      console.error("Failed to delete class:", error);
+      toast.error("Failed to delete class");
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -136,7 +149,12 @@ export function GradeCard({
                 </div>
                 <div className="flex items-center gap-2 text-slate-600">
                   <Users className="w-4 h-4" />
-                  <span className="text-sm font-medium">{grade.total_learners || 0} Learners</span>
+                  <span className="text-sm font-medium">
+                    {gradeLearners.length > 0 ? gradeLearners.length : (grade.total_learners || 0)} Learners
+                  </span>
+                  {gradeLearners.length > 0 && (
+                    <span className="flex h-2 w-2 rounded-full bg-school-primary animate-pulse" />
+                  )}
                 </div>
               </div>
             </div>
@@ -238,6 +256,7 @@ export function GradeCard({
                               schoolId={schoolId}
                               gradeId={grade.id}
                               onEdit={() => handleEditClass(schoolClass)}
+                              onDelete={() => handleDeleteClass(schoolClass.id, schoolClass.name)}
                               onAssignTeacher={onAssignTeacher}
                               onMoveLearner={onMoveLearner}
                               onDropLearner={onAllocateLearner}
@@ -255,13 +274,37 @@ export function GradeCard({
                   {activeTab === 'learners' && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
-                        <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
+                        <div>
+                          <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Grade-Wide Roster</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           {isLoadingLearners && <Loader2 className="w-3 h-3 animate-spin text-school-primary" />}
+                           <span className="px-2 py-1 bg-school-primary/10 text-school-primary text-xs font-black rounded-lg">
+                             {gradeLearners.length} Students
+                           </span>
+                        </div>
                       </div>
+
+                      {/* Unallocated Quick-View */}
+                      {gradeLearners.filter(l => !((l as any).class_id || (l as any).classId)).length > 0 && (
+                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between">
+                           <div className="flex items-center gap-2 text-amber-700">
+                             <Users className="w-4 h-4" />
+                             <span className="text-xs font-bold">{gradeLearners.filter(l => !((l as any).class_id || (l as any).classId)).length} Unallocated Students</span>
+                           </div>
+                           <button
+                             onClick={() => setActiveTab('classes')}
+                             className="text-[10px] font-black uppercase text-amber-600 hover:underline"
+                           >
+                             Drop to Allocate →
+                           </button>
+                        </div>
+                      )}
                       {isLoadingLearners ? (
                         <div className="py-12 flex flex-col items-center justify-center text-slate-400">
                           <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
-                          <p className="text-sm font-medium">Loading roster...</p>
+                          <p className="text-sm font-medium">Hydrating grade roster...</p>
                         </div>
                       ) : gradeLearners.length > 0 ? (
                         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -284,7 +327,7 @@ export function GradeCard({
                                   <td className="px-6 py-4">
                                     <span className={cn(
                                       "px-2 py-1 rounded-full text-[10px] font-bold border",
-                                      l.status === 'Linked' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                                      l.status === 'Linked' || l.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
                                     )}>
                                       {l.status}
                                     </span>
@@ -294,7 +337,7 @@ export function GradeCard({
                                   </td>
                                   <td className="px-6 py-4 text-right">
                                     <button
-                                      onClick={() => onMoveLearner((l as any).class_id || (l as any).classId || '')}
+                                      onClick={() => onMoveLearner((l as any).class_id || (l as any).classId || '', l.id)}
                                       className="p-2 text-slate-400 hover:text-school-primary rounded-lg transition-all"
                                     >
                                       <Users className="w-4 h-4" />

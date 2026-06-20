@@ -81,7 +81,7 @@ export const EmailModalContent: React.FC<EmailModalContentProps> = ({
   };
 
   return (
-    <div className="mt-6 border-t pt-6">
+    <div className="mt-6 border-t pt-6 text-gray-900">
       <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setActiveTab('contacts')}

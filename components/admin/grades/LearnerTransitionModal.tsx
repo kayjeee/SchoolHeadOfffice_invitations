@@ -17,6 +17,7 @@ interface LearnerTransitionModalProps {
   schoolId: string;
   gradeId: string;
   classId: string;
+  initialLearnerId?: string | null;
   onClose: () => void;
   onTransition: (data: { learner_id: string; target_class_id: string }) => void;
 }
@@ -26,6 +27,7 @@ export function LearnerTransitionModal({
   schoolId,
   gradeId,
   classId,
+  initialLearnerId,
   onClose,
   onTransition
 }: LearnerTransitionModalProps) {
@@ -47,6 +49,13 @@ export function LearnerTransitionModal({
           ]);
           setLearners(learnersData);
           setClasses(classesData.filter(c => c.id !== classId));
+
+          if (initialLearnerId) {
+            const learner = learnersData.find(l => l.id === initialLearnerId);
+            if (learner) {
+              setSelectedLearner(learner);
+            }
+          }
         } catch (error) {
           console.error('Failed to fetch transition data:', error);
           toast.error('Failed to load learners or classes');
@@ -110,7 +119,7 @@ export function LearnerTransitionModal({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Find learner..."
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-school-primary transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-school-primary transition-all text-slate-900"
                   />
                 </div>
               </div>
@@ -133,7 +142,7 @@ export function LearnerTransitionModal({
                       className={cn(
                         "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left group",
                         selectedLearner?.id === learner.id
-                          ? "bg-school-primary text-white shadow-lg shadow-school-primary/20"
+                          ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                           : "hover:bg-slate-50"
                       )}
                     >
@@ -141,7 +150,7 @@ export function LearnerTransitionModal({
                         <p className={cn("text-sm font-bold", selectedLearner?.id === learner.id ? "text-white" : "text-slate-900")}>
                           {learner.name}
                         </p>
-                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-500")}>
+                        <p className={cn("text-[10px]", selectedLearner?.id === learner.id ? "text-white/70" : "text-slate-700 font-bold")}>
                           {learner.status}
                         </p>
                       </div>
@@ -174,19 +183,19 @@ export function LearnerTransitionModal({
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
                           targetClassId === cls.id
-                            ? "bg-white border-school-primary ring-4 ring-school-primary/5 shadow-sm"
+                            ? "bg-slate-50 border-slate-900 ring-4 ring-slate-900/5 shadow-sm"
                             : "bg-white border-slate-200 hover:border-slate-300"
                         )}
                       >
                         <div>
                           <p className="font-bold text-slate-900">Class {cls.name}</p>
-                          <p className="text-xs text-slate-500">{cls.current_learners} / {cls.capacity} Learners</p>
+                          <p className="text-xs text-slate-700 font-medium">{cls.current_learners} / {cls.capacity} Learners</p>
                         </div>
                         <div className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                          targetClassId === cls.id ? "border-school-primary bg-school-primary" : "border-slate-200"
+                          targetClassId === cls.id ? "border-slate-900 bg-white" : "border-slate-200"
                         )}>
-                          {targetClassId === cls.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          {targetClassId === cls.id && <div className="w-2 h-2 rounded-full bg-slate-900" />}
                         </div>
                       </button>
                     ))}
@@ -201,7 +210,7 @@ export function LearnerTransitionModal({
                     <button
                       onClick={handleTransition}
                       disabled={!targetClassId}
-                      className="w-full py-4 bg-school-primary text-white font-black rounded-2xl shadow-xl shadow-school-primary/20 hover:bg-school-primary/90 transition-all disabled:opacity-50 disabled:shadow-none"
+                      className="w-full py-4 bg-school-primary text-slate-900 font-black rounded-2xl shadow-xl shadow-school-primary/20 hover:bg-school-primary/90 transition-all disabled:opacity-50 disabled:shadow-none"
                     >
                       Confirm Transition
                     </button>

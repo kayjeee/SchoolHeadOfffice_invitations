@@ -44,10 +44,16 @@ export const learnerService = {
             school_id: (l.school_id || l.schoolId)?.toString(),
             school_name: l.school_name || l.schoolName || "Unknown School",
             email: l.email || l.contact?.email || "",
-            phone: l.contact?.phone || l.phone || l.contact?.whatsapp || "",
+            phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || "",
             created_at: l.created_at || "",
             updated_at: l.updated_at || "",
-            contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
+            contact: l.contact || {
+              phone: l.phone || l.mobile || l.cell || l.contact_number || "",
+              whatsapp: l.whatsapp || "",
+              tel_home: l.tel_home || l.telHome || null,
+              tel_emergency: l.tel_emergency || l.telEmergency || null,
+              telegram: l.telegram || ""
+            },
           };
         });
 

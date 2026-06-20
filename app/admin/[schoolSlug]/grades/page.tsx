@@ -12,7 +12,9 @@ import {
   GraduationCap,
   TrendingUp,
   Download,
-  UserPlus
+  UserPlus,
+  X,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -45,13 +47,20 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
   // Modals
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [gradeModalMode, setGradeModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isLearnerModalOpen, setIsLearnerModalOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [activeGradeId, setActiveGradeId] = useState<string | null>(null);
+  const [activeLearnerId, setActiveLearnerId] = useState<string | null>(null);
   const [refreshSidebar, setRefreshSidebar] = useState(0);
+  const [viewMode, setViewMode] = useState<'hierarchy' | 'master-roster'>('hierarchy');
+  const [rosterSearchQuery, setRosterSearchQuery] = useState('');
+  const [rosterSearchResults, setRosterSearchResults] = useState<Learner[] | null>(null);
+  const [isRosterSearching, setIsRosterSearching] = useState(false);
 
   // --- Data Hydration ---
   const fetchData = async () => {
@@ -79,6 +88,31 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   useEffect(() => {
     if (schoolId) fetchData();
   }, [schoolId]);
+
+  // Master Roster Search Effect
+  useEffect(() => {
+    const searchTimer = setTimeout(async () => {
+      if (!rosterSearchQuery.trim()) {
+        setRosterSearchResults(null);
+        return;
+      }
+
+      if (schoolId) {
+        setIsRosterSearching(true);
+        try {
+          const results = await SchoolAPI.searchLearners(schoolId, rosterSearchQuery);
+          setRosterSearchResults(results);
+        } catch (error) {
+          console.error('Roster search failed:', error);
+          toast.error('Search failed');
+        } finally {
+          setIsRosterSearching(false);
+        }
+      }
+    }, 400);
+
+    return () => clearTimeout(searchTimer);
+  }, [rosterSearchQuery, schoolId]);
 
   // --- Actions ---
   const handleAllocateLearner = async (learner: Learner, classId: string) => {
@@ -118,6 +152,44 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const handleBulkUploadSuccess = () => {
     toast.success('Learners imported successfully');
     fetchData();
+  };
+
+  const handleEditGrade = (grade: Grade) => {
+    setSelectedGrade(grade);
+    setGradeModalMode('edit');
+    setIsGradeModalOpen(true);
+  };
+
+  const handleDeleteGrade = async (gradeId: string) => {
+    const grade = grades.find(g => g.id === gradeId);
+    if (!grade) return;
+
+    if (!confirm(`Are you sure you want to delete ${grade.name}? This will also delete all associated classes.`)) return;
+
+    try {
+      await SchoolAPI.deleteGrade(gradeId);
+      toast.success('Grade deleted successfully');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete grade');
+    }
+  };
+
+  const handleMoveLearner = async (data: { learner_id: string; target_class_id: string }) => {
+    if (!schoolId || !activeGradeId) return;
+
+    try {
+      await SchoolAPI.moveLearner(data.learner_id, {
+        target_class_id: data.target_class_id,
+        school_id: schoolId,
+        grade_id: activeGradeId
+      });
+      toast.success('Learner moved successfully');
+      fetchData(); // Refresh all data to reflect changes
+    } catch (error) {
+      console.error('Failed to move learner:', error);
+      toast.error('Failed to move learner');
+    }
   };
 
   // --- Metrics ---
@@ -182,58 +254,216 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
           </div>
         </div>
 
-        {/* Grades List */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-lg font-bold text-slate-800">Grades & Streams</h3>
-            <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search hierarchy..."
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none text-sm font-medium focus:ring-0 outline-none"
-              />
-            </div>
-          </div>
-
-          {isLoading ? (
-             <div className="py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-slate-100">
-                <div className="w-8 h-8 border-4 border-school-primary border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="font-bold tracking-tight">Hydrating Academic Schemas...</p>
-             </div>
-          ) : (
-            <div className="space-y-4">
-              {grades.map(grade => (
-                <GradeCard
-                  key={grade.id}
-                  grade={grade}
-                  schoolId={schoolId!}
-                  onAllocateLearner={handleAllocateLearner}
-                  onClassUpdated={() => fetchData()}
-                  onEditGrade={() => {}}
-                  onDeleteGrade={() => {}}
-                  onAssignTeacher={(classId) => {
-                    setActiveClassId(classId);
-                    setIsTeacherModalOpen(true);
-                  }}
-                  onMoveLearner={(classId) => {
-                    setActiveGradeId(grade.id);
-                    setActiveClassId(classId);
-                    setIsLearnerModalOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          )}
+        {/* View Selection Tabs */}
+        <div className="flex p-1.5 bg-white rounded-2xl border border-slate-200 w-fit shadow-sm">
+          <button
+            onClick={() => setViewMode('hierarchy')}
+            className={cn(
+              "px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
+              viewMode === 'hierarchy' ? "bg-school-primary text-white shadow-md shadow-school-primary/20" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            Academic Hierarchy
+          </button>
+          <button
+            onClick={() => setViewMode('master-roster')}
+            className={cn(
+              "px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
+              viewMode === 'master-roster' ? "bg-school-primary text-white shadow-md shadow-school-primary/20" : "text-slate-400 hover:text-slate-600"
+            )}
+          >
+            Master Roster
+          </button>
         </div>
+
+        {/* Dynamic Content Area */}
+        <AnimatePresence mode="wait">
+          {viewMode === 'hierarchy' ? (
+            <motion.div
+              key="hierarchy"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-lg font-bold text-slate-800">Grades & Streams</h3>
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search hierarchy..."
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent border-none text-sm font-medium focus:ring-0 outline-none text-slate-900"
+                  />
+                </div>
+              </div>
+
+              {isLoading ? (
+                 <div className="py-12 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                    <div className="w-8 h-8 border-4 border-school-primary border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="font-bold tracking-tight">Hydrating Academic Schemas...</p>
+                 </div>
+              ) : (
+                <div className="space-y-4">
+                  {grades.map(grade => (
+                    <motion.div key={grade.id} layout>
+                    <GradeCard
+                      grade={grade}
+                      schoolId={schoolId!}
+                      onAllocateLearner={handleAllocateLearner}
+                      onClassUpdated={() => fetchData()}
+                      onEditGrade={handleEditGrade}
+                      onDeleteGrade={handleDeleteGrade}
+                      onAssignTeacher={(classId) => {
+                        setActiveClassId(classId);
+                        setIsTeacherModalOpen(true);
+                      }}
+                      onMoveLearner={(classId, learnerId) => {
+                        setActiveGradeId(grade.id);
+                        setActiveClassId(classId);
+                        setActiveLearnerId(learnerId || null);
+                        setIsLearnerModalOpen(true);
+                      }}
+                    />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="master-roster"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-4"
+            >
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                   <h3 className="text-lg font-bold text-slate-800">Master School Roster</h3>
+                   <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={rosterSearchQuery}
+                          onChange={(e) => setRosterSearchQuery(e.target.value)}
+                          placeholder="Search all learners..."
+                          className="pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-school-primary transition-all text-slate-900"
+                        />
+                        {rosterSearchQuery && (
+                          <button
+                            onClick={() => setRosterSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+                          >
+                            <X className="w-3 h-3 text-slate-400" />
+                          </button>
+                        )}
+                      </div>
+                      <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-200 transition-all">
+                        <Filter className="w-3.5 h-3.5" />
+                        Export CSV
+                      </button>
+                   </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                   <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                        <tr>
+                          <th className="px-6 py-4">Learner Name</th>
+                          <th className="px-6 py-4">Grade</th>
+                          <th className="px-6 py-4">Stream</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {isRosterSearching ? (
+                           <tr>
+                             <td colSpan={5} className="px-6 py-20 text-center">
+                                <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                                   <Loader2 className="w-8 h-8 animate-spin text-school-primary" />
+                                   <p className="font-bold text-sm tracking-tight text-slate-600">Querying school-wide records...</p>
+                                </div>
+                             </td>
+                           </tr>
+                        ) : (rosterSearchResults || allLearners.filter(l =>
+                          l.name.toLowerCase().includes(rosterSearchQuery.toLowerCase()) ||
+                          l.admission_number?.toLowerCase().includes(rosterSearchQuery.toLowerCase())
+                        )).map(learner => {
+                           const grade = grades.find(g => g.id === ((learner as any).grade_id || (learner as any).gradeId));
+                           return (
+                             <tr key={learner.id} className="hover:bg-slate-50/50 transition-colors">
+                               <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-black text-slate-400">
+                                      {learner.name[0]}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900">{learner.name}</p>
+                                      <p className="text-[10px] text-slate-400 font-medium">{learner.admission_number || 'LNR-000'}</p>
+                                    </div>
+                                  </div>
+                               </td>
+                               <td className="px-6 py-4">
+                                  <span className="font-bold text-slate-600">{grade?.name || 'N/A'}</span>
+                               </td>
+                               <td className="px-6 py-4">
+                                  <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 font-bold text-[10px]">
+                                    {(learner as any).class_name || (learner as any).className || 'Unassigned'}
+                                  </span>
+                               </td>
+                               <td className="px-6 py-4">
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter border",
+                                    learner.status === 'Linked' || learner.status === 'active'
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                      : "bg-amber-50 text-amber-700 border-amber-100"
+                                  )}>
+                                    {learner.status}
+                                  </span>
+                               </td>
+                               <td className="px-6 py-4 text-right">
+                                  <button
+                                    onClick={() => {
+                                      setActiveGradeId((learner as any).grade_id || (learner as any).gradeId);
+                                      setActiveClassId((learner as any).class_id || (learner as any).classId);
+                                      setActiveLearnerId(learner.id);
+                                      setIsLearnerModalOpen(true);
+                                    }}
+                                    className="p-2 text-slate-400 hover:text-school-primary hover:bg-slate-50 rounded-lg transition-all"
+                                  >
+                                    <TrendingUp className="w-4 h-4" />
+                                  </button>
+                               </td>
+                             </tr>
+                           )
+                        })}
+                        {allLearners.length === 0 && !isLoading && (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
+                               No learners found in school directory.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                   </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Right Sidebar - 4 Cols Equivalent */}
       <LearnersSidebar
         schoolId={schoolId!}
         grades={grades}
+        learners={allLearners}
         onImportClick={() => setIsBulkUploadOpen(true)}
+        onViewMasterRoster={() => setViewMode('master-roster')}
         refreshTrigger={refreshSidebar}
       />
 
@@ -256,14 +486,20 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
         schoolId={schoolId!}
         gradeId={activeGradeId!}
         classId={activeClassId!}
+        initialLearnerId={activeLearnerId}
         onClose={() => setIsLearnerModalOpen(false)}
-        onTransition={() => fetchData()}
+        onTransition={handleMoveLearner}
       />
 
       <GradeModal
         isOpen={isGradeModalOpen}
+        mode={gradeModalMode}
+        grade={selectedGrade}
         schoolId={schoolId!}
-        onClose={() => setIsGradeModalOpen(false)}
+        onClose={() => {
+          setIsGradeModalOpen(false);
+          setSelectedGrade(null);
+        }}
         onSuccess={() => fetchData()}
       />
     </div>
