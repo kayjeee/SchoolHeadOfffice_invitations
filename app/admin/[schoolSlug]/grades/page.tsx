@@ -277,11 +277,10 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
               ) : (
                 <div className="space-y-4">
                   {grades.map(grade => (
+                    <motion.div key={grade.id} layout>
                     <GradeCard
-                      key={grade.id}
                       grade={grade}
                       schoolId={schoolId!}
-                      learners={allLearners.filter(l => (l as any).grade_id === grade.id || (l as any).gradeId === grade.id)}
                       onAllocateLearner={handleAllocateLearner}
                       onClassUpdated={() => fetchData()}
                       onEditGrade={handleEditGrade}
@@ -297,6 +296,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                         setIsLearnerModalOpen(true);
                       }}
                     />
+                    </motion.div>
                   ))}
                 </div>
               )}

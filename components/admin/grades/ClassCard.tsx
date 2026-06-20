@@ -27,18 +27,39 @@ interface ClassCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onAssignTeacher?: (classId: string) => void;
-  onMoveLearner?: (classId: string) => void;
+  onMoveLearner?: (classId: string, learnerId?: string) => void;
 }
 
-export function ClassCard({ classData, onEdit, onDelete, onAssignTeacher, onMoveLearner, onDropLearner }: ClassCardProps & { onDropLearner?: (learner: any, classId: string) => void }) {
+export function ClassCard({ classData, schoolId, gradeId, onEdit, onDelete, onAssignTeacher, onMoveLearner, onDropLearner }: ClassCardProps & { onDropLearner?: (learner: any, classId: string) => void }) {
   const [isOver, setIsOver] = React.useState(false);
-  const learnerCount = (classData.current_learners ?? classData.learnerCount) || 0;
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [learners, setLearners] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const learnerCount = Math.max(classData.current_learners ?? 0, learners.length);
   const classTeacher = classData.class_teacher_name ?? classData.classTeacher;
   const subjectTeachers = classData.subject_teachers ?? classData.subjectTeachers;
 
   const occupancyPercentage = (learnerCount / classData.capacity) * 100;
   const isOverCapacity = learnerCount > classData.capacity;
   const isNearCapacity = occupancyPercentage >= 90 && !isOverCapacity;
+
+  React.useEffect(() => {
+    const fetchLearners = async () => {
+      if (isExpanded && learners.length === 0) {
+        setIsLoading(true);
+        try {
+          const data = await SchoolAPI.getClassLearners(schoolId, gradeId, classData.id);
+          setLearners(data);
+        } catch (error) {
+          console.error("Failed to fetch class learners:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchLearners();
+  }, [isExpanded, schoolId, gradeId, classData.id, learners.length]);
 
   // Normalize subject teachers for rendering
   const subjectTeachersArray = Array.isArray(subjectTeachers)
@@ -81,7 +102,10 @@ export function ClassCard({ classData, onEdit, onDelete, onAssignTeacher, onMove
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between mb-3">
+      <div
+        className="flex items-center justify-between mb-3 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <h4 className="font-bold text-slate-800 text-lg group-hover:text-school-primary transition-colors">
           Class {classData.name}
         </h4>
@@ -150,47 +174,46 @@ export function ClassCard({ classData, onEdit, onDelete, onAssignTeacher, onMove
         </div>
 
         {/* Nested Learners & Parents Section */}
-        <div className="mt-4 pt-4 border-t border-slate-200">
+        <div className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          isExpanded ? "mt-4 pt-4 border-t border-slate-200 opacity-100 max-h-[500px]" : "max-h-0 opacity-0"
+        )}>
           <div className="space-y-3">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Enrolled Learners & Guarded Parents
             </p>
-            {classData.learners && classData.learners.length > 0 ? (
+            {isLoading ? (
+               <div className="py-8 flex flex-col items-center justify-center text-slate-400">
+                 <div className="w-5 h-5 border-2 border-school-primary border-t-transparent rounded-full animate-spin mb-2" />
+                 <p className="text-[10px] font-bold tracking-tight">Syncing roster...</p>
+               </div>
+            ) : learners.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
                 <ul className="divide-y divide-slate-100 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                  {classData.learners.map((learner) => (
+                  {learners.map((learner) => (
                     <li
                       key={learner.id}
-                      className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
+                      className="p-3 flex items-center justify-between gap-2 hover:bg-slate-50 transition-colors"
                     >
                       {/* Left Block: Learner Info */}
-                      <div className="flex items-center">
-                        <span className="font-semibold text-slate-800 text-sm truncate max-w-[120px]" title={learner.name}>
+                      <div className="flex items-center min-w-0">
+                        <span className="font-semibold text-slate-800 text-sm truncate" title={learner.name}>
                           {learner.name}
-                        </span>
-                        <span className="ml-2 text-[10px] font-mono px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 shrink-0">
-                          {learner.admission_number || "LNR"}
                         </span>
                       </div>
 
-                      {/* Right Block: Linked Parents Section */}
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {learner.parents && learner.parents.length > 0 ? (
-                          learner.parents.map((parent: any) => (
-                            <div
-                              key={parent.id}
-                              title={`Email: ${parent.email || 'N/A'} | Phone: ${parent.phone || 'N/A'}`}
-                              className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 group/parent cursor-help"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                              <span className="truncate max-w-[100px]">Parent: {parent.name}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-[10px] font-bold italic text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
-                            No Parent Linked
-                          </span>
-                        )}
+                      {/* Action Block */}
+                      <div className="flex items-center gap-1 shrink-0">
+                         <button
+                           onClick={() => onMoveLearner?.(classData.id, learner.id)}
+                           className="p-1.5 text-slate-400 hover:text-school-primary rounded-lg transition-all"
+                           title="Transition Learner"
+                         >
+                            <Users className="w-3.5 h-3.5" />
+                         </button>
+                         <button className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-all" title="Remove">
+                            <Trash2 className="w-3.5 h-3.5" />
+                         </button>
                       </div>
                     </li>
                   ))}

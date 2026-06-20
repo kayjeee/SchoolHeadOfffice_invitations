@@ -354,9 +354,9 @@ export class SchoolAPI {
   }
 
   // Grade Learners
-  static async getGradeLearners(schoolId: string, gradeId: string): Promise<Learner[]> {
+  static async getGradeLearners(schoolId: string, gradeId: string, page = 1, perPage = 100): Promise<Learner[]> {
     console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
-    const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}`, z.any());
+    const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}&page=${page}&per_page=${perPage}`, z.any());
 
     // Normalize response shape: { learners: [...] } or { data: { learners: [...] } } or [...]
     const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
@@ -367,6 +367,20 @@ export class SchoolAPI {
     }
 
     console.warn(`⚠️ [SchoolAPI.getGradeLearners] No learners found in response for grade ${gradeId}`, response);
+    return [];
+  }
+
+  // Class Learners
+  static async getClassLearners(schoolId: string, gradeId: string, classId: string): Promise<Learner[]> {
+    console.log(`📖 [SchoolAPI.getClassLearners] Fetching learners for class: ${classId}`);
+    const endpoint = `/api/v1/schools/${schoolId}/grades/${gradeId}/classes/${classId}/learners`;
+    const response = await apiClient.get(endpoint, z.any());
+
+    const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
+
+    if (Array.isArray(learnersData)) {
+      return learnersData.map(l => LearnerSchema.parse(l));
+    }
     return [];
   }
 

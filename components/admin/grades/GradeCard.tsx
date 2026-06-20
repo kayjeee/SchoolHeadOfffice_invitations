@@ -16,7 +16,6 @@ function cn(...inputs: ClassValue[]) {
 interface GradeCardProps {
   grade: Grade;
   schoolId: string;
-  learners: Learner[];
   onEditGrade: (grade: Grade) => void;
   onDeleteGrade: (gradeId: string) => void;
   onClassUpdated: (gradeId: string, updatedClass: Class) => void;
@@ -28,7 +27,6 @@ interface GradeCardProps {
 export function GradeCard({
   grade,
   schoolId,
-  learners,
   onEditGrade,
   onDeleteGrade,
   onClassUpdated,
@@ -43,6 +41,8 @@ export function GradeCard({
   const [classModalMode, setClassModalMode] = useState<'create' | 'edit'>('create');
   const [classesList, setClassesList] = useState<Class[]>(grade.classes || []);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+  const [gradeLearners, setGradeLearners] = useState<Learner[]>([]);
+  const [isLoadingLearners, setIsLoadingLearners] = useState(false);
 
   useEffect(() => {
     if (grade.classes) {
@@ -65,11 +65,22 @@ export function GradeCard({
           } finally {
             setIsLoadingClasses(false);
           }
+        } else if (activeTab === 'learners' && gradeLearners.length === 0) {
+           console.log(`🚀 [GradeCard] Switching to Learners: Fetching roster for ${grade.name}...`);
+           setIsLoadingLearners(true);
+           try {
+             const learners = await SchoolAPI.getGradeLearners(schoolId, grade.id);
+             setGradeLearners(learners);
+           } catch (error) {
+             console.error("Failed to fetch grade learners:", error);
+           } finally {
+             setIsLoadingLearners(false);
+           }
         }
       }
     };
     fetchGradeDetails();
-  }, [isExpanded, activeTab, grade.id, schoolId, classesList.length]);
+  }, [isExpanded, activeTab, grade.id, schoolId, classesList.length, gradeLearners.length]);
 
   const handleClassSuccess = (updatedClass: Class) => {
     setClassesList(prev => {
@@ -236,10 +247,7 @@ export function GradeCard({
                           classesList.map((schoolClass) => (
                             <ClassCard
                               key={schoolClass.id}
-                              classData={{
-                                ...schoolClass,
-                                learners: learners.filter(l => (l as any).class_id === schoolClass.id || (l as any).classId === schoolClass.id)
-                              }}
+                              classData={schoolClass}
                               schoolId={schoolId}
                               gradeId={grade.id}
                               onEdit={() => handleEditClass(schoolClass)}
@@ -262,9 +270,17 @@ export function GradeCard({
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-slate-700">Enrolled Learners</h4>
-                        <p className="text-xs text-slate-500">{learners.length} Students</p>
+                        <div className="flex items-center gap-2">
+                           {isLoadingLearners && <Loader2 className="w-3 h-3 animate-spin text-school-primary" />}
+                           <p className="text-xs text-slate-500">{gradeLearners.length} Students</p>
+                        </div>
                       </div>
-                      {learners.length > 0 ? (
+                      {isLoadingLearners ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-slate-400">
+                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                          <p className="text-sm font-medium">Hydrating grade roster...</p>
+                        </div>
+                      ) : gradeLearners.length > 0 ? (
                         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                           <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -276,7 +292,7 @@ export function GradeCard({
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                              {learners.map(l => (
+                              {gradeLearners.map(l => (
                                 <tr key={l.id} className="hover:bg-slate-50 transition-colors">
                                   <td className="px-6 py-4">
                                     <p className="font-bold text-slate-900">{l.name}</p>
