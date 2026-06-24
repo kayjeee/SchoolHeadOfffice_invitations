@@ -3,75 +3,19 @@
 > next
 
  ⚠ Port 3000 is in use, trying 3001 instead.
- ⚠ Port 3001 is in use, trying 3002 instead.
- ⚠ Port 3002 is in use, trying 3003 instead.
- ⚠ Port 3003 is in use, trying 3004 instead.
- ⚠ Port 3004 is in use, trying 3005 instead.
- ⚠ Port 3005 is in use, trying 3006 instead.
- ⚠ Port 3006 is in use, trying 3007 instead.
- ⚠ Port 3007 is in use, trying 3008 instead.
- ⚠ Port 3008 is in use, trying 3009 instead.
    ▲ Next.js 15.0.7
-   - Local:        http://localhost:3009
+   - Local:        http://localhost:3001
 
  ✓ Starting...
- ✓ Ready in 6.1s
- ○ Compiling /admin/[schoolSlug]/grades ...
- ✓ Compiled /admin/[schoolSlug]/grades in 20.7s (1832 modules)
-🏫 [BulkUploadModal] Component mounted
-📦 [BulkUploadModal] Props received: {
-  isOpen: false,
-  selectedGrade: null,
-  schools: [],
-  schoolsCount: 0,
-  user: null
-}
-✅ [BulkUploadModal] School resolution complete: { original: [], safe: [], count: 0 }
- GET /admin/far-north-secondary-school/grades 200 in 26241ms
-(node:197714) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-Failed to proxy http://127.0.0.1:4000/api?search=far-north-secondary-school Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
+ ✓ Ready in 4.8s
+ ○ Compiling /admin/[schoolSlug]/learners ...
+ ✓ Compiled /admin/[schoolSlug]/learners in 14.7s (1666 modules)
+ GET /admin/far-north-secondary-school/learners 200 in 17474ms
  ○ Compiling /api/auth/[...auth0] ...
-Failed to proxy http://127.0.0.1:4000/api?search=far-north-secondary-school Error: connect ECONNREFUSED 127.0.0.1:4000
+ ✓ Compiled /api/auth/[...auth0] in 5.9s (936 modules)
+(node:73847) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
   code: 'ECONNREFUSED',
@@ -111,7 +55,6 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- ✓ Compiled /api/auth/[...auth0] in 11.2s (2177 modules)
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
@@ -133,28 +76,46 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
 > 3 | export default handleAuth();
     |                         ^
   4 |
- ✓ Compiled in 15.8s (1157 modules)
- ✓ Compiled in 2.3s (1157 modules)
- ✓ Compiled in 21.3s (1157 modules)
- ✓ Compiled in 4.8s (1157 modules)
- ✓ Compiled in 1363ms (1157 modules)
-<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/app/.next/cache/webpack/client-development/0.pack.gz'
- ✓ Compiled in 10.8s (1157 modules)
- ✓ Compiled in 1699ms (1157 modules)
- ✓ Compiled in 1254ms (1157 modules)
-<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/app/.next/cache/webpack/client-development/0.pack.gz'
- ✓ Compiled in 16.2s (2145 modules)
- ✓ Compiled in 1188ms (2145 modules)
-<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/.next/cache/webpack/server-development/0.pack.gz_' -> '/app/.next/cache/webpack/server-development/0.pack.gz'
-<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/app/.next/cache/webpack/client-development/0.pack.gz'
- ✓ Compiled in 17.4s (2158 modules)
- ✓ Compiled in 1961ms (2145 modules)
- ✓ Compiled in 3.1s (2158 modules)
- ✓ Compiled in 844ms (2145 modules)
- ✓ Compiled in 7.5s (2147 modules)
- ✓ Compiled in 6.7s (2147 modules)
- ✓ Compiled in 16.1s (2147 modules)
- ✓ Compiled in 1376ms (2147 modules)
- ✓ Compiled in 3.4s (2160 modules)
- ✓ Compiled in 3.5s (2160 modules)
-[?25h
+ ○ Compiling /_error ...
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ GET /api/auth/me 500 in 8804ms
+ ✓ Compiled /_error in 3.7s (2012 modules)
