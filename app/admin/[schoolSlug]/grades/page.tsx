@@ -71,12 +71,12 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     setIsLoading(true);
     try {
       // Single-Fetch Strategy for Learners
-      const [gradesData, learnersData] = await Promise.all([
+      const [gradesData, learnersResponse] = await Promise.all([
         SchoolAPI.getGrades(schoolId),
         SchoolAPI.getSchoolLearners(schoolId)
       ]);
       setGrades(gradesData);
-      setAllLearners(learnersData);
+      setAllLearners(learnersResponse.learners);
     } catch (error) {
       console.error('Failed to fetch school data:', error);
       toast.error('Failed to load academic data');

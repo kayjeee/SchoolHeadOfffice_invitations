@@ -73,6 +73,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [filterGrade, setFilterGrade] = useState<string>('all');
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 100;
+
   // --- Data Fetching ---
   useEffect(() => {
     const fetchData = async () => {
@@ -81,25 +86,19 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         return;
       }
 
-      console.log(`🚀 [LearnerDirectory] Hydrating directory for school: ${schoolId}`);
+      console.log(`🚀 [LearnerDirectory] Hydrating directory for school: ${schoolId} (Page ${page})`);
       setIsLoading(true);
 
       try {
-        // Fix 1: Utilize the verified school-scoped learner route or fallback search
-        // Based on Rails config, we use: /api/v1/schools/:school_id/learners
-        const endpoint = `/api/v1/schools/${schoolId}/learners`;
-        console.log(`📡 [LearnerDirectory] Fetching learners from: ${endpoint}`);
-
-        const [learnersData, gradesData] = await Promise.all([
-          SchoolAPI.getSchoolLearners(schoolId),
+        const [learnersResponse, gradesData] = await Promise.all([
+          SchoolAPI.getSchoolLearners(schoolId, page, perPage),
           SchoolAPI.getGrades(schoolId)
         ]);
 
-        console.log(`✅ [LearnerDirectory] Received ${learnersData.length} learners and ${gradesData.length} grades.`);
+        console.log(`✅ [LearnerDirectory] Received ${learnersResponse.learners.length} learners and ${gradesData.length} grades.`);
 
-        // Guard against payload mismatch and non-array responses
-        const safeLearners = Array.isArray(learnersData) ? learnersData : [];
-        setLearners(safeLearners);
+        setLearners(learnersResponse.learners);
+        setTotal(learnersResponse.total || learnersResponse.learners.length);
         setGrades(gradesData);
       } catch (error: any) {
         console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
@@ -111,7 +110,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     };
 
     fetchData();
-  }, [schoolId]);
+  }, [schoolId, page]);
 
   // --- Filtered Data ---
   const filteredLearners = useMemo(() => {
@@ -131,11 +130,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const stats = useMemo(() => {
     console.log('📊 [LearnerDirectory] Recomputing Metrics...');
     return {
-      total: learners.length,
+      total: total,
       active: learners.filter(l => l.status === 'active' || l.status === 'Linked').length,
       unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length,
     };
-  }, [learners]);
+  }, [learners, total]);
 
   // --- Phase 2 Actions ---
   const handleImportData = async () => {
@@ -162,8 +161,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
         toast.success('Learners imported successfully!', { id: 'import-toast' });
         // Refresh directory
-        const freshLearners = await SchoolAPI.getSchoolLearners(schoolId!);
-        setLearners(freshLearners);
+        const freshLearners = await SchoolAPI.getSchoolLearners(schoolId!, page, perPage);
+        setLearners(freshLearners.learners);
+        setTotal(freshLearners.total || freshLearners.learners.length);
       } catch (error: any) {
         toast.error(`Import failed: ${error.message}`, { id: 'import-toast' });
       } finally {
@@ -369,7 +369,8 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   <p className="font-bold tracking-tight">Syncing Learner Records...</p>
                 </div>
               ) : filteredLearners.length > 0 ? (
-                viewMode === 'table' ? (
+                <>
+                {viewMode === 'table' ? (
                   <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
@@ -506,7 +507,31 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                       );
                     })}
                   </div>
-                )
+                )}
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between px-2 pt-4 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-400">
+                    Showing <span className="text-slate-900">{((page - 1) * perPage) + 1}</span> to <span className="text-slate-900">{Math.min(page * perPage, total)}</span> of <span className="text-slate-900">{total}</span> learners
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={page === 1 || isLoading}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-all uppercase tracking-widest"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      disabled={page * perPage >= total || isLoading}
+                      onClick={() => setPage(p => p + 1)}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 disabled:opacity-50 transition-all uppercase tracking-widest"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                </>
               ) : (
                 <div className="py-24 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-slate-100 shadow-sm border-dashed">
                   <SearchX className="w-12 h-12 mb-4 opacity-20" />

@@ -338,11 +338,29 @@ export class SchoolAPI {
   }
 
   // School Learners
-  static async getSchoolLearners(schoolId: string): Promise<Learner[]> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, LearnersResponseSchema);
-    if ('learners' in response) return response.learners || [];
-    if ('data' in response) return response.data?.learners || [];
-    return [];
+  static async getSchoolLearners(schoolId: string, page = 1, perPage = 100): Promise<{ learners: Learner[], total?: number }> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners?page=${page}&per_page=${perPage}`, z.any());
+
+    // The response might be { success: true, learners: [...], meta: { total: ... } }
+    // or { success: true, data: { learners: [...], total: ... } }
+
+    let learnersData: any[] = [];
+    let total: number | undefined;
+
+    if (response.learners) {
+      learnersData = response.learners;
+      total = response.meta?.total || response.total;
+    } else if (response.data?.learners) {
+      learnersData = response.data.learners;
+      total = response.data.total || response.data.meta?.total;
+    } else if (Array.isArray(response)) {
+      learnersData = response;
+    }
+
+    return {
+      learners: learnersData.map(l => LearnerSchema.parse(l)),
+      total: total
+    };
   }
 
   // Bulk Upload

@@ -66,7 +66,7 @@ export function LearnersSidebar({
     setIsLoading(true);
     try {
       const data = await SchoolAPI.getSchoolLearners(schoolId);
-      setLearners(data);
+      setLearners(data.learners);
     } catch (error) {
       console.error('Failed to fetch learners:', error);
       toast.error('Failed to load learners');
