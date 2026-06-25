@@ -70,11 +70,15 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     }
     setIsLoading(true);
     try {
-      // Single-Fetch Strategy for Learners
+      // Hierarchical Fetch Strategy
+      // 1. Fetch Grades (which includes metadata about classes)
+      // 2. Fetch School-Wide Learners (for the global sidebar)
       const [gradesData, learnersResponse] = await Promise.all([
         SchoolAPI.getGrades(schoolId),
         SchoolAPI.getSchoolLearners(schoolId)
       ]);
+
+      console.log(`📊 [SchoolGradesPage] Received ${gradesData.length} grades and ${learnersResponse.learners.length} school-wide learners.`);
       setGrades(gradesData);
       setAllLearners(learnersResponse.learners);
     } catch (error) {

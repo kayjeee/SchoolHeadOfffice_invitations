@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Users, User, BookOpen, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { SchoolAPI } from '@/lib/api/school-api';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

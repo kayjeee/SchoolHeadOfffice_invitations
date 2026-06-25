@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Edit, Trash2, Plus, Users, School, Loader2 } fr
 import { ClassCard } from './ClassCard';
 import { ClassModal } from './ClassModal';
 import { Grade, Class, SchoolAPI, Learner } from '@/lib/api/school-api';
+import { toast } from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

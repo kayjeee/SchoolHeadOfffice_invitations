@@ -373,8 +373,10 @@ export class SchoolAPI {
 
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string, page = 1, perPage = 100): Promise<Learner[]> {
-    console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
-    const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}&page=${page}&per_page=${perPage}`, z.any());
+    console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId} in school: ${schoolId}`);
+    // Adhering to nested route: /api/v1/schools/:school_id/grades/:id/learners
+    const endpoint = `/api/v1/schools/${schoolId}/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`;
+    const response = await apiClient.get(endpoint, z.any());
 
     // Normalize response shape: { learners: [...] } or { data: { learners: [...] } } or [...]
     const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);

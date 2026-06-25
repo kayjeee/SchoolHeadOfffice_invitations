@@ -27,7 +27,8 @@ import {
   TrendingUp,
   Eye,
   Edit2,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -78,37 +79,41 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [total, setTotal] = useState(0);
   const perPage = 100;
 
+  // Mock Modal State for Enrollment
+  const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
+
   // --- Data Fetching ---
+  const fetchData = async (targetPage: number = page) => {
+    if (!schoolId) {
+      console.log('⏳ [LearnerDirectory] Waiting for schoolId resolution...');
+      return;
+    }
+
+    console.log(`🚀 [LearnerDirectory] Hydrating directory for school: ${schoolId} (Page ${targetPage})`);
+    setIsLoading(true);
+
+    try {
+      // Using school-scoped route as per routes.rb: /api/v1/schools/:school_id/learners
+      const [learnersResponse, gradesData] = await Promise.all([
+        SchoolAPI.getSchoolLearners(schoolId, targetPage, perPage),
+        SchoolAPI.getGrades(schoolId)
+      ]);
+
+      console.log(`✅ [LearnerDirectory] Received ${learnersResponse.learners.length} learners. Total: ${learnersResponse.total}`);
+
+      setLearners(learnersResponse.learners);
+      setTotal(learnersResponse.total || learnersResponse.learners.length);
+      setGrades(gradesData);
+    } catch (error: any) {
+      console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
+      // Guardrail 4: Resilient Payload Parsing (Capture HTML dumps in ApiClient)
+      toast.error(error.message || 'Failed to load learner directory. Check console for server logs.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!schoolId) {
-        console.log('⏳ [LearnerDirectory] Waiting for schoolId resolution...');
-        return;
-      }
-
-      console.log(`🚀 [LearnerDirectory] Hydrating directory for school: ${schoolId} (Page ${page})`);
-      setIsLoading(true);
-
-      try {
-        const [learnersResponse, gradesData] = await Promise.all([
-          SchoolAPI.getSchoolLearners(schoolId, page, perPage),
-          SchoolAPI.getGrades(schoolId)
-        ]);
-
-        console.log(`✅ [LearnerDirectory] Received ${learnersResponse.learners.length} learners and ${gradesData.length} grades.`);
-
-        setLearners(learnersResponse.learners);
-        setTotal(learnersResponse.total || learnersResponse.learners.length);
-        setGrades(gradesData);
-      } catch (error: any) {
-        console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
-        // Guardrail 4: Resilient Payload Parsing (Capture HTML dumps in ApiClient)
-        toast.error(error.message || 'Failed to load learner directory. Check console for server logs.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, [schoolId, page]);
 
@@ -128,7 +133,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // --- Stats ---
   const stats = useMemo(() => {
-    console.log('📊 [LearnerDirectory] Recomputing Metrics...');
     return {
       total: total,
       active: learners.filter(l => l.status === 'active' || l.status === 'Linked').length,
@@ -161,9 +165,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
         toast.success('Learners imported successfully!', { id: 'import-toast' });
         // Refresh directory
-        const freshLearners = await SchoolAPI.getSchoolLearners(schoolId!, page, perPage);
-        setLearners(freshLearners.learners);
-        setTotal(freshLearners.total || freshLearners.learners.length);
+        fetchData();
       } catch (error: any) {
         toast.error(`Import failed: ${error.message}`, { id: 'import-toast' });
       } finally {
@@ -175,9 +177,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   const handleStartEnrollment = () => {
     console.log('👤 [Action] Opening Enrollment Flow');
-    toast('Enrollment wizard placeholder. Implementation targets POST /api/v1/learners', {
-      icon: '🚀',
-    });
+    setIsEnrollmentOpen(true);
   };
 
   const handlePromotion = async (learnerId?: string) => {
@@ -188,7 +188,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         // Target: PATCH /api/v1/learners/:id/graduate
         await apiClient.patch(`/api/v1/learners/${learnerId}/graduate`, {}, z.any());
         toast.success('Learner promoted/graduated!');
-        setLearners(prev => prev.map(l => l.id === learnerId ? { ...l, status: 'graduated' } : l));
+        fetchData();
       } catch (error: any) {
         toast.error(`Promotion failed: ${error.message}`);
       } finally {
@@ -208,7 +208,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       await apiClient.get('/api/v1/dashboard/grade_statistics', z.any());
       toast.success('Metrics updated.', { id: 'metrics-toast' });
     } catch (error: any) {
-      // If endpoint doesn't exist yet, we fall back to a simulation
       toast.dismiss('metrics-toast');
       setActiveTab('academic');
       console.warn('Dashboard stats route pending. Redirecting to Academic View.');
@@ -598,6 +597,54 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
             </div>
           )}
         </motion.div>
+      </AnimatePresence>
+
+      {/* Enrollment Mock Modal */}
+      <AnimatePresence>
+        {isEnrollmentOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-xl font-black text-slate-900">New Enrollment</h3>
+                <button onClick={() => setIsEnrollmentOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+              <div className="p-8 space-y-6">
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</label>
+                   <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="e.g. John Smith" />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Grade</label>
+                     <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900">
+                        {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                     </select>
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Admission #</label>
+                     <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="LNR-000" />
+                   </div>
+                 </div>
+                 <button
+                  onClick={() => {
+                    toast.success('Learner enrollment initialized! (POST /api/v1/learners)');
+                    setIsEnrollmentOpen(false);
+                  }}
+                  className="w-full py-4 bg-school-primary text-white font-black rounded-2xl shadow-lg shadow-school-primary/20 hover:bg-school-primary/90 transition-all uppercase tracking-widest text-xs"
+                 >
+                   Complete Enrollment
+                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
     </div>
   );
