@@ -69,6 +69,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [learners, setLearners] = useState<Learner[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [statsData, setStatsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterGrade, setFilterGrade] = useState<string>('all');
@@ -94,9 +95,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
     try {
       // Using school-scoped route as per routes.rb: /api/v1/schools/:school_id/learners
-      const [learnersResponse, gradesData] = await Promise.all([
+      const [learnersResponse, gradesData, stats] = await Promise.all([
         SchoolAPI.getSchoolLearners(schoolId, targetPage, perPage),
-        SchoolAPI.getGrades(schoolId)
+        SchoolAPI.getGrades(schoolId),
+        SchoolAPI.getLearnerStatistics(schoolId)
       ]);
 
       console.log(`✅ [LearnerDirectory] Received ${learnersResponse.learners.length} learners. Total: ${learnersResponse.total}`);
@@ -104,6 +106,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       setLearners(learnersResponse.learners);
       setTotal(learnersResponse.total || learnersResponse.learners.length);
       setGrades(gradesData);
+      setStatsData(stats);
     } catch (error: any) {
       console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
       // Guardrail 4: Resilient Payload Parsing (Capture HTML dumps in ApiClient)
@@ -133,12 +136,19 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // --- Stats ---
   const stats = useMemo(() => {
+    if (statsData) {
+      return {
+        total: statsData.total || total,
+        active: statsData.by_status?.['active'] || statsData.by_status?.['Linked'] || 0,
+        unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length, // Approximate if not global
+      };
+    }
     return {
       total: total,
       active: learners.filter(l => l.status === 'active' || l.status === 'Linked').length,
       unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length,
     };
-  }, [learners, total]);
+  }, [learners, total, statsData]);
 
   // --- Phase 2 Actions ---
   const handleImportData = async () => {

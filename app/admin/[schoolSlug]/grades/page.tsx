@@ -42,6 +42,7 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   // --- State Management ---
   const [grades, setGrades] = useState<Grade[]>([]);
   const [allLearners, setAllLearners] = useState<Learner[]>([]);
+  const [learnerStats, setLearnerStats] = useState<{ total: number, active: number, unassigned: number }>({ total: 0, active: 0, unassigned: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -73,14 +74,25 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
       // Hierarchical Fetch Strategy
       // 1. Fetch Grades (which includes metadata about classes)
       // 2. Fetch School-Wide Learners (for the global sidebar)
-      const [gradesData, learnersResponse] = await Promise.all([
+      // 3. Fetch Learner Statistics (for the summary metrics)
+      const [gradesData, learnersResponse, stats] = await Promise.all([
         SchoolAPI.getGrades(schoolId),
-        SchoolAPI.getSchoolLearners(schoolId)
+        SchoolAPI.getSchoolLearners(schoolId),
+        SchoolAPI.getLearnerStatistics(schoolId)
       ]);
 
-      console.log(`📊 [SchoolGradesPage] Received ${gradesData.length} grades and ${learnersResponse.learners.length} school-wide learners.`);
+      console.log(`📊 [SchoolGradesPage] Received ${gradesData.length} grades, ${learnersResponse.learners.length} learners, and statistics.`);
       setGrades(gradesData);
       setAllLearners(learnersResponse.learners);
+
+      const activeCount = Object.values(stats.by_status).reduce((acc, val) => acc + val, 0); // Simplification or adjust as per active status names
+      const totalCount = stats.total || learnersResponse.total || learnersResponse.learners.length;
+
+      setLearnerStats({
+        total: totalCount,
+        active: stats.by_status['active'] || stats.by_status['Linked'] || 0,
+        unassigned: learnersResponse.learners.filter(l => !(l as any).class_id).length // This is still limited to the first 100 learners, but it's a start.
+      });
     } catch (error) {
       console.error('Failed to fetch school data:', error);
       toast.error('Failed to load academic data');
@@ -246,13 +258,13 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
 
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Learners</p>
-            <h4 className="text-3xl font-black text-slate-900">{isLoading ? '...' : allLearners.length}</h4>
+            <h4 className="text-3xl font-black text-slate-900">{isLoading ? '...' : learnerStats.total}</h4>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-                {allLearners.length - unassignedCount} Assigned
+                {learnerStats.active} Active
               </span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">
-                {unassignedCount} Unassigned
+                {unassignedCount} Unassigned (p1)
               </span>
             </div>
           </div>
