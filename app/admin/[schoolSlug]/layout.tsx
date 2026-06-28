@@ -12,10 +12,23 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   School,
   LogOut,
   Bell,
-  ShieldCheck
+  ShieldCheck,
+  Search,
+  Calendar,
+  BookOpen,
+  ClipboardList,
+  PieChart,
+  UserCheck,
+  CreditCard,
+  FileText,
+  Smartphone,
+  Plus,
+  Briefcase,
+  HeartHandshake
 } from 'lucide-react';
 import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { useApi } from '@/lib/hooks/useApi';
@@ -39,16 +52,32 @@ const SidebarItem = ({ href, icon: Icon, label, active }: SidebarItemProps) => (
   <Link
     href={href}
     className={cn(
-      "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
+      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
       active
-        ? "bg-school-primary text-white shadow-md shadow-school-primary/20"
+        ? "bg-school-primary text-white shadow-sm"
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
     )}
   >
-    <Icon className={cn("w-5 h-5", active ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
-    <span className="font-medium">{label}</span>
+    <Icon className={cn("w-4 h-4", active ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
+    <span className="text-sm font-semibold tracking-tight">{label}</span>
   </Link>
 );
+
+const NavSection = ({ label, children, defaultOpen = true }: { label: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] hover:text-slate-600 transition-colors"
+      >
+        {label}
+        <ChevronDown className={cn("w-3 h-3 transition-transform", !isOpen && "-rotate-90")} />
+      </button>
+      {isOpen && <div className="space-y-0.5">{children}</div>}
+    </div>
+  );
+};
 
 export default function AdminDashboardLayout({
   children,
@@ -65,7 +94,7 @@ export default function AdminDashboardLayout({
 
   // Active Branding Tokens
   const branding = {
-    primary: "#059669",
+    primary: schoolData?.theme?.value || "#059669",
     mode: "green"
   };
 
@@ -75,12 +104,25 @@ export default function AdminDashboardLayout({
     '--school-radius': '0.75rem',
   } as React.CSSProperties;
 
-  const navItems = [
-    { href: `/admin/${schoolSlug}`, icon: LayoutDashboard, label: 'Overview' },
+  const managementHub = [
+    { href: `/admin/${schoolSlug}`, icon: LayoutDashboard, label: 'Dashboard' },
     { href: `/admin/${schoolSlug}/learners`, icon: Users, label: 'Learners' },
-    { href: `/admin/${schoolSlug}/grades`, icon: GraduationCap, label: 'Grades' },
+    { href: `/admin/${schoolSlug}/teachers`, icon: Briefcase, label: 'Teachers' },
+    { href: `/admin/${schoolSlug}/parents`, icon: HeartHandshake, label: 'Parents' },
     { href: `/admin/${schoolSlug}/communications`, icon: MessageSquare, label: 'Communications' },
+    { href: `/admin/${schoolSlug}/finance`, icon: CreditCard, label: 'Finance' },
+    { href: `/admin/${schoolSlug}/reports`, icon: FileText, label: 'Reports' },
     { href: `/admin/${schoolSlug}/settings`, icon: Settings, label: 'Settings' },
+  ];
+
+  const academicModules = [
+    { href: `/admin/${schoolSlug}/grades`, icon: GraduationCap, label: 'Grades' },
+    { href: `/admin/${schoolSlug}/classes`, icon: School, label: 'Classes' },
+    { href: `/admin/${schoolSlug}/subjects`, icon: BookOpen, label: 'Subjects' },
+    { href: `/admin/${schoolSlug}/attendance`, icon: Calendar, label: 'Attendance' },
+    { href: `/admin/${schoolSlug}/assessments`, icon: ClipboardList, label: 'Assessments' },
+    { href: `/admin/${schoolSlug}/timetable`, icon: Calendar, label: 'Timetable' },
+    { href: `/admin/${schoolSlug}/analytics`, icon: PieChart, label: 'Analytics' },
   ];
 
   // Breadcrumb generation based on pathname
@@ -173,14 +215,26 @@ export default function AdminDashboardLayout({
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {navItems.map((item) => (
-              <SidebarItem
-                key={item.href}
-                {...item}
-                active={pathname === item.href}
-              />
-            ))}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+            <NavSection label="Management Hub">
+              {managementHub.map((item) => (
+                <SidebarItem
+                  key={item.href}
+                  {...item}
+                  active={pathname === item.href}
+                />
+              ))}
+            </NavSection>
+
+            <NavSection label="Academic Modules">
+              {academicModules.map((item) => (
+                <SidebarItem
+                  key={item.href}
+                  {...item}
+                  active={pathname === item.href}
+                />
+              ))}
+            </NavSection>
           </nav>
 
           {/* Footer Profile Segment */}
@@ -248,6 +302,15 @@ export default function AdminDashboardLayout({
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
+            {/* Academic Year Selector */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <select className="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer">
+                <option>2024 Academic Year</option>
+                <option>2023 Academic Year</option>
+              </select>
+            </div>
+
             <div className="hidden sm:block">
               <GlobalSearch schoolId={schoolId || schoolSlug} schoolSlug={schoolSlug} />
             </div>
