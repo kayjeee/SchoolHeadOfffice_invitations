@@ -14,7 +14,9 @@ import {
   Download,
   UserPlus,
   X,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -63,8 +65,13 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   const [rosterSearchResults, setRosterSearchResults] = useState<Learner[] | null>(null);
   const [isRosterSearching, setIsRosterSearching] = useState(false);
 
+  // Master Roster Pagination
+  const [rosterPage, setRosterPage] = useState(1);
+  const [rosterTotal, setRosterTotal] = useState(0);
+  const rosterPerPage = 100;
+
   // --- Data Hydration ---
-  const fetchData = async () => {
+  const fetchData = async (targetRosterPage: number = rosterPage) => {
     if (!schoolId) {
       console.warn('⚠️ [SchoolGradesPage] schoolId is missing, skipping hydration');
       return;
@@ -73,17 +80,18 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
     try {
       // Hierarchical Fetch Strategy
       // 1. Fetch Grades (which includes metadata about classes)
-      // 2. Fetch School-Wide Learners (for the global sidebar)
+      // 2. Fetch School-Wide Learners (for the global sidebar and master roster)
       // 3. Fetch Learner Statistics (for the summary metrics)
       const [gradesData, learnersResponse, stats] = await Promise.all([
         SchoolAPI.getGrades(schoolId),
-        SchoolAPI.getSchoolLearners(schoolId),
+        SchoolAPI.getSchoolLearners(schoolId, targetRosterPage, rosterPerPage),
         SchoolAPI.getLearnerStatistics(schoolId)
       ]);
 
-      console.log(`📊 [SchoolGradesPage] Received ${gradesData.length} grades, ${learnersResponse.learners.length} learners, and statistics.`);
+      console.log(`📊 [SchoolGradesPage] Received ${gradesData.length} grades, ${learnersResponse.learners.length} learners (Page ${targetRosterPage}), and statistics.`);
       setGrades(gradesData);
       setAllLearners(learnersResponse.learners);
+      setRosterTotal(learnersResponse.total || learnersResponse.learners.length);
 
       const activeCount = Object.values(stats.by_status).reduce((acc, val) => acc + val, 0); // Simplification or adjust as per active status names
       const totalCount = stats.total || learnersResponse.total || learnersResponse.learners.length;
@@ -102,8 +110,8 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
   };
 
   useEffect(() => {
-    if (schoolId) fetchData();
-  }, [schoolId]);
+    if (schoolId) fetchData(rosterPage);
+  }, [schoolId, rosterPage]);
 
   // Master Roster Search Effect
   useEffect(() => {
@@ -467,6 +475,33 @@ export default function SchoolGradesPage({ params }: { params: Promise<{ schoolS
                       </tbody>
                    </table>
                 </div>
+
+                {/* Master Roster Pagination */}
+                {!rosterSearchQuery.trim() && rosterTotal > rosterPerPage && (
+                  <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-xs font-bold text-slate-400">
+                      Showing <span className="text-slate-900">{(rosterPage - 1) * rosterPerPage + 1}</span> to <span className="text-slate-900">{Math.min(rosterPage * rosterPerPage, rosterTotal)}</span> of <span className="text-slate-900">{rosterTotal}</span> school-wide learners
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        disabled={rosterPage === 1 || isLoading}
+                        onClick={() => setRosterPage(p => Math.max(1, p - 1))}
+                        className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-all uppercase tracking-widest flex items-center gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Prev
+                      </button>
+                      <button
+                        disabled={rosterPage * rosterPerPage >= rosterTotal || isLoading}
+                        onClick={() => setRosterPage(p => p + 1)}
+                        className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 disabled:opacity-50 transition-all uppercase tracking-widest flex items-center gap-2"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

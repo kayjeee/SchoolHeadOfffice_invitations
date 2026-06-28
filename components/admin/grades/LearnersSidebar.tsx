@@ -14,6 +14,8 @@ import {
   Clock,
   XCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,6 +54,11 @@ export function LearnersSidebar({
   const [selectedGradeId, setSelectedGradeId] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'unassigned' | 'all'>('unassigned');
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const perPage = 100;
+
   // 1. Debounce Search Query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,12 +68,13 @@ export function LearnersSidebar({
   }, [searchQuery]);
 
   // 2. Fetch Initial School-Wide Learners
-  const fetchLearners = async () => {
+  const fetchLearners = async (targetPage: number = page) => {
     if (!schoolId) return;
     setIsLoading(true);
     try {
-      const data = await SchoolAPI.getSchoolLearners(schoolId);
+      const data = await SchoolAPI.getSchoolLearners(schoolId, targetPage, perPage);
       setLearners(data.learners);
+      setTotal(data.total || data.learners.length);
     } catch (error) {
       console.error('Failed to fetch learners:', error);
       toast.error('Failed to load learners');
@@ -76,12 +84,11 @@ export function LearnersSidebar({
   };
 
   useEffect(() => {
-    if (initialLearners && initialLearners.length > 0) {
-      setLearners(initialLearners);
-    } else {
-      fetchLearners();
-    }
-  }, [schoolId, refreshTrigger, initialLearners]);
+    // If search is active, we don't fetch regular paginated list
+    if (debouncedQuery.trim()) return;
+
+    fetchLearners(page);
+  }, [schoolId, refreshTrigger, page, debouncedQuery]);
 
   // 3. Server-Side Search Logic (Dual-Mode Fallback)
   useEffect(() => {
@@ -328,6 +335,36 @@ export function LearnersSidebar({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Pagination Footer */}
+      {!debouncedQuery.trim() && total > perPage && (
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+          <div className="flex flex-col">
+            <p className="text-[10px] font-black text-slate-900">
+              Page {page} of {Math.ceil(total / perPage)}
+            </p>
+            <p className="text-[9px] font-bold text-slate-400">
+              Showing {Math.min(page * perPage, total)} of {total}
+            </p>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              disabled={page === 1 || isLoading}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="p-2 bg-white border border-slate-200 rounded-xl text-slate-600 disabled:opacity-50 hover:border-school-primary hover:text-school-primary transition-all shadow-sm"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              disabled={page * perPage >= total || isLoading}
+              onClick={() => setPage(p => p + 1)}
+              className="p-2 bg-white border border-slate-200 rounded-xl text-slate-600 disabled:opacity-50 hover:border-school-primary hover:text-school-primary transition-all shadow-sm"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

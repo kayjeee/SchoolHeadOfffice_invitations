@@ -17,6 +17,7 @@ import {
   BookOpen,
   PieChart,
   ChevronRight,
+  ChevronLeft,
   SearchX,
   Loader2,
   Mail,
@@ -519,24 +520,52 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                 )}
 
                 {/* Pagination Controls */}
-                <div className="flex items-center justify-between px-2 pt-4 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 pt-6 border-t border-slate-100">
                   <p className="text-xs font-bold text-slate-400">
-                    Showing <span className="text-slate-900">{((page - 1) * perPage) + 1}</span> to <span className="text-slate-900">{Math.min(page * perPage, total)}</span> of <span className="text-slate-900">{total}</span> learners
+                    Showing <span className="text-slate-900 font-black">{((page - 1) * perPage) + 1}</span> to <span className="text-slate-900 font-black">{Math.min(page * perPage, total)}</span> of <span className="text-slate-900 font-black">{total}</span> learners
                   </p>
-                  <div className="flex gap-2">
+
+                  <div className="flex items-center gap-2">
                     <button
                       disabled={page === 1 || isLoading}
                       onClick={() => setPage(p => Math.max(1, p - 1))}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-all uppercase tracking-widest"
+                      className="flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-all uppercase tracking-widest"
                     >
-                      Previous
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      Prev
                     </button>
+
+                    <div className="hidden md:flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, Math.ceil(total / perPage)) }, (_, i) => {
+                        const pageNum = i + 1;
+                        // Simple logic for first 5 pages, can be expanded for ellipsis
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={cn(
+                              "w-8 h-8 rounded-lg text-[10px] font-black transition-all",
+                              page === pageNum
+                                ? "bg-school-primary text-white shadow-md shadow-school-primary/20"
+                                : "bg-white border border-slate-100 text-slate-400 hover:bg-slate-50"
+                            )}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      {Math.ceil(total / perPage) > 5 && (
+                        <span className="px-2 text-slate-300 font-black text-xs">...</span>
+                      )}
+                    </div>
+
                     <button
                       disabled={page * perPage >= total || isLoading}
                       onClick={() => setPage(p => p + 1)}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 disabled:opacity-50 transition-all uppercase tracking-widest"
+                      className="flex items-center gap-1 px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-slate-800 disabled:opacity-50 transition-all uppercase tracking-widest"
                     >
                       Next
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
