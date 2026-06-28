@@ -262,6 +262,27 @@ export class SchoolAPI {
     return [];
   }
 
+  // Learner Statistics
+  static async getLearnerStatistics(schoolId: string): Promise<{ total: number, by_status: Record<string, number>, by_gender: Record<string, number> }> {
+    const response = await apiClient.get(`/api/v1/learners/statistics?school_id=${schoolId}`, z.any());
+    const data = response.data || response;
+    return {
+      total: data.total || 0,
+      by_status: data.by_status || {},
+      by_gender: data.by_gender || {}
+    };
+  }
+
+  static async getLearnerHistory(learnerId: string): Promise<any> {
+    const response = await apiClient.get(`/api/v1/learners/${learnerId}/history`, z.any());
+    return response.data || response;
+  }
+
+  static async getLearnerGrades(learnerId: string): Promise<any> {
+    const response = await apiClient.get(`/api/v1/learners/${learnerId}/grades`, z.any());
+    return response.data || response;
+  }
+
   static async getGrade(gradeId: string): Promise<Grade> {
     const response = await apiClient.get(`/api/v1/grades/${gradeId}`, GradeResponseSchema);
     return response.grade;
@@ -338,11 +359,35 @@ export class SchoolAPI {
   }
 
   // School Learners
-  static async getSchoolLearners(schoolId: string): Promise<Learner[]> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners`, LearnersResponseSchema);
-    if ('learners' in response) return response.learners || [];
-    if ('data' in response) return response.data?.learners || [];
-    return [];
+  static async getSchoolLearners(schoolId: string, page = 1, perPage = 100): Promise<{ learners: Learner[], total?: number }> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners?page=${page}&per_page=${perPage}`, z.any());
+
+    // The response might be:
+    // 1. { status: "success", data: [...], pagination: { total_count: ... } }
+    // 2. { success: true, learners: [...], meta: { total: ... } }
+    // 3. { success: true, data: { learners: [...], total: ... } }
+    // 4. [...] (Direct array)
+
+    let learnersData: any[] = [];
+    let total: number | undefined;
+
+    if (response.status === "success" && Array.isArray(response.data)) {
+      learnersData = response.data;
+      total = response.pagination?.total_count || response.pagination?.total;
+    } else if (response.learners) {
+      learnersData = response.learners;
+      total = response.meta?.total || response.total;
+    } else if (response.data?.learners) {
+      learnersData = response.data.learners;
+      total = response.data.total || response.data.meta?.total;
+    } else if (Array.isArray(response)) {
+      learnersData = response;
+    }
+
+    return {
+      learners: learnersData.map(l => LearnerSchema.parse(l)),
+      total: total
+    };
   }
 
   // Bulk Upload
@@ -355,8 +400,10 @@ export class SchoolAPI {
 
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string, page = 1, perPage = 100): Promise<Learner[]> {
-    console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId}`);
-    const response = await apiClient.get(`/api/v1/grades/${gradeId}/learners?school_id=${schoolId}&page=${page}&per_page=${perPage}`, z.any());
+    console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId} in school: ${schoolId}`);
+    // Adhering to nested route: /api/v1/schools/:school_id/grades/:id/learners
+    const endpoint = `/api/v1/schools/${schoolId}/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`;
+    const response = await apiClient.get(endpoint, z.any());
 
     // Normalize response shape: { learners: [...] } or { data: { learners: [...] } } or [...]
     const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
