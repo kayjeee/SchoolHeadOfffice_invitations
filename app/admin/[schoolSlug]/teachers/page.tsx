@@ -22,10 +22,13 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader, StatsCard } from '@/components/admin/common/DashboardUI';
+import { TeacherProfileDrawer } from '@/components/admin/teachers/TeacherProfileDrawer';
 
 export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
   const { schoolData } = useSchool(schoolSlug);
+  const [selectedTeacher, setSelectedTeacher] = React.useState<any>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
 
   const teachers = [
     { name: 'Dr. Sarah Jenkins', role: 'Head of Science', department: 'Natural Sciences', students: 180, performance: '98%', status: 'Active', avatar: 'SJ' },
@@ -120,7 +123,13 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
             </div>
 
             <div className="mt-6 flex gap-2">
-              <button className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-600 rounded-xl transition-all uppercase tracking-widest border border-slate-100">
+              <button
+                onClick={() => {
+                  setSelectedTeacher(teacher);
+                  setIsDrawerOpen(true);
+                }}
+                className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-600 rounded-xl transition-all uppercase tracking-widest border border-slate-100"
+              >
                 View Profile
               </button>
               <button className="p-2.5 bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-400 rounded-xl transition-all border border-slate-100">
@@ -138,6 +147,12 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
            <span className="text-xs font-black uppercase tracking-widest">New Faculty Member</span>
         </button>
       </div>
+
+      <TeacherProfileDrawer
+        teacher={selectedTeacher}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
     </div>
   );
 }
