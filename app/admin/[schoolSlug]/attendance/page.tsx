@@ -1,41 +1,54 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { useSchool } from '@/lib/hooks/useSchool';
 import {
   Calendar,
   Search,
   Filter,
   Plus,
-  MoreVertical,
-  Users,
   CheckCircle2,
   XCircle,
   AlertCircle,
   BarChart3,
   Download,
-  Mail,
   Smartphone,
   ChevronRight,
   Clock
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { PageHeader, StatsCard, DashboardSection } from '@/components/admin/common/DashboardUI';
+import { SchoolAPI } from '@/lib/api/school-api';
 
 export default function AttendancePage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
+  const [stats, setStats] = useState<any>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const classes = [
-    { name: 'Grade 12A', teacher: 'Dr. Sarah Jenkins', present: 28, late: 2, absent: 0, total: 30, trend: '93%' },
-    { name: 'Grade 12B', teacher: 'Mr. David Molefe', present: 24, late: 1, absent: 5, total: 30, trend: '80%' },
-    { name: 'Grade 11A', teacher: 'Mrs. Elena Rodriguez', present: 32, late: 0, absent: 0, total: 32, trend: '100%' },
-    { name: 'Grade 11B', teacher: 'Mr. James Thompson', present: 26, late: 4, absent: 2, total: 32, trend: '81%' },
-    { name: 'Grade 10A', teacher: 'Ms. Linda Zulu', present: 28, late: 2, absent: 0, total: 30, trend: '93%' },
-    { name: 'Grade 10B', teacher: 'Mr. Robert Smith', present: 15, late: 5, absent: 10, total: 30, trend: '50%' },
-  ];
+  useEffect(() => {
+    if (schoolId) {
+      loadAttendanceData();
+    }
+  }, [schoolId]);
 
-  if (isLoading) return null;
+  const loadAttendanceData = async () => {
+    setIsLoading(true);
+    try {
+      const [statsData, classesData] = await Promise.all([
+        SchoolAPI.getAttendanceStats(schoolId!),
+        SchoolAPI.getClassAttendance(schoolId!)
+      ]);
+      setStats(statsData);
+      setClasses(classesData);
+    } catch (error) {
+      console.error('Failed to load attendance data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSchoolLoading) return null;
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -59,10 +72,28 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
 
       {/* Real-time Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatsCard label="School Presence" value="92.4%" change="+1.2%" icon={CheckCircle2} />
-        <StatsCard label="Unexcused Absence" value="42" change="-8" icon={XCircle} />
-        <StatsCard label="Late Arrivals" value="18" icon={Clock} />
-        <StatsCard label="At Risk Learners" value="12" icon={AlertCircle} />
+        <StatsCard
+          label="School Presence"
+          value={stats?.presence_rate || "0%"}
+          change={stats?.presence_change}
+          icon={CheckCircle2}
+        />
+        <StatsCard
+          label="Unexcused Absence"
+          value={stats?.unexcused_absences?.toString() || "0"}
+          change={stats?.absence_change}
+          icon={XCircle}
+        />
+        <StatsCard
+          label="Late Arrivals"
+          value={stats?.late_arrivals?.toString() || "0"}
+          icon={Clock}
+        />
+        <StatsCard
+          label="At Risk Learners"
+          value={stats?.at_risk_count?.toString() || "0"}
+          icon={AlertCircle}
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -93,24 +124,33 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-50">
-                      {classes.map((cls, idx) => (
+                      {isLoading ? (
+                         Array.from({ length: 5 }).map((_, i) => (
+                           <tr key={i} className="animate-pulse">
+                             <td className="py-4"><div className="h-4 bg-slate-50 rounded w-24" /></td>
+                             <td className="py-4"><div className="h-4 bg-slate-50 rounded w-32 mx-auto" /></td>
+                             <td className="py-4"><div className="h-4 bg-slate-50 rounded w-16 mx-auto" /></td>
+                             <td className="py-4"><div className="h-4 bg-slate-50 rounded w-8 ml-auto" /></td>
+                           </tr>
+                         ))
+                      ) : classes.map((cls, idx) => (
                         <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
                            <td className="py-4">
                               <p className="text-sm font-black text-slate-900">{cls.name}</p>
-                              <p className="text-[10px] text-slate-400 font-bold uppercase">{cls.teacher}</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase">{cls.teacher_name || cls.teacher}</p>
                            </td>
                            <td className="py-4">
                               <div className="flex items-center justify-center gap-4">
                                  <div className="text-center">
-                                    <p className="text-xs font-black text-emerald-600">{cls.present}</p>
+                                    <p className="text-xs font-black text-emerald-600">{cls.present_count || cls.present || 0}</p>
                                     <p className="text-[8px] font-bold text-slate-400 uppercase">Present</p>
                                  </div>
                                  <div className="text-center">
-                                    <p className="text-xs font-black text-amber-500">{cls.late}</p>
+                                    <p className="text-xs font-black text-amber-500">{cls.late_count || cls.late || 0}</p>
                                     <p className="text-[8px] font-bold text-slate-400 uppercase">Late</p>
                                  </div>
                                  <div className="text-center">
-                                    <p className="text-xs font-black text-rose-500">{cls.absent}</p>
+                                    <p className="text-xs font-black text-rose-500">{cls.absent_count || cls.absent || 0}</p>
                                     <p className="text-[8px] font-bold text-slate-400 uppercase">Absent</p>
                                  </div>
                               </div>
@@ -119,11 +159,11 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
                               <div className="flex items-center justify-center gap-3">
                                  <div className="flex-1 max-w-[80px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                     <div
-                                      className={`h-full rounded-full ${parseInt(cls.trend) > 90 ? 'bg-emerald-500' : parseInt(cls.trend) > 75 ? 'bg-amber-400' : 'bg-rose-500'}`}
-                                      style={{ width: cls.trend }}
+                                      className={`h-full rounded-full ${parseInt(cls.attendance_percentage || cls.trend || "0") > 90 ? 'bg-emerald-500' : parseInt(cls.attendance_percentage || cls.trend || "0") > 75 ? 'bg-amber-400' : 'bg-rose-500'}`}
+                                      style={{ width: cls.attendance_percentage || cls.trend || "0%" }}
                                     />
                                  </div>
-                                 <span className="text-xs font-black text-slate-900">{cls.trend}</span>
+                                 <span className="text-xs font-black text-slate-900">{cls.attendance_percentage || cls.trend || "0%"}</span>
                               </div>
                            </td>
                            <td className="py-4 text-right">
@@ -149,11 +189,11 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
                  <h4 className="font-black text-rose-900">Attendance Alerts</h4>
               </div>
               <div className="space-y-4">
-                 {[
+                 {(stats?.alerts || [
                    { name: 'Thabo Mokoena', detail: 'Absent for 3 consecutive days', grade: '12B' },
                    { name: 'Sarah Wilson', detail: 'Persistent late coming (5 instances)', grade: '10B' },
                    { name: 'Michael Ndlovu', detail: 'Attendance dropped below 75%', grade: '11B' }
-                 ].map((alert, i) => (
+                 ]).map((alert: any, i: number) => (
                    <div key={i} className="p-4 bg-white rounded-2xl border border-rose-100 shadow-sm">
                       <div className="flex items-center justify-between mb-1">
                          <span className="text-xs font-black text-slate-900">{alert.name}</span>
@@ -180,7 +220,7 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
                  <BarChart3 className="w-4 h-4 text-slate-300" />
               </div>
               <div className="grid grid-cols-5 gap-2 h-40 items-end">
-                 {[40, 70, 90, 85, 95].map((h, i) => (
+                 {(stats?.heatmap || [40, 70, 90, 85, 95]).map((h: number, i: number) => (
                    <div key={i} className="flex flex-col items-center gap-2">
                       <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-lg relative group overflow-hidden" style={{ height: `${h}%` }}>
                          <div className="absolute inset-0 bg-emerald-500 opacity-20 group-hover:opacity-40 transition-opacity" />

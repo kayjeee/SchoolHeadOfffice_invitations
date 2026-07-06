@@ -3,6 +3,7 @@
 import React from 'react';
 import MessagingSection from '@/components/teacher/messaging/MessagingSection';
 import { useSchool } from '@/lib/hooks/useSchool';
+import { useApi } from '@/lib/hooks/useApi';
 import { PageHeader } from '@/components/admin/common/DashboardUI';
 import { MessageSquare, Plus, Bell, Settings } from 'lucide-react';
 
@@ -12,13 +13,13 @@ interface CommunicationsPageProps {
 
 export default function CommunicationsPage({ params }: CommunicationsPageProps) {
   const { schoolSlug } = React.use(params);
-  const { schoolId, schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolId, schoolData, isLoading: schoolLoading } = useSchool(schoolSlug);
+  const { user, isLoading: authLoading } = useApi();
 
-  // In a real app, currentUserId would come from Auth context
-  // This would typically be the Auth0 sub or a resolved DB user ID
-  const currentUserId = "admin-123";
+  // Prefer Auth0 sub, fallback to dev mock if not logged in
+  const currentUserId = user?.sub || "admin-123";
 
-  if (isLoading) {
+  if (schoolLoading || authLoading) {
     return (
       <div className="flex items-center justify-center h-[600px]">
         <div className="w-8 h-8 border-4 border-school-primary border-t-transparent rounded-full animate-spin" />

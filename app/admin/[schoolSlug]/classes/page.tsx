@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { useSchool } from '@/lib/hooks/useSchool';
 import {
   School,
@@ -9,7 +9,6 @@ import {
   Plus,
   Users,
   UserCheck,
-  BookOpen,
   ChevronRight,
   LayoutGrid,
   List,
@@ -18,22 +17,54 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader, StatsCard } from '@/components/admin/common/DashboardUI';
+import { SchoolAPI, Class, Grade } from '@/lib/api/school-api';
 
 export default function ClassesPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [classes, setClasses] = useState<(Class & { gradeName?: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const classes = [
-    { id: '1', name: 'Grade 12A', grade: 'Grade 12', teacher: 'Dr. Sarah Jenkins', learners: 30, capacity: 35, room: 'Room 401' },
-    { id: '2', name: 'Grade 12B', grade: 'Grade 12', teacher: 'Mr. David Molefe', learners: 28, capacity: 35, room: 'Room 402' },
-    { id: '3', name: 'Grade 11A', grade: 'Grade 11', teacher: 'Mrs. Elena Rodriguez', learners: 32, capacity: 32, room: 'Room 305' },
-    { id: '4', name: 'Grade 11B', grade: 'Grade 11', teacher: 'Mr. James Thompson', learners: 26, capacity: 32, room: 'Room 306' },
-    { id: '5', name: 'Grade 10A', grade: 'Grade 10', teacher: 'Ms. Linda Zulu', learners: 28, capacity: 35, room: 'Room 201' },
-    { id: '6', name: 'Grade 10B', grade: 'Grade 10', teacher: 'Mr. Robert Smith', learners: 15, capacity: 35, room: 'Room 202' },
-  ];
+  useEffect(() => {
+    if (schoolId) {
+      loadClasses();
+    }
+  }, [schoolId]);
 
-  if (isLoading) return null;
+  const loadClasses = async () => {
+    setIsLoading(true);
+    try {
+      const grades = await SchoolAPI.getGrades(schoolId!);
+      const allWebClasses: (Class & { gradeName?: string })[] = [];
+
+      grades.forEach(grade => {
+        if (grade.classes) {
+          grade.classes.forEach(cls => {
+            allWebClasses.push({
+              ...cls,
+              gradeName: grade.name
+            });
+          });
+        }
+      });
+
+      setClasses(allWebClasses);
+    } catch (error) {
+      console.error('Failed to load classes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredClasses = classes.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.class_teacher_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.gradeName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (isSchoolLoading) return null;
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -90,7 +121,17 @@ export default function ClassesPage({ params }: { params: Promise<{ schoolSlug: 
 
       {view === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((cls, i) => (
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-6 animate-pulse h-[300px]">
+                <div className="w-12 h-12 bg-slate-50 rounded-2xl mb-6" />
+                <div className="h-6 bg-slate-50 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-slate-50 rounded w-1/2 mb-6" />
+                <div className="h-2 bg-slate-50 rounded w-full mb-2" />
+                <div className="h-2 bg-slate-50 rounded w-full" />
+              </div>
+            ))
+          ) : filteredClasses.map((cls, i) => (
             <motion.div
               key={cls.id}
               initial={{ opacity: 0, y: 20 }}
@@ -103,25 +144,25 @@ export default function ClassesPage({ params }: { params: Promise<{ schoolSlug: 
                   <GraduationCap className="w-6 h-6 text-slate-400 group-hover:text-school-primary" />
                 </div>
                 <div className="text-right">
-                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{cls.grade}</p>
-                   <p className="text-[10px] font-bold text-school-primary">{cls.room}</p>
+                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{cls.gradeName}</p>
+                   <p className="text-[10px] font-bold text-school-primary">{(cls as any).room || 'Unassigned'}</p>
                 </div>
               </div>
 
               <h3 className="text-xl font-black text-slate-900 mb-1">{cls.name}</h3>
-              <p className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-wider">{cls.teacher}</p>
+              <p className="text-xs font-bold text-slate-400 mb-6 uppercase tracking-wider">{cls.class_teacher_name || 'No Teacher'}</p>
 
               <div className="space-y-4">
                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-400 uppercase">Capacity</span>
-                    <span className="text-xs font-black text-slate-900">{cls.learners} / {cls.capacity}</span>
+                    <span className="text-xs font-black text-slate-900">{cls.current_learners} / {cls.capacity}</span>
                  </div>
                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-1000 ${
-                        (cls.learners / cls.capacity) > 0.9 ? 'bg-rose-500' : (cls.learners / cls.capacity) > 0.7 ? 'bg-amber-400' : 'bg-school-primary'
+                        (cls.current_learners / (cls.capacity || 1)) > 0.9 ? 'bg-rose-500' : (cls.current_learners / (cls.capacity || 1)) > 0.7 ? 'bg-amber-400' : 'bg-school-primary'
                       }`}
-                      style={{ width: `${(cls.learners / cls.capacity) * 100}%` }}
+                      style={{ width: `${(cls.current_learners / (cls.capacity || 1)) * 100}%` }}
                     />
                  </div>
               </div>
@@ -161,16 +202,27 @@ export default function ClassesPage({ params }: { params: Promise<{ schoolSlug: 
                  </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                 {classes.map((cls) => (
+                 {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-24" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-32" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-12" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-slate-50 rounded w-8" /></td>
+                        <td className="px-6 py-4 text-right"><div className="h-4 bg-slate-50 rounded w-4 ml-auto" /></td>
+                      </tr>
+                    ))
+                 ) : filteredClasses.map((cls) => (
                    <tr key={cls.id} className="group hover:bg-slate-50/30 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-900">{cls.name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">{cls.teacher}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-tighter">{cls.grade}</td>
-                      <td className="px-6 py-4 text-xs font-bold text-school-primary">{cls.room}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">{cls.class_teacher_name || 'No Teacher'}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-tighter">{cls.gradeName}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-school-primary">{(cls as any).room || 'Unassigned'}</td>
                       <td className="px-6 py-4">
                          <div className="flex items-center gap-2">
                             <Users className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-900">{cls.learners}</span>
+                            <span className="text-sm font-bold text-slate-900">{cls.current_learners}</span>
                          </div>
                       </td>
                       <td className="px-6 py-4 text-right">

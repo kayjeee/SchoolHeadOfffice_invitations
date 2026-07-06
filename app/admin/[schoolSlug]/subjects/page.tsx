@@ -1,41 +1,55 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { useSchool } from '@/lib/hooks/useSchool';
 import {
   BookOpen,
   Search,
   Filter,
   Plus,
-  MoreVertical,
   Users,
   GraduationCap,
-  TrendingUp,
   FileText,
   LayoutGrid,
   List,
-  Calendar,
   CheckCircle2,
-  Clock,
-  ClipboardList
+  Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader, StatsCard, DashboardSection } from '@/components/admin/common/DashboardUI';
+import { SchoolAPI, Subject } from '@/lib/api/school-api';
 
 export default function SubjectsPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const subjects = [
-    { id: '1', name: 'Mathematics', code: 'MATH-SEC', teachers: 8, classes: 12, performance: '82%', trend: '+4%', level: 'Secondary' },
-    { id: '2', name: 'Physical Science', code: 'SCI-PHYS', teachers: 5, classes: 9, performance: '76%', trend: '-2%', level: 'Secondary' },
-    { id: '3', name: 'English First Language', code: 'ENG-FL', teachers: 10, classes: 15, performance: '88%', trend: '+1%', level: 'All Levels' },
-    { id: '4', name: 'Information Technology', code: 'CAT-IT', teachers: 3, classes: 6, performance: '91%', trend: '+5%', level: 'Further Education' },
-    { id: '5', name: 'Economics', code: 'BUS-ECON', teachers: 4, classes: 8, performance: '79%', trend: '+0%', level: 'Secondary' },
-    { id: '6', name: 'Life Orientation', code: 'LIFE-OR', teachers: 12, classes: 20, performance: '94%', trend: '+2%', level: 'All Levels' },
-  ];
+  useEffect(() => {
+    if (schoolId) {
+      loadSubjects();
+    }
+  }, [schoolId]);
 
-  if (isLoading) return null;
+  const loadSubjects = async () => {
+    setIsLoading(true);
+    try {
+      const data = await SchoolAPI.getSubjects(schoolId!);
+      setSubjects(data);
+    } catch (error) {
+      console.error('Failed to load subjects:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredSubjects = subjects.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.code?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (isSchoolLoading) return null;
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -87,7 +101,18 @@ export default function SubjectsPage({ params }: { params: Promise<{ schoolSlug:
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {subjects.map((subject, i) => (
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-6 animate-pulse h-[280px]">
+              <div className="w-12 h-12 bg-slate-50 rounded-2xl mb-6" />
+              <div className="h-6 bg-slate-50 rounded w-3/4 mb-4" />
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="h-12 bg-slate-50 rounded-2xl" />
+                <div className="h-12 bg-slate-50 rounded-2xl" />
+              </div>
+            </div>
+          ))
+        ) : filteredSubjects.map((subject, i) => (
           <motion.div
             key={subject.id}
             initial={{ opacity: 0, y: 20 }}
@@ -100,8 +125,8 @@ export default function SubjectsPage({ params }: { params: Promise<{ schoolSlug:
                 <BookOpen className="w-6 h-6 text-slate-400 group-hover:text-school-primary" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{subject.code}</span>
-                <span className="text-[10px] font-bold text-school-primary">{subject.level}</span>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{subject.code || 'NO-CODE'}</span>
+                <span className="text-[10px] font-bold text-school-primary">{subject.level || 'All Levels'}</span>
               </div>
             </div>
 
@@ -114,14 +139,14 @@ export default function SubjectsPage({ params }: { params: Promise<{ schoolSlug:
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Teachers</p>
                  <div className="flex items-center gap-2">
                     <Users className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-sm font-black text-slate-900">{subject.teachers} Faculty</span>
+                    <span className="text-sm font-black text-slate-900">{subject.teacher_count || 0} Faculty</span>
                  </div>
               </div>
               <div className="p-3 bg-slate-50 rounded-2xl">
                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Classes</p>
                  <div className="flex items-center gap-2">
                     <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-sm font-black text-slate-900">{subject.classes} Groups</span>
+                    <span className="text-sm font-black text-slate-900">{subject.class_count || 0} Groups</span>
                  </div>
               </div>
             </div>
@@ -130,9 +155,9 @@ export default function SubjectsPage({ params }: { params: Promise<{ schoolSlug:
               <div className="flex flex-col">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Performance</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-black text-slate-900">{subject.performance}</span>
-                  <span className={`text-[10px] font-bold ${subject.trend.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {subject.trend}
+                  <span className="text-lg font-black text-slate-900">{subject.performance || '0%'}</span>
+                  <span className={`text-[10px] font-bold ${(subject.trend || '').startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {subject.trend || '0%'}
                   </span>
                 </div>
               </div>

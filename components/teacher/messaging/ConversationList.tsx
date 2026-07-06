@@ -11,6 +11,7 @@ interface ConversationListProps {
   onNewMessage?: () => void;
   onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
+  onNoteToSelf?: () => void;
 }
 
 export default function ConversationList({
@@ -21,6 +22,7 @@ export default function ConversationList({
   onNewMessage,
   onNewGroupMessage,
   onShowSaved,
+  onNoteToSelf,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -112,6 +114,13 @@ export default function ConversationList({
               title="New Group Message"
             >
               <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
+            <button
+              onClick={onNoteToSelf}
+              className="p-2 hover:bg-white/5 rounded-xl transition-all group"
+              title="Note to self"
+            >
+              <User className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
             </button>
             <button
               onClick={onNewMessage}

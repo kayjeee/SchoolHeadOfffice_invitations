@@ -171,6 +171,29 @@ export default function MessagingSection({
     setShowMobileList(true);
   };
 
+  const handleNoteToSelf = async () => {
+    // Check if a self-conversation already exists
+    const selfConv = conversations.find(conv => {
+      const ids = (conv.participant_ids || conv.participants || [])
+        .map((p: any) => (p.id ?? p).toString());
+      return ids.length === 1 && ids[0] === currentUserId.toString();
+    });
+
+    if (selfConv) {
+      handleSelectConversation(selfConv.id);
+      return;
+    }
+
+    // Create new self-conversation if it doesn't exist
+    try {
+      const conv = await MessagingAPI.createConversation([], schoolId);
+      handleSelectConversation(conv.id);
+      refreshConvs();
+    } catch (err) {
+      console.error('Failed to create self-conversation:', err);
+    }
+  };
+
   // Mark as read when switching conversations
   useEffect(() => {
     if (!activeConvId) return;
@@ -258,6 +281,7 @@ export default function MessagingSection({
                 activeConversationId={activeConvId}
                 onSelectConversation={handleSelectConversation}
                 currentUserId={currentUserId}
+                onNoteToSelf={handleNoteToSelf}
                 onNewMessage={() => {
                   setShowDirectory(true);
                   setShowGroupInitiation(false);
@@ -289,6 +313,7 @@ export default function MessagingSection({
               activeConversationId={activeConvId}
               onSelectConversation={handleSelectConversation}
               currentUserId={currentUserId}
+              onNoteToSelf={handleNoteToSelf}
               onNewMessage={() => {
                 setShowDirectory(true);
                 setShowGroupInitiation(false);

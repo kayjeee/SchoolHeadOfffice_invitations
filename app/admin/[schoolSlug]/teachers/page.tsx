@@ -1,20 +1,14 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { useSchool } from '@/lib/hooks/useSchool';
 import {
   Users,
   Search,
   Filter,
   Plus,
-  MoreVertical,
   Mail,
-  Phone,
   BookOpen,
-  GraduationCap,
-  TrendingUp,
-  Briefcase,
-  ChevronRight,
   UserPlus,
   Download,
   ShieldCheck,
@@ -23,19 +17,40 @@ import {
 import { motion } from 'framer-motion';
 import { PageHeader, StatsCard } from '@/components/admin/common/DashboardUI';
 import { TeacherProfileDrawer } from '@/components/admin/teachers/TeacherProfileDrawer';
+import { SchoolAPI, Teacher } from '@/lib/api/school-api';
 
 export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolData } = useSchool(schoolSlug);
-  const [selectedTeacher, setSelectedTeacher] = React.useState<any>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const teachers = [
-    { name: 'Dr. Sarah Jenkins', role: 'Head of Science', department: 'Natural Sciences', students: 180, performance: '98%', status: 'Active', avatar: 'SJ' },
-    { name: 'Mr. David Molefe', role: 'Mathematics Lead', department: 'Mathematics', students: 210, performance: '94%', status: 'Active', avatar: 'DM' },
-    { name: 'Mrs. Elena Rodriguez', role: 'Senior Language Teacher', department: 'Humanities', students: 165, performance: '96%', status: 'On Leave', avatar: 'ER' },
-    { name: 'Mr. James Thompson', role: 'Physical Education Coach', department: 'Sports', students: 450, performance: '92%', status: 'Active', avatar: 'JT' },
-  ];
+  useEffect(() => {
+    if (schoolId) {
+      loadTeachers();
+    }
+  }, [schoolId]);
+
+  const loadTeachers = async () => {
+    setIsLoading(true);
+    try {
+      const data = await SchoolAPI.getTeachers(schoolId!);
+      setTeachers(data);
+    } catch (error) {
+      console.error('Failed to load teachers:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredTeachers = teachers.filter(t =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.role?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -83,9 +98,21 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
 
       {/* Teachers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {teachers.map((teacher, i) => (
+        {isLoading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 animate-pulse h-[320px]">
+              <div className="w-12 h-12 bg-slate-100 rounded-2xl mb-4" />
+              <div className="h-4 bg-slate-100 rounded w-2/3 mb-2" />
+              <div className="h-3 bg-slate-50 rounded w-1/2 mb-6" />
+              <div className="space-y-2 pt-4 border-t border-slate-50">
+                <div className="h-2 bg-slate-50 rounded" />
+                <div className="h-2 bg-slate-50 rounded" />
+              </div>
+            </div>
+          ))
+        ) : filteredTeachers.map((teacher, i) => (
           <motion.div
-            key={i}
+            key={teacher.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
@@ -93,7 +120,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
           >
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-black text-lg">
-                {teacher.avatar}
+                {teacher.avatar || teacher.name.charAt(0)}
               </div>
               <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${
                 teacher.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'
@@ -110,15 +137,15 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
             <div className="space-y-2 pt-4 border-t border-slate-50">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-slate-400 font-bold uppercase">Department</span>
-                <span className="text-slate-900 font-bold">{teacher.department}</span>
+                <span className="text-slate-900 font-bold">{teacher.department || 'General'}</span>
               </div>
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-slate-400 font-bold uppercase">Students</span>
-                <span className="text-slate-900 font-bold">{teacher.students}</span>
+                <span className="text-slate-900 font-bold">{teacher.student_count || 0}</span>
               </div>
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-slate-400 font-bold uppercase">Avg Result</span>
-                <span className="text-emerald-600 font-black">{teacher.performance}</span>
+                <span className="text-emerald-600 font-black">{teacher.performance || 'N/A'}</span>
               </div>
             </div>
 
