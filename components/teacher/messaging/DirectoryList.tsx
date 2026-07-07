@@ -105,7 +105,7 @@ export default function DirectoryList({
       const isSelf = targetParticipantId.toString() === currentUserId?.toString();
       const participantIds = isSelf ? [] : [targetParticipantId];
 
-      const conv = await MessagingAPI.createConversation(participantIds, schoolId);
+      const conv = await MessagingAPI.createConversation(participantIds, schoolId, currentUserId);
       onSelectConversation(conv.id);
     } catch (err) {
       // Map ConversationError codes to user-friendly messages

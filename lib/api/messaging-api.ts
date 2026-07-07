@@ -107,7 +107,8 @@ export class MessagingAPI {
    */
   static async createConversation(
     participantIds: string[],
-    schoolId?: string
+    schoolId: string,
+    userId: string
   ): Promise<Conversation> {
     if (!schoolId) {
       throw new ConversationError(
@@ -119,6 +120,8 @@ export class MessagingAPI {
     // Clean configuration for conversations / notes to self
     // If participantIds is empty, the backend treats it as a "Note to self"
     const payload = {
+      school_id: schoolId,
+      user_id: userId,
       conversation: {
         school_id: schoolId,
         participant_ids: participantIds

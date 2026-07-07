@@ -25,6 +25,7 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
   const [stats, setStats] = useState<any>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (schoolId) {
@@ -105,7 +106,13 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
               <div className="flex items-center gap-2">
                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input type="text" placeholder="Search classes..." className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold outline-none focus:border-school-primary w-48" />
+                    <input
+                      type="text"
+                      placeholder="Search classes..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-bold outline-none focus:border-school-primary w-48"
+                    />
                  </div>
                  <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 transition-all">
                     <Filter className="w-3.5 h-3.5" />
@@ -133,7 +140,7 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
                              <td className="py-4"><div className="h-4 bg-slate-50 rounded w-8 ml-auto" /></td>
                            </tr>
                          ))
-                      ) : classes.map((cls, idx) => (
+                      ) : filteredClasses.map((cls, idx) => (
                         <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
                            <td className="py-4">
                               <p className="text-sm font-black text-slate-900">{cls.name}</p>

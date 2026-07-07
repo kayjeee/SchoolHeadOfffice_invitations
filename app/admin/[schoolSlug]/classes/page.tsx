@@ -109,6 +109,8 @@ export default function ClassesPage({ params }: { params: Promise<{ schoolSlug: 
           <input
             type="text"
             placeholder="Search by class name, teacher, or room..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-school-primary/10 transition-all outline-none"
           />
         </div>

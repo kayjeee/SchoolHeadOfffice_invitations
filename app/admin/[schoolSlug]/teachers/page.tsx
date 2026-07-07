@@ -87,6 +87,8 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
           <input
             type="text"
             placeholder="Search by name, department, or subject..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900"
           />
         </div>

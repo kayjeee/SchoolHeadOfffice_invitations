@@ -186,7 +186,7 @@ export default function MessagingSection({
 
     // Create new self-conversation if it doesn't exist
     try {
-      const conv = await MessagingAPI.createConversation([], schoolId);
+      const conv = await MessagingAPI.createConversation([], schoolId, currentUserId);
       handleSelectConversation(conv.id);
       refreshConvs();
     } catch (err) {
