@@ -18,6 +18,7 @@ interface ConversationListProps {
 
 export default function ConversationList({
   conversations,
+  learners,
   activeConversationId,
   onSelectConversation,
   currentUserId,
