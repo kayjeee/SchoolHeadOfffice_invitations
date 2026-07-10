@@ -27,6 +27,11 @@ export default function AttendancePage({ params }: { params: Promise<{ schoolSlu
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const filteredClasses = classes.filter(cls =>
+    cls.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (cls.teacher_name || cls.teacher || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   useEffect(() => {
     if (schoolId) {
       loadAttendanceData();

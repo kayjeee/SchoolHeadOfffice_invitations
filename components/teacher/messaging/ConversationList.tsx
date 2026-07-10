@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Conversation } from '@/lib/api/messaging-api';
-import { Search, User, Plus, Star, Users } from 'lucide-react';
+import { Search, User, Plus, Star, Users, GraduationCap, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConversationListProps {
   conversations: Conversation[];
+  learners?: any[];
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   currentUserId: string;
@@ -25,6 +26,12 @@ export default function ConversationList({
   onNoteToSelf,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
+
+  const selfConversation = conversations.find(conv => {
+    const ids = (conv.participant_ids || conv.participants || [])
+      .map((p: any) => (p.id ?? p).toString());
+    return ids.length === 1 && ids[0] === currentUserId.toString();
+  });
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -146,6 +153,32 @@ export default function ConversationList({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
+        {/* Note to self prominent entry */}
+        <div className="px-6 py-4">
+           <button
+             onClick={onNoteToSelf}
+             className={cn(
+               "w-full flex items-center gap-3 p-3 rounded-2xl border transition-all group",
+               selfConversation?.id === activeConversationId
+                 ? "bg-primary-accent/10 border-primary-accent/20"
+                 : "bg-white/5 border-white/10 hover:bg-white/10"
+             )}
+           >
+              <div className="w-10 h-10 rounded-xl bg-primary-accent/20 flex items-center justify-center">
+                 <User className="w-5 h-5 text-primary-accent" />
+              </div>
+              <div className="flex-1 text-left">
+                 <p className="text-sm font-bold text-white/90">Note to self</p>
+                 <p className="text-[10px] text-white/40 font-medium">Private workspace</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white/10 group-hover:text-white/40" />
+           </button>
+        </div>
+
+        <div className="px-6 mb-2">
+           <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Active Conversations</h3>
+        </div>
+
         {filtered.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm text-white/20 font-medium">
@@ -217,6 +250,44 @@ export default function ConversationList({
               </button>
             );
           })
+        )}
+
+        {/* Learners Section */}
+        {learners && learners.length > 0 && (
+          <div className="mt-8 pb-12">
+            <div className="px-6 mb-4 flex items-center justify-between">
+              <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Registered Learners</h3>
+              <span className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-bold text-white/40">{learners.length}</span>
+            </div>
+            <div className="space-y-1 px-3">
+              {learners.filter(l => !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase())).map((learner) => (
+                <button
+                  key={learner.id}
+                  onClick={() => {
+                    // Try to find if we already have a conversation with this learner (by ID)
+                    const existing = conversations.find(c =>
+                      (c.participant_ids || []).map(String).includes(String(learner.id))
+                    );
+                    if (existing) {
+                      onSelectConversation(existing.id);
+                    } else {
+                      // Optionally initiate new conversation if user_id is available
+                      // MessagingAPI.createConversation([learner.user_id], schoolId, currentUserId)
+                    }
+                  }}
+                  className="w-full p-3 flex items-center gap-3 hover:bg-white/5 rounded-xl transition-all group"
+                >
+                   <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                      <GraduationCap className="w-4 h-4 text-white/20 group-hover:text-primary-accent transition-colors" />
+                   </div>
+                   <div className="flex-1 text-left min-w-0">
+                      <p className="text-xs font-bold text-white/70 truncate">{learner.name}</p>
+                      <p className="text-[10px] text-white/20 font-medium uppercase tracking-tighter">{(learner as any).grade_name || 'Registered'}</p>
+                   </div>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -56,6 +56,7 @@ export default function MessagingSection({
     teachers: Participant[];
     parents: Participant[];
   } | null>(null);
+  const [learners, setLearners] = useState<any[]>([]);
 
   const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
@@ -72,6 +73,10 @@ export default function MessagingSection({
     SchoolAPI.getDirectory(schoolId)
       .then(data => setDirectory(data))
       .catch(err => console.error('Failed to fetch directory:', err));
+
+    SchoolAPI.getSchoolLearners(schoolId)
+      .then(data => setLearners(data.learners))
+      .catch(err => console.error('Failed to fetch learners:', err));
   }, [schoolId, accessToken]);
 
   // Memoised ID → Participant map
@@ -278,6 +283,7 @@ export default function MessagingSection({
             ) : (
               <ConversationList
                 conversations={conversations}
+                learners={learners}
                 activeConversationId={activeConvId}
                 onSelectConversation={handleSelectConversation}
                 currentUserId={currentUserId}
@@ -310,6 +316,7 @@ export default function MessagingSection({
           <div className="hidden md:flex flex-1 flex-col">
             <ConversationList
               conversations={conversations}
+              learners={learners}
               activeConversationId={activeConvId}
               onSelectConversation={handleSelectConversation}
               currentUserId={currentUserId}
