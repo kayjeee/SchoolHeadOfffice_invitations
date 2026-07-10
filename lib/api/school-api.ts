@@ -70,23 +70,51 @@ export const TeacherSchema = z.object({
   name: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
   slug: z.string().optional(),
   avatar: z.string().optional(),
+  role: z.string().optional(),
+  department: z.string().optional(),
+  status: z.string().optional(),
+  performance: z.string().optional(),
+  student_count: z.number().optional(),
   grades: z.array(z.string()).optional(),
   auth0_id: z.string().optional(),
   bio: z.string().optional(),
   email: z.string().optional(),
 }).passthrough().transform(data => {
-  const fName = data.firstName || '';
-  const lName = data.lastName || '';
+  const fName = data.firstName || data.first_name || '';
+  const lName = data.lastName || data.last_name || '';
   const fullName = data.name || `${fName} ${lName}`.trim() || 'Unnamed Teacher';
 
   return {
     ...data,
     id: data.id || data._id || '',
-    name: fullName
+    name: fullName,
+    role: data.role || 'Faculty Member',
+    status: data.status || 'Active',
+    student_count: data.student_count || data.students || 0
   };
 });
+
+export const SubjectSchema = z.object({
+  id: z.string().optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  code: z.string().optional(),
+  level: z.string().optional(),
+  teacher_count: z.number().optional(),
+  class_count: z.number().optional(),
+  performance: z.string().optional(),
+  trend: z.string().optional(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  name: data.name || 'Unnamed Subject',
+  teacher_count: data.teacher_count || data.teachers || 0,
+  class_count: data.class_count || data.classes || 0
+}));
 
 export const ClassSchema = z.object({
   id: z.string().optional(),
@@ -189,6 +217,7 @@ export type Grade = z.infer<typeof GradeSchema>;
 export type Class = z.infer<typeof ClassSchema>;
 export type Teacher = z.infer<typeof TeacherSchema>;
 export type Learner = z.infer<typeof LearnerSchema>;
+export type Subject = z.infer<typeof SubjectSchema>;
 
 export interface GradeAssignment {
   id: string;
@@ -347,7 +376,25 @@ export class SchoolAPI {
   static async getTeachers(schoolId: string): Promise<Teacher[]> {
     const response = await apiClient.get(`/api/v1/schools/${schoolId}/teachers`, z.any());
     const teachers = response.teachers || response.data?.teachers || response.data || response;
-    return Array.isArray(teachers) ? z.array(TeacherSchema).parse(teachers) : [];
+    return Array.isArray(teachers) ? teachers.map(t => TeacherSchema.parse(t)) : [];
+  }
+
+  // Subjects
+  static async getSubjects(schoolId: string): Promise<Subject[]> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/subjects`, z.any());
+    const subjects = response.subjects || response.data?.subjects || response.data || response;
+    return Array.isArray(subjects) ? subjects.map(s => SubjectSchema.parse(s)) : [];
+  }
+
+  // Attendance
+  static async getAttendanceStats(schoolId: string): Promise<any> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/attendance/statistics`, z.any());
+    return response.data || response;
+  }
+
+  static async getClassAttendance(schoolId: string): Promise<any[]> {
+    const response = await apiClient.get(`/api/v1/schools/${schoolId}/attendance/classes`, z.any());
+    return response.classes || response.data?.classes || response.data || (Array.isArray(response) ? response : []);
   }
 
   // Learner Movement

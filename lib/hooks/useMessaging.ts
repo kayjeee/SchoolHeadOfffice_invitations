@@ -8,10 +8,11 @@ import { getCableConsumer } from '@/lib/cable';
 /**
  * Hook for managing conversations list
  */
-export function useConversations() {
-  const { accessToken, isLoading: isAuthLoading } = useApi();
+export function useConversations(options: { skipToken?: boolean } = {}) {
+  const { accessToken, isLoading: isAuthLoading } = useApi(options);
 
-  const swrKey = accessToken ? '/api/v1/conversations' : null;
+  // If token check was intentionally skipped, we allow fetching without accessToken
+  const swrKey = options.skipToken || accessToken ? '/api/v1/conversations' : null;
   if (swrKey) {
     console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
   }
@@ -166,15 +167,15 @@ function mergeMessageUpdate(
 /**
  * Hook for managing messages in a specific conversation
  */
-export function useMessages(conversationId: string | null) {
-  const { accessToken, isLoading: isAuthLoading } = useApi();
+export function useMessages(conversationId: string | null, options: { skipToken?: boolean } = {}) {
+  const { accessToken, isLoading: isAuthLoading } = useApi(options);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   // Explicitly cast ID to string to handle BSON objects from backend
   const convIdStr = conversationId?.toString();
 
-  const swrKey = accessToken && convIdStr
+  const swrKey = (options.skipToken || accessToken) && convIdStr
     ? `/api/v1/conversations/${convIdStr}/messages`
     : null;
 
@@ -277,8 +278,8 @@ export function useMessages(conversationId: string | null) {
  * Hook for typing indicators
  * NOTE: exports `isOtherTyping` (not `isTyping`) — used in MessagingSection
  */
-export function useTyping(conversationId: string | null) {
-  const { user } = useApi();
+export function useTyping(conversationId: string | null, options: { skipToken?: boolean } = {}) {
+  const { user } = useApi(options);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const isLocalTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);

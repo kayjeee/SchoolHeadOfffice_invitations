@@ -23,6 +23,7 @@ interface MessagingSectionProps {
   currentUserId: string;
   schoolId: string;
   godMode?: boolean;
+  skipToken?: boolean;
   classes?: {
     id: string;
     grade_name: string;
@@ -34,6 +35,7 @@ export default function MessagingSection({
   currentUserId,
   schoolId,
   godMode = false,
+  skipToken = false,
   classes = [],
 }: MessagingSectionProps) {
   useEffect(() => {
@@ -56,13 +58,14 @@ export default function MessagingSection({
     teachers: Participant[];
     parents: Participant[];
   } | null>(null);
+  const [learners, setLearners] = useState<any[]>([]);
 
-  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
-  const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
-  const { accessToken } = useApi();
+  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations({ skipToken });
+  const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId, { skipToken });
+  const { accessToken } = useApi({ skipToken });
 
   // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
-  const { isOtherTyping, handleTyping } = useTyping(activeConvId);
+  const { isOtherTyping, handleTyping } = useTyping(activeConvId, { skipToken });
 
   // Fetch directory once for contact name resolution
   useEffect(() => {
@@ -72,6 +75,10 @@ export default function MessagingSection({
     SchoolAPI.getDirectory(schoolId)
       .then(data => setDirectory(data))
       .catch(err => console.error('Failed to fetch directory:', err));
+
+    SchoolAPI.getSchoolLearners(schoolId)
+      .then(data => setLearners(data.learners))
+      .catch(err => console.error('Failed to fetch learners:', err));
   }, [schoolId, accessToken]);
 
   // Memoised ID → Participant map
@@ -171,6 +178,29 @@ export default function MessagingSection({
     setShowMobileList(true);
   };
 
+  const handleNoteToSelf = async () => {
+    // Check if a self-conversation already exists
+    const selfConv = conversations.find(conv => {
+      const ids = (conv.participant_ids || conv.participants || [])
+        .map((p: any) => (p.id ?? p).toString());
+      return ids.length === 1 && ids[0] === currentUserId.toString();
+    });
+
+    if (selfConv) {
+      handleSelectConversation(selfConv.id);
+      return;
+    }
+
+    // Create new self-conversation if it doesn't exist
+    try {
+      const conv = await MessagingAPI.createConversation([], schoolId, currentUserId);
+      handleSelectConversation(conv.id);
+      refreshConvs();
+    } catch (err) {
+      console.error('Failed to create self-conversation:', err);
+    }
+  };
+
   // Mark as read when switching conversations
   useEffect(() => {
     if (!activeConvId) return;
@@ -241,6 +271,7 @@ export default function MessagingSection({
                   onBack={() => setShowDirectory(false)}
                   existingConversations={conversations}
                   currentUserId={currentUserId}
+                  skipToken={skipToken}
                 />
               ) : (
                 <GroupInitiation
@@ -255,9 +286,12 @@ export default function MessagingSection({
             ) : (
               <ConversationList
                 conversations={conversations}
+                learners={learners}
                 activeConversationId={activeConvId}
                 onSelectConversation={handleSelectConversation}
                 currentUserId={currentUserId}
+                schoolId={schoolId}
+                onNoteToSelf={handleNoteToSelf}
                 onNewMessage={() => {
                   setShowDirectory(true);
                   setShowGroupInitiation(false);
@@ -286,9 +320,12 @@ export default function MessagingSection({
           <div className="hidden md:flex flex-1 flex-col">
             <ConversationList
               conversations={conversations}
+              learners={learners}
               activeConversationId={activeConvId}
               onSelectConversation={handleSelectConversation}
               currentUserId={currentUserId}
+              schoolId={schoolId}
+              onNoteToSelf={handleNoteToSelf}
               onNewMessage={() => {
                 setShowDirectory(true);
                 setShowGroupInitiation(false);
@@ -515,6 +552,7 @@ export default function MessagingSection({
                 onBack={() => setShowDirectory(false)}
                 existingConversations={conversations}
                 currentUserId={currentUserId}
+                skipToken={skipToken}
               />
             </div>
           ) : showGroupInitiation ? (
