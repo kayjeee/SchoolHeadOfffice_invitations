@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Phase 3 Modules Verification', () => {
   const schoolSlug = 'st-andrews-college';
-  const baseUrl = 'http://localhost:3001';
+  const baseUrl = 'http://localhost:3000';
 
   test.beforeEach(async ({ page }) => {
     // Mock school resolution

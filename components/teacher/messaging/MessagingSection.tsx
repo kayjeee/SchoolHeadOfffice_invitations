@@ -23,6 +23,7 @@ interface MessagingSectionProps {
   currentUserId: string;
   schoolId: string;
   godMode?: boolean;
+  skipToken?: boolean;
   classes?: {
     id: string;
     grade_name: string;
@@ -34,6 +35,7 @@ export default function MessagingSection({
   currentUserId,
   schoolId,
   godMode = false,
+  skipToken = false,
   classes = [],
 }: MessagingSectionProps) {
   useEffect(() => {
@@ -58,12 +60,12 @@ export default function MessagingSection({
   } | null>(null);
   const [learners, setLearners] = useState<any[]>([]);
 
-  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations();
-  const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId);
-  const { accessToken } = useApi();
+  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations({ skipToken });
+  const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId, { skipToken });
+  const { accessToken } = useApi({ skipToken });
 
   // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
-  const { isOtherTyping, handleTyping } = useTyping(activeConvId);
+  const { isOtherTyping, handleTyping } = useTyping(activeConvId, { skipToken });
 
   // Fetch directory once for contact name resolution
   useEffect(() => {
@@ -269,6 +271,7 @@ export default function MessagingSection({
                   onBack={() => setShowDirectory(false)}
                   existingConversations={conversations}
                   currentUserId={currentUserId}
+                  skipToken={skipToken}
                 />
               ) : (
                 <GroupInitiation
@@ -549,6 +552,7 @@ export default function MessagingSection({
                 onBack={() => setShowDirectory(false)}
                 existingConversations={conversations}
                 currentUserId={currentUserId}
+                skipToken={skipToken}
               />
             </div>
           ) : showGroupInitiation ? (

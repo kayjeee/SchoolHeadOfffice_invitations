@@ -3,12 +3,16 @@ import { useUser } from '@auth0/nextjs-auth0/client';
 import { useSWRConfig } from 'swr';
 import { apiClient, syncApiClientToken } from '@/lib/api/api-client';
 
+interface UseApiOptions {
+  skipToken?: boolean;
+}
+
 /**
  * Custom hook to handle API authentication and provide access to the apiClient.
  * It automatically fetches the Auth0 access token from our internal endpoint
  * and synchronizes it with the apiClient singleton.
  */
-export function useApi() {
+export function useApi(options: UseApiOptions = {}) {
   const { user, isLoading: isUserLoading } = useUser();
   const { cache, mutate } = useSWRConfig();
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -17,9 +21,11 @@ export function useApi() {
   const prevUserSub = useRef<string | null>(null);
 
   const fetchToken = useCallback(async () => {
-    if (!user) {
-      apiClient.clearAuth();
-      syncApiClientToken(null);
+    if (!user || options.skipToken) {
+      if (!options.skipToken) {
+        apiClient.clearAuth();
+        syncApiClientToken(null);
+      }
       setAccessToken(null);
       setIsLoading(false);
       return;
@@ -54,7 +60,7 @@ export function useApi() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, options.skipToken]);
 
   useEffect(() => {
     if (!isUserLoading) {

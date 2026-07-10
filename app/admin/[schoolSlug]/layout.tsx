@@ -87,10 +87,14 @@ export default function AdminDashboardLayout({
   params: Promise<{ schoolSlug: string }>;
 }) {
   const { schoolSlug } = use(params);
-  useApi(); // Initialize API authentication
+  const pathname = usePathname();
+
+  // Conditionally skip token fetch for communications page as requested
+  const isCommunicationsPage = pathname?.includes('/communications');
+  useApi({ skipToken: isCommunicationsPage });
+
   const { schoolId, schoolData, isLoading, error } = useSchool(schoolSlug);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const pathname = usePathname();
 
   // Active Branding Tokens
   const branding = {

@@ -2,41 +2,379 @@
 > dev
 > next
 
- ⚠ Port 3000 is in use, trying 3001 instead.
- ⚠ Port 3001 is in use, trying 3002 instead.
    ▲ Next.js 15.0.7
-   - Local:        http://localhost:3002
+   - Local:        http://localhost:3000
 
  ✓ Starting...
-<w> [webpack.cache.PackFileCacheStrategy] Restoring pack from /app/.next/cache/webpack/client-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')
- ✓ Ready in 3.8s
- ○ Compiling /api/auth/token ...
- ✓ Compiled /api/auth/token in 820ms (79 modules)
+ ✓ Ready in 3.4s
+ ○ Compiling /admin/[schoolSlug]/teachers ...
+ ✓ Compiled /admin/[schoolSlug]/teachers in 16.4s (1674 modules)
+ GET /admin/st-andrews-college/teachers 200 in 20030ms
+ ○ Compiling /admin/[schoolSlug]/subjects ...
+ ✓ Compiled /admin/[schoolSlug]/subjects in 7.3s (1691 modules)
+ GET /admin/st-andrews-college/subjects 200 in 8937ms
+ ○ Compiling /api/auth/[...auth0] ...
+ ✓ Compiled /api/auth/[...auth0] in 1131ms (950 modules)
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
     at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
     at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at withApiAuthRequired (node_modules/@auth0/nextjs-auth0/src/index.ts:216:69)
-    at eval (pages/api/auth/token.ts:3:35)
-    at (api)/./pages/api/auth/token.ts (/app/.next/server/pages/api/auth/token.js:52:1)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
     at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2Ftoken&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2Ftoken.ts&middlewareConfigBase64=e30%3D!:11:82)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2Ftoken&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2Ftoken.ts&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/token.js:42:1)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
     at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/token.js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/token.js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:116:21)
-    at <unknown> (/app/.next/server/pages/api/auth/token.js:63:47)
-  1 | import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
   2 |
-> 3 | export default withApiAuthRequired(async function token(req, res) {
-    |                                   ^
-  4 |   try {
-  5 |     const { accessToken } = await getAccessToken(req, res);
-  6 |     res.status(200).json({ accessToken });
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
  ○ Compiling /_error ...
- ✓ Compiled /_error in 10.3s (375 modules)
- HEAD /api/auth/token 500 in 12016ms
- ✓ Compiled in 1417ms (294 modules)
- ✓ Compiled in 947ms (294 modules)
+ ✓ Compiled /_error in 3.3s (2039 modules)
+ GET /admin/st-andrews-college/attendance 200 in 5767ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 57ms
+ ○ Compiling /admin/[schoolSlug]/classes ...
+ ✓ Compiled /admin/[schoolSlug]/classes in 1563ms (2052 modules)
+ GET /admin/st-andrews-college/classes 200 in 3822ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 109ms
+ GET /admin/st-andrews-college/teachers 200 in 183ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 63ms
+ GET /admin/st-andrews-college/subjects 200 in 74ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 31ms
+ GET /admin/st-andrews-college/attendance 200 in 94ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 20ms
+ GET /admin/st-andrews-college/classes 200 in 61ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 27ms
+ ✓ Compiled in 2.6s (1160 modules)
+ ✓ Compiled in 1098ms (1096 modules)
+ ✓ Compiled in 1197ms (1096 modules)
+ ○ Compiling /admin/[schoolSlug]/teachers ...
+ ✓ Compiled /admin/[schoolSlug]/teachers in 1142ms (923 modules)
+ GET /admin/st-andrews-college/teachers 200 in 1657ms
+ ○ Compiling /api/auth/[...auth0] ...
+ ✓ Compiled /api/auth/[...auth0] in 722ms (940 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ○ Compiling /admin/[schoolSlug]/subjects ...
+ ✓ Compiled /admin/[schoolSlug]/subjects in 663ms (2035 modules)
+ GET /admin/st-andrews-college/subjects 200 in 1297ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 31ms
+ ✓ Compiled /admin/[schoolSlug]/attendance in 255ms (960 modules)
+ GET /admin/st-andrews-college/attendance 200 in 557ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 52ms
+ ✓ Compiled /admin/[schoolSlug]/classes in 409ms (968 modules)
+ GET /admin/st-andrews-college/classes 200 in 789ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 62ms
+ ✓ Compiled in 2.9s (1096 modules)
+ GET /admin/st-andrews-college/teachers 200 in 190ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ○ Compiling /_error ...
+ GET /api/auth/me 500 in 755ms
+ ✓ Compiled /_error in 770ms (2025 modules)
+ ✓ Compiled /admin/[schoolSlug]/subjects in 246ms (951 modules)
+ GET /admin/st-andrews-college/subjects 200 in 762ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 72ms
+ ✓ Compiled /admin/[schoolSlug]/attendance in 211ms (960 modules)
+ GET /admin/st-andrews-college/attendance 200 in 609ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 60ms
+ ✓ Compiled /admin/[schoolSlug]/classes in 240ms (968 modules)
+ GET /admin/st-andrews-college/classes 200 in 499ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 45ms

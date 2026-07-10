@@ -14,7 +14,7 @@ interface CommunicationsPageProps {
 export default function CommunicationsPage({ params }: CommunicationsPageProps) {
   const { schoolSlug } = React.use(params);
   const { schoolId, schoolData, isLoading: schoolLoading } = useSchool(schoolSlug);
-  const { user, isLoading: authLoading } = useApi();
+  const { user, isLoading: authLoading } = useApi({ skipToken: true });
 
   // Prefer Auth0 sub, fallback to dev mock if not logged in
   const currentUserId = user?.sub || "admin-123";
@@ -53,6 +53,7 @@ export default function CommunicationsPage({ params }: CommunicationsPageProps) 
             currentUserId={currentUserId}
             schoolId={schoolId || ''}
             godMode={true}
+            skipToken={true}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Conversation } from '@/lib/api/messaging-api';
+import { Conversation, MessagingAPI } from '@/lib/api/messaging-api';
 import { Search, User, Plus, Star, Users, GraduationCap, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

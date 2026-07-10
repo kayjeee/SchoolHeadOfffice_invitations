@@ -15,6 +15,7 @@ interface DirectoryListProps {
   onSelectConversation: (id: string) => void;
   onBack: () => void;
   existingConversations?: any[];
+  skipToken?: boolean;
 }
 
 type DirectoryData = {
@@ -46,17 +47,18 @@ export default function DirectoryList({
   onSelectConversation,
   onBack,
   existingConversations = [],
+  skipToken = false,
 }: DirectoryListProps) {
   const [directory, setDirectory]           = useState<DirectoryData | null>(null);
   const [loading, setLoading]               = useState(true);
   const [searchQuery, setSearchQuery]       = useState('');
   const [creatingConvId, setCreatingConvId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg]             = useState<string | null>(null);
-  const { accessToken }                     = useApi();
+  const { accessToken }                     = useApi({ skipToken });
 
   useEffect(() => {
     // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
-    if (!accessToken) return;
+    if (!accessToken && !skipToken) return;
 
     let mounted = true;
     setLoading(true);
