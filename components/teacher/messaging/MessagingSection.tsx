@@ -287,6 +287,7 @@ export default function MessagingSection({
                 activeConversationId={activeConvId}
                 onSelectConversation={handleSelectConversation}
                 currentUserId={currentUserId}
+                schoolId={schoolId}
                 onNoteToSelf={handleNoteToSelf}
                 onNewMessage={() => {
                   setShowDirectory(true);
@@ -320,6 +321,7 @@ export default function MessagingSection({
               activeConversationId={activeConvId}
               onSelectConversation={handleSelectConversation}
               currentUserId={currentUserId}
+              schoolId={schoolId}
               onNoteToSelf={handleNoteToSelf}
               onNewMessage={() => {
                 setShowDirectory(true);

@@ -379,16 +379,6 @@ export class SchoolAPI {
     return Array.isArray(teachers) ? teachers.map(t => TeacherSchema.parse(t)) : [];
   }
 
-  // School Learners
-  static async getSchoolLearners(schoolId: string, page = 1, perPage = 100): Promise<{ learners: Learner[], total?: number }> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/learners?page=${page}&per_page=${perPage}`, z.any());
-    const learnersData = response.learners || response.data?.learners || response.data || (Array.isArray(response) ? response : []);
-    return {
-      learners: Array.isArray(learnersData) ? learnersData.map(l => LearnerSchema.parse(l)) : [],
-      total: response.total || response.meta?.total
-    };
-  }
-
   // Subjects
   static async getSubjects(schoolId: string): Promise<Subject[]> {
     const response = await apiClient.get(`/api/v1/schools/${schoolId}/subjects`, z.any());

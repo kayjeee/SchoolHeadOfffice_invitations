@@ -9,6 +9,7 @@ interface ConversationListProps {
   activeConversationId: string | null;
   onSelectConversation: (id: string) => void;
   currentUserId: string;
+  schoolId?: string;
   onNewMessage?: () => void;
   onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
@@ -24,6 +25,7 @@ export default function ConversationList({
   onNewGroupMessage,
   onShowSaved,
   onNoteToSelf,
+  schoolId,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -263,16 +265,22 @@ export default function ConversationList({
               {learners.filter(l => !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase())).map((learner) => (
                 <button
                   key={learner.id}
-                  onClick={() => {
+                  onClick={async () => {
                     // Try to find if we already have a conversation with this learner (by ID)
                     const existing = conversations.find(c =>
                       (c.participant_ids || []).map(String).includes(String(learner.id))
                     );
                     if (existing) {
                       onSelectConversation(existing.id);
-                    } else {
-                      // Optionally initiate new conversation if user_id is available
-                      // MessagingAPI.createConversation([learner.user_id], schoolId, currentUserId)
+                    } else if (schoolId) {
+                      // Try to initiate new conversation if we have enough info
+                      // For now, we'll try to use the learner's ID as the participant ID
+                      try {
+                        const conv = await MessagingAPI.createConversation([learner.id], schoolId, currentUserId);
+                        onSelectConversation(conv.id);
+                      } catch (err) {
+                        console.error('Failed to initiate conversation with learner:', err);
+                      }
                     }
                   }}
                   className="w-full p-3 flex items-center gap-3 hover:bg-white/5 rounded-xl transition-all group"
