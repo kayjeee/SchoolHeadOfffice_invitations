@@ -103,6 +103,9 @@ export const getServerSideProps: GetServerSideProps<
   if (session?.user) {
     console.log('👤 [getServerSideProps] Logged-in user:', session.user.sub);
     try {
+      // ✅ Synchronize user & assign 'parent' role on DB and Auth0
+      await ParentService.syncParentRole(session.user.sub, session.user.email, session.user.name);
+
       const [profile, learners] = await Promise.all([
         ParentService.getProfile(session.user.sub),
         ParentService.getLearners(session.user.sub),

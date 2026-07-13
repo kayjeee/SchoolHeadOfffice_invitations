@@ -77,6 +77,9 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
     const userId = session.user.sub;
     console.log(`👤 [SchoolDashboard.GSSP] Authenticated user: ${userId}`);
 
+    // ✅ Synchronize user & assign 'parent' role on DB and Auth0
+    await ParentService.syncParentRole(userId, session.user.email, session.user.name);
+
     const [profile, learners] = await Promise.all([
       ParentService.getProfile(userId),
       ParentService.getLearners(userId),
