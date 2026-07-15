@@ -44,7 +44,8 @@ export default function PaymentSuccess({ transactionId, onContinue }: PaymentSuc
           return;
         }
 
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app/api/v1';
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const API_BASE_URL = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
         const response = await fetch(`${API_BASE_URL}/transactions/${id}`);
         console.log('📡 Response status:', response.status);
         

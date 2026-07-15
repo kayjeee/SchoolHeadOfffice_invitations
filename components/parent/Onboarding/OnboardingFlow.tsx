@@ -207,7 +207,9 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         console.log('💰 Checking payment status for transaction:', transactionId);
 
         // Fetch transaction status
-        const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/transactions/${transactionId}`);
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+        const response = await fetch(`${cleanBase}/transactions/${transactionId}`);
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -263,8 +265,10 @@ const fetchUserProfile = async () => {
   setIsLoadingProfile(true);
   try {
     // ✅ FIXED: Use the correct endpoint /users/show with query parameter
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
     const response = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodeURIComponent(userId)}`,
+      `${cleanBase}/users/show?auth0_id=${encodeURIComponent(userId)}`,
       {
         method: 'GET',
         headers: {
