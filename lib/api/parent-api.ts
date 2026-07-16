@@ -66,7 +66,11 @@ export class ParentAPI {
       data: z.any()
     });
 
-    const response = await apiClient.put(`/users/${encodeURIComponent(auth0Id)}`, data, responseSchema);
+    const response = await apiClient.patch(
+      `/users/update_profile?auth0_id=${encodeURIComponent(auth0Id)}`,
+      data,
+      responseSchema
+    );
     return response.data.user || response.data;
   }
 

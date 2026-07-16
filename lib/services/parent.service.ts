@@ -165,12 +165,12 @@ export class ParentService {
             await apiClient.patch(`/users/${encodedId}/update_roles`, { roles: updatedRoles }, z.any());
             console.log(`✅ [ParentService.syncParentRole] Successfully updated roles via /update_roles.`);
           } catch (patchErr) {
-            console.error(`❌ [ParentService.syncParentRole] PATCH to update_roles failed, trying direct user update:`, patchErr);
+            console.error(`❌ [ParentService.syncParentRole] PATCH to update_roles failed, trying PUT update_roles:`, patchErr);
             try {
-              await apiClient.put(`/users/${encodedId}`, { user: { roles: updatedRoles } }, z.any());
-              console.log(`✅ [ParentService.syncParentRole] Successfully updated roles via PUT /users/:id.`);
+              await apiClient.put(`/users/${encodedId}/update_roles`, { roles: updatedRoles }, z.any());
+              console.log(`✅ [ParentService.syncParentRole] Successfully updated roles via PUT /users/:id/update_roles.`);
             } catch (putErr) {
-              console.error(`❌ [ParentService.syncParentRole] PUT /users/:id failed:`, putErr);
+              console.error(`❌ [ParentService.syncParentRole] PUT /users/:id/update_roles failed:`, putErr);
             }
           }
 
