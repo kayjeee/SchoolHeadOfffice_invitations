@@ -113,6 +113,14 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     return name;
   }, [learners, onboardingData, invitationData]);
 
+  // ✅ New redirect URL for onboarding complete (SEO & history best practice)
+  const redirectUrl = useMemo(() => {
+    const parentNameParam = existingProfile?.name || safeUserName(safeUser) || 'Parent';
+    const schoolNameEncoded = encodeURIComponent(resolvedSchoolName || 'School');
+    const parentNameEncoded = encodeURIComponent(parentNameParam || 'Parent');
+    return `https://www.schoolheadoffice.com/parent/${schoolNameEncoded}/dashboard/${parentNameEncoded}`;
+  }, [resolvedSchoolName, existingProfile, safeUser]);
+
   console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
 
   // Logging initialization with EXTREME null safety
@@ -365,16 +373,15 @@ const fetchUserProfile = async () => {
   useEffect(() => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
-        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...', resolvedSchoolName);
+        console.log('🚀 Onboarding complete, automatically redirecting to:', redirectUrl);
 
-        // Force a full page reload to ensure ParentPage re-initializes its hook
-        // and fetches the updated profile from the server
-        window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
+        // Use window.location.replace for best practice browser history and SEO crawler behavior
+        window.location.replace(redirectUrl);
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, resolvedSchoolName]);
+  }, [currentStep, redirectUrl]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -752,8 +759,8 @@ case 'PROFILE_SETUP':
             </p>
             <button
               onClick={() => {
-                console.log('🚀 Manual redirect clicked, target:', resolvedSchoolName);
-                window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
+                console.log('🚀 Manual redirect clicked, target:', redirectUrl);
+                window.location.replace(redirectUrl);
               }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors mb-6"
             >
