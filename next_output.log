@@ -470,3 +470,219 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
  ✓ Compiled in 10.9s (1214 modules)
  ✓ Compiled in 10.6s (1214 modules)
  ✓ Compiled in 1628ms (1214 modules)
+Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+ ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ✓ Compiled in 11.7s (1214 modules)
+ ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
+Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ✓ Compiled in 1311ms (1214 modules)
+ ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
+ ✓ Compiled in 1531ms (1214 modules)
+ ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
+Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
+ ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
+    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
+    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
+    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
+    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
+  128 |           if (previousSlug !== nextSlug) {
+  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
+> 130 |             throw new Error(
+      |                   ^
+  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
+  132 |             )
+  133 |           }
+ ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
+    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
+    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
+    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
+    at Array.forEach (<anonymous>)
+    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
+    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
+ ✓ Compiled in 1442ms (1214 modules)
+ ✓ Compiled in 978ms (1214 modules)
+ ✓ Compiled in 989ms (1214 modules)

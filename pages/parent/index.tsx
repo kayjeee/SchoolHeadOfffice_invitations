@@ -111,6 +111,32 @@ export const getServerSideProps: GetServerSideProps<
         ParentService.getLearners(session.user.sub),
       ]);
 
+      // Check onboarding completion on server-side (Requirement 3: Redirect guard)
+      const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;
+
+      if (isOnboardingComplete) {
+        const fromLearner = learners?.[0]?.school_name;
+        const fromProfile = profile?.primary_school_name;
+        const fromOnboarding = profile?.onboarding_status?.client_metadata?.upload_learners_metadata?.school_id;
+
+        let finalSchoolName = fromLearner || fromProfile || fromOnboarding || 'Far North Secondary School';
+        if (!finalSchoolName || finalSchoolName === 'School') {
+          finalSchoolName = 'Far North Secondary School';
+        }
+
+        const email = profile?.email || session.user.email || '';
+        const emailEncoded = encodeURIComponent(email);
+        const destination = `/parent/${finalSchoolName}dashboard/${emailEncoded}`;
+
+        console.log(`🚀 [ParentGSSP] Redirecting completed parent directly to: ${destination}`);
+        return {
+          redirect: {
+            destination,
+            permanent: false,
+          },
+        };
+      }
+
       let invitationData = null;
       if (token) {
         console.log('📨 [getServerSideProps] Logged-in user with token, verifying...');

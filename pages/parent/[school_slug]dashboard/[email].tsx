@@ -1,24 +1,24 @@
-// pages/parent/[school_slug]/dashboard/[parent_name].tsx
+// pages/parent/[school_slug]dashboard/[email].tsx
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { getSession } from "@auth0/nextjs-auth0";
 
-import { ParentService } from "../../../../lib/services/parent.service";
-import AuthGate from "../../../../components/auth/AuthGate";
-import ParentDashboard from "../../../../components/parent/Dashboard/ParentDashboard";
-import ErrorBoundary from "../../../../components/common/ErrorBoundary";
+import { ParentService } from "../../../lib/services/parent.service";
+import AuthGate from "../../../components/auth/AuthGate";
+import ParentDashboard from "../../../components/parent/Dashboard/ParentDashboard";
+import ErrorBoundary from "../../../components/common/ErrorBoundary";
 
 const FrontPageLayout = dynamic(
-  () => import("../../../../components/Layouts/FrontPageLayout"),
+  () => import("../../../components/Layouts/FrontPageLayout"),
   { ssr: true }
 );
 
 interface ParentDashboardProps {
   school_slug: string;
   schoolName: string;
-  parent_name: string;
+  email: string;
   isAuthenticated: boolean;
   initialProfile: any | null;
   initialLearners: any[];
@@ -26,14 +26,20 @@ interface ParentDashboardProps {
 }
 
 export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = async (context) => {
-  const { school_slug, parent_name } = context.params as { school_slug: string; parent_name: string };
+  const { school_slug, email } = context.params as { school_slug: string; email: string };
   const session = await getSession(context.req, context.res);
 
-  // Decode school name and parent name
-  const schoolName = decodeURIComponent(school_slug.replace(/\+/g, ' '));
-  const decodedParentName = decodeURIComponent(parent_name.replace(/\+/g, ' '));
+  // Extract school name from the concatenated segment if needed, e.g. "Far North Secondary Schooldashboard" -> "Far North Secondary School"
+  let schoolName = school_slug;
+  if (schoolName && schoolName.endsWith('dashboard')) {
+    schoolName = schoolName.substring(0, schoolName.length - 'dashboard'.length);
+  }
 
-  console.log(`🏫 [ParentDashboardPage.GSSP] slug: ${school_slug}, school: ${schoolName}, parent: ${decodedParentName}`);
+  // schoolName is unencoded so spaces appear literally, but we decode just in case
+  schoolName = decodeURIComponent(schoolName.replace(/\+/g, ' '));
+  const decodedEmail = decodeURIComponent(email.replace(/\+/g, ' '));
+
+  console.log(`🏫 [ParentDashboardPage.GSSP] slug: ${school_slug}, school: ${schoolName}, email: ${decodedEmail}`);
 
   // --- CASE 1: UNAUTHENTICATED ---
   if (!session?.user) {
@@ -41,7 +47,7 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
       props: {
         school_slug,
         schoolName,
-        parent_name: decodedParentName,
+        email: decodedEmail,
         isAuthenticated: false,
         initialProfile: null,
         initialLearners: [],
@@ -67,7 +73,7 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
 
     if (!profile || !isOnboardingComplete) {
       console.log(`⏳ [ParentDashboardPage.GSSP] Onboarding incomplete for ${userId}. Redirecting to gateway.`);
-      const onboardingPath = `/parent?school=${encodeURIComponent(school_slug)}`;
+      const onboardingPath = `/parent?school=${encodeURIComponent(schoolName)}`;
       return {
         redirect: {
           destination: onboardingPath,
@@ -82,7 +88,7 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
       props: {
         school_slug,
         schoolName: profile.primary_school_name || schoolName,
-        parent_name: decodedParentName,
+        email: decodedEmail,
         isAuthenticated: true,
         initialProfile: profile,
         initialLearners: learners,
@@ -95,7 +101,7 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
       props: {
         school_slug,
         schoolName,
-        parent_name: decodedParentName,
+        email: decodedEmail,
         isAuthenticated: true,
         initialProfile: null,
         initialLearners: [],
@@ -107,9 +113,9 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
 
 export default function ParentDashboardPage(props: ParentDashboardProps) {
   const {
-    schoolName,
     school_slug,
-    parent_name,
+    schoolName,
+    email,
     isAuthenticated,
     initialProfile,
     initialLearners,
@@ -135,7 +141,7 @@ export default function ParentDashboardPage(props: ParentDashboardProps) {
 
         <AuthGate
           invitationData={authGateInvitation}
-          returnTo={`/parent/${encodeURIComponent(school_slug)}/dashboard/${encodeURIComponent(parent_name)}`}
+          returnTo={`/parent/${encodeURIComponent(school_slug)}dashboard/${encodeURIComponent(email)}`}
         />
       </>
     );
