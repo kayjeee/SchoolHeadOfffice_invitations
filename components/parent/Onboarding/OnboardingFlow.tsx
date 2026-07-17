@@ -116,9 +116,20 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   // ✅ New redirect URL for onboarding complete (SEO & history best practice)
   const redirectUrl = useMemo(() => {
     const parentNameParam = existingProfile?.name || safeUserName(safeUser) || 'Parent';
-    const schoolNameEncoded = encodeURIComponent(resolvedSchoolName || 'School');
+
+    // Default to 'Far North Secondary School' if school name is 'School' or empty
+    let schoolName = resolvedSchoolName;
+    if (!schoolName || schoolName === 'School') {
+      schoolName = 'Far North Secondary School';
+    }
+
+    const schoolNameEncoded = encodeURIComponent(schoolName);
     const parentNameEncoded = encodeURIComponent(parentNameParam || 'Parent');
-    return `https://www.schoolheadoffice.com/parent/${schoolNameEncoded}/dashboard/${parentNameEncoded}`;
+
+    // Resolve origin dynamically (best practice for dev vs prod)
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.schoolheadoffice.com';
+
+    return `${baseOrigin}/parent/${schoolNameEncoded}/dashboard/${parentNameEncoded}`;
   }, [resolvedSchoolName, existingProfile, safeUser]);
 
   console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));

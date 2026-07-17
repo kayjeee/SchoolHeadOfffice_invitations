@@ -467,3 +467,4 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
  GET /api/auth/me 500 in 48ms
  ✓ Compiled in 10.7s (1214 modules)
  ✓ Compiled in 13.6s (1214 modules)
+ ✓ Compiled in 10.9s (1214 modules)
