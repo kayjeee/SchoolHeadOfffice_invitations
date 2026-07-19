@@ -104,14 +104,20 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   // Calculate the robust school name at the top level
   const resolvedSchoolName = useMemo(() => {
     const name = (learners && learners[0]?.school_name) ||
+                 profile?.primary_school_name ||
+                 profile?.school_name ||
+                 profile?.schoolName ||
                  onboardingData?.school_name ||
+                 onboardingData?.schoolName ||
+                 onboardingData?.primary_school_name ||
+                 onboardingData?.primarySchoolName ||
                  onboardingData?.school?.name ||
                  invitationData?.school_name ||
                  invitationData?.school ||
                  'School';
     console.log('🏛️ [OnboardingFlow] resolvedSchoolName:', name);
     return name;
-  }, [learners, onboardingData, invitationData]);
+  }, [learners, profile, onboardingData, invitationData]);
 
   // ✅ New redirect URL for onboarding complete (SEO & history best practice)
   const redirectUrl = useMemo(() => {
