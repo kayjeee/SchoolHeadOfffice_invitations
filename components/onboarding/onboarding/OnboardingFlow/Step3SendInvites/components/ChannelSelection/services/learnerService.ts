@@ -58,12 +58,12 @@ export const learnerService = {
             phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "",
             created_at: l.created_at || "",
             updated_at: l.updated_at || "",
-            contact: l.contact || {
-              phone: l.phone || l.mobile || l.cell || l.contact_number || l.parent_phone || l.parentPhone || "",
-              whatsapp: l.whatsapp || l.contact?.whatsapp || "",
-              tel_home: l.tel_home || l.telHome || null,
-              tel_emergency: l.tel_emergency || l.telEmergency || null,
-              telegram: l.telegram || ""
+            contact: {
+              phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.parent_phone || l.parentPhone || "",
+              whatsapp: l.contact?.whatsapp || l.whatsapp || "",
+              tel_home: l.contact?.tel_home || l.tel_home || l.telHome || null,
+              tel_emergency: l.contact?.tel_emergency || l.tel_emergency || l.telEmergency || null,
+              telegram: l.contact?.telegram || l.telegram || ""
             },
           };
         });

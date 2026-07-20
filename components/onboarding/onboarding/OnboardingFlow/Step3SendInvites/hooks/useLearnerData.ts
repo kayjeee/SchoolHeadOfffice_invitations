@@ -102,12 +102,12 @@ export const useLearnerData = (schoolId?: string) => {
              phone: phoneVal,
              created_at: l.created_at || "",
              updated_at: l.updated_at || "",
-             contact: l.contact || {
-               phone: phoneVal,
-               whatsapp: l.whatsapp || l.contact?.whatsapp || "",
-               tel_home: l.tel_home || l.telHome || null,
-               tel_emergency: l.tel_emergency || l.telEmergency || null,
-               telegram: l.telegram || ""
+             contact: {
+               phone: l.contact?.phone || phoneVal,
+               whatsapp: l.contact?.whatsapp || l.whatsapp || "",
+               tel_home: l.contact?.tel_home || l.tel_home || l.telHome || null,
+               tel_emergency: l.contact?.tel_emergency || l.tel_emergency || l.telEmergency || null,
+               telegram: l.contact?.telegram || l.telegram || ""
              },
            };
          });
