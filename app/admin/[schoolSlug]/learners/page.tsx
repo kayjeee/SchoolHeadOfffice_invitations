@@ -569,10 +569,12 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                                 <td className="px-6 py-4 text-center">
                                   <span className={cn(
                                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
-                                    learner.status === 'Linked' || learner.status === 'active'
+                                    learner.status === 'Linked' || learner.status === 'active' || learner.status === 'Accepted'
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                       : learner.status === 'graduated'
                                       ? "bg-blue-50 text-blue-700 border-blue-100"
+                                      : learner.status === 'invited' || learner.status === 'pending' || learner.status === 'Sent' || learner.status === 'Delivered'
+                                      ? "bg-amber-50 text-amber-700 border-amber-100"
                                       : "bg-slate-50 text-slate-500 border-slate-100"
                                   )}>
                                     {learner.status || 'inactive'}
@@ -616,8 +618,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                             </div>
                             <span className={cn(
                               "px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border",
-                              learner.status === 'Linked' || learner.status === 'active'
+                              learner.status === 'Linked' || learner.status === 'active' || learner.status === 'Accepted'
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : learner.status === 'invited' || learner.status === 'pending' || learner.status === 'Sent' || learner.status === 'Delivered'
+                                ? "bg-amber-50 text-amber-700 border-amber-100"
                                 : "bg-slate-50 text-slate-500 border-slate-100"
                             )}>
                               {learner.status || 'inactive'}
