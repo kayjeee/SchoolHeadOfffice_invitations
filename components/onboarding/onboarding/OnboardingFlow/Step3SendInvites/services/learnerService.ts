@@ -32,12 +32,12 @@ const transformLearner = (l: any, fallbackGradeId?: string): Learner => {
     school_id: (l.school_id || l.schoolId)?.toString(),
     school_name: l.school_name || l.schoolName || "Unknown School",
     email: l.email || l.contact?.email || "",
-    phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || "",
+    phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "",
     created_at: l.created_at || "",
     updated_at: l.updated_at || "",
     contact: l.contact || {
-      phone: l.phone || l.mobile || l.cell || l.contact_number || "",
-      whatsapp: l.whatsapp || "",
+      phone: l.phone || l.mobile || l.cell || l.contact_number || l.parent_phone || l.parentPhone || "",
+      whatsapp: l.whatsapp || l.contact?.whatsapp || "",
       tel_home: l.tel_home || l.telHome || null,
       tel_emergency: l.tel_emergency || l.telEmergency || null,
       telegram: l.telegram || ""

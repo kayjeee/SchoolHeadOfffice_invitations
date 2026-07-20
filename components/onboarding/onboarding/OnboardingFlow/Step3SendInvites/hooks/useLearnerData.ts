@@ -82,7 +82,7 @@ export const useLearnerData = (schoolId?: string) => {
          const mapped = learnersData.map((l: any) => {
            const id = l.id?.toString() || l._id?.toString() || "";
            const gid = (l.grade_id || l.gradeId || gradeId)?.toString() || "";
-           const phoneVal = l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || "";
+           const phoneVal = l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "";
            return {
              id,
              first_name: l.first_name || l.firstName || "",

@@ -59,8 +59,8 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
     ];
 
     return phoneFields.filter(phone => {
-      if (!phone || typeof phone !== 'string') return false;
-      const cleanPhone = phone.trim();
+      if (phone === null || phone === undefined) return false;
+      const cleanPhone = String(phone).trim();
       if (cleanPhone === '' || cleanPhone.startsWith('011')) return false;
       const digitCount = (cleanPhone.match(/\d/g) || []).length;
       return digitCount >= 7;
