@@ -69,9 +69,20 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
     setGradesError(null);
 
     try {
+      const resolveId = (val: any): string => {
+        if (!val) return "";
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object') {
+          if (val.$oid) return val.$oid;
+          if (val.id) return resolveId(val.id);
+          if (val._id) return resolveId(val._id);
+        }
+        return val.toString();
+      };
+
       const gradesData = await getGrades(schoolId);
       const formattedGrades: Grade[] = gradesData.map((g: any) => ({
-        id: g.id || g._id,
+        id: resolveId(g.id || g._id),
         name: g.name,
         description: g.description,
         level: parseInt(g.grade_level?.match(/\d+/)?.[0] || "0"),
