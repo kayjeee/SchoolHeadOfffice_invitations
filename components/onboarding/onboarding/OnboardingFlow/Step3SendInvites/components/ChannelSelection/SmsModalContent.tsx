@@ -45,8 +45,14 @@ export const SmsModalContent: React.FC<SmsModalContentProps> = ({
     const phoneFields = [
       learner.phone,
       learner.whatsapp,
+      learner.mobile,
+      learner.cell,
+      learner.contact_number,
       learner.contact?.phone,
       learner.contact?.whatsapp,
+      learner.contact?.mobile,
+      learner.contact?.cell,
+      learner.contact?.contact_number,
       learner.contact?.tel_home,
       learner.contact?.tel_emergency,
       learner.contact?.telegram
