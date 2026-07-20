@@ -2,8 +2,19 @@ import { Learner } from "../types";
 import { API_BASE_URL } from "../utils/constants";
 
 const transformLearner = (l: any, fallbackGradeId?: string): Learner => {
-  const id = l.id?.toString() || l._id?.toString() || "";
-  const gradeId = (l.grade_id || l.gradeId || fallbackGradeId)?.toString() || "";
+  const resolveId = (val: any): string => {
+    if (!val) return "";
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') {
+      if (val.$oid) return val.$oid;
+      if (val.id) return resolveId(val.id);
+      if (val._id) return resolveId(val._id);
+    }
+    return val.toString();
+  };
+
+  const id = resolveId(l.id || l._id);
+  const gradeId = resolveId(l.grade_id || l.gradeId || fallbackGradeId);
 
   return {
     id,

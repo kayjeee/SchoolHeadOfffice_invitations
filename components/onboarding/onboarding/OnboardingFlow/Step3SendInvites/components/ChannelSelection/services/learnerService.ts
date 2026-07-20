@@ -23,10 +23,21 @@ export const learnerService = {
         const data = await response.json();
         const learnersData = data.learners || data.data?.learners || [];
 
+        const resolveId = (val: any): string => {
+          if (!val) return "";
+          if (typeof val === 'string') return val;
+          if (typeof val === 'object') {
+            if (val.$oid) return val.$oid;
+            if (val.id) return resolveId(val.id);
+            if (val._id) return resolveId(val._id);
+          }
+          return val.toString();
+        };
+
         // Transform to match the full Learner interface
         const transformedLearners = learnersData.map((l: any): Learner => {
-          const id = l.id?.toString() || l._id?.toString() || "";
-          const gid = (l.grade_id || l.gradeId || gradeId)?.toString() || "";
+          const id = resolveId(l.id || l._id);
+          const gid = resolveId(l.grade_id || l.gradeId || gradeId);
 
           return {
             id,
