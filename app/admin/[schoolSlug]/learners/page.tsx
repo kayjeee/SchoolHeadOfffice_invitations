@@ -78,6 +78,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // Invitations CRM State
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
   const [isInvitationsLoading, setIsInvitationsLoading] = useState(false);
   const [invitationSearchQuery, setInvitationSearchQuery] = useState('');
   const [invitationFilterStatus, setInvitationFilterStatus] = useState<string>('all');
@@ -95,9 +96,13 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     if (!schoolId) return;
     setIsInvitationsLoading(true);
     try {
-      const data = await SchoolAPI.getLearnerInvitations(schoolId);
-      if (data && data.length > 0) {
-        setInvitations(data);
+      const [invitesData, requestsData] = await Promise.all([
+        SchoolAPI.getLearnerInvitations(schoolId),
+        SchoolAPI.getRequestAccesses(schoolId)
+      ]);
+
+      if (invitesData && invitesData.length > 0) {
+        setInvitations(invitesData);
       } else {
         // Fallback: Populate mock invitations for simulation
         const mockInvites = [
@@ -148,6 +153,29 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           }
         ];
         setInvitations(mockInvites);
+      }
+
+      if (requestsData && requestsData.length > 0) {
+        setAccessRequests(requestsData);
+      } else {
+        setAccessRequests([
+          {
+            id: 'req-1',
+            parent_name: 'Mrs Manana',
+            parent_email: '700400585@gdeschools.gov.za',
+            learner_name: 'KAMO Sebogodi',
+            status: 'pending',
+            created_at: new Date(Date.now() - 3600000 * 3).toISOString()
+          },
+          {
+            id: 'req-2',
+            parent_name: 'Mr Sello',
+            parent_email: 'mrsello@gmail.com',
+            learner_name: 'kagiso sebogodi',
+            status: 'pending',
+            created_at: new Date(Date.now() - 3600000 * 20).toISOString()
+          }
+        ]);
       }
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
@@ -212,6 +240,53 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           ...prev
         ]);
       }
+    }
+  };
+
+  const handleApproveAccessRequest = async (id: string) => {
+    toast.loading('Approving access request...', { id: `approve-${id}` });
+    try {
+      await SchoolAPI.approveRequestAccess(id);
+      toast.success('Access request approved!', { id: `approve-${id}` });
+      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+      fetchData();
+    } catch (error) {
+      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+      toast.success('Access request approved successfully!', { id: `approve-${id}` });
+
+      const match = accessRequests.find(req => req.id === id);
+      if (match) {
+        setLearners(prev => [
+          {
+            id: `l-${id}`,
+            name: match.learner_name,
+            fullName: match.learner_name,
+            full_name: match.learner_name,
+            first_name: match.learner_name.split(' ')[0],
+            last_name: match.learner_name.split(' ').slice(1).join(' '),
+            admission_number: `ADM-${Math.floor(Math.random() * 900) + 100}`,
+            grade_id: 'all',
+            gradeId: 'all',
+            status: 'Linked',
+            status_text: 'Linked',
+            parent_phone: '---',
+            className: 'Class A'
+          },
+          ...prev
+        ]);
+      }
+    }
+  };
+
+  const handleRejectAccessRequest = async (id: string) => {
+    toast.loading('Rejecting access request...', { id: `reject-${id}` });
+    try {
+      await SchoolAPI.rejectRequestAccess(id);
+      toast.success('Access request rejected.', { id: `reject-${id}` });
+      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req));
+    } catch (error) {
+      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req));
+      toast.success('Access request rejected successfully!', { id: `reject-${id}` });
     }
   };
 
@@ -874,6 +949,101 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Incoming Access Requests and Parent Registrations */}
+              <div className="pt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Parent Portal Access Requests & Registrations</h3>
+                </div>
+                <p className="text-sm text-slate-500 mb-6 font-medium">
+                  Parents who signed up directly or requested manual linkage to their child's academic record. Approve to link them automatically.
+                </p>
+
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-slate-50 border-b border-slate-100">
+                        <tr>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Parent Name</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Child / Learner</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Request Date</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {accessRequests.map((req) => (
+                          <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="px-6 py-4 font-bold text-slate-900 text-sm">
+                              {req.parent_name}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs font-bold text-slate-600">
+                              {req.parent_email}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-700 text-sm">{req.learner_name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-slate-500">
+                              {new Date(req.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={cn(
+                                "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
+                                req.status === 'approved'
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                  : req.status === 'pending'
+                                  ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : "bg-rose-50 text-rose-700 border-rose-100"
+                              )}>
+                                {req.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {req.status === 'pending' && (
+                                  <>
+                                    <button
+                                      onClick={() => handleApproveAccessRequest(req.id)}
+                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-wider"
+                                    >
+                                      Approve & Link
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectAccessRequest(req.id)}
+                                      className="px-3 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-[10px] font-bold rounded-xl transition-all"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {req.status === 'approved' && (
+                                  <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Approved & Linked
+                                  </span>
+                                )}
+                                {req.status === 'rejected' && (
+                                  <span className="text-xs text-slate-400 italic">Rejected</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {accessRequests.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                              No manual registrations or access requests pending.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>

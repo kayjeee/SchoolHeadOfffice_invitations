@@ -79,26 +79,38 @@ export const useLearnerData = (schoolId?: string) => {
           const learnersData = await learnerService.getLearnersByGrade(gradeId);
           console.log(`📋 Grade ${gradeId} learners:`, learnersData.length);
 
-         const mapped = learnersData.map((l: any) => ({
-  id: l.id,
-  first_name: l.first_name || "",
-  last_name: l.last_name || "",
-  full_name: l.full_name || `${l.first_name || ""} ${l.last_name || ""}`.trim() || "Unnamed Learner",
-  gender: l.gender_text || "Unknown",
-  gender_text: l.gender_text || "Unknown",
-  accession_number: l.accession_number || "",
-  status: l.status_text || "Unknown",
-  status_text: l.status_text || "Unknown",
-  grade_id: gradeId,
-  grade_name: gradesRef.current.find((g) => g.id === gradeId)?.name || "Unknown Grade",
-  school_id: l.school_id || schoolId,
-  school_name: l.school_name || "Unknown School",
-  email: l.email || "",
-  phone: l.contact?.phone || l.phone || "",
-  created_at: l.created_at || "",
-  updated_at: l.updated_at || "",
-  contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
-}));
+         const mapped = learnersData.map((l: any) => {
+           const id = l.id?.toString() || l._id?.toString() || "";
+           const gid = (l.grade_id || l.gradeId || gradeId)?.toString() || "";
+           const phoneVal = l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "";
+           return {
+             id,
+             first_name: l.first_name || l.firstName || "",
+             last_name: l.last_name || l.lastName || "",
+             full_name: l.full_name || l.fullName || `${l.first_name || l.firstName || ""} ${l.last_name || l.lastName || ""}`.trim() || "Unnamed Learner",
+             gender: l.gender_text || l.gender || "Unknown",
+             gender_text: l.gender_text || l.gender || "Unknown",
+             accession_number: l.accession_number || l.accessionNumber || "",
+             status: l.status_text || l.status || "Unknown",
+             status_text: l.status_text || l.status || "Unknown",
+             grade_id: gid,
+             gradeId: gid,
+             grade_name: gradesRef.current.find((g) => g.id === gid)?.name || "Unknown Grade",
+             school_id: (l.school_id || l.schoolId || schoolId)?.toString(),
+             school_name: l.school_name || l.schoolName || "Unknown School",
+             email: l.email || l.contact?.email || "",
+             phone: phoneVal,
+             created_at: l.created_at || "",
+             updated_at: l.updated_at || "",
+             contact: {
+               phone: l.contact?.phone || phoneVal,
+               whatsapp: l.contact?.whatsapp || l.whatsapp || "",
+               tel_home: l.contact?.tel_home || l.tel_home || l.telHome || null,
+               tel_emergency: l.contact?.tel_emergency || l.tel_emergency || l.telEmergency || null,
+               telegram: l.contact?.telegram || l.telegram || ""
+             },
+           };
+         });
 
 
           allLearners.push(...mapped);
