@@ -6,9 +6,14 @@
    - Local:        http://localhost:3000
 
  ✓ Starting...
- ✓ Ready in 1792ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1811ms
  ○ Compiling / ...
- ✓ Compiled / in 7.7s (955 modules)
+ ✓ Compiled / in 8.9s (955 modules)
 MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
     at db (pages/index.tsx:161:22)
   159 |   try {
@@ -18,7 +23,7 @@ MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
   162 |     const schools = await db
   163 |       .collection("School")
   164 |       .find({})
-[34m[1m[DEBUG][0m [34m[2026-07-13T19:32:26.869Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m[1m[DEBUG][0m [34m[2026-07-21T15:19:05.150Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
 [34m📊 Context:[0m {
   "defaultPrimary": "white",
   "defaultSecondary": "white",
@@ -26,14 +31,13 @@ MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
   "themeSource": "system_default"
 }
 [34m────────────────────────────────────────────────────────────────────────────────[0m
-{"timestamp":"2026-07-13T19:32:26.869Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
- HEAD / 200 in 8465ms
+{"timestamp":"2026-07-21T15:19:05.150Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ HEAD / 200 in 9667ms
  ○ Compiling /admin/[schoolSlug]/communications ...
- ✓ Compiled /admin/[schoolSlug]/communications in 12.2s (2830 modules)
- GET /admin/far-north-secondary-school/communications 200 in 14891ms
- GET /admin/st-andrews-college/teachers 200 in 15055ms
+ ✓ Compiled /admin/[schoolSlug]/communications in 13.2s (2223 modules)
+ GET /admin/far-north-secondary-school/communications 200 in 15904ms
  ○ Compiling /api/auth/[...auth0] ...
- ✓ Compiled /api/auth/[...auth0] in 642ms (1167 modules)
+ ✓ Compiled /api/auth/[...auth0] in 747ms (1052 modules)
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
@@ -55,31 +59,10 @@ MongoDB fetch error: TypeError: Cannot read properties of null (reading 'db')
 > 3 | export default handleAuth();
     |                         ^
   4 |
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- ○ Compiling /admin/[schoolSlug]/subjects ...
- ✓ Compiled /admin/[schoolSlug]/subjects in 985ms (2864 modules)
- GET /api/auth/me 500 in 2074ms
-(node:111128) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 749ms (2229 modules)
+ GET /api/auth/me 500 in 2227ms
+(node:77009) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
@@ -161,29 +144,6 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- GET /admin/st-andrews-college/subjects 200 in 3122ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 29ms
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
@@ -224,225 +184,61 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
+ ○ Compiling /admin/[schoolSlug]/teachers ...
+ ✓ Compiled /admin/[schoolSlug]/teachers in 1396ms (2233 modules)
+ GET /admin/st-andrews-college/teachers 200 in 3171ms
+ ✓ Compiled /api/auth/[...auth0] in 353ms (1065 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 668ms
+ ✓ Compiled /_error in 424ms (2252 modules)
+ ○ Compiling /admin/[schoolSlug]/subjects ...
+ ✓ Compiled /admin/[schoolSlug]/subjects in 1508ms (2267 modules)
+ GET /admin/st-andrews-college/subjects 200 in 3383ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 70ms
  ○ Compiling /admin/[schoolSlug]/attendance ...
- ✓ Compiled /admin/[schoolSlug]/attendance in 723ms (2877 modules)
- GET /admin/st-andrews-college/attendance 200 in 1654ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 52ms
- ○ Compiling /admin/[schoolSlug]/classes ...
- ✓ Compiled /admin/[schoolSlug]/classes in 601ms (2890 modules)
- GET /admin/st-andrews-college/classes 200 in 1478ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 41ms
- GET /admin/st-andrews-college/teachers 200 in 96ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 40ms
- GET /admin/st-andrews-college/subjects 200 in 67ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 39ms
- GET /admin/st-andrews-college/attendance 200 in 65ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 36ms
- GET /admin/st-andrews-college/classes 200 in 61ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 25ms
- ✓ Compiled in 28.5s (1214 modules)
- ✓ Compiled in 3s (1214 modules)
- ✓ Compiled in 1229ms (1214 modules)
- GET /admin/st-andrews-college/teachers 200 in 1812ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- ○ Compiling /_error ...
- GET /api/auth/me 500 in 1131ms
- GET /admin/st-andrews-college/subjects 200 in 5365ms
- ✓ Compiled /_error in 8s (2277 modules)
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 30ms
- ✓ Compiled /admin/[schoolSlug]/attendance in 368ms (1083 modules)
- GET /admin/st-andrews-college/attendance 200 in 1029ms
- ⨯ TypeError: "secret" is required
-    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
-    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
-    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
-    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
-    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
-    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
-    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
-    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
-    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
-    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
-    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
-    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
-  1 | import { handleAuth } from "@auth0/nextjs-auth0";
-  2 |
-> 3 | export default handleAuth();
-    |                         ^
-  4 |
- GET /api/auth/me 500 in 53ms
- ✓ Compiled /admin/[schoolSlug]/classes in 376ms (1091 modules)
- GET /admin/st-andrews-college/classes 200 in 848ms
+ ✓ Compiled /admin/[schoolSlug]/attendance in 1840ms (2280 modules)
+ GET /admin/st-andrews-college/attendance 200 in 2943ms
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
@@ -465,225 +261,393 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
     |                         ^
   4 |
  GET /api/auth/me 500 in 48ms
- ✓ Compiled in 10.7s (1214 modules)
- ✓ Compiled in 13.6s (1214 modules)
- ✓ Compiled in 10.9s (1214 modules)
- ✓ Compiled in 10.6s (1214 modules)
- ✓ Compiled in 1628ms (1214 modules)
-Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
- ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ✓ Compiled in 11.7s (1214 modules)
- ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
-Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ✓ Compiled in 1311ms (1214 modules)
- ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
- ✓ Compiled in 1531ms (1214 modules)
- ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
-Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ⨯ ../src/shared/lib/router/utils/sorted-routes.ts (130:19) @ handleSlug
- ⨯ unhandledRejection: Error: You cannot use different slug names for the same dynamic path ('school_dashboard' !== 'school_slug').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at pathnames (node_modules/next/src/server/route-matcher-managers/default-route-matcher-manager.ts:154:37)
-    at async DevRouteMatcherManager.reload (node_modules/next/src/server/route-matcher-managers/dev-route-matcher-manager.ts:100:4)
-    at async Object.propagateServerField (node_modules/next/src/server/lib/render-server.ts:63:6)
-    at async propagateServerField (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:156:2)
-    at async Watchpack.<anonymous> (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:904:8)
-  128 |           if (previousSlug !== nextSlug) {
-  129 |             // TODO: This error seems to be confusing for users, needs an error link, the description can be based on above comment.
-> 130 |             throw new Error(
-      |                   ^
-  131 |               `You cannot use different slug names for the same dynamic path ('${previousSlug}' !== '${nextSlug}').`
-  132 |             )
-  133 |           }
- ⚠ Failed to reload dynamic routes: Error: You cannot use different slug names for the same dynamic path ('school_slug' !== 'school_dashboard').
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:130:18)
-    at handleSlug (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:185:8)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:200:7)
-    at _insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:9:9)
-    at insert (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:45)
-    at Array.forEach (<anonymous>)
-    at forEach (node_modules/next/src/shared/lib/router/utils/sorted-routes.ts:221:18)
-    at routedPages (node_modules/next/src/server/lib/router-utils/setup-dev-bundler.ts:818:45)
- ✓ Compiled in 1442ms (1214 modules)
- ✓ Compiled in 978ms (1214 modules)
- ✓ Compiled in 989ms (1214 modules)
- ✓ Compiled in 14.7s (1214 modules)
+ ○ Compiling /admin/[schoolSlug]/classes ...
+ ✓ Compiled /admin/[schoolSlug]/classes in 729ms (2293 modules)
+ GET /admin/st-andrews-college/classes 200 in 1726ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 50ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 8.7s (2833 modules)
+QRCodeGenerator loaded
+ ⨯ TypeError: "secret" is required
+    at getServerSideProps (./pages/admin/index.js:43:90)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at getSession (node_modules/@auth0/nextjs-auth0/src/index.ts:213:51)
+    at context (pages/admin/index.js:27:35)
+    at getServerSideProps (webpack://next/dist/src/server/render.tsx:1063:10)
+    at fn (node_modules/next/src/server/lib/trace/tracer.ts:351:27)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+    at NoopTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/NoopTracer.ts:98:27)
+    at ProxyTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/ProxyTracer.ts:51:19)
+    at startActiveSpan (node_modules/next/src/server/lib/trace/tracer.ts:304:31)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+  25 |
+  26 | export async function getServerSideProps(context) {
+> 27 |   const session = await getSession(context.req, context.res);
+     |                                   ^
+  28 |
+  29 |   return {
+  30 |     props: { {
+  page: '/admin'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 536ms (2835 modules)
+ GET /admin 500 in 10371ms
+ ✓ Compiled in 3.5s (2251 modules)
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 919ms (2835 modules)
+QRCodeGenerator loaded
+ ⨯ TypeError: "secret" is required
+    at getServerSideProps (./pages/admin/index.js:43:90)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at getSession (node_modules/@auth0/nextjs-auth0/src/index.ts:213:51)
+    at context (pages/admin/index.js:27:35)
+    at getServerSideProps (webpack://next/dist/src/server/render.tsx:1063:10)
+    at fn (node_modules/next/src/server/lib/trace/tracer.ts:351:27)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+    at NoopTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/NoopTracer.ts:98:27)
+    at ProxyTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/ProxyTracer.ts:51:19)
+    at startActiveSpan (node_modules/next/src/server/lib/trace/tracer.ts:304:31)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+  25 |
+  26 | export async function getServerSideProps(context) {
+> 27 |   const session = await getSession(context.req, context.res);
+     |                                   ^
+  28 |   const isTestBypass = context.req.headers['x-test-bypass'] === 'true' || context.query.bypassAuth === 'true';
+  29 |
+  30 |   return { {
+  page: '/admin'
+}
+ GET /admin?bypassAuth=true 500 in 1911ms
+ ⨯ TypeError: "secret" is required
+    at getServerSideProps (./pages/admin/index.js:43:90)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at getSession (node_modules/@auth0/nextjs-auth0/src/index.ts:213:51)
+    at context (pages/admin/index.js:27:35)
+    at getServerSideProps (webpack://next/dist/src/server/render.tsx:1063:10)
+    at fn (node_modules/next/src/server/lib/trace/tracer.ts:351:27)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+    at NoopTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/NoopTracer.ts:98:27)
+    at ProxyTracer.startActiveSpan (node_modules/@opentelemetry/api/src/trace/ProxyTracer.ts:51:19)
+    at startActiveSpan (node_modules/next/src/server/lib/trace/tracer.ts:304:31)
+    at NoopContextManager.with (node_modules/@opentelemetry/api/src/context/NoopContextManager.ts:31:14)
+    at ContextAPI.with (node_modules/@opentelemetry/api/src/api/context.ts:77:42)
+  25 |
+  26 | export async function getServerSideProps(context) {
+> 27 |   const session = await getSession(context.req, context.res);
+     |                                   ^
+  28 |   const isTestBypass = context.req.headers['x-test-bypass'] === 'true' || context.query.bypassAuth === 'true';
+  29 |
+  30 |   return { {
+  page: '/admin'
+}
+ GET /admin?bypassAuth=true 500 in 65ms
+ ✓ Compiled in 2s (2251 modules)
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 778ms (2835 modules)
+QRCodeGenerator loaded
+[34m[1m[DEBUG][0m [34m[2026-07-21T15:33:25.022Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-21T15:33:25.022Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET /admin?bypassAuth=true 200 in 1336ms
+ ○ Compiling /api/auth/[...auth0] ...
+ ✓ Compiled /api/auth/[...auth0] in 1275ms (1338 modules)
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 1512ms
+ GET /api/auth/me 500 in 1512ms
+QRCodeGenerator loaded
+[34m[1m[DEBUG][0m [34m[2026-07-21T15:36:28.671Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-21T15:36:28.671Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET /admin?bypassAuth=true 200 in 350ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 51ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 42ms
+[34m[1m[DEBUG][0m [34m[2026-07-21T15:37:58.405Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-21T15:37:58.405Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET /admin?bypassAuth=true 200 in 28ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 39ms
+ GET /api/auth/me 500 in 41ms
+ ○ Compiling /admin/[schoolSlug] ...
+ ✓ Compiled /admin/[schoolSlug] in 4.8s (2864 modules)
+ GET /admin/dashboard/far-north-secondary-school 200 in 6152ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 72ms
+QRCodeGenerator loaded
+[34m[1m[DEBUG][0m [34m[2026-07-21T15:38:51.048Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-21T15:38:51.048Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ GET /admin?bypassAuth=true 200 in 440ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 45ms
+ GET /api/auth/me 500 in 46ms
+ GET /admin/dashboard/far-north-secondary-school 200 in 92ms
+ ⨯ TypeError: "secret" is required
+    at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
+    at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
+    at _initAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:162:46)
+    at getInstance (node_modules/@auth0/nextjs-auth0/src/index.ts:150:22)
+    at handleAuth (node_modules/@auth0/nextjs-auth0/src/index.ts:226:51)
+    at handleAuth (pages/api/auth/[...auth0].tsx:3:25)
+    at (api)/./pages/api/auth/[...auth0].tsx (/app/.next/server/pages/api/auth/[...auth0].js:52:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at eval (webpack-internal:///(api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D!:11:83)
+    at (api)/./node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js?kind=PAGES_API&page=%2Fapi%2Fauth%2F%5B...auth0%5D&preferredRegion=&absolutePagePath=.%2Fpages%2Fapi%2Fauth%2F%5B...auth0%5D.tsx&middlewareConfigBase64=e30%3D! (/app/.next/server/pages/api/auth/[...auth0].js:42:1)
+    at __webpack_require__ (/app/.next/server/webpack-api-runtime.js:33:42)
+    at __webpack_exec__ (/app/.next/server/pages/api/auth/[...auth0].js:62:39)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:83)
+    at __webpack_require__.X (/app/.next/server/webpack-api-runtime.js:133:21)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:63:47)
+  1 | import { handleAuth } from "@auth0/nextjs-auth0";
+  2 |
+> 3 | export default handleAuth();
+    |                         ^
+  4 |
+ GET /api/auth/me 500 in 25ms

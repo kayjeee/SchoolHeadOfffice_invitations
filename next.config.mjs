@@ -27,6 +27,14 @@ export default {
     return {
       afterFiles: [
         {
+          source: '/admin/dashboard/:schoolSlug',
+          destination: '/admin/:schoolSlug',
+        },
+        {
+          source: '/admin/dashboard/:schoolSlug/:path*',
+          destination: '/admin/:schoolSlug/:path*',
+        },
+        {
           // Exclude Auth0 routes from being proxied to Rails
           source: '/api/((?!auth).*)',
           destination: 'http://127.0.0.1:4000/api/:1*',
