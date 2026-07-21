@@ -48,16 +48,22 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     const phoneFields = [
       learner.phone,
       learner.whatsapp,
+      learner.mobile,
+      learner.cell,
+      learner.contact_number,
       learner.contact?.phone,
       learner.contact?.whatsapp,
+      learner.contact?.mobile,
+      learner.contact?.cell,
+      learner.contact?.contact_number,
       learner.contact?.tel_home,
       learner.contact?.tel_emergency,
       learner.contact?.telegram
     ];
 
     return phoneFields.filter(phone => {
-      if (!phone || typeof phone !== 'string') return false;
-      const cleanPhone = phone.trim();
+      if (phone === null || phone === undefined) return false;
+      const cleanPhone = String(phone).trim();
       if (cleanPhone === '' || cleanPhone.startsWith('011')) return false;
       const digitCount = (cleanPhone.match(/\d/g) || []).length;
       return digitCount >= 7;

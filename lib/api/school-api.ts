@@ -490,6 +490,29 @@ export class SchoolAPI {
     return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/decline`, {}, z.any());
   }
 
+  // Request Access Management
+  static async getRequestAccesses(schoolId: string): Promise<any[]> {
+    console.log(`🔑 [SchoolAPI.getRequestAccesses] Fetching access requests for school: ${schoolId}`);
+    try {
+      const response = await apiClient.get(`/api/v1/request_accesses/school/${schoolId}`, z.any());
+      const requests = response.request_accesses || response.data?.request_accesses || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(requests) ? requests : [];
+    } catch (error) {
+      console.warn('⚠️ [SchoolAPI.getRequestAccesses] Failed to fetch. Using fallback.', error);
+      return [];
+    }
+  }
+
+  static async approveRequestAccess(requestId: string): Promise<any> {
+    console.log(`🔑 [SchoolAPI.approveRequestAccess] Approving request: ${requestId}`);
+    return await apiClient.post(`/api/v1/request_accesses/approve`, { id: requestId }, z.any());
+  }
+
+  static async rejectRequestAccess(requestId: string): Promise<any> {
+    console.log(`🔑 [SchoolAPI.rejectRequestAccess] Rejecting request: ${requestId}`);
+    return await apiClient.post(`/api/v1/request_accesses/reject`, { id: requestId }, z.any());
+  }
+
   // Bulk Upload
   static async bulkUploadLearners(schoolId: string, learners: any[]): Promise<any> {
     return await apiClient.post(`/api/v1/learners/bulk_upload`, {

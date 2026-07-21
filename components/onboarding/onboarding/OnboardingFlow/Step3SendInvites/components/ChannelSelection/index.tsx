@@ -3,7 +3,7 @@ import QRCode from "react-qr-code";
 import { Copy } from "lucide-react";
 import { Learner } from "../../types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app/";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://shobackendv2-production.up.railway.app";
 
 interface Channel {
   id: string;

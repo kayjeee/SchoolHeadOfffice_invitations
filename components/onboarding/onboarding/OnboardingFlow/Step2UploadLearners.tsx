@@ -4,7 +4,7 @@ import { useOnboardingFlow } from '../hooks/useOnboardingFlow';
 
 import BulkUpload from "../components/BulkUpload/";
 
-import { completeStep, getOnboardingStatus } from "../services/onboardingService";
+import { completeStep, fetchSchoolGrades, getOnboardingStatus } from "../services/onboardingService";
 
 
 
@@ -61,22 +61,10 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         setIsLoadingGrades(true);
         const token = localStorage.getItem("authToken");
 
-        const response = await fetch(
-          `https://shobackendv2-production.up.railway.app/api/v1/schools/${targetSchoolId}/grades`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (response.ok) {
-          const gradesData = await response.json();
-          setGrades(gradesData.data?.grades || []);
-        } else {
-          setGradeError("Failed to load grades. Please try again.");
-        }
+        const gradesData = await fetchSchoolGrades(targetSchoolId, token);
+        // Backend returns { success: true, grades: [...] }
+        const resolvedGrades = gradesData.grades || gradesData.data?.grades || [];
+        setGrades(resolvedGrades);
       } catch (error: any) {
         setGradeError("Network error. Please check your connection.");
       } finally {
