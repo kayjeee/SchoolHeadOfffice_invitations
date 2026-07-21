@@ -77,6 +77,9 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
     const userId = session.user.sub;
     console.log(`👤 [SchoolDashboard.GSSP] Authenticated user: ${userId}`);
 
+    // ✅ Synchronize user & assign 'parent' role on DB and Auth0
+    await ParentService.syncParentRole(userId, session.user.email, session.user.name);
+
     const [profile, learners] = await Promise.all([
       ParentService.getProfile(userId),
       ParentService.getLearners(userId),
@@ -100,17 +103,18 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
       };
     }
 
-    // Fully onboarded - Show Dashboard
-    console.log(`✅ [SchoolDashboard.GSSP] Showing dashboard for ${schoolName}`);
+    // Fully onboarded - Redirect to the dynamic dashboard path
+    let finalSchoolName = profile.primary_school_name || schoolName;
+    if (!finalSchoolName || finalSchoolName === 'School') {
+      finalSchoolName = 'Far North Secondary School';
+    }
+    const parentName = profile.name || session.user.name || 'Parent';
+
+    console.log(`🚀 [SchoolDashboard.GSSP] Onboarding complete. Redirecting to dynamic dashboard: ${finalSchoolName}`);
     return {
-      props: {
-        school_slug,
-        schoolName: profile.primary_school_name || schoolName,
-        token,
-        invitationData: null,
-        isAuthenticated: true,
-        initialProfile: profile,
-        initialLearners: learners,
+      redirect: {
+        destination: `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${encodeURIComponent(parentName)}`,
+        permanent: false,
       },
     };
 

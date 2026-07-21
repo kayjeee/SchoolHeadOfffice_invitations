@@ -437,6 +437,82 @@ export class SchoolAPI {
     };
   }
 
+  // Learner Invitations Management CRM Endpoints
+  static async getLearnerInvitations(schoolId: string): Promise<any[]> {
+    console.log(`📩 [SchoolAPI.getLearnerInvitations] Fetching invitations for school: ${schoolId}`);
+    try {
+      const response = await apiClient.get(`/api/v1/learner_invitations`, z.any());
+      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(invitations) ? invitations : [];
+    } catch (error) {
+      console.warn('⚠️ [SchoolAPI.getLearnerInvitations] Failed to fetch. Using fallback.', error);
+      return [];
+    }
+  }
+
+  static async getPendingLearnerInvitations(): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/api/v1/learner_invitations/pending`, z.any());
+      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(invitations) ? invitations : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async getExpiredLearnerInvitations(): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`/api/v1/learner_invitations/expired`, z.any());
+      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(invitations) ? invitations : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static async resendLearnerInvitation(invitationId: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.resendLearnerInvitation] Resending invitation: ${invitationId}`);
+    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/resend`, {}, z.any());
+  }
+
+  static async cancelLearnerInvitation(invitationId: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.cancelLearnerInvitation] Cancelling invitation: ${invitationId}`);
+    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/cancel`, {}, z.any());
+  }
+
+  static async acceptLearnerInvitation(invitationId: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.acceptLearnerInvitation] Accepting invitation: ${invitationId}`);
+    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/accept`, {}, z.any());
+  }
+
+  static async declineLearnerInvitation(invitationId: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.declineLearnerInvitation] Declining invitation: ${invitationId}`);
+    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/decline`, {}, z.any());
+  }
+
+  // Request Access Management
+  static async getRequestAccesses(schoolId: string): Promise<any[]> {
+    console.log(`🔑 [SchoolAPI.getRequestAccesses] Fetching access requests for school: ${schoolId}`);
+    try {
+      const response = await apiClient.get(`/api/v1/request_accesses/school/${schoolId}`, z.any());
+      const requests = response.request_accesses || response.data?.request_accesses || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(requests) ? requests : [];
+    } catch (error) {
+      console.warn('⚠️ [SchoolAPI.getRequestAccesses] Failed to fetch. Using fallback.', error);
+      return [];
+    }
+  }
+
+  static async approveRequestAccess(requestId: string): Promise<any> {
+    console.log(`🔑 [SchoolAPI.approveRequestAccess] Approving request: ${requestId}`);
+    return await apiClient.post(`/api/v1/request_accesses/approve`, { id: requestId }, z.any());
+  }
+
+  static async rejectRequestAccess(requestId: string): Promise<any> {
+    console.log(`🔑 [SchoolAPI.rejectRequestAccess] Rejecting request: ${requestId}`);
+    return await apiClient.post(`/api/v1/request_accesses/reject`, { id: requestId }, z.any());
+  }
+
   // Bulk Upload
   static async bulkUploadLearners(schoolId: string, learners: any[]): Promise<any> {
     return await apiClient.post(`/api/v1/learners/bulk_upload`, {

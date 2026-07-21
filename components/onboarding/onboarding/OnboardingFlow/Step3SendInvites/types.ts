@@ -19,7 +19,6 @@ export interface Learner {
   status: string;
   status_text: string;
   grade_id: string;
-  gradeId?: string;
   grade_name: string;
   school_id: string;
   school_name: string;

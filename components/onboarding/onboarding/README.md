@@ -54,11 +54,6 @@ This separation ensures maintainability, testability, and scalability of the onb
 
 10. **Layouts (`OnboardingLayout`, `StepLayout`)**: These components provide consistent styling and structure for the overall onboarding page and individual step content.
 
-11. **Communication Modals (`Step3SendInvites`)**: Specialized modals for WhatsApp, SMS, and Email. These components feature:
-    - **Smart Sourcing**: Intelligent detection of phone numbers from multiple fields (mobile, cell, accession number).
-    - **Visibility Standard**: Forced dark text styling (`text-gray-900`) to maintain readability regardless of school branding or background themes.
-    - **Scheduling & Testing**: Integrated tools for message preview, test sending, and bulk scheduling.
-
 This modular design allows for easy modification, addition, or removal of steps without affecting other parts of the system.
 
 
@@ -231,7 +226,7 @@ components/
     │   └── Step2UploadLearners.tsx # Example step component
     │   └── Step3SendInvites.tsx    # Example step component
     │   └── StepCompletion.tsx      # Example step component
-    ├── components/
+    ├── components/              
     │   ├── bulkupload/ # Reusable UI components
     │   ├── ProgressIndicator.tsx
     │   ├── SkipStepModal.tsx
@@ -256,3 +251,5 @@ components/
     ├── index.ts                    # Main export file for the module
     └── README.md                   # This documentation file
 ```
+
+

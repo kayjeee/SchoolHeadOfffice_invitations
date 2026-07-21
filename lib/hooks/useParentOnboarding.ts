@@ -108,9 +108,7 @@ export function useParentOnboarding({
     try {
       const schema = z.object({
         success: z.boolean(),
-        data: z.object({
-          onboarding_status: z.any()
-        })
+        data: z.any()
       }).passthrough();
 
       const json = await apiClient.get(
@@ -118,7 +116,7 @@ export function useParentOnboarding({
         schema
       );
 
-      const status = json?.data?.onboarding_status;
+      const status = json?.data?.onboarding_status || json?.data;
 
       if (!status) {
         console.log('🧪 [useParentOnboarding] No onboarding status found. Starting from scratch.');
@@ -132,18 +130,21 @@ export function useParentOnboarding({
 
       setCompletedSteps(completed);
 
-      // Merge step metadata into onboardingData
-      if (status.step_metadata) {
-        console.log('🧪 [useParentOnboarding] Merging step_metadata:', JSON.stringify(status.step_metadata, null, 2));
-        setOnboardingData((prev: any) => {
-          const newData = {
-            ...prev,
-            ...status.step_metadata
-          };
-          console.log('🧪 [useParentOnboarding] Updated onboardingData school:', newData.school_name);
-          return newData;
-        });
-      }
+      // Merge step metadata and school information into onboardingData
+      setOnboardingData((prev: any) => {
+        const schoolName = status.school_name || status.schoolName || status.primary_school_name || status.primarySchoolName;
+        const metadataSchoolName = status.step_metadata?.school_name || status.step_metadata?.schoolName;
+        const resolvedName = schoolName || metadataSchoolName || prev.school_name || prev.primary_school_name;
+
+        return {
+          ...prev,
+          ...(status.step_metadata || {}),
+          school_name: resolvedName,
+          primary_school_name: resolvedName,
+          schoolName: resolvedName,
+          primarySchoolName: resolvedName,
+        };
+      });
 
       setProgress(Math.round((completed.length / PARENT_STEPS.length) * 100));
 

@@ -103,10 +103,39 @@ export const getServerSideProps: GetServerSideProps<
   if (session?.user) {
     console.log('👤 [getServerSideProps] Logged-in user:', session.user.sub);
     try {
+      // ✅ Synchronize user & assign 'parent' role on DB and Auth0
+      await ParentService.syncParentRole(session.user.sub, session.user.email, session.user.name);
+
       const [profile, learners] = await Promise.all([
         ParentService.getProfile(session.user.sub),
         ParentService.getLearners(session.user.sub),
       ]);
+
+      // Check onboarding completion on server-side (Requirement 3: Redirect guard)
+      const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;
+
+      if (isOnboardingComplete) {
+        const fromLearner = learners?.[0]?.school_name;
+        const fromProfile = profile?.primary_school_name;
+        const fromOnboarding = profile?.onboarding_status?.client_metadata?.upload_learners_metadata?.school_id;
+
+        let finalSchoolName = fromLearner || fromProfile || fromOnboarding || 'Far North Secondary School';
+        if (!finalSchoolName || finalSchoolName === 'School') {
+          finalSchoolName = 'Far North Secondary School';
+        }
+
+        const email = profile?.email || session.user.email || '';
+        const emailEncoded = encodeURIComponent(email);
+        const destination = `/parent/${finalSchoolName}dashboard/${emailEncoded}`;
+
+        console.log(`🚀 [ParentGSSP] Redirecting completed parent directly to: ${destination}`);
+        return {
+          redirect: {
+            destination,
+            permanent: false,
+          },
+        };
+      }
 
       let invitationData = null;
       if (token) {
@@ -193,15 +222,22 @@ export default function ParentPage(props: ParentPageProps) {
     const fromQuery = props.school;
     const fromMerged = mergedInvitationData?.school_name;
 
-    const schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
+    let schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
 
     if (schoolName === 'School' && !onboarding.isLoading) {
        // If we are onboarded but have no learners yet, they might still be fetching via SWR/React Query
        if (onboarding.learners?.length === 0) return;
     }
 
+    // Default to 'Far North Secondary School' if school name is 'School' or empty
+    if (!schoolName || schoolName === 'School') {
+      schoolName = 'Far North Secondary School';
+    }
+
+    const parentName = onboarding.profile?.name || onboarding.user?.name || 'Parent';
+
     // We use router.replace to avoid adding the intermediate /parent to history
-    const targetPath = `/parent/${encodeURIComponent(schoolName)}`;
+    const targetPath = `/parent/${encodeURIComponent(schoolName)}/dashboard/${encodeURIComponent(parentName)}`;
     console.log('🚀 [ParentPage] Onboarding complete. Navigating to:', targetPath);
     router.replace(targetPath);
   }, [

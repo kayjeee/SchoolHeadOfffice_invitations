@@ -104,14 +104,39 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   // Calculate the robust school name at the top level
   const resolvedSchoolName = useMemo(() => {
     const name = (learners && learners[0]?.school_name) ||
+                 profile?.primary_school_name ||
+                 profile?.school_name ||
+                 profile?.schoolName ||
                  onboardingData?.school_name ||
+                 onboardingData?.schoolName ||
+                 onboardingData?.primary_school_name ||
+                 onboardingData?.primarySchoolName ||
                  onboardingData?.school?.name ||
                  invitationData?.school_name ||
                  invitationData?.school ||
                  'School';
     console.log('🏛️ [OnboardingFlow] resolvedSchoolName:', name);
     return name;
-  }, [learners, onboardingData, invitationData]);
+  }, [learners, profile, onboardingData, invitationData]);
+
+  // ✅ New redirect URL for onboarding complete (SEO & history best practice)
+  const redirectUrl = useMemo(() => {
+    const parentNameParam = existingProfile?.name || safeUserName(safeUser) || 'Parent';
+
+    // Default to 'Far North Secondary School' if school name is 'School' or empty
+    let schoolName = resolvedSchoolName;
+    if (!schoolName || schoolName === 'School') {
+      schoolName = 'Far North Secondary School';
+    }
+
+    const schoolNameEncoded = encodeURIComponent(schoolName);
+    const parentNameEncoded = encodeURIComponent(parentNameParam || 'Parent');
+
+    // Resolve origin dynamically (best practice for dev vs prod)
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://www.schoolheadoffice.com';
+
+    return `${baseOrigin}/parent/${schoolNameEncoded}/dashboard/${parentNameEncoded}`;
+  }, [resolvedSchoolName, existingProfile, safeUser]);
 
   console.log('🎬 [OnboardingFlow] Rendered with invitationData:', JSON.stringify(invitationData, null, 2));
 
@@ -207,7 +232,9 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
         console.log('💰 Checking payment status for transaction:', transactionId);
 
         // Fetch transaction status
-        const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/transactions/${transactionId}`);
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+        const response = await fetch(`${cleanBase}/transactions/${transactionId}`);
         const result = await response.json();
 
         if (result.success && result.data) {
@@ -263,8 +290,10 @@ const fetchUserProfile = async () => {
   setIsLoadingProfile(true);
   try {
     // ✅ FIXED: Use the correct endpoint /users/show with query parameter
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
     const response = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/users/show?auth0_id=${encodeURIComponent(userId)}`,
+      `${cleanBase}/users/show?auth0_id=${encodeURIComponent(userId)}`,
       {
         method: 'GET',
         headers: {
@@ -361,16 +390,15 @@ const fetchUserProfile = async () => {
   useEffect(() => {
     if (currentStep === 'COMPLETE') {
       const timer = setTimeout(() => {
-        console.log('🚀 Onboarding complete, automatically redirecting to dashboard...', resolvedSchoolName);
+        console.log('🚀 Onboarding complete, automatically redirecting to:', redirectUrl);
 
-        // Force a full page reload to ensure ParentPage re-initializes its hook
-        // and fetches the updated profile from the server
-        window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
+        // Use window.location.replace for best practice browser history and SEO crawler behavior
+        window.location.replace(redirectUrl);
       }, 3000); // Give them 3 seconds to see the success message
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, resolvedSchoolName]);
+  }, [currentStep, redirectUrl]);
 
   // Handle final step completion
   const handleFinalStepComplete = async (data: any) => {
@@ -748,8 +776,8 @@ case 'PROFILE_SETUP':
             </p>
             <button
               onClick={() => {
-                console.log('🚀 Manual redirect clicked, target:', resolvedSchoolName);
-                window.location.href = `/parent/${encodeURIComponent(resolvedSchoolName)}`;
+                console.log('🚀 Manual redirect clicked, target:', redirectUrl);
+                window.location.replace(redirectUrl);
               }}
               className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors mb-6"
             >

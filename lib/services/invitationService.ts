@@ -29,7 +29,7 @@ class InvitationService {
     }
 
     // ✅ FIX: Ensure learner_numbers is never empty - filter out entries without learner numbers
-    const validInvitations = invitations.filter(invite => 
+    const validInvitations = invitations.filter(invite =>
       invite.learner_numbers && invite.learner_numbers.length > 0
     );
 

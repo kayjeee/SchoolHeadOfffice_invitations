@@ -6,16 +6,6 @@ import { EmailScheduler } from './EmailScheduler';
 import EmailService from './services/EmailService';
 import { logger } from './utils/logger';
 
-const getLearnerFullName = (learner: Learner): string => {
-  if (learner.full_name && learner.full_name !== 'Unnamed Learner') {
-    return learner.full_name;
-  }
-  const fName = (learner as any).firstName || learner.first_name || '';
-  const lName = (learner as any).lastName || learner.last_name || '';
-  const fullName = `${fName} ${lName}`.trim();
-  return fullName || 'Unnamed Learner';
-};
-
 interface EmailModalContentProps {
   learners: Learner[];
   grades: Grade[];
@@ -81,7 +71,7 @@ export const EmailModalContent: React.FC<EmailModalContentProps> = ({
   };
 
   return (
-    <div className="mt-6 border-t pt-6 text-gray-900">
+    <div className="mt-6 border-t pt-6">
       <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setActiveTab('contacts')}
@@ -125,14 +115,14 @@ export const EmailModalContent: React.FC<EmailModalContentProps> = ({
               </thead>
               <tbody>
                 {learnersWithEmail.map((learner, index) => {
-                  const grade = grades.find(g => (g.id === (learner.grade_id || learner.gradeId)));
+                  const grade = grades.find(g => g.id === learner.grade_id);
                   return (
                     <tr
                       key={learner.id}
                       className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}
                     >
                       <td className="p-2 border-b border-blue-100 text-gray-700">
-                        {getLearnerFullName(learner)}
+                        {learner.full_name}
                       </td>
                       <td className="p-2 border-b border-blue-100 font-mono text-blue-700">
                         {learner.email}

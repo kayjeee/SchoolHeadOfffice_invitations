@@ -74,7 +74,9 @@ export default function ProfileSetup({
 
     try {
       const encodedUserId = encodeURIComponent(user.sub);
-      const apiUrl = `https://shobackendv2-production.up.railway.app/api/v1/users/update_profile?auth0_id=${encodedUserId}`;
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+      const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+      const apiUrl = `${cleanBase}/users/update_profile?auth0_id=${encodedUserId}`;
       
       const payload = {
         name: data.name.trim(),

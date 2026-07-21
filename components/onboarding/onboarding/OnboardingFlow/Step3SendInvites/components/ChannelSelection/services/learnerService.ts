@@ -1,5 +1,4 @@
 import { Learner } from '../../../types';
-import { API_BASE_URL } from '../../../utils/constants';
 
 export const learnerService = {
   getLearnersByGrade: async (gradeId: string): Promise<Learner[]> => {
@@ -17,48 +16,36 @@ export const learnerService = {
 
     try {
       do {
-        const response = await fetch(`${API_BASE_URL}/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
+        const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
-        const learnersData = data.learners || data.data?.learners || [];
+        const learnersData = data.data?.learners || [];
 
         // Transform to match the full Learner interface
-        const transformedLearners = learnersData.map((l: any): Learner => {
-          const id = l.id?.toString() || l._id?.toString() || "";
-          const gid = (l.grade_id || l.gradeId || gradeId)?.toString() || "";
-
-          return {
-            id,
-            first_name: l.first_name || l.firstName || "",
-            last_name: l.last_name || l.lastName || "",
-            full_name: l.full_name || l.fullName || `${l.first_name || l.firstName || ""} ${l.last_name || l.lastName || ""}`.trim() || "Unnamed Learner",
-            gender: l.gender_text || l.gender || "Unknown",
-            gender_text: l.gender_text || l.gender || "Unknown",
-            accession_number: l.accession_number || l.accessionNumber || "",
-            status: l.status_text || l.status || "Unknown",
-            status_text: l.status_text || l.status || "Unknown",
-            grade_id: gid,
-            gradeId: gid,
-            grade_name: l.grade_name || l.gradeName || "Unknown Grade",
-            school_id: (l.school_id || l.schoolId)?.toString(),
-            school_name: l.school_name || l.schoolName || "Unknown School",
-            email: l.email || l.contact?.email || "",
-            phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || "",
-            created_at: l.created_at || "",
-            updated_at: l.updated_at || "",
-            contact: l.contact || {
-              phone: l.phone || l.mobile || l.cell || l.contact_number || "",
-              whatsapp: l.whatsapp || "",
-              tel_home: l.tel_home || l.telHome || null,
-              tel_emergency: l.tel_emergency || l.telEmergency || null,
-              telegram: l.telegram || ""
-            },
-          };
-        });
+        const transformedLearners = learnersData.map((l: any): Learner => ({
+          id: l.id,
+          first_name: l.first_name || "",
+          last_name: l.last_name || "",
+          full_name: l.full_name || `${l.first_name || ""} ${l.last_name || ""}`.trim() || "Unnamed Learner",
+          gender: l.gender_text || "Unknown",
+          gender_text: l.gender_text || "Unknown",
+          accession_number: l.accession_number || "",
+          status: l.status_text || "Unknown",
+          status_text: l.status_text || "Unknown",
+          grade_id: l.grade_id || gradeId,
+          grade_name: l.grade_name || "Unknown Grade",
+          school_id: l.school_id,
+          school_name: l.school_name || "Unknown School",
+          email: l.email || l.contact?.email || "",
+          phone: l.contact?.phone || l.phone || l.contact?.whatsapp || "",
+          created_at: l.created_at || "",
+          updated_at: l.updated_at || "",
+          contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
+        }));
 
         allLearners.push(...transformedLearners);
-        totalPages = data.pagination?.total_pages || data.total_pages || 1;
+        totalPages = data.pagination?.total_pages || 1;
         page++;
       } while (page <= totalPages);
 
