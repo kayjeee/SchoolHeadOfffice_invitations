@@ -69,20 +69,9 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
     setGradesError(null);
 
     try {
-      const resolveId = (val: any): string => {
-        if (!val) return "";
-        if (typeof val === 'string') return val;
-        if (typeof val === 'object') {
-          if (val.$oid) return val.$oid;
-          if (val.id) return resolveId(val.id);
-          if (val._id) return resolveId(val._id);
-        }
-        return val.toString();
-      };
-
       const gradesData = await getGrades(schoolId);
       const formattedGrades: Grade[] = gradesData.map((g: any) => ({
-        id: resolveId(g.id || g._id),
+        id: g.id,
         name: g.name,
         description: g.description,
         level: parseInt(g.grade_level?.match(/\d+/)?.[0] || "0"),
@@ -238,10 +227,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
           <ChannelSelection
             channels={CHANNELS}
             selectedChannels={selectedChannels}
-            learners={allLearners.filter(l => {
-              const gid = l.grade_id || l.gradeId;
-              return gid && selectedGrades.includes(gid);
-            })}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
             selectedGrades={grades.filter(grade => selectedGrades.includes(grade.id))}
             onChannelSelection={handleChannelSelection}
             onSelectAllChannels={handleSelectAllChannels}
@@ -264,10 +250,7 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         return (
           <InviteResults
             selectedChannels={selectedChannels}
-            learners={allLearners.filter(l => {
-              const gid = l.grade_id || l.gradeId;
-              return gid && selectedGrades.includes(gid);
-            })}
+            learners={allLearners.filter(l => selectedGrades.includes(l.grade_id))}
             inviteMessage={inviteMessage}
             schools={schools}
             school={targetSchool}

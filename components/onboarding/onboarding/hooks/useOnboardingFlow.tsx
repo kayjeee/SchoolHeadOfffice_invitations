@@ -29,28 +29,13 @@ const InternalOnboardingFlowProvider = ({ children, schools = [], user }) => {
       user.school_ids?.[0]?._id?.$oid ||
       user.school_ids?.[0];
 
-    let foundSchool = safeSchools.find(school => {
+    const foundSchool = safeSchools.find(school => {
       const schoolId =
         school.id ||
         school._id?.$oid ||
         school._id;
       return schoolId === userSchoolId;
     });
-
-    // Fallback: search by user_id/auth0_id, school_created_by, or user_email matching
-    if (!foundSchool) {
-      const userAuthId = user._id || user.id || user.auth0_id || user.sub;
-      foundSchool = safeSchools.find(school => {
-        return school.user_id === userAuthId ||
-               school.school_created_by === user.email ||
-               school.user_email === user.email;
-      });
-    }
-
-    // Secondary fallback: if schools exist, use the first available school
-    if (!foundSchool && safeSchools.length > 0) {
-      foundSchool = safeSchools[0];
-    }
 
     return foundSchool ? {
       id: foundSchool.id || foundSchool._id?.$oid || foundSchool._id,
