@@ -28,8 +28,17 @@ class InvitationService {
       throw new Error('Invitations array cannot be empty.');
     }
 
+    // ✅ FIX: Ensure learner_numbers is never empty - filter out entries without learner numbers
+    const validInvitations = invitations.filter(invite =>
+      invite.learner_numbers && invite.learner_numbers.length > 0
+    );
+
+    if (validInvitations.length === 0) {
+      throw new Error('No valid invitations with learner numbers found.');
+    }
+
     const payload = {
-      invitations,
+      invitations: validInvitations,
       school_id,
       sender_id,
       sender: userEmail,

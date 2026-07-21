@@ -2,19 +2,8 @@ import { Learner } from "../types";
 import { API_BASE_URL } from "../utils/constants";
 
 const transformLearner = (l: any, fallbackGradeId?: string): Learner => {
-  const resolveId = (val: any): string => {
-    if (!val) return "";
-    if (typeof val === 'string') return val;
-    if (typeof val === 'object') {
-      if (val.$oid) return val.$oid;
-      if (val.id) return resolveId(val.id);
-      if (val._id) return resolveId(val._id);
-    }
-    return val.toString();
-  };
-
-  const id = resolveId(l.id || l._id);
-  const gradeId = resolveId(l.grade_id || l.gradeId || fallbackGradeId);
+  const id = l.id?.toString() || l._id?.toString() || "";
+  const gradeId = (l.grade_id || l.gradeId || fallbackGradeId)?.toString() || "";
 
   return {
     id,
@@ -32,16 +21,10 @@ const transformLearner = (l: any, fallbackGradeId?: string): Learner => {
     school_id: (l.school_id || l.schoolId)?.toString(),
     school_name: l.school_name || l.schoolName || "Unknown School",
     email: l.email || l.contact?.email || "",
-    phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "",
+    phone: l.contact?.phone || l.phone || l.contact?.whatsapp || "",
     created_at: l.created_at || "",
     updated_at: l.updated_at || "",
-    contact: {
-      phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.parent_phone || l.parentPhone || "",
-      whatsapp: l.contact?.whatsapp || l.whatsapp || "",
-      tel_home: l.contact?.tel_home || l.tel_home || l.telHome || null,
-      tel_emergency: l.contact?.tel_emergency || l.tel_emergency || l.telEmergency || null,
-      telegram: l.contact?.telegram || l.telegram || ""
-    },
+    contact: l.contact || { phone: "", whatsapp: "", tel_home: null, tel_emergency: null, telegram: "" },
   };
 };
 

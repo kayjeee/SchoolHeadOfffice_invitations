@@ -13,7 +13,6 @@ const StepCompletion: React.FC = () => {
   const handleGoToDashboard = async () => {
     // Extract the school name dynamically from available metadata layers
     const absoluteSchoolName =
-      primarySchool?.schoolName ||
       primarySchool?.name ||
       (onboardingStatus as any)?.client_metadata?.create_grades_metadata?.schoolName ||
       "Far North Secondary School";
