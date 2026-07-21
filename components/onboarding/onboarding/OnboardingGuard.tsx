@@ -67,15 +67,7 @@ const OnboardingContent = ({ user, schools, onboardingStatus }) => {
   const userId = user?._id || user?.id || user?.auth0_id;
 
   const handleCompleteOnboarding = async () => {
-    const absoluteSchoolName =
-      primarySchool?.schoolName ||
-      primarySchool?.name ||
-      school?.schoolName ||
-      school?.name ||
-      (onboardingStatus as any)?.client_metadata?.create_grades_metadata?.schoolName ||
-      'my-school';
-
-    const schoolSlug = slugify(absoluteSchoolName);
+    const schoolSlug = slugify(school?.schoolName || 'my-school');
     const dashboardUrl = `/admin/${schoolSlug}`;
     setIsLoading(true);
     try {

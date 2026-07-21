@@ -23,21 +23,10 @@ export const learnerService = {
         const data = await response.json();
         const learnersData = data.learners || data.data?.learners || [];
 
-        const resolveId = (val: any): string => {
-          if (!val) return "";
-          if (typeof val === 'string') return val;
-          if (typeof val === 'object') {
-            if (val.$oid) return val.$oid;
-            if (val.id) return resolveId(val.id);
-            if (val._id) return resolveId(val._id);
-          }
-          return val.toString();
-        };
-
         // Transform to match the full Learner interface
         const transformedLearners = learnersData.map((l: any): Learner => {
-          const id = resolveId(l.id || l._id);
-          const gid = resolveId(l.grade_id || l.gradeId || gradeId);
+          const id = l.id?.toString() || l._id?.toString() || "";
+          const gid = (l.grade_id || l.gradeId || gradeId)?.toString() || "";
 
           return {
             id,
@@ -55,15 +44,15 @@ export const learnerService = {
             school_id: (l.school_id || l.schoolId)?.toString(),
             school_name: l.school_name || l.schoolName || "Unknown School",
             email: l.email || l.contact?.email || "",
-            phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || l.parent_phone || l.parentPhone || "",
+            phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.contact?.whatsapp || "",
             created_at: l.created_at || "",
             updated_at: l.updated_at || "",
-            contact: {
-              phone: l.contact?.phone || l.phone || l.mobile || l.cell || l.contact_number || l.parent_phone || l.parentPhone || "",
-              whatsapp: l.contact?.whatsapp || l.whatsapp || "",
-              tel_home: l.contact?.tel_home || l.tel_home || l.telHome || null,
-              tel_emergency: l.contact?.tel_emergency || l.tel_emergency || l.telEmergency || null,
-              telegram: l.contact?.telegram || l.telegram || ""
+            contact: l.contact || {
+              phone: l.phone || l.mobile || l.cell || l.contact_number || "",
+              whatsapp: l.whatsapp || "",
+              tel_home: l.tel_home || l.telHome || null,
+              tel_emergency: l.tel_emergency || l.telEmergency || null,
+              telegram: l.telegram || ""
             },
           };
         });
