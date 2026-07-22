@@ -29,7 +29,12 @@ import {
   Eye,
   Edit2,
   CheckCircle2,
-  X
+  X,
+  Send,
+  AlertTriangle,
+  Check,
+  HelpCircle,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -83,6 +88,26 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [invitationSearchQuery, setInvitationSearchQuery] = useState('');
   const [invitationFilterStatus, setInvitationFilterStatus] = useState<string>('all');
 
+  // New Invitation Wizard Modal State
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteTab, setInviteTab] = useState<'single' | 'bulk'>('single');
+
+  const [singleInvite, setSingleInvite] = useState({
+    learnerName: '',
+    parentName: '',
+    gradeId: '',
+    parentPhone: '',
+    parentEmail: '',
+    channel: 'WhatsApp' as 'WhatsApp' | 'SMS' | 'Email'
+  });
+
+  const [bulkGradeId, setBulkGradeId] = useState('');
+  const [bulkChannel, setBulkChannel] = useState<'WhatsApp' | 'SMS' | 'Email'>('WhatsApp');
+  const [bulkRawText, setBulkRawText] = useState('');
+
+  // Autocomplete UI State for Enrolled Learners
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -104,52 +129,16 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       if (invitesData && invitesData.length > 0) {
         setInvitations(invitesData);
       } else {
-        // Fallback: Populate mock invitations for simulation
         const mockInvites = [
           {
             id: 'inv-1',
             learner_name: 'Lethabo Manana',
             parent_name: 'Mrs Manana',
             parent_phone: '+27700400585',
+            parent_email: '700400585@gdeschools.gov.za',
             status: 'Sent',
-            created_at: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
+            created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
             grade_name: 'Grade 10',
-          },
-          {
-            id: 'inv-2',
-            learner_name: 'Sipho Sello',
-            parent_name: 'Mr Sello',
-            parent_phone: '+27825551234',
-            status: 'Delivered',
-            created_at: new Date(Date.now() - 3600000 * 12).toISOString(), // 12 hours ago
-            grade_name: 'Grade 11',
-          },
-          {
-            id: 'inv-3',
-            learner_name: 'Zanele Khumalo',
-            parent_name: 'Thabo Khumalo',
-            parent_phone: '+27712229876',
-            status: 'Accepted',
-            created_at: new Date(Date.now() - 3600000 * 24).toISOString(), // 1 day ago
-            grade_name: 'Grade 10',
-          },
-          {
-            id: 'inv-4',
-            learner_name: 'Bandile Nkosi',
-            parent_name: 'Lindiwe Nkosi',
-            parent_phone: '+27734445555',
-            status: 'Expired',
-            created_at: new Date(Date.now() - 3600000 * 120).toISOString(), // 5 days ago
-            grade_name: 'Grade 12',
-          },
-          {
-            id: 'inv-5',
-            learner_name: 'Kabelo Mokoena',
-            parent_name: 'Mrs Mokoena',
-            parent_phone: '+27723334444',
-            status: 'Cancelled',
-            created_at: new Date(Date.now() - 3600000 * 48).toISOString(), // 2 days ago
-            grade_name: 'Grade 9',
           }
         ];
         setInvitations(mockInvites);
@@ -158,24 +147,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       if (requestsData && requestsData.length > 0) {
         setAccessRequests(requestsData);
       } else {
-        setAccessRequests([
-          {
-            id: 'req-1',
-            parent_name: 'Mrs Manana',
-            parent_email: '700400585@gdeschools.gov.za',
-            learner_name: 'KAMO Sebogodi',
-            status: 'pending',
-            created_at: new Date(Date.now() - 3600000 * 3).toISOString()
-          },
-          {
-            id: 'req-2',
-            parent_name: 'Mr Sello',
-            parent_email: 'mrsello@gmail.com',
-            learner_name: 'kagiso sebogodi',
-            status: 'pending',
-            created_at: new Date(Date.now() - 3600000 * 20).toISOString()
-          }
-        ]);
+        setAccessRequests([]);
       }
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
@@ -189,10 +161,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     try {
       await SchoolAPI.resendLearnerInvitation(id);
       toast.success('Invitation resent successfully!', { id: `resend-${id}` });
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Sent', updated_at: new Date().toISOString() } : inv));
+      fetchInvitations();
     } catch (error) {
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Sent', updated_at: new Date().toISOString() } : inv));
-      toast.success('Invitation resent (simulation success)!', { id: `resend-${id}` });
+      toast.error('Failed to resend invitation.', { id: `resend-${id}` });
     }
   };
 
@@ -201,10 +172,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     try {
       await SchoolAPI.cancelLearnerInvitation(id);
       toast.success('Invitation cancelled.', { id: `cancel-${id}` });
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Cancelled' } : inv));
+      fetchInvitations();
     } catch (error) {
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Cancelled' } : inv));
-      toast.success('Invitation cancelled (simulation success)!', { id: `cancel-${id}` });
+      toast.error('Failed to cancel invitation.', { id: `cancel-${id}` });
     }
   };
 
@@ -213,33 +183,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     try {
       await SchoolAPI.acceptLearnerInvitation(id);
       toast.success('Invitation accepted and account linked!', { id: `accept-${id}` });
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Accepted' } : inv));
+      fetchInvitations();
       fetchData();
     } catch (error) {
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Accepted' } : inv));
-      toast.success('Invitation manually accepted and account linked (simulation success)!', { id: `accept-${id}` });
-
-      const match = invitations.find(inv => inv.id === id);
-      if (match) {
-        setLearners(prev => [
-          {
-            id: `l-${id}`,
-            name: match.learner_name,
-            fullName: match.learner_name,
-            full_name: match.learner_name,
-            first_name: match.learner_name.split(' ')[0],
-            last_name: match.learner_name.split(' ').slice(1).join(' '),
-            admission_number: `ADM-${Math.floor(Math.random() * 900) + 100}`,
-            grade_id: grades.find(g => g.name === match.grade_name)?.id || 'all',
-            gradeId: grades.find(g => g.name === match.grade_name)?.id || 'all',
-            status: 'Linked',
-            status_text: 'Linked',
-            parent_phone: match.parent_phone,
-            className: 'Class A'
-          },
-          ...prev
-        ]);
-      }
+      toast.error('Failed to accept invitation.', { id: `accept-${id}` });
     }
   };
 
@@ -248,33 +195,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     try {
       await SchoolAPI.approveRequestAccess(id);
       toast.success('Access request approved!', { id: `approve-${id}` });
-      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' } : req));
-      fetchData();
+      fetchInvitations();
+      fetchData(); // Instantly update directory with newly linked/created learner!
     } catch (error) {
-      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' } : req));
-      toast.success('Access request approved successfully!', { id: `approve-${id}` });
-
-      const match = accessRequests.find(req => req.id === id);
-      if (match) {
-        setLearners(prev => [
-          {
-            id: `l-${id}`,
-            name: match.learner_name,
-            fullName: match.learner_name,
-            full_name: match.learner_name,
-            first_name: match.learner_name.split(' ')[0],
-            last_name: match.learner_name.split(' ').slice(1).join(' '),
-            admission_number: `ADM-${Math.floor(Math.random() * 900) + 100}`,
-            grade_id: 'all',
-            gradeId: 'all',
-            status: 'Linked',
-            status_text: 'Linked',
-            parent_phone: '---',
-            className: 'Class A'
-          },
-          ...prev
-        ]);
-      }
+      toast.error('Failed to approve request.', { id: `approve-${id}` });
     }
   };
 
@@ -283,10 +207,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     try {
       await SchoolAPI.rejectRequestAccess(id);
       toast.success('Access request rejected.', { id: `reject-${id}` });
-      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req));
+      fetchInvitations();
     } catch (error) {
-      setAccessRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req));
-      toast.success('Access request rejected successfully!', { id: `reject-${id}` });
+      toast.error('Failed to reject request.', { id: `reject-${id}` });
     }
   };
 
@@ -300,7 +223,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     setIsLoading(true);
 
     try {
-      // Using school-scoped route as per routes.rb: /api/v1/schools/:school_id/learners
       const [learnersResponse, gradesData, stats] = await Promise.all([
         SchoolAPI.getSchoolLearners(schoolId, targetPage, perPage),
         SchoolAPI.getGrades(schoolId),
@@ -313,10 +235,15 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       setTotal(learnersResponse.total || learnersResponse.learners.length);
       setGrades(gradesData);
       setStatsData(stats);
+
+      // Initialize dropdown selections
+      if (gradesData.length > 0) {
+        setSingleInvite(prev => ({ ...prev, gradeId: prev.gradeId || gradesData[0].id }));
+        setBulkGradeId(prev => prev || gradesData[0].id);
+      }
     } catch (error: any) {
       console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
-      // Guardrail 4: Resilient Payload Parsing (Capture HTML dumps in ApiClient)
-      toast.error(error.message || 'Failed to load learner directory. Check console for server logs.');
+      toast.error(error.message || 'Failed to load learner directory.');
     } finally {
       setIsLoading(false);
     }
@@ -333,7 +260,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       const nameMatch = getLearnerFullName(learner).toLowerCase().includes(searchQuery.toLowerCase());
       const admissionMatch = (learner.admission_number || learner.accession_number || (learner as any).accessionNumber || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Guardrail 1: gradeId Naming Trap
       const currentGradeId = learner.gradeId || (learner as any).grade_id;
       const gradeMatch = filterGrade === 'all' || currentGradeId === filterGrade;
 
@@ -347,7 +273,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       return {
         total: statsData.total || total,
         active: statsData.by_status?.['active'] || statsData.by_status?.['Linked'] || 0,
-        unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length, // Approximate if not global
+        unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length,
       };
     }
     return {
@@ -356,6 +282,168 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       unassigned: learners.filter(l => !((l as any).class_id || (l as any).classId)).length,
     };
   }, [learners, total, statsData]);
+
+  // --- Autocomplete Filtered Learners ---
+  const autocompleteSuggestions = useMemo(() => {
+    if (!singleInvite.learnerName.trim()) return [];
+    return learners.filter(l =>
+      getLearnerFullName(l).toLowerCase().includes(singleInvite.learnerName.toLowerCase())
+    ).slice(0, 5);
+  }, [learners, singleInvite.learnerName]);
+
+  const handleSelectSuggestedLearner = (learner: Learner) => {
+    const fullName = getLearnerFullName(learner);
+    setSingleInvite(prev => ({
+      ...prev,
+      learnerName: fullName,
+      gradeId: learner.grade_id || learner.gradeId || prev.gradeId,
+      parentPhone: learner.parent_phone || prev.parentPhone,
+      parentEmail: (learner as any).parent_email || prev.parentEmail
+    }));
+    setShowSuggestions(false);
+    toast.success(`Selected enrolled student: ${fullName}`, { icon: '🎓' });
+  };
+
+  // --- Invitation Wizard Smart Parser Helper ---
+  const parseBulkText = () => {
+    if (!bulkRawText.trim()) return [];
+    const lines = bulkRawText.split('\n');
+    return lines
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .map((line, index) => {
+        const parts = line.split(/[,\t]+/).map(p => p.trim());
+        let learnerName = 'Unnamed';
+        let parentName = 'Parent';
+        let contact = '';
+
+        if (parts.length === 1) {
+          contact = parts[0];
+          learnerName = `Learner (${contact.substring(0, Math.min(contact.length, 5))}...)`;
+        } else if (parts.length === 2) {
+          learnerName = parts[0];
+          contact = parts[1];
+        } else {
+          learnerName = parts[0];
+          parentName = parts[1];
+          contact = parts[2];
+        }
+
+        let isValid = false;
+        if (bulkChannel === 'Email') {
+          isValid = /\S+@\S+\.\S+/.test(contact);
+        } else {
+          const cleanPhone = contact.replace(/\D/g, '');
+          isValid = cleanPhone.length >= 9 && cleanPhone.length <= 15;
+        }
+
+        return {
+          id: index,
+          learnerName,
+          parentName,
+          phone: bulkChannel !== 'Email' ? contact : '',
+          email: bulkChannel === 'Email' ? contact : '',
+          contactText: contact,
+          isValid
+        };
+      });
+  };
+
+  const parsedBulkItems = useMemo(() => parseBulkText(), [bulkRawText, bulkChannel]);
+  const validBulkCount = parsedBulkItems.filter(item => item.isValid).length;
+
+  // --- Handlers for Sending New Invitations ---
+  const handleSendSingleInvite = async () => {
+    if (!singleInvite.learnerName.trim()) {
+      toast.error('Please enter the learner name.');
+      return;
+    }
+    if (singleInvite.channel === 'Email' && !singleInvite.parentEmail.trim()) {
+      toast.error('Please enter the recipient email address.');
+      return;
+    }
+    if (singleInvite.channel !== 'Email' && !singleInvite.parentPhone.trim()) {
+      toast.error('Please enter the recipient phone number.');
+      return;
+    }
+
+    const selectedGrade = grades.find(g => g.id === singleInvite.gradeId);
+    const payload = {
+      invitations: [{
+        learner_name: singleInvite.learnerName,
+        parent_name: singleInvite.parentName || 'Parent',
+        parent_phone: singleInvite.channel !== 'Email' ? singleInvite.parentPhone : '---',
+        parent_email: singleInvite.channel === 'Email' ? singleInvite.parentEmail : '',
+        grade_name: selectedGrade?.name || 'Unspecified',
+        channel: singleInvite.channel
+      }],
+      schoolId,
+      schoolName: currentSchool?.schoolName || 'Far North Secondary School'
+    };
+
+    setIsProcessing('sending-invite');
+    const toastId = toast.loading('Sending invitation...');
+
+    try {
+      await apiClient.post('/api/v1/learner_invitations', payload, z.any());
+      toast.success('Invitation dispatched successfully!', { id: toastId });
+      setIsInviteModalOpen(false);
+
+      // Reset Single Invite state
+      setSingleInvite({
+        learnerName: '',
+        parentName: '',
+        gradeId: grades[0]?.id || '',
+        parentPhone: '',
+        parentEmail: '',
+        channel: 'WhatsApp'
+      });
+
+      fetchInvitations();
+    } catch (err: any) {
+      toast.error(`Dispatch failed: ${err.message}`, { id: toastId });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleSendBulkInvites = async () => {
+    if (validBulkCount === 0) {
+      toast.error('No valid contact entries were found.');
+      return;
+    }
+
+    const selectedGrade = grades.find(g => g.id === bulkGradeId);
+    const payload = {
+      invitations: parsedBulkItems
+        .filter(item => item.isValid)
+        .map(item => ({
+          learner_name: item.learnerName,
+          parent_name: item.parentName,
+          parent_phone: bulkChannel !== 'Email' ? item.contactText : '---',
+          parent_email: bulkChannel === 'Email' ? item.contactText : '',
+          grade_name: selectedGrade?.name || 'Unspecified',
+          channel: bulkChannel
+        })),
+      schoolId,
+      schoolName: currentSchool?.schoolName || 'Far North Secondary School'
+    };
+
+    setIsProcessing('sending-invite');
+    const toastId = toast.loading(`Dispatching ${validBulkCount} invitations...`);
+
+    try {
+      await apiClient.post('/api/v1/learner_invitations', payload, z.any());
+      toast.success(`Dispatched ${validBulkCount} invitations successfully!`, { id: toastId });
+      setIsInviteModalOpen(false);
+      setBulkRawText('');
+      fetchInvitations();
+    } catch (err: any) {
+      toast.error(`Dispatch failed: ${err.message}`, { id: toastId });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
 
   // --- Phase 2 Actions ---
   const handleImportData = async () => {
@@ -371,7 +459,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       toast.loading(`Processing ${file.name}...`, { id: 'import-toast' });
 
       try {
-        // Target: POST /api/v1/import_export/import_learners
         const formData = new FormData();
         formData.append('file', file);
         formData.append('school_id', schoolId!);
@@ -381,7 +468,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         });
 
         toast.success('Learners imported successfully!', { id: 'import-toast' });
-        // Refresh directory
         fetchData();
       } catch (error: any) {
         toast.error(`Import failed: ${error.message}`, { id: 'import-toast' });
@@ -402,7 +488,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     if (learnerId) {
       setIsProcessing(`promote-${learnerId}`);
       try {
-        // Target: PATCH /api/v1/learners/:id/graduate
         await apiClient.patch(`/api/v1/learners/${learnerId}/graduate`, {}, z.any());
         toast.success('Learner promoted/graduated!');
         fetchData();
@@ -420,7 +505,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     console.log('📊 [Action] Fetching Academic Metrics');
     setIsProcessing('metrics');
     try {
-      // Target: GET /api/v1/dashboard/grade_statistics
       toast.loading('Synthesizing grade statistics...', { id: 'metrics-toast' });
       await apiClient.get('/api/v1/dashboard/grade_statistics', z.any());
       toast.success('Metrics updated.', { id: 'metrics-toast' });
@@ -637,7 +721,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                                     </div>
                                     <div className="flex items-center gap-1.5 text-xs text-slate-600">
                                       <Mail className="w-3 h-3" />
-                                      {learner.email || '---'}
+                                      {learner.email || (learner as any).parent_email || '---'}
                                     </div>
                                   </div>
                                 </td>
@@ -749,7 +833,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                     <div className="hidden md:flex items-center gap-1">
                       {Array.from({ length: Math.min(5, Math.ceil(total / perPage)) }, (_, i) => {
                         const pageNum = i + 1;
-                        // Simple logic for first 5 pages, can be expanded for ellipsis
                         return (
                           <button
                             key={pageNum}
@@ -792,9 +875,32 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           )}
 
           {activeTab === 'invitations' && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+
+              {/* Premium Quick Help Banner */}
+              <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex gap-3">
+                  <div className="p-3 bg-white text-emerald-600 rounded-2xl shadow-sm border border-emerald-100/50">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 tracking-tight">Multi-Channel Invitations & Request Access</h4>
+                    <p className="text-xs font-semibold text-slate-500 leading-relaxed max-w-xl">
+                      Invite parents of enrolled students to link their portal accounts via SMS, WhatsApp templates, or SMTP emails. Alternatively, review, link, and automatically create learner records directly from parent portal sign-up requests.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                >
+                  <Plus className="w-4.5 h-4.5" />
+                  Launch Invite Wizard
+                </button>
+              </div>
+
               {/* Stats / KPIs */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
                   { label: 'Total Invitations Sent', value: invitations.length, sub: 'All channels', icon: Users, color: 'bg-indigo-50 text-blue-600' },
                   { label: 'Pending Response', value: invitations.filter(inv => inv.status === 'Sent' || inv.status === 'Delivered').length, sub: 'Waiting for parent', icon: AlertCircle, color: 'bg-amber-50 text-amber-600' },
@@ -815,22 +921,22 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
               </div>
 
               {/* Filter / Search for Invitations */}
-              <div className="flex flex-col md:flex-row gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="relative flex-1">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by student, parent, or phone..."
+                    placeholder="Search by student, parent, or contact info..."
                     value={invitationSearchQuery}
                     onChange={(e) => setInvitationSearchQuery(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900"
                   />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full md:w-auto">
                   <select
                     value={invitationFilterStatus}
                     onChange={(e) => setInvitationFilterStatus(e.target.value)}
-                    className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900 min-w-[160px]"
+                    className="flex-1 md:flex-initial px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900 min-w-[160px]"
                   >
                     <option value="all">All Statuses</option>
                     <option value="Sent">Sent</option>
@@ -839,19 +945,28 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                     <option value="Expired">Expired</option>
                     <option value="Cancelled">Cancelled</option>
                   </select>
+
+                  <button
+                    onClick={() => setIsInviteModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-school-primary text-white text-sm font-black rounded-2xl hover:bg-school-primary/90 transition-all shadow-lg shadow-school-primary/20 whitespace-nowrap"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Invite Parents / Learners
+                  </button>
                 </div>
               </div>
 
               {/* Invitations Table */}
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Learner</th>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Recipient Parent</th>
-                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Info</th>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sent Date</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Channel</th>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                       </tr>
@@ -863,7 +978,8 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                           const matchesSearch =
                             inv.learner_name?.toLowerCase().includes(query) ||
                             inv.parent_name?.toLowerCase().includes(query) ||
-                            inv.parent_phone?.toLowerCase().includes(query);
+                            inv.parent_phone?.toLowerCase().includes(query) ||
+                            inv.parent_email?.toLowerCase().includes(query);
                           const matchesStatus = invitationFilterStatus === 'all' || inv.status === invitationFilterStatus;
                           return matchesSearch && matchesStatus;
                         })
@@ -884,10 +1000,22 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                               {inv.parent_name}
                             </td>
                             <td className="px-6 py-4 font-mono text-xs font-bold text-slate-600">
-                              {inv.parent_phone}
+                              {inv.channel === 'Email' ? inv.parent_email : inv.parent_phone}
                             </td>
                             <td className="px-6 py-4 text-xs text-slate-500">
                               {new Date(inv.created_at).toLocaleDateString()} at {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider uppercase border",
+                                inv.channel === 'WhatsApp'
+                                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                  : inv.channel === 'Email'
+                                  ? "bg-pink-50 text-pink-600 border-pink-100"
+                                  : "bg-blue-50 text-blue-600 border-blue-100"
+                              )}>
+                                {inv.channel || 'WhatsApp'}
+                              </span>
                             </td>
                             <td className="px-6 py-4 text-center">
                               <span className={cn(
@@ -942,8 +1070,8 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                         ))}
                       {invitations.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-12 text-center text-slate-400">
-                            No invitations sent yet. Click on Onboarding Flow or use step 3 to invite parents.
+                          <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
+                            No invitations sent yet. Click "Invite Parents / Learners" to get started.
                           </td>
                         </tr>
                       )}
@@ -959,10 +1087,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   <h3 className="text-xl font-bold text-slate-900 tracking-tight">Parent Portal Access Requests & Registrations</h3>
                 </div>
                 <p className="text-sm text-slate-500 mb-6 font-medium">
-                  Parents who signed up directly or requested manual linkage to their child's academic record. Approve to link them automatically.
+                  Parents who signed up directly or requested manual linkage to their child's academic record. Approve to link or automatically create learner record.
                 </p>
 
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-slate-50 border-b border-slate-100">
@@ -1036,7 +1164,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                         ))}
                         {accessRequests.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="py-12 text-center text-slate-400">
+                            <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
                               No manual registrations or access requests pending.
                             </td>
                           </tr>
@@ -1107,17 +1235,17 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         </motion.div>
       </AnimatePresence>
 
-      {/* Enrollment Mock Modal */}
+      {/* Enroll New Learner Modal */}
       <AnimatePresence>
         {isEnrollmentOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
             >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 className="text-xl font-black text-slate-900">New Enrollment</h3>
                 <button onClick={() => setIsEnrollmentOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                   <X className="w-5 h-5 text-slate-400" />
@@ -1126,18 +1254,18 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
               <div className="p-8 space-y-6">
                  <div className="space-y-2">
                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Full Name</label>
-                   <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="e.g. John Smith" />
+                   <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="e.g. John Smith" />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Grade</label>
-                     <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900">
+                     <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900">
                         {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                      </select>
                    </div>
                    <div className="space-y-2">
                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Admission #</label>
-                     <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="LNR-000" />
+                     <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900" placeholder="LNR-000" />
                    </div>
                  </div>
                  <button
@@ -1149,6 +1277,396 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                  >
                    Complete Enrollment
                  </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Learner & Parent Multi-Channel Invitation Wizard Modal */}
+      <AnimatePresence>
+        {isInviteModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Parent Portal Invitations</h3>
+                    <p className="text-xs font-medium text-slate-500">Send custom invitation links via SMS, WhatsApp, or Email templates.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsInviteModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Wizard Tabs */}
+              <div className="flex border-b border-slate-100 bg-slate-50/30 px-6">
+                {[
+                  { id: 'single', label: 'Single Invite' },
+                  { id: 'bulk', label: 'Bulk Paste Contact List' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setInviteTab(tab.id as any)}
+                    className={cn(
+                      "px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all relative border-b-2",
+                      inviteTab === tab.id ? "border-school-primary text-school-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Content Panels */}
+              <div className="p-8 max-h-[60vh] overflow-y-auto space-y-6 relative">
+                {inviteTab === 'single' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+
+                      {/* Learner Full Name Input + Autocomplete Suggestions */}
+                      <div className="space-y-2 relative">
+                        <label htmlFor="learnerNameInput" className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center justify-between">
+                          <span>Learner Full Name <span className="text-rose-500 font-bold">*</span></span>
+                          <span className="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">Auto-suggests real students</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="learnerNameInput"
+                            type="text"
+                            required
+                            value={singleInvite.learnerName}
+                            onChange={(e) => {
+                              setSingleInvite(prev => ({ ...prev, learnerName: e.target.value }));
+                              setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                            placeholder="e.g. Lethabo Manana"
+                          />
+                          {singleInvite.learnerName && (
+                            <button
+                              type="button"
+                              onClick={() => setSingleInvite(prev => ({ ...prev, learnerName: '' }))}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Suggestions Dropdown Card */}
+                        <AnimatePresence>
+                          {showSuggestions && autocompleteSuggestions.length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                            >
+                              <div className="px-4 py-2 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">Matching enrolled students</span>
+                                <button type="button" onClick={() => setShowSuggestions(false)} className="text-[10px] text-slate-400 font-bold hover:text-slate-600">Close</button>
+                              </div>
+                              <ul className="divide-y divide-slate-50">
+                                {autocompleteSuggestions.map(suggestion => {
+                                  const fullName = getLearnerFullName(suggestion);
+                                  const grade = grades.find(g => g.id === suggestion.grade_id);
+                                  return (
+                                    <li key={suggestion.id}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSelectSuggestedLearner(suggestion)}
+                                        className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex items-center justify-between"
+                                      >
+                                        <div>
+                                          <p className="text-sm font-bold text-slate-900">{fullName}</p>
+                                          <p className="text-[10px] text-slate-400 font-medium">ADM: {suggestion.admission_number || '---'}</p>
+                                        </div>
+                                        <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-black uppercase">
+                                          {grade?.name || 'Enrolled'}
+                                        </span>
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                          Parent / Guardian Name
+                        </label>
+                        <input
+                          type="text"
+                          value={singleInvite.parentName}
+                          onChange={(e) => setSingleInvite(prev => ({ ...prev, parentName: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          placeholder="e.g. Mrs Manana (Optional)"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                          Grade Level
+                        </label>
+                        <select
+                          value={singleInvite.gradeId}
+                          onChange={(e) => setSingleInvite(prev => ({ ...prev, gradeId: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                          Contact Channel
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: 'WhatsApp', label: 'WhatsApp', desc: 'Meta Template' },
+                            { id: 'SMS', label: 'SMS', desc: 'Direct Text' },
+                            { id: 'Email', label: 'Email', desc: 'SMTP Link' }
+                          ].map(ch => (
+                            <button
+                              key={ch.id}
+                              type="button"
+                              onClick={() => setSingleInvite(prev => ({ ...prev, channel: ch.id as any }))}
+                              className={cn(
+                                "p-3.5 border rounded-2xl text-left transition-all relative flex flex-col justify-between h-[85px]",
+                                singleInvite.channel === ch.id
+                                  ? "border-school-primary bg-school-primary/5 text-school-primary"
+                                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-500"
+                              )}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <span className="font-black text-[10px] uppercase tracking-wider text-slate-800">{ch.label}</span>
+                                <div className={cn(
+                                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center",
+                                  singleInvite.channel === ch.id ? "border-school-primary bg-school-primary text-white" : "border-slate-300"
+                                )}>
+                                  {singleInvite.channel === ch.id && <Check className="w-2.5 h-2.5" />}
+                                </div>
+                              </div>
+                              <span className="text-[9px] text-slate-400 mt-2 font-medium leading-none">{ch.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {singleInvite.channel === 'Email' ? (
+                        <div className="space-y-2">
+                          <label htmlFor="parentEmailInput" className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                            Parent Email Address
+                            <span className="text-rose-500 font-bold">*</span>
+                          </label>
+                          <input
+                            id="parentEmailInput"
+                            type="email"
+                            required
+                            value={singleInvite.parentEmail}
+                            onChange={(e) => setSingleInvite(prev => ({ ...prev, parentEmail: e.target.value }))}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                            placeholder="e.g. parent@example.com"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label htmlFor="parentPhoneInput" className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                            Mobile / WhatsApp Number
+                            <span className="text-rose-500 font-bold">*</span>
+                          </label>
+                          <input
+                            id="parentPhoneInput"
+                            type="tel"
+                            required
+                            value={singleInvite.parentPhone}
+                            onChange={(e) => setSingleInvite(prev => ({ ...prev, parentPhone: e.target.value }))}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                            placeholder="e.g. 0721234567 or +27..."
+                          />
+                          <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                            <HelpCircle className="w-3.5 h-3.5 text-slate-300" />
+                            Accepts local formats (e.g. 070...) and international prefixes.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Message Preview</span>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                          {singleInvite.channel === 'WhatsApp' ? (
+                            <span>Meta Template <b>"parent_invite"</b>: <i>"Hello, {singleInvite.parentName || 'Parent'}. You are invited to join the Parent Portal for {currentSchool?.schoolName || 'Far North Secondary School'}..."</i></span>
+                          ) : singleInvite.channel === 'Email' ? (
+                            <span>Email SMTP: <i>"Hi, you've been invited by {currentSchool?.schoolName || 'Far North Secondary School'} to join our Parent Portal! Click here to sign up..."</i></span>
+                          ) : (
+                            <span>SMS: <i>"Hi {singleInvite.parentName || 'Parent'}! You are invited to join the Parent Portal for {currentSchool?.schoolName || 'Far North Secondary School'} on SchoolHeadOffice. Register at: https://schoolheadoffice.co.za/parent"</i></span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Grade Level (Applies to all)</label>
+                        <select
+                          value={bulkGradeId}
+                          onChange={(e) => setBulkGradeId(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Bulk Contact Channel</label>
+                        <div className="flex gap-2">
+                          {[
+                            { id: 'WhatsApp', label: 'WhatsApp' },
+                            { id: 'SMS', label: 'SMS' },
+                            { id: 'Email', label: 'Email' }
+                          ].map(ch => (
+                            <label
+                              key={ch.id}
+                              className={cn(
+                                "flex-1 flex items-center justify-between px-3.5 py-3 border rounded-2xl cursor-pointer text-xs font-black uppercase transition-all",
+                                bulkChannel === ch.id ? "border-school-primary bg-school-primary/5 text-school-primary" : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500"
+                              )}
+                            >
+                              <span>{ch.label}</span>
+                              <input
+                                type="radio"
+                                name="bulkChannel"
+                                checked={bulkChannel === ch.id}
+                                onChange={() => setBulkChannel(ch.id as any)}
+                                className="accent-school-primary ml-1.5"
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                          Paste Recipient Records
+                          <span className="text-rose-500 font-bold">*</span>
+                        </label>
+                        <span className="text-[10px] font-bold text-slate-400">Supported Formats: comma-separated or raw contacts</span>
+                      </div>
+                      <textarea
+                        rows={6}
+                        value={bulkRawText}
+                        onChange={(e) => setBulkRawText(e.target.value)}
+                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-mono focus:ring-2 focus:ring-school-primary/20 text-slate-900 outline-none resize-none"
+                        placeholder={bulkChannel === 'Email' ?
+                          `Formats (one entry per line):\n1. Email only: parent@example.com\n2. Learner name & Email: John Smith, parent@example.com\n3. Learner name, Parent name & Email: John Smith, Mrs Smith, parent@example.com` :
+                          `Formats (one entry per line):\n1. Phone number only: 0721234567\n2. Learner name & Phone: John Smith, 0721234567\n3. Learner name, Parent name & Phone: John Smith, Mrs Smith, 0721234567`
+                        }
+                      />
+                    </div>
+
+                    {/* Live Preview List */}
+                    {parsedBulkItems.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Info className="w-4 h-4 text-slate-400" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            Live Entry Preview ({validBulkCount} valid, {parsedBulkItems.length - validBulkCount} invalid)
+                          </span>
+                        </div>
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 max-h-[200px] overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200">
+                              <tr>
+                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
+                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Parent Name</th>
+                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Contact Input</th>
+                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150">
+                              {parsedBulkItems.map(item => (
+                                <tr key={item.id} className="hover:bg-slate-100/50">
+                                  <td className="px-4 py-2 font-bold text-slate-700 truncate max-w-[150px]">{item.learnerName}</td>
+                                  <td className="px-4 py-2 text-slate-500 truncate max-w-[120px]">{item.parentName}</td>
+                                  <td className="px-4 py-2 font-mono font-medium text-slate-600 truncate max-w-[200px]">{item.contactText}</td>
+                                  <td className="px-4 py-2 text-center">
+                                    <span className={cn(
+                                      "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                      item.isValid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                                    )}>
+                                      {item.isValid ? 'Valid' : bulkChannel === 'Email' ? 'Invalid Email' : 'Invalid Number'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsInviteModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+
+                {inviteTab === 'single' ? (
+                  <button
+                    type="button"
+                    onClick={handleSendSingleInvite}
+                    disabled={isProcessing === 'sending-invite'}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    {isProcessing === 'sending-invite' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send Invitation
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendBulkInvites}
+                    disabled={isProcessing === 'sending-invite' || validBulkCount === 0}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    {isProcessing === 'sending-invite' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send {validBulkCount} Invitations
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
