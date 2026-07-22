@@ -32,6 +32,7 @@ export default async function handler(req, res) {
             learner_name: 'Lethabo Manana',
             parent_name: 'Mrs Manana',
             parent_phone: '+27700400585',
+            parent_email: '700400585@gdeschools.gov.za',
             status: 'Sent',
             created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
             grade_name: 'Grade 10',
@@ -43,6 +44,7 @@ export default async function handler(req, res) {
             learner_name: 'Sipho Sello',
             parent_name: 'Mr Sello',
             parent_phone: '+27825551234',
+            parent_email: 'mrsello@gmail.com',
             status: 'Delivered',
             created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
             grade_name: 'Grade 11',
@@ -54,6 +56,7 @@ export default async function handler(req, res) {
             learner_name: 'Zanele Khumalo',
             parent_name: 'Thabo Khumalo',
             parent_phone: '+27712229876',
+            parent_email: 'thabo@khumalo.co.za',
             status: 'Accepted',
             created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
             grade_name: 'Grade 10',
@@ -65,6 +68,7 @@ export default async function handler(req, res) {
             learner_name: 'Bandile Nkosi',
             parent_name: 'Lindiwe Nkosi',
             parent_phone: '+27734445555',
+            parent_email: 'lindiwe@nkosi.co.za',
             status: 'Expired',
             created_at: new Date(Date.now() - 3600000 * 120).toISOString(),
             grade_name: 'Grade 12',
@@ -76,6 +80,7 @@ export default async function handler(req, res) {
             learner_name: 'Kabelo Mokoena',
             parent_name: 'Mrs Mokoena',
             parent_phone: '+27723334444',
+            parent_email: 'mokoena@gmail.com',
             status: 'Cancelled',
             created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
             grade_name: 'Grade 9',
@@ -110,6 +115,7 @@ export default async function handler(req, res) {
 
       for (const invite of incomingInvites) {
         const parentPhone = invite.parent_phone || invite.phone || '';
+        const parentEmail = invite.parent_email || invite.email || '';
         const learnerName = invite.learner_name || invite.name || 'Unnamed Learner';
         const parentName = invite.parent_name || 'Parent';
         const gradeName = invite.grade_name || 'Unspecified';
@@ -121,6 +127,7 @@ export default async function handler(req, res) {
           learner_name: learnerName,
           parent_name: parentName,
           parent_phone: parentPhone,
+          parent_email: parentEmail,
           grade_name: gradeName,
           channel: channel,
           status: 'Sent',
@@ -131,13 +138,11 @@ export default async function handler(req, res) {
         let triggerSuccess = false;
         let triggerError = '';
 
-        // Clean up formatting of SA phone numbers for delivery
-        let cleanPhone = parentPhone.replace(/\D/g, '');
-        if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-          cleanPhone = '27' + cleanPhone.slice(1);
-        }
-
         if (channel === 'WhatsApp') {
+          let cleanPhone = parentPhone.replace(/\D/g, '');
+          if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+            cleanPhone = '27' + cleanPhone.slice(1);
+          }
           try {
             const waRes = await fetch(`${protocol}://${host}/api/whatsapp-business/test-message`, {
               method: 'POST',
@@ -159,6 +164,10 @@ export default async function handler(req, res) {
             triggerError = err.message;
           }
         } else if (channel === 'SMS') {
+          let cleanPhone = parentPhone.replace(/\D/g, '');
+          if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+            cleanPhone = '27' + cleanPhone.slice(1);
+          }
           try {
             const smsRes = await fetch(`${protocol}://${host}/api/sms/send`, {
               method: 'POST',
@@ -180,13 +189,30 @@ export default async function handler(req, res) {
           } catch (err) {
             triggerError = err.message;
           }
+        } else if (channel === 'Email') {
+          try {
+            const emailRes = await fetch(`${protocol}://${host}/api/send-invite`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: parentEmail,
+                inviterName: newInvite.school_name
+              })
+            });
+            const emailData = await emailRes.json();
+            if (emailRes.ok) {
+              triggerSuccess = true;
+              newInvite.status = 'Sent';
+            } else {
+              triggerError = emailData.message || 'Email API failed';
+            }
+          } catch (err) {
+            triggerError = err.message;
+          }
         } else {
-          // 'Both' or other options
           triggerSuccess = true;
         }
 
-        // If live trigger fails (missing credentials, timeout, etc.), keep the invite as 'Sent'
-        // so that administrators can still manage it locally!
         if (!triggerSuccess) {
           console.warn(`[Invitations] Live trigger fallback to simulated sent: ${triggerError}`);
           newInvite.simulation = true;
@@ -224,13 +250,12 @@ export default async function handler(req, res) {
       const protocol = req.headers['x-forwarded-proto'] || 'http';
 
       if (action === 'resend') {
-        let cleanPhone = invitation.parent_phone.replace(/\D/g, '');
-        if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-          cleanPhone = '27' + cleanPhone.slice(1);
-        }
-
         let triggerSuccess = false;
         if (invitation.channel === 'WhatsApp') {
+          let cleanPhone = invitation.parent_phone.replace(/\D/g, '');
+          if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+            cleanPhone = '27' + cleanPhone.slice(1);
+          }
           try {
             const waRes = await fetch(`${protocol}://${host}/api/whatsapp-business/test-message`, {
               method: 'POST',
@@ -245,7 +270,11 @@ export default async function handler(req, res) {
           } catch (err) {
             console.error(err);
           }
-        } else {
+        } else if (invitation.channel === 'SMS') {
+          let cleanPhone = invitation.parent_phone.replace(/\D/g, '');
+          if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+            cleanPhone = '27' + cleanPhone.slice(1);
+          }
           try {
             const smsRes = await fetch(`${protocol}://${host}/api/sms/send`, {
               method: 'POST',
@@ -258,6 +287,20 @@ export default async function handler(req, res) {
             });
             const smsData = await smsRes.json();
             if (smsRes.ok && smsData.success) triggerSuccess = true;
+          } catch (err) {
+            console.error(err);
+          }
+        } else if (invitation.channel === 'Email') {
+          try {
+            const emailRes = await fetch(`${protocol}://${host}/api/send-invite`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: invitation.parent_email,
+                inviterName: invitation.school_name
+              })
+            });
+            if (emailRes.ok) triggerSuccess = true;
           } catch (err) {
             console.error(err);
           }

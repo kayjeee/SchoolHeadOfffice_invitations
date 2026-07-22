@@ -1,0 +1,1008 @@
+
+> start
+> next start
+
+   ▲ Next.js 15.0.7
+   - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 731ms
+QRCodeGenerator loaded
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T09:58:38.582Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T09:58:38.582Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+(node:271617) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Failed to proxy http://127.0.0.1:4000/api?page=1&per_page=100 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?page=1&per_page=100 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?page=1&per_page=100 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:00:37.776Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:00:37.776Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?school_id=school-123 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api?page=1&per_page=100 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:05:16.851Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:05:16.851Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:06:00.638Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:06:00.638Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:08:17.371Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:08:17.371Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:09:48.895Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:09:48.895Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:14:17.965Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:14:17.965Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:17:31.901Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:17:31.901Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:18:15.712Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:18:15.712Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:18:16.402Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:18:16.402Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:18:17.071Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:18:17.071Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}
+ ⨯ TypeError: "secret" is required
+    at get (/app/node_modules/@auth0/nextjs-auth0/dist/auth0-session/get-config.js:164:15)
+    at getConfig (/app/node_modules/@auth0/nextjs-auth0/dist/config.js:78:43)
+    at _initAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:34:37)
+    at getInstance (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:23:38)
+    at handleAuth (/app/node_modules/@auth0/nextjs-auth0/dist/index.js:150:18)
+    at 72080 (/app/.next/server/pages/api/auth/[...auth0].js:1:605)
+    at o (/app/.next/server/webpack-api-runtime.js:1:127)
+    at <unknown> (/app/.next/server/pages/api/auth/[...auth0].js:1:1129)
+    at Object.<anonymous> (/app/.next/server/pages/api/auth/[...auth0].js:1:1160)
+[34m[1m[DEBUG][0m [34m[2026-07-22T10:18:17.649Z][0m [1m[THEME_CONTEXT][0m :: 🎨 Using default theme - no current school selected
+[34m📊 Context:[0m {
+  "defaultPrimary": "white",
+  "defaultSecondary": "white",
+  "availableSchools": 0,
+  "themeSource": "system_default"
+}
+[34m────────────────────────────────────────────────────────────────────────────────[0m
+{"timestamp":"2026-07-22T10:18:17.649Z","severity":"DEBUG","module":"THEME_CONTEXT","message":"🎨 Using default theme - no current school selected","defaultPrimary":"white","defaultSecondary":"white","availableSchools":0,"themeSource":"system_default"}

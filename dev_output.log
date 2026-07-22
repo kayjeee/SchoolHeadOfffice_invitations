@@ -2566,3 +2566,7 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
+ ✓ Compiled in 18.3s (1224 modules)
+ ✓ Compiled in 1709ms (1224 modules)
+ ✓ Compiled in 3.2s (2155 modules)
+Killed
