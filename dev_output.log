@@ -8,9 +8,10 @@
  ✓ Starting...
  ✓ Ready in 2.2s
  ○ Compiling /admin/[schoolSlug]/learners ...
- ✓ Compiled /admin/[schoolSlug]/learners in 3.7s (1676 modules)
- GET /admin/kagiso-high-school/learners 200 in 5876ms
-(node:934556) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+ ✓ Compiled /admin/[schoolSlug]/learners in 7.1s (1690 modules)
+ GET /admin/kagiso-high-school/learners 200 in 9857ms
+ ○ Compiling /api/auth/[...auth0] ...
+(node:1004227) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
@@ -92,7 +93,6 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- ○ Compiling /_error ...
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
@@ -173,7 +173,87 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- ✓ Compiled /_error in 2.8s (2023 modules)
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+ ✓ Compiled /_error in 5.9s (2036 modules)
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
@@ -195,89 +275,10 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
 > 3 | export default handleAuth();
     |                         ^
   4 |
- GET /api/auth/me 500 in 3679ms
-Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
-Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- ⨯ unhandledRejection: Error: connect ECONNREFUSED 127.0.0.1:4000
-    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
-  errno: -111,
-  code: 'ECONNREFUSED',
-  syscall: 'connect',
-  address: '127.0.0.1',
-  port: 4000
-}
- GET /admin/kagiso-high-school/learners 200 in 1262ms
- GET /admin/kagiso-high-school/learners 200 in 67ms
+ GET /api/auth/me 500 in 7018ms
+ GET /admin/kagiso-high-school/learners 200 in 2837ms
+ GET /admin/kagiso-high-school/learners 200 in 99ms
+ GET /admin/kagiso-high-school/learners 200 in 111ms
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,

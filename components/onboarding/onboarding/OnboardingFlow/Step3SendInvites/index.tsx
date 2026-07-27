@@ -78,7 +78,21 @@ const Step3SendInvites: React.FC<Step3SendInvitesProps> = ({
         learnerCount: g.stats?.learners_count || 0,
         isActive: g.status_text === "active",
       }));
-      setGrades(formattedGrades);
+
+      const getGradeWeight = (name: string): number => {
+        const normalized = name.toLowerCase();
+        if (normalized.includes('kindergarten') || normalized.includes('kindergared')) return -1;
+        if (normalized.includes('grade r')) return 0;
+
+        const match = normalized.match(/\d+/);
+        if (match) {
+          return parseInt(match[0]);
+        }
+        return 99;
+      };
+
+      const sortedGrades = formattedGrades.sort((a, b) => getGradeWeight(a.name) - getGradeWeight(b.name));
+      setGrades(sortedGrades);
     } catch (error) {
       setGradesError("Failed to load school data.");
       setGrades([]);
