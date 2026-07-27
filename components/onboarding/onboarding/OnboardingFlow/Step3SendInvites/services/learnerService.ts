@@ -22,9 +22,9 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
     }
 
     const data = await res.json();
+    const learnersData = data.data?.learners || data.learners;
 
-    if (data.data?.learners) {
-      const learnersData = data.data.learners;
+    if (learnersData) {
       const transformedLearners = learnersData.map((l: any): Learner => ({
         id: l.id,
         first_name: l.first_name || "",
@@ -65,5 +65,5 @@ export const getLearnersBySchool = async (schoolId: string): Promise<Learner[]> 
   }
 
   const data = await res.json();
-  return data.data?.learners || [];
+  return data.data?.learners || data.learners || [];
 };

@@ -73,8 +73,13 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   }, [learners, getWhatsAppNumbers]);
 
   // Initialize and synchronize selectedLearnerIds when learnersWithWhatsApp loads/changes
+  const previousLearnerIdsStrRef = useRef<string>('');
   useEffect(() => {
-    setSelectedLearnerIds(new Set(learnersWithWhatsApp.map(l => l.id)));
+    const currentIdsStr = learnersWithWhatsApp.map(l => l.id).join(',');
+    if (currentIdsStr !== previousLearnerIdsStrRef.current) {
+      setSelectedLearnerIds(new Set(learnersWithWhatsApp.map(l => l.id)));
+      previousLearnerIdsStrRef.current = currentIdsStr;
+    }
   }, [learnersWithWhatsApp]);
 
   const getBestWhatsAppNumber = (learner: any): string => {
