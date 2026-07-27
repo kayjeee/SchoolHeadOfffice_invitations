@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageTesterSection } from './MessageTesterSection';
 import { MessageScheduler, ScheduleData } from './MessageScheduler';
+import { CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import WhatsAppBusinessService from '../../../../../../../lib/services/WhatsAppBusinessService';
 import { Grade, Learner } from '../../types';
 import { logger } from './utils/logger';
@@ -44,6 +45,9 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   const [testResult, setTestResult] = useState<any>(null);
   const [validationErrors, setValidationErrors] = useState<any>({});
 
+  // Selection state for learners with WhatsApp
+  const [selectedLearnerIds, setSelectedLearnerIds] = useState<Set<string>>(new Set());
+
   const getWhatsAppNumbers = (learner: any) => {
     const phoneFields = [
       learner.phone,
@@ -65,6 +69,11 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   };
 
   const learnersWithWhatsApp = learners.filter(learner => getWhatsAppNumbers(learner).length > 0);
+
+  // Initialize and synchronize selectedLearnerIds when learnersWithWhatsApp loads/changes
+  useEffect(() => {
+    setSelectedLearnerIds(new Set(learnersWithWhatsApp.map(l => l.id)));
+  }, [learnersWithWhatsApp.map(l => l.id).join(',')]);
 
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);
@@ -101,7 +110,11 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     try {
       WhatsAppBusinessService.validateMessageTemplate(customMessage);
       const countryCode = getCountryCode(school?.country);
-      const recipientNumbers = learnersWithWhatsApp.map(l => ({
+
+      // Filter learnersWithWhatsApp to only include selected ones
+      const selectedLearners = learnersWithWhatsApp.filter(l => selectedLearnerIds.has(l.id));
+
+      const recipientNumbers = selectedLearners.map(l => ({
         phone: getBestWhatsAppNumber(l),
         name: l.full_name,
         learner_number: l.accession_number,
@@ -160,6 +173,35 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
     await navigator.clipboard.writeText(numbers);
   };
 
+  // Helper selectors/handlers for table header & row checkboxes
+  const allSelected = learnersWithWhatsApp.length > 0 && selectedLearnerIds.size === learnersWithWhatsApp.length;
+  const someSelected = selectedLearnerIds.size > 0 && selectedLearnerIds.size < learnersWithWhatsApp.length;
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedLearnerIds(new Set());
+    } else {
+      setSelectedLearnerIds(new Set(learnersWithWhatsApp.map(l => l.id)));
+    }
+  };
+
+  const handleToggleSelectLearner = (learnerId: string) => {
+    const next = new Set(selectedLearnerIds);
+    if (next.has(learnerId)) {
+      next.delete(learnerId);
+    } else {
+      next.add(learnerId);
+    }
+    setSelectedLearnerIds(next);
+  };
+
   return (
     <div className="mt-6 border-t pt-6">
       <div className="flex border-b border-gray-200 mb-6">
@@ -187,27 +229,130 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       {activeTab === 'contacts' && (
         <div className="border border-green-200 rounded-lg p-4 bg-green-50">
           <h4 className="font-semibold text-green-900 mb-3 flex items-center">💚 WhatsApp Contacts ({learnersWithWhatsApp.length})</h4>
-          <div className="flex gap-2 mb-4">
-            <button onClick={handleCopyWhatsAppNumbers} className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">📋 Copy Names & Numbers</button>
-            <button onClick={handleCopyPhoneNumbersOnly} className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">📞 Copy Numbers Only</button>
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <button onClick={handleCopyWhatsAppNumbers} className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors">
+              📋 Copy Names & Numbers
+            </button>
+            <button onClick={handleCopyPhoneNumbersOnly} className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm transition-colors">
+              📞 Copy Numbers Only
+            </button>
+            <button
+              onClick={handleSendBulk}
+              disabled={selectedLearnerIds.size === 0 || isSendingBulk}
+              className="flex-1 px-3 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center justify-center transition-colors"
+            >
+              {isSendingBulk ? (
+                <>
+                  <Loader className="animate-spin mr-2" size={16} /> Sending...
+                </>
+              ) : (
+                <>
+                  🚀 Send Bulk WhatsApp ({selectedLearnerIds.size})
+                </>
+              )}
+            </button>
           </div>
+
+          {/* Result Display inside Contacts tab */}
+          {testResult && (
+            <div
+              className={`mb-4 border rounded-lg p-4 ${
+                testResult.success
+                  ? "bg-green-50 border-green-200"
+                  : "bg-red-50 border-red-200"
+              }`}
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                {testResult.success ? (
+                  <CheckCircle className="text-green-600" size={16} />
+                ) : (
+                  <AlertCircle className="text-red-600" size={16} />
+                )}
+                <span
+                  className={`font-medium ${
+                    testResult.success ? "text-green-800" : "text-red-800"
+                  }`}
+                >
+                  {testResult.success ? "Success!" : "Error"}
+                </span>
+              </div>
+
+              <p
+                className={`text-sm ${
+                  testResult.success ? "text-green-700" : "text-red-700"
+                }`}
+              >
+                {testResult.message}
+              </p>
+
+              {testResult.success && testResult.magicLink && (
+                <p className="text-xs text-green-600 mt-1 break-all">
+                  Magic Link:{" "}
+                  <a
+                    href={testResult.magicLink}
+                    className="underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {testResult.magicLink}
+                  </a>
+                </p>
+              )}
+
+              {testResult.error && (
+                <p className="text-xs text-red-600 mt-1">
+                  Error: {testResult.error}
+                </p>
+              )}
+
+              {testResult.bulkResult && (
+                <div className="mt-2 text-xs text-green-700">
+                  <p>✅ Sent: {testResult.bulkResult.sentCount}</p>
+                  <p>❌ Failed: {testResult.bulkResult.failedCount}</p>
+                  <p>📊 Total: {testResult.bulkResult.totalCount}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="max-h-60 overflow-y-auto border border-green-200 rounded-lg bg-white">
             <table className="w-full text-sm">
               <thead className="bg-green-100 sticky top-0">
                 <tr>
+                  <th className="p-2 border-b border-green-200 text-center w-12">
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={handleToggleSelectAll}
+                      className="rounded border-green-300 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Learner Name</th>
                   <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">WhatsApp Number</th>
                   <th className="text-left p-2 text-green-800 font-medium border-b border-green-200">Grade</th>
                 </tr>
               </thead>
               <tbody>
-                {learnersWithWhatsApp.map((learner, index) => (
-                  <tr key={learner.id} className={index % 2 === 0 ? 'bg-white' : 'bg-green-50'}>
-                    <td className="p-2 border-b border-green-100 text-gray-700">{learner.full_name}</td>
-                    <td className="p-2 border-b border-green-100 font-mono text-green-700">{getBestWhatsAppNumber(learner)}</td>
-                    <td className="p-2 border-b border-green-100 text-gray-600">{grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'}</td>
-                  </tr>
-                ))}
+                {learnersWithWhatsApp.map((learner, index) => {
+                  const isSelected = selectedLearnerIds.has(learner.id);
+                  return (
+                    <tr key={learner.id} className={index % 2 === 0 ? 'bg-white hover:bg-green-50/50' : 'bg-green-50 hover:bg-green-100/50'}>
+                      <td className="p-2 border-b border-green-100 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectLearner(learner.id)}
+                          className="rounded border-green-300 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-2 border-b border-green-100 text-gray-700">{learner.full_name}</td>
+                      <td className="p-2 border-b border-green-100 font-mono text-green-700">{getBestWhatsAppNumber(learner)}</td>
+                      <td className="p-2 border-b border-green-100 text-gray-600">{grades.find(g => g.id === learner.grade_id)?.name || 'Unknown'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
