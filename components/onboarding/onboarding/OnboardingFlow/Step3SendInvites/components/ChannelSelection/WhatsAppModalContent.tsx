@@ -69,8 +69,8 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   }, []);
 
   const learnersWithWhatsApp = React.useMemo(() => {
-    return learners.filter(learner => getWhatsAppNumbers(learner).length > 0);
-  }, [learners, getWhatsAppNumbers]);
+    return learners;
+  }, [learners]);
 
   // Initialize and synchronize selectedLearnerIds when learnersWithWhatsApp loads/changes
   const previousLearnerIdsStrRef = useRef<string>('');
