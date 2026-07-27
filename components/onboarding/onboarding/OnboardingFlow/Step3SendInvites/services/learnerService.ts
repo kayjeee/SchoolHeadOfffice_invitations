@@ -1,5 +1,11 @@
 import { Learner } from "../types";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'development'
+    ? 'http://localhost:4000'
+    : 'https://shobackendv2-production.up.railway.app');
+
 export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> => {
   let page = 1;
   const perPage = 100;
@@ -8,7 +14,7 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
 
   do {
     const res = await fetch(
-      `https://shobackendv2-production.up.railway.app/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`
+      `${API_BASE_URL}/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`
     );
 
     if (!res.ok) {
@@ -51,7 +57,7 @@ export const getLearnersByGrade = async (gradeId: string): Promise<Learner[]> =>
 
 export const getLearnersBySchool = async (schoolId: string): Promise<Learner[]> => {
   const res = await fetch(
-    `https://shobackendv2-production.up.railway.app/api/v1/schools/${schoolId}/learners?page=1&per_page=1000` // Assuming a high per_page to get all learners
+    `${API_BASE_URL}/api/v1/schools/${schoolId}/learners?page=1&per_page=1000` // Assuming a high per_page to get all learners
   );
 
   if (!res.ok) {

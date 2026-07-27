@@ -48,7 +48,7 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
   // Selection state for learners with WhatsApp
   const [selectedLearnerIds, setSelectedLearnerIds] = useState<Set<string>>(new Set());
 
-  const getWhatsAppNumbers = (learner: any) => {
+  const getWhatsAppNumbers = React.useCallback((learner: any) => {
     const phoneFields = [
       learner.phone,
       learner.whatsapp,
@@ -66,14 +66,16 @@ export const WhatsAppModalContent: React.FC<WhatsAppModalContentProps> = ({
       const digitCount = (cleanPhone.match(/\d/g) || []).length;
       return digitCount >= 7;
     });
-  };
+  }, []);
 
-  const learnersWithWhatsApp = learners.filter(learner => getWhatsAppNumbers(learner).length > 0);
+  const learnersWithWhatsApp = React.useMemo(() => {
+    return learners.filter(learner => getWhatsAppNumbers(learner).length > 0);
+  }, [learners, getWhatsAppNumbers]);
 
   // Initialize and synchronize selectedLearnerIds when learnersWithWhatsApp loads/changes
   useEffect(() => {
     setSelectedLearnerIds(new Set(learnersWithWhatsApp.map(l => l.id)));
-  }, [learnersWithWhatsApp.map(l => l.id).join(',')]);
+  }, [learnersWithWhatsApp]);
 
   const getBestWhatsAppNumber = (learner: any): string => {
     const numbers = getWhatsAppNumbers(learner);

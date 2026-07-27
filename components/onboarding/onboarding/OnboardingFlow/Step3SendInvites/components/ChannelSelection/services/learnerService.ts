@@ -1,5 +1,11 @@
 import { Learner } from '../../../types';
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === 'development'
+    ? 'http://localhost:4000'
+    : 'https://shobackendv2-production.up.railway.app');
+
 export const learnerService = {
   getLearnersByGrade: async (gradeId: string): Promise<Learner[]> => {
     console.log(`[learnerService] Fetching all learners for grade:`, gradeId);
@@ -16,7 +22,7 @@ export const learnerService = {
 
     try {
       do {
-        const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/grades/${gradeId}/learners?page=${page}&per_page=${perPage}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
