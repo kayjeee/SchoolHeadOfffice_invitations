@@ -581,8 +581,10 @@ async sendBulkMessages({
     console.log('🔄 Processing invitations into messages...');
     const personalizedMessages = await Promise.all(
       bulk.invitations.map(async (inv: any, index: number) => {
+        const invPhone = inv.learner_phone || inv.phone_number || inv.recipient_phone_number;
+
         console.log(`📝 Processing invitation ${index + 1}/${bulk.invitations.length}:`, {
-          phone: inv.phone_number,
+          phone: invPhone,
           name: inv.parent_name,
           token: inv.token?.substring(0, 10) + '...',
           hasToken: !!inv.token
@@ -590,9 +592,9 @@ async sendBulkMessages({
 
         try {
           // ✅ FIX: Pass countryCode to validation
-          const phoneValidation = this.validatePhoneNumber(inv.phone_number, countryCode);
+          const phoneValidation = this.validatePhoneNumber(invPhone, countryCode);
           
-          console.log(`📱 Phone validation result for ${inv.phone_number}:`, {
+          console.log(`📱 Phone validation result for ${invPhone}:`, {
             isValid: phoneValidation.isValid,
             formattedNumber: phoneValidation.formattedNumber,
             country: phoneValidation.country?.name,
@@ -601,7 +603,7 @@ async sendBulkMessages({
 
           if (!phoneValidation.isValid) {
             logger('WARN', 'WhatsAppService', 'Invalid phone in bulk', {
-              phone: inv.phone_number,
+              phone: invPhone,
               error: phoneValidation.error,
             });
             return null;
@@ -609,9 +611,9 @@ async sendBulkMessages({
 
           const token = inv.token;
           if (!token) {
-            console.error('❌ Missing token for:', inv.phone_number);
+            console.error('❌ Missing token for:', invPhone);
             logger('WARN', 'WhatsAppService', 'Missing token for invitation', {
-              phone: inv.phone_number,
+              phone: invPhone,
             });
             return null;
           }
@@ -622,7 +624,7 @@ async sendBulkMessages({
             schoolName,
           });
 
-          console.log(`🔗 Magic link created for ${inv.phone_number}:`, {
+          console.log(`🔗 Magic link created for ${invPhone}:`, {
             link: magicLink.substring(0, 60) + '...',
             fullLength: magicLink.length
           });
@@ -644,12 +646,12 @@ async sendBulkMessages({
           return message;
 
         } catch (error: any) {
-          console.error(`❌ Failed to process invitation for ${inv.phone_number}:`, {
+          console.error(`❌ Failed to process invitation for ${invPhone}:`, {
             error: error.message,
             stack: error.stack
           });
           logger('ERROR', 'WhatsAppService', 'Failed to process invitation', {
-            phone: inv.phone_number,
+            phone: invPhone,
             error: error.message,
           });
           return null;

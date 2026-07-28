@@ -8,9 +8,10 @@
  ✓ Starting...
  ✓ Ready in 2.2s
  ○ Compiling /admin/[schoolSlug]/learners ...
- ✓ Compiled /admin/[schoolSlug]/learners in 6.6s (1690 modules)
- GET /admin/kagiso-high-school/learners 200 in 9282ms
-(node:1080586) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+ ✓ Compiled /admin/[schoolSlug]/learners in 5.5s (1676 modules)
+ GET /admin/kagiso-high-school/learners 200 in 9274ms
+ ○ Compiling /api/auth/[...auth0] ...
+(node:1163186) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
@@ -92,7 +93,6 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- ○ Compiling /_error ...
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
@@ -173,7 +173,6 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
- ✓ Compiled /_error in 3.9s (2036 modules)
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
@@ -254,6 +253,7 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
   address: '127.0.0.1',
   port: 4000
 }
+ ✓ Compiled /_error in 8.3s (2023 modules)
  ⨯ TypeError: "secret" is required
     at get (node_modules/@auth0/nextjs-auth0/src/auth0-session/get-config.ts:181:10)
     at getConfig (node_modules/@auth0/nextjs-auth0/src/config.ts:528:34)
@@ -275,10 +275,9 @@ Error: connect ECONNREFUSED 127.0.0.1:4000
 > 3 | export default handleAuth();
     |                         ^
   4 |
- GET /api/auth/me 500 in 5489ms
- GET /admin/kagiso-high-school/learners 200 in 1997ms
- GET /admin/kagiso-high-school/learners 200 in 79ms
- GET /admin/kagiso-high-school/learners 200 in 46ms
+ GET /api/auth/me 500 in 9734ms
+ GET /admin/kagiso-high-school/learners 200 in 3124ms
+ GET /admin/kagiso-high-school/learners 200 in 52ms
 Failed to proxy http://127.0.0.1:4000/api Error: connect ECONNREFUSED 127.0.0.1:4000
     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
   errno: -111,
