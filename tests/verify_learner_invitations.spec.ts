@@ -63,24 +63,39 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     });
 
     // 5. Mock Invitations CRM
-    await page.route('**/api/v1/schools/school-123/learner_invitations', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: 'inv-1',
-            learner_name: 'Lethabo Manana',
-            parent_name: 'Mrs Manana',
-            parent_phone: '+27700400585',
-            parent_email: '700400585@gdeschools.gov.za',
-            status: 'Sent',
-            created_at: new Date().toISOString(),
-            grade_name: 'Grade 10',
-            channel: 'WhatsApp'
-          }
-        ])
-      });
+    await page.route('**/api/v1/invitations**', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            invitations: [
+              {
+                id: 'inv-1',
+                token: 'tok-1',
+                learner_name: 'Lethabo Manana',
+                parent_name: 'Mrs Manana',
+                parent_phone: '+27700400585',
+                parent_email: '700400585@gdeschools.gov.za',
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                grade_name: 'Grade 10',
+                channel: 'WhatsApp'
+              }
+            ],
+            total: 1
+          })
+        });
+      } else if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, message: 'Dispatched successfully' })
+        });
+      } else {
+        await route.fallback();
+      }
     });
 
     // 6. Mock Parent Portal Access Requests
@@ -99,19 +114,6 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
           }
         ])
       });
-    });
-
-    // 7. Mock Invite Dispatch POST API
-    await page.route('**/api/v1/learner_invitations', async (route) => {
-      if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ success: true, message: 'Dispatched successfully' })
-        });
-      } else {
-        await route.fallback();
-      }
     });
   });
 
@@ -172,17 +174,16 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     const nameVal = await input.inputValue();
     expect(nameVal).toBe('Lethabo Manana');
 
-    // Switch channel to Email
-    await page.getByRole('button', { name: 'Email' }).click();
+    // Verify that Email button is disabled
+    await expect(page.getByRole('button', { name: 'Email' })).toBeDisabled();
+
+    // Fill Phone Input
+    const phoneInput = page.getByPlaceholder('e.g. 0721234567 or +27...');
+    await phoneInput.fill('0701234567');
     await page.waitForTimeout(1000);
 
-    // Fill Email Input
-    const emailInput = page.getByPlaceholder('e.g. parent@example.com');
-    await emailInput.fill('testparent@example.com');
-    await page.waitForTimeout(1000);
-
-    // Take screenshot of modal in Email Invitation mode
-    await page.screenshot({ path: '/home/jules/verification/screenshots/verify_invitation_wizard_email.png' });
+    // Take screenshot of modal in WhatsApp Invitation mode
+    await page.screenshot({ path: '/home/jules/verification/screenshots/verify_invitation_wizard_whatsapp.png' });
 
     // Dispatch Invite
     await page.getByRole('button', { name: 'Send Invitation' }).click();
