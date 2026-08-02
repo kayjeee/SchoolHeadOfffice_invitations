@@ -438,56 +438,40 @@ export class SchoolAPI {
   }
 
   // Learner Invitations Management CRM Endpoints
-  static async getLearnerInvitations(schoolId: string): Promise<any[]> {
+  static async getLearnerInvitations(schoolId: string, status?: string): Promise<any[]> {
     console.log(`📩 [SchoolAPI.getLearnerInvitations] Fetching invitations for school: ${schoolId}`);
-    try {
-      const response = await apiClient.get(`/api/v1/learner_invitations`, z.any());
-      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
-      return Array.isArray(invitations) ? invitations : [];
-    } catch (error) {
-      console.warn('⚠️ [SchoolAPI.getLearnerInvitations] Failed to fetch. Using fallback.', error);
-      return [];
-    }
+    const url = `/api/v1/invitations?school_id=${schoolId}${status ? `&status=${status}` : ''}`;
+    const response = await apiClient.get(url, z.any());
+    const invitations = response.invitations || response.data?.invitations || response.data || (Array.isArray(response) ? response : []);
+    return Array.isArray(invitations) ? invitations : [];
   }
 
-  static async getPendingLearnerInvitations(): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/api/v1/learner_invitations/pending`, z.any());
-      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
-      return Array.isArray(invitations) ? invitations : [];
-    } catch (error) {
-      return [];
-    }
+  static async getPendingLearnerInvitations(schoolId: string): Promise<any[]> {
+    return this.getLearnerInvitations(schoolId, 'pending');
   }
 
-  static async getExpiredLearnerInvitations(): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/api/v1/learner_invitations/expired`, z.any());
-      const invitations = response.learner_invitations || response.data?.learner_invitations || response.data || (Array.isArray(response) ? response : []);
-      return Array.isArray(invitations) ? invitations : [];
-    } catch (error) {
-      return [];
-    }
+  static async getExpiredLearnerInvitations(schoolId: string): Promise<any[]> {
+    return this.getLearnerInvitations(schoolId, 'expired');
   }
 
-  static async resendLearnerInvitation(invitationId: string): Promise<any> {
-    console.log(`📩 [SchoolAPI.resendLearnerInvitation] Resending invitation: ${invitationId}`);
-    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/resend`, {}, z.any());
+  static async resendLearnerInvitation(token: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.resendLearnerInvitation] Resending invitation with token: ${token}`);
+    return await apiClient.post(`/api/v1/invitations/${token}/resend`, {}, z.any());
   }
 
-  static async cancelLearnerInvitation(invitationId: string): Promise<any> {
-    console.log(`📩 [SchoolAPI.cancelLearnerInvitation] Cancelling invitation: ${invitationId}`);
-    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/cancel`, {}, z.any());
+  static async cancelLearnerInvitation(token: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.cancelLearnerInvitation] Cancelling invitation with token: ${token}`);
+    return await apiClient.post(`/api/v1/invitations/${token}/cancel`, {}, z.any());
   }
 
-  static async acceptLearnerInvitation(invitationId: string): Promise<any> {
-    console.log(`📩 [SchoolAPI.acceptLearnerInvitation] Accepting invitation: ${invitationId}`);
-    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/accept`, {}, z.any());
+  static async acceptLearnerInvitation(token: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.acceptLearnerInvitation] Accepting invitation with token: ${token}`);
+    return await apiClient.post(`/api/v1/invitations/${token}/admin_accept`, {}, z.any());
   }
 
-  static async declineLearnerInvitation(invitationId: string): Promise<any> {
-    console.log(`📩 [SchoolAPI.declineLearnerInvitation] Declining invitation: ${invitationId}`);
-    return await apiClient.post(`/api/v1/learner_invitations/${invitationId}/decline`, {}, z.any());
+  static async declineLearnerInvitation(token: string): Promise<any> {
+    console.log(`📩 [SchoolAPI.declineLearnerInvitation] Declining invitation with token: ${token}`);
+    return await apiClient.post(`/api/v1/invitations/${token}/decline`, {}, z.any());
   }
 
   // Request Access Management

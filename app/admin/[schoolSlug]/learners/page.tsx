@@ -45,6 +45,7 @@ import { SchoolAPI, Grade, Learner } from '@/lib/api/school-api';
 import { apiClient } from '@/lib/api/api-client';
 import { useSchoolContext } from '@/components/context/SchoolContext';
 import { z } from 'zod';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 /**
  * Utility: Standard Tailwind merging
@@ -69,6 +70,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const { schoolSlug } = use(params);
   const { currentSchool } = useSchoolContext();
   const schoolId = currentSchool?.id || currentSchool?._id;
+  const { user } = useUser();
 
   // --- State Management ---
   const [activeTab, setActiveTab] = useState<'directory' | 'invitations' | 'management' | 'academic'>('directory');
@@ -93,6 +95,8 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [inviteTab, setInviteTab] = useState<'single' | 'bulk'>('single');
 
   const [singleInvite, setSingleInvite] = useState({
+    learnerId: '',
+    accessionNumber: '',
     learnerName: '',
     parentName: '',
     gradeId: '',
@@ -100,6 +104,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     parentEmail: '',
     channel: 'WhatsApp' as 'WhatsApp' | 'SMS' | 'Email'
   });
+  const [invitationsError, setInvitationsError] = useState<string | null>(null);
 
   const [bulkGradeId, setBulkGradeId] = useState('');
   const [bulkChannel, setBulkChannel] = useState<'WhatsApp' | 'SMS' | 'Email'>('WhatsApp');
@@ -120,73 +125,56 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const fetchInvitations = async () => {
     if (!schoolId) return;
     setIsInvitationsLoading(true);
+    setInvitationsError(null);
     try {
       const [invitesData, requestsData] = await Promise.all([
         SchoolAPI.getLearnerInvitations(schoolId),
         SchoolAPI.getRequestAccesses(schoolId)
       ]);
 
-      if (invitesData && invitesData.length > 0) {
-        setInvitations(invitesData);
-      } else {
-        const mockInvites = [
-          {
-            id: 'inv-1',
-            learner_name: 'Lethabo Manana',
-            parent_name: 'Mrs Manana',
-            parent_phone: '+27700400585',
-            parent_email: '700400585@gdeschools.gov.za',
-            status: 'Sent',
-            created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-            grade_name: 'Grade 10',
-          }
-        ];
-        setInvitations(mockInvites);
-      }
-
-      if (requestsData && requestsData.length > 0) {
-        setAccessRequests(requestsData);
-      } else {
-        setAccessRequests([]);
-      }
+      setInvitations(invitesData || []);
+      setAccessRequests(requestsData || []);
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
+      setInvitationsError("Couldn't load invitations — try refreshing");
     } finally {
       setIsInvitationsLoading(false);
     }
   };
 
-  const handleResendInvitation = async (id: string) => {
-    toast.loading('Resending invitation...', { id: `resend-${id}` });
+  const handleResendInvitation = async (token: string) => {
+    toast.loading('Resending invitation...', { id: `resend-${token}` });
     try {
-      await SchoolAPI.resendLearnerInvitation(id);
-      toast.success('Invitation resent successfully!', { id: `resend-${id}` });
+      await SchoolAPI.resendLearnerInvitation(token);
+      toast.success('Invitation resent successfully!', { id: `resend-${token}` });
       fetchInvitations();
     } catch (error) {
-      toast.error('Failed to resend invitation.', { id: `resend-${id}` });
+      toast.error('Failed to resend invitation.', { id: `resend-${token}` });
     }
   };
 
-  const handleCancelInvitation = async (id: string) => {
-    toast.loading('Cancelling invitation...', { id: `cancel-${id}` });
+  const handleCancelInvitation = async (token: string) => {
+    toast.loading('Cancelling invitation...', { id: `cancel-${token}` });
     try {
-      await SchoolAPI.cancelLearnerInvitation(id);
-      toast.success('Invitation cancelled.', { id: `cancel-${id}` });
+      await SchoolAPI.cancelLearnerInvitation(token);
+      toast.success('Invitation cancelled.', { id: `cancel-${token}` });
       fetchInvitations();
     } catch (error) {
-      toast.error('Failed to cancel invitation.', { id: `cancel-${id}` });
+      toast.error('Failed to cancel invitation.', { id: `cancel-${token}` });
     }
   };
 
-  const handleAcceptInvitation = async (id: string) => {
-    toast.loading('Accepting invitation and linking learner account...', { id: `accept-${id}` });
+  const handleAcceptInvitation = async (token: string) => {
+    toast.loading('Accepting invitation and linking learner account...', { id: `accept-${token}` });
     try {
-      await SchoolAPI.acceptLearnerInvitation(id);
-      toast.success('Invitation accepted and account linked!', { id: `accept-${id}` });
+      await SchoolAPI.acceptLearnerInvitation(token);
+      toast.success('Invitation accepted and account linked!', { id: `accept-${token}` });
       fetchInvitations();
       fetchData();
-    } catch (error) {
-      toast.error('Failed to accept invitation.', { id: `accept-${id}` });
+    } catch (error: any) {
+      console.error('Accept invitation error:', error);
+      const errorMsg = error.details?.message || error.details?.error || error.message || 'Failed to accept invitation.';
+      toast.error(errorMsg, { id: `accept-${token}` });
     }
   };
 
@@ -293,8 +281,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   const handleSelectSuggestedLearner = (learner: Learner) => {
     const fullName = getLearnerFullName(learner);
+    const accessionNo = learner.accession_number || (learner as any).accessionNumber || learner.admission_number || (learner as any).admissionNumber || '';
     setSingleInvite(prev => ({
       ...prev,
+      learnerId: learner.id,
+      accessionNumber: accessionNo,
       learnerName: fullName,
       gradeId: learner.grade_id || learner.gradeId || prev.gradeId,
       parentPhone: learner.parent_phone || prev.parentPhone,
@@ -358,6 +349,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       toast.error('Please enter the learner name.');
       return;
     }
+    if (!singleInvite.learnerId) {
+      toast.error('Please select a learner from the auto-suggested list.');
+      return;
+    }
     if (singleInvite.channel === 'Email' && !singleInvite.parentEmail.trim()) {
       toast.error('Please enter the recipient email address.');
       return;
@@ -367,30 +362,30 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       return;
     }
 
-    const selectedGrade = grades.find(g => g.id === singleInvite.gradeId);
     const payload = {
-      invitations: [{
-        learner_name: singleInvite.learnerName,
-        parent_name: singleInvite.parentName || 'Parent',
-        parent_phone: singleInvite.channel !== 'Email' ? singleInvite.parentPhone : '---',
-        parent_email: singleInvite.channel === 'Email' ? singleInvite.parentEmail : '',
-        grade_name: selectedGrade?.name || 'Unspecified',
-        channel: singleInvite.channel
-      }],
-      schoolId,
-      schoolName: currentSchool?.schoolName || 'Far North Secondary School'
+      phone_number: singleInvite.parentPhone,
+      school_id: schoolId,
+      role: 'parent',
+      invited_via: 'whatsapp',
+      learner_number: singleInvite.accessionNumber,
+      learner_numbers: [singleInvite.accessionNumber],
+      parent_name: singleInvite.parentName || 'Parent',
+      grade_id: singleInvite.gradeId,
+      sender_id: user?.sub || 'system'
     };
 
     setIsProcessing('sending-invite');
     const toastId = toast.loading('Sending invitation...');
 
     try {
-      await apiClient.post('/api/v1/learner_invitations', payload, z.any());
+      await apiClient.post('/api/v1/invitations', payload, z.any());
       toast.success('Invitation dispatched successfully!', { id: toastId });
       setIsInviteModalOpen(false);
 
       // Reset Single Invite state
       setSingleInvite({
+        learnerId: '',
+        accessionNumber: '',
         learnerName: '',
         parentName: '',
         gradeId: grades[0]?.id || '',
@@ -413,27 +408,30 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       return;
     }
 
-    const selectedGrade = grades.find(g => g.id === bulkGradeId);
     const payload = {
       invitations: parsedBulkItems
         .filter(item => item.isValid)
-        .map(item => ({
-          learner_name: item.learnerName,
-          parent_name: item.parentName,
-          parent_phone: bulkChannel !== 'Email' ? item.contactText : '---',
-          parent_email: bulkChannel === 'Email' ? item.contactText : '',
-          grade_name: selectedGrade?.name || 'Unspecified',
-          channel: bulkChannel
-        })),
-      schoolId,
-      schoolName: currentSchool?.schoolName || 'Far North Secondary School'
+        .map(item => {
+          const matchedLearner = learners.find(l => getLearnerFullName(l).toLowerCase() === item.learnerName.toLowerCase());
+          const accessionNo = matchedLearner ? (matchedLearner.accession_number || (matchedLearner as any).accessionNumber || matchedLearner.admission_number || (matchedLearner as any).admissionNumber || '') : '';
+          return {
+            phone_number: item.contactText,
+            parent_name: item.parentName || 'Parent',
+            learner_numbers: accessionNo ? [accessionNo] : [],
+            grade_id: bulkGradeId
+          };
+        }),
+      school_id: schoolId,
+      sender_id: user?.sub || 'system',
+      sender: user?.email || 'system',
+      invited_via: 'whatsapp'
     };
 
     setIsProcessing('sending-invite');
     const toastId = toast.loading(`Dispatching ${validBulkCount} invitations...`);
 
     try {
-      await apiClient.post('/api/v1/learner_invitations', payload, z.any());
+      await apiClient.post('/api/v1/invitations/bulk_create', payload, z.any());
       toast.success(`Dispatched ${validBulkCount} invitations successfully!`, { id: toastId });
       setIsInviteModalOpen(false);
       setBulkRawText('');
@@ -877,6 +875,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           {activeTab === 'invitations' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
+              {invitationsError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-700 text-sm font-bold">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <span>{invitationsError}</span>
+                  <button onClick={() => fetchInvitations()} className="ml-auto underline hover:text-rose-900">Retry</button>
+                </div>
+              )}
+
               {/* Premium Quick Help Banner */}
               <div className="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex gap-3">
@@ -903,9 +909,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
                   { label: 'Total Invitations Sent', value: invitations.length, sub: 'All channels', icon: Users, color: 'bg-indigo-50 text-blue-600' },
-                  { label: 'Pending Response', value: invitations.filter(inv => inv.status === 'Sent' || inv.status === 'Delivered').length, sub: 'Waiting for parent', icon: AlertCircle, color: 'bg-amber-50 text-amber-600' },
-                  { label: 'Accepted & Onboarded', value: invitations.filter(inv => inv.status === 'Accepted').length, sub: 'Fully Linked', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
-                  { label: 'Conversion Rate', value: `${invitations.length > 0 ? Math.round((invitations.filter(inv => inv.status === 'Accepted').length / invitations.length) * 100) : 0}%`, sub: 'Sign-up success', icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
+                  { label: 'Pending Response', value: invitations.filter(inv => inv.status === 'pending').length, sub: 'Waiting for parent', icon: AlertCircle, color: 'bg-amber-50 text-amber-600' },
+                  { label: 'Accepted & Onboarded', value: invitations.filter(inv => inv.status === 'accepted').length, sub: 'Fully Linked', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
+                  { label: 'Conversion Rate', value: `${invitations.length > 0 ? Math.round((invitations.filter(inv => inv.status === 'accepted').length / invitations.length) * 100) : 0}%`, sub: 'Sign-up success', icon: TrendingUp, color: 'bg-pink-50 text-pink-600' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="flex items-center justify-between mb-4">
@@ -939,11 +945,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                     className="flex-1 md:flex-initial px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900 min-w-[160px]"
                   >
                     <option value="all">All Statuses</option>
-                    <option value="Sent">Sent</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Expired">Expired</option>
-                    <option value="Cancelled">Cancelled</option>
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="expired">Expired</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
 
                   <button
@@ -1020,10 +1025,12 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                             <td className="px-6 py-4 text-center">
                               <span className={cn(
                                 "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
-                                inv.status === 'Accepted'
+                                inv.status === 'accepted'
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                  : inv.status === 'Sent' || inv.status === 'Delivered'
+                                  : inv.status === 'pending'
                                   ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : inv.status === 'cancelled' || inv.status === 'expired'
+                                  ? "bg-slate-50 text-slate-500 border-slate-200"
                                   : "bg-rose-50 text-rose-700 border-rose-100"
                               )}>
                                 {inv.status}
@@ -1031,24 +1038,24 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                {inv.status !== 'Accepted' && inv.status !== 'Cancelled' && (
+                                {inv.status !== 'accepted' && inv.status !== 'cancelled' && (
                                   <>
                                     <button
-                                      onClick={() => handleAcceptInvitation(inv.id)}
+                                      onClick={() => handleAcceptInvitation(inv.token || inv.id)}
                                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-wider"
                                       title="Manually Accept & Link"
                                     >
                                       Accept & Link
                                     </button>
                                     <button
-                                      onClick={() => handleResendInvitation(inv.id)}
+                                      onClick={() => handleResendInvitation(inv.token || inv.id)}
                                       className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-wider"
                                       title="Resend Invite"
                                     >
                                       Resend
                                     </button>
                                     <button
-                                      onClick={() => handleCancelInvitation(inv.id)}
+                                      onClick={() => handleCancelInvitation(inv.token || inv.id)}
                                       className="px-2.5 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-[10px] font-bold rounded-xl transition-all"
                                       title="Cancel Invite"
                                     >
@@ -1056,12 +1063,12 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                                     </button>
                                   </>
                                 )}
-                                {inv.status === 'Accepted' && (
+                                {inv.status === 'accepted' && (
                                   <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
                                     <CheckCircle2 className="w-3.5 h-3.5" /> Linked
                                   </span>
                                 )}
-                                {inv.status === 'Cancelled' && (
+                                {inv.status === 'cancelled' && (
                                   <span className="text-xs text-slate-400 italic">Cancelled</span>
                                 )}
                               </div>
@@ -1350,7 +1357,12 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                             required
                             value={singleInvite.learnerName}
                             onChange={(e) => {
-                              setSingleInvite(prev => ({ ...prev, learnerName: e.target.value }));
+                              setSingleInvite(prev => ({
+                                ...prev,
+                                learnerName: e.target.value,
+                                learnerId: '',
+                                accessionNumber: ''
+                              }));
                               setShowSuggestions(true);
                             }}
                             onFocus={() => setShowSuggestions(true)}
@@ -1360,13 +1372,21 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                           {singleInvite.learnerName && (
                             <button
                               type="button"
-                              onClick={() => setSingleInvite(prev => ({ ...prev, learnerName: '' }))}
+                              onClick={() => setSingleInvite(prev => ({
+                                ...prev,
+                                learnerName: '',
+                                learnerId: '',
+                                accessionNumber: ''
+                              }))}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           )}
                         </div>
+                        {singleInvite.learnerName && !singleInvite.learnerId && (
+                          <p className="text-xs text-amber-600 font-bold mt-1">Select a learner from the list</p>
+                        )}
 
                         {/* Suggestions Dropdown Card */}
                         <AnimatePresence>
@@ -1446,18 +1466,20 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { id: 'WhatsApp', label: 'WhatsApp', desc: 'Meta Template' },
-                            { id: 'SMS', label: 'SMS', desc: 'Direct Text' },
-                            { id: 'Email', label: 'Email', desc: 'SMTP Link' }
+                            { id: 'SMS', label: 'SMS', desc: 'Coming soon' },
+                            { id: 'Email', label: 'Email', desc: 'Coming soon' }
                           ].map(ch => (
                             <button
                               key={ch.id}
                               type="button"
+                              disabled={ch.id !== 'WhatsApp'}
                               onClick={() => setSingleInvite(prev => ({ ...prev, channel: ch.id as any }))}
                               className={cn(
                                 "p-3.5 border rounded-2xl text-left transition-all relative flex flex-col justify-between h-[85px]",
                                 singleInvite.channel === ch.id
                                   ? "border-school-primary bg-school-primary/5 text-school-primary"
-                                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-500"
+                                  : "border-slate-200 bg-white hover:bg-slate-50 text-slate-500",
+                                ch.id !== 'WhatsApp' && "opacity-50 cursor-not-allowed bg-slate-150 border-slate-200"
                               )}
                             >
                               <div className="flex justify-between items-center w-full">
@@ -1555,15 +1577,17 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                               key={ch.id}
                               className={cn(
                                 "flex-1 flex items-center justify-between px-3.5 py-3 border rounded-2xl cursor-pointer text-xs font-black uppercase transition-all",
-                                bulkChannel === ch.id ? "border-school-primary bg-school-primary/5 text-school-primary" : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500"
+                                bulkChannel === ch.id ? "border-school-primary bg-school-primary/5 text-school-primary" : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500",
+                                ch.id !== 'WhatsApp' && "opacity-50 cursor-not-allowed bg-slate-150 border-slate-200 pointer-events-none"
                               )}
                             >
-                              <span>{ch.label}</span>
+                              <span>{ch.label} {ch.id !== 'WhatsApp' && <span className="text-[8px] text-slate-400 normal-case ml-1 font-bold">(Coming soon)</span>}</span>
                               <input
                                 type="radio"
                                 name="bulkChannel"
+                                disabled={ch.id !== 'WhatsApp'}
                                 checked={bulkChannel === ch.id}
-                                onChange={() => setBulkChannel(ch.id as any)}
+                                onChange={() => {}}
                                 className="accent-school-primary ml-1.5"
                               />
                             </label>
@@ -1650,7 +1674,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   <button
                     type="button"
                     onClick={handleSendSingleInvite}
-                    disabled={isProcessing === 'sending-invite'}
+                    disabled={isProcessing === 'sending-invite' || !singleInvite.learnerId}
                     className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
                   >
                     {isProcessing === 'sending-invite' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
