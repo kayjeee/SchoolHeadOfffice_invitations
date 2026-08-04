@@ -61,8 +61,13 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         setIsLoadingGrades(true);
         const token = localStorage.getItem("authToken");
 
+        let fetchUrl = `https://shobackendv2-production.up.railway.app/api/v1/schools/${targetSchoolId}/grades`;
+        if (targetSchoolId === "6a708f76ce9b120d388d5983") {
+          fetchUrl = "http://localhost:4000/api/v1/schools/6a708f76ce9b120d388d5983/grades";
+        }
+
         const response = await fetch(
-          `https://shobackendv2-production.up.railway.app/api/v1/schools/${targetSchoolId}/grades`,
+          fetchUrl,
           {
             headers: {
               Authorization: `Bearer ${token}`,
