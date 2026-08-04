@@ -61,8 +61,14 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         setIsLoadingGrades(true);
         const token = localStorage.getItem("authToken");
 
+        let isLocal = false;
+        if (typeof window !== 'undefined') {
+          const host = window.location.hostname;
+          isLocal = host === 'localhost' || host === '127.0.0.1' || host.includes('gitpod') || host.includes('codesandbox');
+        }
+
         let fetchUrl = `https://shobackendv2-production.up.railway.app/api/v1/schools/${targetSchoolId}/grades`;
-        if (targetSchoolId === "6a708f76ce9b120d388d5983") {
+        if (isLocal && targetSchoolId === "6a708f76ce9b120d388d5983") {
           fetchUrl = "http://localhost:4000/api/v1/schools/6a708f76ce9b120d388d5983/grades";
         }
 
@@ -78,7 +84,8 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
 
         if (response.ok) {
           const gradesData = await response.json();
-          setGrades(gradesData.data?.grades || []);
+          const resolvedGrades = gradesData.grades || gradesData.data?.grades || gradesData.data || [];
+          setGrades(resolvedGrades);
         } else {
           setGradeError("Failed to load grades. Please try again.");
         }

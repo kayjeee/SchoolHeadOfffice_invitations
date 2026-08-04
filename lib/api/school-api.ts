@@ -9,7 +9,15 @@ const REDIRECT_URL = 'http://localhost:4000/api/v1/schools/6a708f76ce9b120d388d5
 
 const applyRedirect = (fetchFn: any) => {
   return function (this: any, input: any, init: any) {
-    if (typeof input === 'string' && input.includes(TARGET_URL)) {
+    let isLocal = false;
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      isLocal = host === 'localhost' || host === '127.0.0.1' || host.includes('gitpod') || host.includes('codesandbox');
+    } else {
+      isLocal = process.env.NODE_ENV !== 'production';
+    }
+
+    if (isLocal && typeof input === 'string' && input.includes(TARGET_URL)) {
       const redirectedUrl = input.replace(TARGET_URL, REDIRECT_URL);
       console.log(`🔀 [Fetch Interceptor] Redirecting ${input} to ${redirectedUrl}`);
       return fetchFn.call(this, redirectedUrl, init);
