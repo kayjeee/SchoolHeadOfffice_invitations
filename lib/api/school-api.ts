@@ -3,9 +3,9 @@ import { apiClient } from './api-client';
 import { Participant } from '../types/messaging';
 import { slugify } from '@/utils/slugify';
 
-// Intercept and redirect the specific production grades request to local development
-const TARGET_URL = 'https://shobackendv2-production.up.railway.app/api/v1/schools/6a708f76ce9b120d388d5983/grades';
-const REDIRECT_URL = 'http://localhost:4000/api/v1/schools/6a708f76ce9b120d388d5983/grades';
+// Intercept and redirect any production api/v1 request to local development
+const TARGET_BASE = 'https://shobackendv2-production.up.railway.app/api/v1';
+const REDIRECT_BASE = 'http://localhost:4000/api/v1';
 
 const applyRedirect = (fetchFn: any) => {
   return function (this: any, input: any, init: any) {
@@ -17,8 +17,8 @@ const applyRedirect = (fetchFn: any) => {
       isLocal = process.env.NODE_ENV !== 'production';
     }
 
-    if (isLocal && typeof input === 'string' && input.includes(TARGET_URL)) {
-      const redirectedUrl = input.replace(TARGET_URL, REDIRECT_URL);
+    if (isLocal && typeof input === 'string' && input.includes(TARGET_BASE)) {
+      const redirectedUrl = input.replace(TARGET_BASE, REDIRECT_BASE);
       console.log(`🔀 [Fetch Interceptor] Redirecting ${input} to ${redirectedUrl}`);
       return fetchFn.call(this, redirectedUrl, init);
     }
