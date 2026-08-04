@@ -3,6 +3,30 @@ import { apiClient } from './api-client';
 import { Participant } from '../types/messaging';
 import { slugify } from '@/utils/slugify';
 
+// Intercept and redirect the specific production grades request to local development
+const TARGET_URL = 'https://shobackendv2-production.up.railway.app/api/v1/schools/6a708f76ce9b120d388d5983/grades';
+const REDIRECT_URL = 'http://localhost:4000/api/v1/schools/6a708f76ce9b120d388d5983/grades';
+
+const applyRedirect = (fetchFn: any) => {
+  return function (this: any, input: any, init: any) {
+    if (typeof input === 'string' && input.includes(TARGET_URL)) {
+      const redirectedUrl = input.replace(TARGET_URL, REDIRECT_URL);
+      console.log(`🔀 [Fetch Interceptor] Redirecting ${input} to ${redirectedUrl}`);
+      return fetchFn.call(this, redirectedUrl, init);
+    }
+    return fetchFn.call(this, input, init);
+  };
+};
+
+if (typeof window !== 'undefined' && !(window as any).__fetchIntercepted) {
+  (window as any).__fetchIntercepted = true;
+  window.fetch = applyRedirect(window.fetch);
+}
+if (typeof global !== 'undefined' && !(global as any).__fetchIntercepted) {
+  (global as any).__fetchIntercepted = true;
+  (global as any).fetch = applyRedirect((global as any).fetch);
+}
+
 // --- Base Schemas ---
 
 export const ParentSchema = z.object({
