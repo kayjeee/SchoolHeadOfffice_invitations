@@ -26,7 +26,6 @@ const InvitationSchema = z.object({
   teacher_name: z.string().nullable().optional(),
   teacher_slug: z.string().nullable().optional(),
   school_slug: z.string().nullable().optional(),
-  school_name: z.string().nullable().optional(),
 }).passthrough();
 
 /**
@@ -147,10 +146,40 @@ export class InvitationAPI {
 
       return {
         success: isSuccess,
-        invitation: response.data?.invitation || response.invitation
+        invitation: response.data?.invitation || (response as any).invitation
       };
     } catch (error) {
       console.error(`❌ [InvitationAPI.acceptInvitation] Failed:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Match pending invitations by phone number for the resolved school and link them to the authenticated Auth0 user.
+   */
+  static async matchByPhone(phoneNumber: string, auth0Id: string, schoolId: string): Promise<{ success: boolean, matched_count: number, invitations?: InvitationData[] }> {
+    console.log(`📱 [InvitationAPI.matchByPhone] Matching phone: ${phoneNumber} for user: ${auth0Id}, school: ${schoolId}`);
+
+    const schema = z.object({
+      success: z.boolean(),
+      matched_count: z.number().nullable().optional(),
+      invitations: z.array(InvitationSchema).nullable().optional()
+    }).passthrough();
+
+    try {
+      const response = await apiClient.post(
+        '/invitations/match_by_phone',
+        { phone_number: phoneNumber, auth0_id: auth0Id, school_id: schoolId },
+        schema
+      );
+
+      return {
+        success: response.success === true,
+        matched_count: response.matched_count || 0,
+        invitations: response.invitations || []
+      };
+    } catch (error) {
+      console.error(`❌ [InvitationAPI.matchByPhone] Failed:`, error);
       throw error;
     }
   }

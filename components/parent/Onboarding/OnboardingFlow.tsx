@@ -105,8 +105,8 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   const resolvedSchoolName = useMemo(() => {
     const name = (learners && learners[0]?.school_name) ||
                  profile?.primary_school_name ||
-                 profile?.school_name ||
-                 profile?.schoolName ||
+                 (profile as any)?.school_name ||
+                 (profile as any)?.schoolName ||
                  onboardingData?.school_name ||
                  onboardingData?.schoolName ||
                  onboardingData?.primary_school_name ||
@@ -413,6 +413,44 @@ const fetchUserProfile = async () => {
         console.log('✅ Invitation claimed successfully');
       } catch (error) {
         console.error("❌ Failed to claim invitation:", error);
+      }
+    }
+
+    // Always attempt phone-based matching as a silent best-effort fallback
+    if (userId) {
+      const resolvedPhone = onboardingData?.phone ||
+                            onboardingData?.PROFILE_SETUP?.phone ||
+                            profile?.phone ||
+                            profile?.phone_number ||
+                            onboardingData?.parent_phone ||
+                            onboardingData?.parentPhone;
+
+      const resolvedSchoolId = (learners && learners[0]?.school_id) ||
+                               (profile as any)?.school_id ||
+                               (profile as any)?.schoolId ||
+                               onboardingData?.school_id ||
+                               onboardingData?.schoolId ||
+                               onboardingData?.school?._id ||
+                               onboardingData?.school?.id ||
+                               invitationData?.school_id ||
+                               invitationData?.schoolId;
+
+      const isRealSchoolId = resolvedSchoolId && !resolvedSchoolId.includes(' ') && resolvedSchoolId.trim().length > 0;
+
+      if (resolvedPhone && isRealSchoolId) {
+        try {
+          console.log(`📱 [OnboardingFlow] Attempting background match_by_phone for ${resolvedPhone} at school ${resolvedSchoolId}`);
+          const matchResult = await InvitationAPI.matchByPhone(resolvedPhone, userId, resolvedSchoolId);
+          console.log('📱 [OnboardingFlow] match_by_phone background result:', matchResult);
+        } catch (matchError) {
+          console.warn('⚠️ [OnboardingFlow] match_by_phone background check failed silently:', matchError);
+        }
+      } else {
+        console.log('📱 [OnboardingFlow] Skipping match_by_phone background check: missing phone or reliable school ID', {
+          phone: resolvedPhone,
+          schoolId: resolvedSchoolId,
+          isRealSchoolId: !!isRealSchoolId
+        });
       }
     }
     
