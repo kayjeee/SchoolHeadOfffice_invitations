@@ -61,8 +61,14 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
         setIsLoadingGrades(true);
         const token = localStorage.getItem("authToken");
 
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_BASE_URL ||
+          (process.env.NODE_ENV === "development"
+            ? "http://localhost:4000"
+            : "https://shobackendv2-production.up.railway.app");
+
         const response = await fetch(
-          `https://shobackendv2-production.up.railway.app/api/v1/schools/${targetSchoolId}/grades`,
+          `${API_BASE_URL}/api/v1/schools/${targetSchoolId}/grades`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -73,7 +79,7 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
 
         if (response.ok) {
           const gradesData = await response.json();
-          setGrades(gradesData.data?.grades || []);
+          setGrades(gradesData.grades || gradesData.data?.grades || []);
         } else {
           setGradeError("Failed to load grades. Please try again.");
         }
@@ -113,7 +119,7 @@ const handleUploadSuccess = (result) => {
 
   // FIX: Use the correct user ID - use user.sub (Auth0 ID) instead of user._id
   const userId = user?.sub || user?.auth0_id || user?._id;
-  
+
   if (!userId) {
     console.error("❌ [Step2UploadLearners] User ID is undefined - cannot complete step");
     console.log("👤 [Step2UploadLearners] Available user data:", {
