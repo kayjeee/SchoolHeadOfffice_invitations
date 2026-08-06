@@ -79,7 +79,7 @@ const Step2UploadLearners: React.FC<Step2UploadLearnersProps> = ({
 
         if (response.ok) {
           const gradesData = await response.json();
-          setGrades(gradesData.data?.grades || []);
+          setGrades(gradesData.grades || gradesData.data?.grades || []);
         } else {
           setGradeError("Failed to load grades. Please try again.");
         }

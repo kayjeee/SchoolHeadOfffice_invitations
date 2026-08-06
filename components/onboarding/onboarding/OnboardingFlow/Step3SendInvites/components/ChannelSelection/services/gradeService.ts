@@ -21,8 +21,8 @@ export const gradeService = {
       
       const data = await response.json();
       
-      // Your API returns { status: "success", data: { grades: [...] } }
-      const grades = data.data?.grades || [];
+      // Your API returns { status: "success", data: { grades: [...] } } or { success: true, grades: [...] }
+      const grades = data.grades || data.data?.grades || [];
       console.log(`[gradeService] Loaded ${grades.length} grades`);
       
       // Transform to match Grade interface
