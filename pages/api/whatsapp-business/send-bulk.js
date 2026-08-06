@@ -88,18 +88,22 @@ export default async function handler(req, res) {
     // Send batch concurrently
     await Promise.all(
       batch.map(async (msg) => {
-        const displayName =
-          msg.parentName ||
-          msg.name ||
-          schoolName ||
-          "Parent";
+        if (!msg.magicLink) {
+          log.failed++;
+          log.results.push({
+            to: msg.to,
+            status: "failed",
+            error: "Missing magicLink for personalized message"
+          });
+          return;
+        }
 
         const payload = {
           messaging_product: "whatsapp",
           to: msg.to,
           type: "template",
           template: {
-            name: "parent_invite",
+            name: "parent_invitation_2",
             language: { code: "en_US" },
             components: [
               {
@@ -107,7 +111,22 @@ export default async function handler(req, res) {
                 parameters: [
                   {
                     type: "text",
-                    text: displayName
+                    text: schoolName || "Your School"
+                  },
+                  {
+                    type: "text",
+                    text: msg.to
+                  }
+                ]
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: 0,
+                parameters: [
+                  {
+                    type: "text",
+                    text: msg.magicLink
                   }
                 ]
               }

@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   console.log("📥 Incoming test-message request");
 
   const { WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN } = process.env;
-  const { to, schoolName } = req.body || {};
+  const { to, schoolName, magicLink } = req.body || {};
 
   /* ------------------------------------------------------------------
    * Basic validation
@@ -28,6 +28,13 @@ export default async function handler(req, res) {
     });
   }
 
+  if (!magicLink) {
+    console.warn("⚠️ Missing magicLink");
+    return res.status(400).json({
+      error: "Missing magicLink in request body"
+    });
+  }
+
   /* ------------------------------------------------------------------
    * Normalize phone number
    * ------------------------------------------------------------------ */
@@ -41,15 +48,14 @@ export default async function handler(req, res) {
 
   /* ------------------------------------------------------------------
    * IMPORTANT:
-   * This template has a STATIC URL button.
-   * DO NOT include button components in the payload.
+   * This template has a DYNAMIC URL button index 0.
    * ------------------------------------------------------------------ */
   const payload = {
     messaging_product: "whatsapp",
     to: formattedNumber,
     type: "template",
     template: {
-      name: "parent_invite",
+      name: "parent_invitation_2",
       language: { code: "en_US" },
       components: [
         {
@@ -57,11 +63,25 @@ export default async function handler(req, res) {
           parameters: [
             {
               type: "text",
-              text: schoolName || "Parent"
+              text: schoolName || "Your School"
+            },
+            {
+              type: "text",
+              text: formattedNumber
+            }
+          ]
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: 0,
+          parameters: [
+            {
+              type: "text",
+              text: magicLink
             }
           ]
         }
-        // 🚫 NO BUTTON COMPONENT
       ]
     }
   };
