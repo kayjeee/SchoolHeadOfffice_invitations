@@ -443,23 +443,6 @@ const fetchUserProfile = async () => {
         console.error("❌ Failed to claim invitation:", error);
       }
     }
-
-    // ALWAYS additionally call the new match_by_phone endpoint in background (best-effort)
-    if (userId && resolvedPhoneNumber && resolvedSchoolId) {
-      try {
-        console.log(`📡 [OnboardingFlow] Silent phone match check: phone=${resolvedPhoneNumber}, school=${resolvedSchoolId}`);
-        const matchResult = await InvitationAPI.matchByPhone(resolvedPhoneNumber, userId, resolvedSchoolId);
-        console.log(`✅ [OnboardingFlow] Silent phone match complete: matched_count=${matchResult.matched_count}`);
-      } catch (error) {
-        console.log('⚠️ [OnboardingFlow] Silent phone match background call failed (non-blocking):', error);
-      }
-    } else {
-      console.log('ℹ️ [OnboardingFlow] Skipping silent phone match background call:', {
-        hasUserId: !!userId,
-        hasPhone: !!resolvedPhoneNumber,
-        hasSchoolId: !!resolvedSchoolId
-      });
-    }
     
     completeStep('TERMS_ACCEPTANCE', data);
   };
@@ -540,7 +523,27 @@ case 'PROFILE_SETUP':
   
   return (
     <ProfileSetup
-      onComplete={(data) => completeStep(currentStep, data)}
+      onComplete={async (data) => {
+        completeStep(currentStep, data);
+
+        // Trigger non-blocking phone match background call immediately after the profile setup completes!
+        const userId = safeUserId(safeUser);
+        const capturedPhone = data?.phone;
+        if (userId && capturedPhone && resolvedSchoolId) {
+          try {
+            console.log(`📡 [OnboardingFlow] Silent phone match check (Profile Setup): phone=${capturedPhone}, school=${resolvedSchoolId}`);
+            InvitationAPI.matchByPhone(capturedPhone, userId, resolvedSchoolId)
+              .then((matchResult) => {
+                console.log(`✅ [OnboardingFlow] Silent phone match complete (Profile Setup): matched_count=${matchResult.matched_count}`);
+              })
+              .catch((error) => {
+                console.log('⚠️ [OnboardingFlow] Silent phone match background call failed (non-blocking):', error);
+              });
+          } catch (e) {
+            console.log('⚠️ [OnboardingFlow] Silent phone match error:', e);
+          }
+        }
+      }}
       prefillData={{
         name: existingName,
         email: existingEmail,
