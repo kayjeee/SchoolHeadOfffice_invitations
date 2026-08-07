@@ -4,7 +4,32 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/router';
-import { InvitationAPI } from '../../../../lib/api/invitation-api';
+import { apiClient } from '../../../../lib/api/api-client';
+
+async function matchByPhone(phoneNumber: string, auth0Id: string, schoolId: string): Promise<{ success: boolean, matched_count: number }> {
+  console.log(`🤝 [ProfileSetup.matchByPhone] Attempting match for phone: ${phoneNumber}, user: ${auth0Id}, school: ${schoolId}`);
+
+  const schema = z.object({
+    success: z.boolean(),
+    matched_count: z.number().optional(),
+    invitations: z.array(z.any()).optional()
+  }).passthrough();
+
+  try {
+    const response = await apiClient.post(
+      '/invitations/match_by_phone',
+      { phone_number: phoneNumber, auth0_id: auth0Id, school_id: schoolId },
+      schema
+    );
+    return {
+      success: response.success,
+      matched_count: response.matched_count || 0
+    };
+  } catch (error) {
+    console.error(`❌ [ProfileSetup.matchByPhone] Failed:`, error);
+    throw error;
+  }
+}
 
 // Updated schema to include phone
 const profileSchema = z.object({
@@ -143,7 +168,7 @@ export default function ProfileSetup({
       if (user?.sub && data.phone && schoolId) {
         try {
           console.log(`📡 [ProfileSetup] Silent phone match check: phone=${data.phone}, school=${schoolId}`);
-          InvitationAPI.matchByPhone(data.phone.trim(), user.sub, schoolId)
+          matchByPhone(data.phone.trim(), user.sub, schoolId)
             .then((matchResult) => {
               console.log(`✅ [ProfileSetup] Silent phone match complete: matched_count=${matchResult.matched_count}`);
             })
