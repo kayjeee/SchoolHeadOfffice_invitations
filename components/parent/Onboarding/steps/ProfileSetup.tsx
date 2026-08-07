@@ -160,10 +160,28 @@ export default function ProfileSetup({
       }
 
       // Success - trigger non-blocking phone match background call immediately after the profile setup completes!
-      const schoolId = (router.query?.school as string) ||
-                       (router.query?.school_slug as string) ||
-                       (router.query?.schoolSlug as string) ||
-                       '';
+      let schoolId = (router.query?.school as string) ||
+                     (router.query?.school_slug as string) ||
+                     (router.query?.schoolSlug as string) ||
+                     '';
+
+      if (!schoolId && prefillData?.school_name && prefillData.school_name !== 'School') {
+        try {
+          console.log(`📡 [ProfileSetup] Resolving school ID client-side for name: ${prefillData.school_name}`);
+          const schoolResponse = await fetch(`${cleanBase}/schools?search=${encodeURIComponent(prefillData.school_name)}`);
+          if (schoolResponse.ok) {
+            const schoolJson = await schoolResponse.json();
+            const schoolsList = schoolJson.schools || schoolJson.data?.schools || schoolJson.data || [];
+            if (Array.isArray(schoolsList) && schoolsList.length > 0) {
+              const matchedSchool = schoolsList.find((s: any) => s.schoolName === prefillData.school_name || s.name === prefillData.school_name || s.slug === prefillData.school_name) || schoolsList[0];
+              schoolId = matchedSchool.id || matchedSchool._id || '';
+              console.log(`✅ [ProfileSetup] Resolved school ID client-side: ${schoolId}`);
+            }
+          }
+        } catch (e) {
+          console.error('❌ [ProfileSetup] Client-side school resolution failed:', e);
+        }
+      }
 
       if (user?.sub && data.phone && schoolId) {
         try {
