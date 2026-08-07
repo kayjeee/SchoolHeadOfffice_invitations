@@ -167,16 +167,23 @@ export default function ProfileSetup({
 
       if (!schoolId && prefillData?.school_name && prefillData.school_name !== 'School') {
         try {
-          console.log(`📡 [ProfileSetup] Resolving school ID client-side for name: ${prefillData.school_name}`);
-          const schoolResponse = await fetch(`${cleanBase}/schools?search=${encodeURIComponent(prefillData.school_name)}`);
-          if (schoolResponse.ok) {
+          const lookupUrl = `${cleanBase}/schools/${encodeURIComponent(prefillData.school_name)}`;
+          console.log(`📡 [ProfileSetup] Resolving single school ID: ${lookupUrl}`);
+          const schoolResponse = await fetch(lookupUrl);
+
+          if (schoolResponse.status === 200) {
             const schoolJson = await schoolResponse.json();
-            const schoolsList = schoolJson.schools || schoolJson.data?.schools || schoolJson.data || [];
-            if (Array.isArray(schoolsList) && schoolsList.length > 0) {
-              const matchedSchool = schoolsList.find((s: any) => s.schoolName === prefillData.school_name || s.name === prefillData.school_name || s.slug === prefillData.school_name) || schoolsList[0];
-              schoolId = matchedSchool.id || matchedSchool._id || '';
-              console.log(`✅ [ProfileSetup] Resolved school ID client-side: ${schoolId}`);
+            const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson.data;
+            if (resolvedSchool && (resolvedSchool.id || resolvedSchool._id)) {
+              schoolId = resolvedSchool.id || resolvedSchool._id || '';
+              console.log(`✅ [ProfileSetup] Resolved single school ID: ${schoolId}`);
             }
+          } else if (schoolResponse.status === 404) {
+            console.log(`ℹ️ [ProfileSetup] School not found (404) for name: ${prefillData.school_name}. skipping phone match.`);
+          } else if (schoolResponse.status === 409 || schoolResponse.status === 422) {
+            console.warn(`⚠️ [ProfileSetup] School resolution is ambiguous (status: ${schoolResponse.status}) for name: ${prefillData.school_name}. skipping phone match.`);
+          } else {
+            console.log(`ℹ️ [ProfileSetup] Unexpected status (${schoolResponse.status}) for school lookup. skipping phone match.`);
           }
         } catch (e) {
           console.error('❌ [ProfileSetup] Client-side school resolution failed:', e);
