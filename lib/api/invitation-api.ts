@@ -154,4 +154,32 @@ export class InvitationAPI {
       throw error;
     }
   }
+
+  /**
+   * Matches pending invitations by parent's phone number and links them.
+   */
+  static async matchByPhone(phoneNumber: string, auth0Id: string, schoolId: string): Promise<{ success: boolean, matched_count: number }> {
+    console.log(`🤝 [InvitationAPI.matchByPhone] Attempting match for phone: ${phoneNumber}, user: ${auth0Id}, school: ${schoolId}`);
+
+    const schema = z.object({
+      success: z.boolean(),
+      matched_count: z.number().optional(),
+      invitations: z.array(z.any()).optional()
+    }).passthrough();
+
+    try {
+      const response = await apiClient.post(
+        '/invitations/match_by_phone',
+        { phone_number: phoneNumber, auth0_id: auth0Id, school_id: schoolId },
+        schema
+      );
+      return {
+        success: response.success,
+        matched_count: response.matched_count || 0
+      };
+    } catch (error) {
+      console.error(`❌ [InvitationAPI.matchByPhone] Failed:`, error);
+      throw error;
+    }
+  }
 }

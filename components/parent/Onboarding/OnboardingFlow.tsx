@@ -220,6 +220,34 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     );
   }, [selectedTier, returningFromPayment, paymentData, paymentSuccessShown]);
 
+  const resolvedSchoolId = useMemo(() => {
+    const id = onboardingData?.school_id ||
+               onboardingData?.schoolId ||
+               onboardingData?.school?._id ||
+               onboardingData?.school?.id ||
+               invitationData?.school_id ||
+               invitationData?.schoolId ||
+               (learners && learners[0]?.school_id) ||
+               (learners && learners[0]?.schoolId) ||
+               profile?.school_id ||
+               profile?.schoolId ||
+               existingProfile?.school_id ||
+               existingProfile?.schoolId;
+    console.log('🏛️ [OnboardingFlow] resolvedSchoolId resolved:', id);
+    return id;
+  }, [onboardingData, invitationData, learners, profile, existingProfile]);
+
+  const resolvedPhoneNumber = useMemo(() => {
+    const phone = profile?.phone ||
+                  profile?.phone_number ||
+                  onboardingData?.PROFILE_SETUP?.phone ||
+                  onboardingData?.phone ||
+                  onboardingData?.parent_phone ||
+                  '';
+    console.log('📱 [OnboardingFlow] resolvedPhoneNumber resolved:', phone);
+    return phone;
+  }, [profile, onboardingData]);
+
   // Handle payment completion return from PayFast
   useEffect(() => {
     const handlePaymentReturn = async () => {
@@ -414,6 +442,23 @@ const fetchUserProfile = async () => {
       } catch (error) {
         console.error("❌ Failed to claim invitation:", error);
       }
+    }
+
+    // ALWAYS additionally call the new match_by_phone endpoint in background (best-effort)
+    if (userId && resolvedPhoneNumber && resolvedSchoolId) {
+      try {
+        console.log(`📡 [OnboardingFlow] Silent phone match check: phone=${resolvedPhoneNumber}, school=${resolvedSchoolId}`);
+        const matchResult = await InvitationAPI.matchByPhone(resolvedPhoneNumber, userId, resolvedSchoolId);
+        console.log(`✅ [OnboardingFlow] Silent phone match complete: matched_count=${matchResult.matched_count}`);
+      } catch (error) {
+        console.log('⚠️ [OnboardingFlow] Silent phone match background call failed (non-blocking):', error);
+      }
+    } else {
+      console.log('ℹ️ [OnboardingFlow] Skipping silent phone match background call:', {
+        hasUserId: !!userId,
+        hasPhone: !!resolvedPhoneNumber,
+        hasSchoolId: !!resolvedSchoolId
+      });
     }
     
     completeStep('TERMS_ACCEPTANCE', data);
