@@ -220,6 +220,36 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
     );
   }, [selectedTier, returningFromPayment, paymentData, paymentSuccessShown]);
 
+  const [fetchedSchoolId, setFetchedSchoolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!resolvedSchoolName || resolvedSchoolName === 'School') return;
+
+    const resolveId = async () => {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+        const response = await fetch(`${cleanBase}/schools?search=${encodeURIComponent(resolvedSchoolName)}`);
+        if (response.ok) {
+          const schoolJson = await response.json();
+          const schoolsList = schoolJson.schools || schoolJson.data?.schools || schoolJson.data || [];
+          if (Array.isArray(schoolsList) && schoolsList.length > 0) {
+            const matchedSchool = schoolsList.find((s: any) => s.schoolName === resolvedSchoolName || s.name === resolvedSchoolName || s.slug === resolvedSchoolName) || schoolsList[0];
+            const id = matchedSchool.id || matchedSchool._id;
+            if (id) {
+              console.log('✅ [OnboardingFlow] Resolved fetchedSchoolId:', id);
+              setFetchedSchoolId(id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ [OnboardingFlow] Failed to resolve school ID client-side:', error);
+      }
+    };
+
+    resolveId();
+  }, [resolvedSchoolName]);
+
   const resolvedSchoolId = useMemo(() => {
     const id = onboardingData?.school_id ||
                onboardingData?.schoolId ||
@@ -235,10 +265,11 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
                existingProfile?.schoolId ||
                (router.query?.school as string) ||
                (router.query?.school_slug as string) ||
-               (router.query?.schoolSlug as string);
+               (router.query?.schoolSlug as string) ||
+               fetchedSchoolId;
     console.log('🏛️ [OnboardingFlow] resolvedSchoolId resolved:', id);
     return id;
-  }, [onboardingData, invitationData, learners, profile, existingProfile, router.query]);
+  }, [onboardingData, invitationData, learners, profile, existingProfile, router.query, fetchedSchoolId]);
 
   const resolvedPhoneNumber = useMemo(() => {
     const phone = profile?.phone ||
