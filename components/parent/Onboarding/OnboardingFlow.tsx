@@ -526,36 +526,7 @@ case 'PROFILE_SETUP':
   
   return (
     <ProfileSetup
-      onComplete={async (data) => {
-        completeStep(currentStep, data);
-
-        // Trigger non-blocking phone match background call immediately after the profile setup completes!
-        const userId = safeUserId(safeUser);
-        const capturedPhone = data?.phone;
-        if (userId && capturedPhone && resolvedSchoolId) {
-          try {
-            console.log(`📡 [OnboardingFlow] Silent phone match check (Profile Setup): phone=${capturedPhone}, school=${resolvedSchoolId}`);
-            InvitationAPI.matchByPhone(capturedPhone, userId, resolvedSchoolId)
-              .then((matchResult) => {
-                console.log(`✅ [OnboardingFlow] Silent phone match complete (Profile Setup): matched_count=${matchResult.matched_count}`);
-              })
-              .catch((error) => {
-                console.log('⚠️ [OnboardingFlow] Silent phone match background call failed (non-blocking):', error);
-              });
-          } catch (e) {
-            console.log('⚠️ [OnboardingFlow] Silent phone match error:', e);
-          }
-        } else {
-          console.log('ℹ️ [OnboardingFlow] Skipping silent phone match background call (Profile Setup):', {
-            hasUserId: !!userId,
-            hasPhone: !!capturedPhone,
-            hasSchoolId: !!resolvedSchoolId,
-            userId,
-            capturedPhone,
-            resolvedSchoolId
-          });
-        }
-      }}
+      onComplete={(data) => completeStep(currentStep, data)}
       prefillData={{
         name: existingName,
         email: existingEmail,
