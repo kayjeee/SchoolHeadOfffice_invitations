@@ -73,21 +73,60 @@ export const getServerSideProps: GetServerSideProps<
     console.log('🧹 [getServerSideProps] Sanitized token:', { original: rawToken, sanitized: token, extractedSchool: school });
   }
 
-  // ─── Invitation only (logged out) ─────────────────────────
-  if (!session?.user && token) {
-    console.log('📨 [getServerSideProps] Invitation token detected:', token);
-    let invitationData = null;
-    let error = null;
+  let invitationData: any = null;
+  let error: string | null = null;
 
+  // 1. If we have a token, verify it
+  if (token) {
     try {
-      const invitation = await InvitationAPI.verifyToken(token);
-      console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(invitation, null, 2));
-      invitationData = invitation;
+      console.log('📨 [getServerSideProps] Invitation token detected:', token);
+      invitationData = await InvitationAPI.verifyToken(token);
+      console.log('📨 [getServerSideProps] Token verified result:', JSON.stringify(invitationData, null, 2));
     } catch (err: any) {
       console.error('❌ [getServerSideProps] Verification error:', err.message);
       error = "Could not verify your invitation. You can still sign in to check your account.";
     }
+  }
 
+  // 2. If school parameter is present but no school_id on invitationData, perform server-side lookup
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+  const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+
+  let schoolIdFromLookup: string | null = null;
+  if (school && (!invitationData || !invitationData.school_id)) {
+    try {
+      const schoolLookupUrl = `${cleanBase}/schools/${encodeURIComponent(school)}`;
+      console.log(`📡 [ParentGSSP] Resolving school ID server-side: ${schoolLookupUrl}`);
+      const schoolRes = await fetch(schoolLookupUrl);
+      if (schoolRes.ok) {
+        const schoolJson = await schoolRes.json();
+        const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson.data;
+        if (resolvedSchool && (resolvedSchool.id || resolvedSchool._id)) {
+          schoolIdFromLookup = resolvedSchool.id || resolvedSchool._id;
+          console.log(`✅ [ParentGSSP] Resolved school ID: ${schoolIdFromLookup} for ${school}`);
+        }
+      }
+    } catch (err: any) {
+      console.error(`⚠️ [ParentGSSP] School ID server-side lookup failed:`, err.message);
+    }
+  }
+
+  if (schoolIdFromLookup) {
+    if (invitationData) {
+      invitationData = {
+        ...invitationData,
+        school_id: invitationData.school_id || schoolIdFromLookup
+      };
+    } else {
+      invitationData = {
+        school_id: schoolIdFromLookup,
+        school_name: school
+      };
+    }
+  }
+
+  // --- CASE 1: NOT LOGGED IN WITH TOKEN ---
+  if (!session?.user && token) {
     return {
       props: {
         isAuthenticated: false,
@@ -99,7 +138,7 @@ export const getServerSideProps: GetServerSideProps<
     };
   }
 
-  // ─── Logged in user ───────────────────────────────────────
+  // --- CASE 2: LOGGED IN USER ---
   if (session?.user) {
     console.log('👤 [getServerSideProps] Logged-in user:', session.user.sub);
     try {
@@ -137,16 +176,6 @@ export const getServerSideProps: GetServerSideProps<
         };
       }
 
-      let invitationData = null;
-      if (token) {
-        console.log('📨 [getServerSideProps] Logged-in user with token, verifying...');
-        try {
-          invitationData = await InvitationAPI.verifyToken(token);
-        } catch (e) {
-          console.error("❌ [getServerSideProps] Failed to verify token for logged-in user", e);
-        }
-      }
-
       return {
         props: {
           isAuthenticated: true,
@@ -167,10 +196,14 @@ export const getServerSideProps: GetServerSideProps<
     }
   }
 
-  // ─── Fully logged out ─────────────────────────────────────
+  // --- CASE 3: FULLY LOGGED OUT ---
   return {
     props: {
       isAuthenticated: false,
+      school,
+      invitationData,
+      invitationToken: token,
+      error,
     },
   };
 };
