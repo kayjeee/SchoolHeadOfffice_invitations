@@ -95,14 +95,15 @@ export const getServerSideProps: GetServerSideProps<
   let schoolIdFromLookup: string | null = null;
   if (school && (!invitationData || !invitationData.school_id)) {
     try {
-      const schoolLookupUrl = `${cleanBase}/schools/${encodeURIComponent(school)}`;
+      const schoolLookupUrl = `${cleanBase}/schools?search=${encodeURIComponent(school)}`;
       console.log(`📡 [ParentGSSP] Resolving school ID server-side: ${schoolLookupUrl}`);
       const schoolRes = await fetch(schoolLookupUrl);
       if (schoolRes.ok) {
         const schoolJson = await schoolRes.json();
-        const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson.data;
-        if (resolvedSchool && (resolvedSchool.id || resolvedSchool._id)) {
-          schoolIdFromLookup = resolvedSchool.id || resolvedSchool._id;
+        const schoolsList = schoolJson.schools || schoolJson.data?.schools || schoolJson.data || [];
+        if (Array.isArray(schoolsList) && schoolsList.length > 0) {
+          const matchedSchool = schoolsList.find((s: any) => s.slug === school || s.schoolName === school || s.name === school) || schoolsList[0];
+          schoolIdFromLookup = matchedSchool.id || matchedSchool._id;
           console.log(`✅ [ParentGSSP] Resolved school ID: ${schoolIdFromLookup} for ${school}`);
         }
       }
