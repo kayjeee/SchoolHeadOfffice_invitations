@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/router';
+import { InvitationAPI } from '../../../../lib/api/invitation-api';
 
 // Updated schema to include phone
 const profileSchema = z.object({
@@ -32,6 +34,7 @@ export default function ProfileSetup({
   isLocked,
   user,
 }: ProfileSetupProps) {
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -131,7 +134,36 @@ export default function ProfileSetup({
         throw new Error(errorMessage);
       }
 
-      // Success - call onComplete
+      // Success - trigger non-blocking phone match background call immediately after the profile setup completes!
+      const schoolId = (router.query?.school as string) ||
+                       (router.query?.school_slug as string) ||
+                       (router.query?.schoolSlug as string) ||
+                       '';
+
+      if (user?.sub && data.phone && schoolId) {
+        try {
+          console.log(`📡 [ProfileSetup] Silent phone match check: phone=${data.phone}, school=${schoolId}`);
+          InvitationAPI.matchByPhone(data.phone.trim(), user.sub, schoolId)
+            .then((matchResult) => {
+              console.log(`✅ [ProfileSetup] Silent phone match complete: matched_count=${matchResult.matched_count}`);
+            })
+            .catch((error) => {
+              console.log('⚠️ [ProfileSetup] Silent phone match background call failed:', error);
+            });
+        } catch (e) {
+          console.log('⚠️ [ProfileSetup] Silent phone match error:', e);
+        }
+      } else {
+        console.log('ℹ️ [ProfileSetup] Skipping silent phone match background call:', {
+          hasUserId: !!user?.sub,
+          hasPhone: !!data?.phone,
+          hasSchoolId: !!schoolId,
+          userId: user?.sub,
+          capturedPhone: data?.phone,
+          schoolId
+        });
+      }
+
       onComplete(data);
 
     } catch (error: any) {
