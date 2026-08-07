@@ -232,10 +232,13 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
                profile?.school_id ||
                profile?.schoolId ||
                existingProfile?.school_id ||
-               existingProfile?.schoolId;
+               existingProfile?.schoolId ||
+               (router.query?.school as string) ||
+               (router.query?.school_slug as string) ||
+               (router.query?.schoolSlug as string);
     console.log('🏛️ [OnboardingFlow] resolvedSchoolId resolved:', id);
     return id;
-  }, [onboardingData, invitationData, learners, profile, existingProfile]);
+  }, [onboardingData, invitationData, learners, profile, existingProfile, router.query]);
 
   const resolvedPhoneNumber = useMemo(() => {
     const phone = profile?.phone ||
@@ -542,6 +545,15 @@ case 'PROFILE_SETUP':
           } catch (e) {
             console.log('⚠️ [OnboardingFlow] Silent phone match error:', e);
           }
+        } else {
+          console.log('ℹ️ [OnboardingFlow] Skipping silent phone match background call (Profile Setup):', {
+            hasUserId: !!userId,
+            hasPhone: !!capturedPhone,
+            hasSchoolId: !!resolvedSchoolId,
+            userId,
+            capturedPhone,
+            resolvedSchoolId
+          });
         }
       }}
       prefillData={{
