@@ -41,13 +41,14 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface ProfileSetupProps {
-  onComplete: (data: ProfileFormData) => void;
+  onComplete: (data: ProfileFormData & { school_id?: string; school_name?: string }) => void;
   prefillData?: {
     name?: string;
     phone?: string;
     email?: string;
     school_name?: string;
     grade_name?: string;
+    school_id?: string;
   };
   isLocked?: boolean;
   user?: any;
@@ -62,6 +63,12 @@ export default function ProfileSetup({
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState('');
+  const [schoolSuggestions, setSchoolSuggestions] = useState<any[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<{ id: string; name: string } | null>(null);
+  const [isSearchingSchools, setIsSearchingSchools] = useState(false);
+  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
 
   const {
     register,
@@ -78,14 +85,64 @@ export default function ProfileSetup({
     },
   });
 
+  const handleSchoolInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSchoolSearchQuery(val);
+    setShowSchoolSuggestions(true);
+    if (selectedSchool && selectedSchool.name !== val) {
+      setSelectedSchool(null);
+    }
+  };
+
+  const handleSelectSchool = (school: { id: string; name: string }) => {
+    setSelectedSchool(school);
+    setSchoolSearchQuery(school.name);
+    setShowSchoolSuggestions(false);
+  };
+
   // Set initial form values from prefill data
   useEffect(() => {
     if (prefillData) {
       if (prefillData.name) setValue('name', prefillData.name);
       if (prefillData.phone) setValue('phone', prefillData.phone);
       if (prefillData.email) setValue('email', prefillData.email);
+      if (prefillData.school_id && prefillData.school_name) {
+        setSelectedSchool({
+          id: prefillData.school_id,
+          name: prefillData.school_name,
+        });
+        setSchoolSearchQuery(prefillData.school_name);
+      }
     }
   }, [prefillData, setValue]);
+
+  // Fetch school suggestions debounced
+  useEffect(() => {
+    if (isLocked) return; // Do not fetch suggestions if school is locked
+    if (!schoolSearchQuery.trim()) {
+      setSchoolSuggestions([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingSchools(true);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+        const response = await fetch(`${cleanBase}/schools/search?q=${encodeURIComponent(schoolSearchQuery)}`);
+        if (response.ok) {
+          const json = await response.json();
+          setSchoolSuggestions(json.schools || []);
+        }
+      } catch (err) {
+        console.error('Error searching schools:', err);
+      } finally {
+        setIsSearchingSchools(false);
+      }
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [schoolSearchQuery, isLocked]);
 
   const handleFormSubmit = handleSubmit(async (data) => {
     await handleSave(data);
@@ -311,12 +368,70 @@ export default function ProfileSetup({
               </p>
             )}
           </div>
+
+          {isLocked ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                School
+              </label>
+              <input
+                type="text"
+                value={selectedSchool?.name || prefillData?.school_name || ''}
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm text-gray-600 p-2 border"
+                disabled={true}
+              />
+            </div>
+          ) : (
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Your Child's School *
+              </label>
+              <input
+                type="text"
+                value={schoolSearchQuery}
+                onChange={handleSchoolInputChange}
+                onFocus={() => setShowSchoolSuggestions(true)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
+                placeholder="Type to search e.g. Kagiso High School"
+                disabled={isSaving}
+              />
+
+              {/* Autocomplete dropdown suggestions */}
+              {showSchoolSuggestions && (schoolSuggestions.length > 0 || isSearchingSchools) && (
+                <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                  {isSearchingSchools ? (
+                    <div className="p-3 text-center text-gray-500 text-sm">Searching schools...</div>
+                  ) : (
+                    <ul className="divide-y divide-gray-100">
+                      {schoolSuggestions.map((schoolSuggestion) => (
+                        <li key={schoolSuggestion.id || schoolSuggestion._id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectSchool({
+                              id: schoolSuggestion.id || schoolSuggestion._id,
+                              name: schoolSuggestion.schoolName || schoolSuggestion.name
+                            })}
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm text-black font-semibold"
+                          >
+                            {schoolSuggestion.schoolName || schoolSuggestion.name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {schoolSearchQuery && !selectedSchool && !isSearchingSchools && (
+                <p className="text-xs text-amber-600 font-bold mt-1">Please select a school from the list</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-8 text-right">
           <button
             type="submit"
-            disabled={isSaving || !isValid}
+            disabled={isSaving || !isValid || !selectedSchool}
             className="inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {isSaving ? (
