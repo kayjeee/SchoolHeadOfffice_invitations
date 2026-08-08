@@ -36,3 +36,9 @@
  ○ Compiling /_error ...
  GET /api/auth/me 500 in 8800ms
  ✓ Compiled /_error in 3.6s (2038 modules)
+ ✓ Compiled in 8.2s (1087 modules)
+ ✓ Compiled in 1561ms (1087 modules)
+ ✓ Compiled in 1162ms (1087 modules)
+ ✓ Compiled in 1060ms (1087 modules)
+ ✓ Compiled in 1381ms (1087 modules)
+ ✓ Compiled in 1148ms (1087 modules)
