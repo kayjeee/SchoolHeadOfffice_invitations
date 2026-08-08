@@ -192,4 +192,65 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     // Ensure modal successfully closed and success notification was shown
     await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
   });
+
+  test('Invitations CRM supports manual refresh', async ({ page }) => {
+    let fetchCount = 0;
+
+    // Track calls to invitations GET endpoint
+    await page.route('**/api/v1/invitations**', async (route) => {
+      if (route.request().method() === 'GET') {
+        fetchCount++;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            invitations: [
+              {
+                id: 'inv-1',
+                token: 'tok-1',
+                learner_name: 'Lethabo Manana',
+                parent_name: 'Mrs Manana',
+                parent_phone: '+27700400585',
+                parent_email: '700400585@gdeschools.gov.za',
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                grade_name: 'Grade 10',
+                channel: 'WhatsApp'
+              }
+            ],
+            total: 1
+          })
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // Navigate to page
+    await page.goto(`${baseUrl}/admin/${schoolSlug}/learners`);
+    await page.waitForTimeout(1000);
+
+    // Switch to Invitations CRM Tab
+    await page.getByRole('button', { name: 'Invitations CRM' }).click();
+    await page.waitForTimeout(1000);
+
+    // Expect Mrs Manana to be present from initial load
+    await expect(page.getByRole('cell', { name: 'Mrs Manana' }).first()).toBeVisible();
+
+    const initialFetchCount = fetchCount;
+    expect(initialFetchCount).toBeGreaterThan(0);
+
+    // Click Refresh Button
+    const refreshButton = page.getByRole('button', { name: 'Refresh' });
+    await expect(refreshButton).toBeVisible();
+    await refreshButton.click();
+    await page.waitForTimeout(1000);
+
+    // Expect fetchCount to have incremented
+    expect(fetchCount).toBeGreaterThan(initialFetchCount);
+
+    // Take screenshot after clicking refresh
+    await page.screenshot({ path: '/home/jules/verification/screenshots/verify_invitations_manual_refresh.png' });
+  });
 });

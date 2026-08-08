@@ -34,7 +34,8 @@ import {
   AlertTriangle,
   Check,
   HelpCircle,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -950,6 +951,19 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                     <option value="expired">Expired</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+
+                  <button
+                    onClick={fetchInvitations}
+                    disabled={isInvitationsLoading}
+                    className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-2xl hover:bg-slate-50 disabled:opacity-50 transition-all whitespace-nowrap"
+                  >
+                    {isInvitationsLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-school-primary" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    Refresh
+                  </button>
 
                   <button
                     onClick={() => setIsInviteModalOpen(true)}
