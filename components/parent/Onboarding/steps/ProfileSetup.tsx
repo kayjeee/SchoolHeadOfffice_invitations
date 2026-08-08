@@ -217,35 +217,7 @@ export default function ProfileSetup({
       }
 
       // Success - trigger non-blocking phone match background call immediately after the profile setup completes!
-      let schoolId = (router.query?.school as string) ||
-                     (router.query?.school_slug as string) ||
-                     (router.query?.schoolSlug as string) ||
-                     '';
-
-      if (!schoolId && prefillData?.school_name && prefillData.school_name !== 'School') {
-        try {
-          const lookupUrl = `${cleanBase}/schools/${encodeURIComponent(prefillData.school_name)}`;
-          console.log(`📡 [ProfileSetup] Resolving single school ID: ${lookupUrl}`);
-          const schoolResponse = await fetch(lookupUrl);
-
-          if (schoolResponse.status === 200) {
-            const schoolJson = await schoolResponse.json();
-            const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson.data;
-            if (resolvedSchool && (resolvedSchool.id || resolvedSchool._id)) {
-              schoolId = resolvedSchool.id || resolvedSchool._id || '';
-              console.log(`✅ [ProfileSetup] Resolved single school ID: ${schoolId}`);
-            }
-          } else if (schoolResponse.status === 404) {
-            console.log(`ℹ️ [ProfileSetup] School not found (404) for name: ${prefillData.school_name}. skipping phone match.`);
-          } else if (schoolResponse.status === 409 || schoolResponse.status === 422) {
-            console.warn(`⚠️ [ProfileSetup] School resolution is ambiguous (status: ${schoolResponse.status}) for name: ${prefillData.school_name}. skipping phone match.`);
-          } else {
-            console.log(`ℹ️ [ProfileSetup] Unexpected status (${schoolResponse.status}) for school lookup. skipping phone match.`);
-          }
-        } catch (e) {
-          console.error('❌ [ProfileSetup] Client-side school resolution failed:', e);
-        }
-      }
+      const schoolId = selectedSchool?.id || '';
 
       if (user?.sub && data.phone && schoolId) {
         try {
