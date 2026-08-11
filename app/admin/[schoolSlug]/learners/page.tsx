@@ -65,6 +65,35 @@ const getLearnerFullName = (learner: any): string => {
   return `${fName} ${lName}`.trim() || 'Unnamed Learner';
 };
 
+const getLearnerWhatsAppPhone = (learner: any): string => {
+  if (!learner) return '';
+  const phoneFields = [
+    learner.parent_phone,
+    learner.phone,
+    learner.whatsapp,
+    learner.mobile,
+    learner.cell,
+    learner.contact_number,
+    learner.contact?.phone,
+    learner.contact?.whatsapp,
+    learner.contact?.tel_home,
+    learner.contact?.tel_emergency,
+  ];
+
+  for (const phone of phoneFields) {
+    if (phone && typeof phone === 'string') {
+      const cleanPhone = phone.trim();
+      if (cleanPhone !== '' && !cleanPhone.startsWith('011')) {
+        const digitCount = (cleanPhone.match(/\d/g) || []).length;
+        if (digitCount >= 7) {
+          return cleanPhone;
+        }
+      }
+    }
+  }
+  return '';
+};
+
 export default function LearnerDirectoryPage({ params }: { params: Promise<{ schoolSlug: string }> }) {
   // Guardrail 3: Resolve slug into MongoDB ObjectId
   const { schoolSlug } = use(params);
@@ -108,7 +137,19 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   const [bulkGradeId, setBulkGradeId] = useState('');
   const [bulkChannel, setBulkChannel] = useState<'WhatsApp' | 'SMS' | 'Email'>('WhatsApp');
-  const [bulkRawText, setBulkRawText] = useState('');
+
+  // --- Bulk Learner Picker State variables ---
+  const [bulkScope, setBulkScope] = useState<'whole-school' | 'grade' | 'class'>('whole-school');
+  const [bulkPickerLearners, setBulkPickerLearners] = useState<Learner[]>([]);
+  const [bulkLearnersRegistry, setBulkLearnersRegistry] = useState<Record<string, Learner>>({});
+  const [selectedBulkLearnerIds, setSelectedBulkLearnerIds] = useState<Set<string>>(new Set());
+  const [selectedBulkClassId, setSelectedBulkClassId] = useState<string>('');
+  const [bulkClasses, setBulkClasses] = useState<Class[]>([]);
+  const [isBulkClassesLoading, setIsBulkClassesLoading] = useState(false);
+  const [isBulkLearnersLoading, setIsBulkLearnersLoading] = useState(false);
+  const [bulkPickerPage, setBulkPickerPage] = useState(1);
+  const [bulkPickerTotal, setBulkPickerTotal] = useState(0);
+  const bulkPickerPerPage = 50;
 
   // Autocomplete UI State for Enrolled Learners
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -242,6 +283,107 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     fetchInvitations();
   }, [schoolId, page]);
 
+  // --- Bulk Learner Picker Fetching and Caching Effects ---
+
+  // 1. Fetch bulk picker learners
+  const fetchBulkPickerLearners = async (targetPage = 1, append = false) => {
+    if (!schoolId) return;
+    setIsBulkLearnersLoading(true);
+    try {
+      if (bulkScope === 'whole-school') {
+        const response = await SchoolAPI.getSchoolLearners(schoolId, targetPage, bulkPickerPerPage);
+        if (append) {
+          setBulkPickerLearners(prev => [...prev, ...response.learners]);
+        } else {
+          setBulkPickerLearners(response.learners);
+        }
+        setBulkPickerTotal(response.total || response.learners.length);
+        setBulkPickerPage(targetPage);
+      } else if (bulkScope === 'grade') {
+        if (!bulkGradeId) {
+          setBulkPickerLearners([]);
+          setBulkPickerTotal(0);
+          setBulkPickerPage(1);
+          return;
+        }
+        const learnersData = await SchoolAPI.getGradeLearners(schoolId, bulkGradeId, targetPage, bulkPickerPerPage);
+        setBulkPickerLearners(learnersData);
+        setBulkPickerTotal(learnersData.length);
+        setBulkPickerPage(1);
+      } else if (bulkScope === 'class') {
+        if (!bulkGradeId || !selectedBulkClassId) {
+          setBulkPickerLearners([]);
+          setBulkPickerTotal(0);
+          setBulkPickerPage(1);
+          return;
+        }
+        const learnersData = await SchoolAPI.getClassLearners(schoolId, bulkGradeId, selectedBulkClassId);
+        setBulkPickerLearners(learnersData);
+        setBulkPickerTotal(learnersData.length);
+        setBulkPickerPage(1);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bulk picker learners', err);
+      toast.error('Failed to fetch learners for selection.');
+    } finally {
+      setIsBulkLearnersLoading(false);
+    }
+  };
+
+  // 2. Fetch classes when scope is 'class' and bulkGradeId changes
+  useEffect(() => {
+    if (schoolId && bulkGradeId && bulkScope === 'class') {
+      setIsBulkClassesLoading(true);
+      SchoolAPI.getClasses(schoolId, bulkGradeId)
+        .then(data => {
+          setBulkClasses(data);
+          if (data.length > 0) {
+            setSelectedBulkClassId(data[0].id);
+          } else {
+            setSelectedBulkClassId('');
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load classes', err);
+          toast.error('Failed to load classes for this grade.');
+        })
+        .finally(() => {
+          setIsBulkClassesLoading(false);
+        });
+    } else {
+      setBulkClasses([]);
+      setSelectedBulkClassId('');
+    }
+  }, [schoolId, bulkGradeId, bulkScope]);
+
+  // 3. Clear bulk selections when scope changes
+  useEffect(() => {
+    setSelectedBulkLearnerIds(new Set());
+    setBulkPickerLearners([]);
+    setBulkPickerTotal(0);
+    setBulkPickerPage(1);
+  }, [bulkScope]);
+
+  // 4. Trigger learner fetching on criteria changes when bulk invite wizard is active
+  useEffect(() => {
+    if (isInviteModalOpen && inviteTab === 'bulk') {
+      fetchBulkPickerLearners(1, false);
+    }
+  }, [bulkScope, bulkGradeId, selectedBulkClassId, isInviteModalOpen, inviteTab]);
+
+  // 5. Build and keep a registry of all loaded learners to keep their references across pagination
+  useEffect(() => {
+    if (bulkPickerLearners.length > 0) {
+      setBulkLearnersRegistry(prev => {
+        const next = { ...prev };
+        bulkPickerLearners.forEach(l => {
+          if (l.id) next[l.id] = l;
+        });
+        return next;
+      });
+    }
+  }, [bulkPickerLearners]);
+
   // --- Filtered Data ---
   const filteredLearners = useMemo(() => {
     return learners.filter(learner => {
@@ -295,53 +437,6 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     toast.success(`Selected enrolled student: ${fullName}`, { icon: '🎓' });
   };
 
-  // --- Invitation Wizard Smart Parser Helper ---
-  const parseBulkText = () => {
-    if (!bulkRawText.trim()) return [];
-    const lines = bulkRawText.split('\n');
-    return lines
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .map((line, index) => {
-        const parts = line.split(/[,\t]+/).map(p => p.trim());
-        let learnerName = 'Unnamed';
-        let parentName = 'Parent';
-        let contact = '';
-
-        if (parts.length === 1) {
-          contact = parts[0];
-          learnerName = `Learner (${contact.substring(0, Math.min(contact.length, 5))}...)`;
-        } else if (parts.length === 2) {
-          learnerName = parts[0];
-          contact = parts[1];
-        } else {
-          learnerName = parts[0];
-          parentName = parts[1];
-          contact = parts[2];
-        }
-
-        let isValid = false;
-        if (bulkChannel === 'Email') {
-          isValid = /\S+@\S+\.\S+/.test(contact);
-        } else {
-          const cleanPhone = contact.replace(/\D/g, '');
-          isValid = cleanPhone.length >= 9 && cleanPhone.length <= 15;
-        }
-
-        return {
-          id: index,
-          learnerName,
-          parentName,
-          phone: bulkChannel !== 'Email' ? contact : '',
-          email: bulkChannel === 'Email' ? contact : '',
-          contactText: contact,
-          isValid
-        };
-      });
-  };
-
-  const parsedBulkItems = useMemo(() => parseBulkText(), [bulkRawText, bulkChannel]);
-  const validBulkCount = parsedBulkItems.filter(item => item.isValid).length;
 
   // --- Handlers for Sending New Invitations ---
   const handleSendSingleInvite = async () => {
@@ -403,24 +498,25 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   };
 
   const handleSendBulkInvites = async () => {
-    if (validBulkCount === 0) {
-      toast.error('No valid contact entries were found.');
+    if (selectedBulkLearnerIds.size === 0) {
+      toast.error('Please select at least one learner to invite.');
       return;
     }
 
+    const selectedLearnersList = Array.from(selectedBulkLearnerIds)
+      .map(id => bulkLearnersRegistry[id])
+      .filter(Boolean);
+
     const payload = {
-      invitations: parsedBulkItems
-        .filter(item => item.isValid)
-        .map(item => {
-          const matchedLearner = learners.find(l => getLearnerFullName(l).toLowerCase() === item.learnerName.toLowerCase());
-          const accessionNo = matchedLearner ? (matchedLearner.accession_number || (matchedLearner as any).accessionNumber || matchedLearner.admission_number || (matchedLearner as any).admissionNumber || '') : '';
-          return {
-            phone_number: item.contactText,
-            parent_name: item.parentName || 'Parent',
-            learner_numbers: accessionNo ? [accessionNo] : [],
-            grade_id: bulkGradeId
-          };
-        }),
+      invitations: selectedLearnersList.map(l => {
+        const accNo = l.admission_number || l.accession_number || (l as any).accessionNumber || '';
+        return {
+          phone_number: getLearnerWhatsAppPhone(l),
+          parent_name: l.parent_name || 'Parent',
+          learner_numbers: accNo ? [accNo] : [],
+          grade_id: l.grade_id || l.gradeId || ''
+        };
+      }),
       school_id: schoolId,
       sender_id: user?.sub || 'system',
       sender: user?.email || 'system',
@@ -428,13 +524,13 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     };
 
     setIsProcessing('sending-invite');
-    const toastId = toast.loading(`Dispatching ${validBulkCount} invitations...`);
+    const toastId = toast.loading(`Dispatching ${selectedBulkLearnerIds.size} invitations...`);
 
     try {
       await apiClient.post('/api/v1/invitations/bulk_create', payload, z.any());
-      toast.success(`Dispatched ${validBulkCount} invitations successfully!`, { id: toastId });
+      toast.success(`Dispatched ${selectedBulkLearnerIds.size} invitations successfully!`, { id: toastId });
       setIsInviteModalOpen(false);
-      setBulkRawText('');
+      setSelectedBulkLearnerIds(new Set());
       fetchInvitations();
     } catch (err: any) {
       toast.error(`Dispatch failed: ${err.message}`, { id: toastId });
@@ -1551,111 +1647,255 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Grade Level (Applies to all)</label>
-                        <select
-                          value={bulkGradeId}
-                          onChange={(e) => setBulkGradeId(e.target.value)}
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
-                        >
-                          {grades.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2 col-span-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Bulk Contact Channel</label>
-                        <div className="flex gap-2">
-                          {[
-                            { id: 'WhatsApp', label: 'WhatsApp' },
-                            { id: 'SMS', label: 'SMS' },
-                            { id: 'Email', label: 'Email' }
-                          ].map(ch => (
-                            <label
-                              key={ch.id}
-                              className={cn(
-                                "flex-1 flex items-center justify-between px-3.5 py-3 border rounded-2xl cursor-pointer text-xs font-black uppercase transition-all",
-                                bulkChannel === ch.id ? "border-school-primary bg-school-primary/5 text-school-primary" : "border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-500",
-                                ch.id !== 'WhatsApp' && "opacity-50 cursor-not-allowed bg-slate-150 border-slate-200 pointer-events-none"
-                              )}
-                            >
-                              <span>{ch.label} {ch.id !== 'WhatsApp' && <span className="text-[8px] text-slate-400 normal-case ml-1 font-bold">(Coming soon)</span>}</span>
-                              <input
-                                type="radio"
-                                name="bulkChannel"
-                                disabled={ch.id !== 'WhatsApp'}
-                                checked={bulkChannel === ch.id}
-                                onChange={() => {}}
-                                className="accent-school-primary ml-1.5"
-                              />
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
+                    {/* Scope Selector */}
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                          Paste Recipient Records
-                          <span className="text-rose-500 font-bold">*</span>
-                        </label>
-                        <span className="text-[10px] font-bold text-slate-400">Supported Formats: comma-separated or raw contacts</span>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Recipient Selection Scope</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'whole-school', label: 'Whole School' },
+                          { id: 'grade', label: 'By Grade' },
+                          { id: 'class', label: 'By Class' }
+                        ].map(scope => (
+                          <button
+                            key={scope.id}
+                            type="button"
+                            onClick={() => setBulkScope(scope.id as any)}
+                            className={cn(
+                              "py-3 border rounded-2xl text-xs font-black uppercase tracking-wider transition-all",
+                              bulkScope === scope.id
+                                ? "border-school-primary bg-school-primary/5 text-school-primary"
+                                : "border-slate-200 bg-white hover:bg-slate-50 text-slate-500"
+                            )}
+                          >
+                            {scope.label}
+                          </button>
+                        ))}
                       </div>
-                      <textarea
-                        rows={6}
-                        value={bulkRawText}
-                        onChange={(e) => setBulkRawText(e.target.value)}
-                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-mono focus:ring-2 focus:ring-school-primary/20 text-slate-900 outline-none resize-none"
-                        placeholder={bulkChannel === 'Email' ?
-                          `Formats (one entry per line):\n1. Email only: parent@example.com\n2. Learner name & Email: John Smith, parent@example.com\n3. Learner name, Parent name & Email: John Smith, Mrs Smith, parent@example.com` :
-                          `Formats (one entry per line):\n1. Phone number only: 0721234567\n2. Learner name & Phone: John Smith, 0721234567\n3. Learner name, Parent name & Phone: John Smith, Mrs Smith, 0721234567`
-                        }
-                      />
                     </div>
 
-                    {/* Live Preview List */}
-                    {parsedBulkItems.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Info className="w-4 h-4 text-slate-400" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Live Entry Preview ({validBulkCount} valid, {parsedBulkItems.length - validBulkCount} invalid)
+                    {/* Scope-dependent Dropdowns */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Grade Selector (needed for 'grade' and 'class') */}
+                      {(bulkScope === 'grade' || bulkScope === 'class') && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Grade</label>
+                          <select
+                            value={bulkGradeId}
+                            onChange={(e) => setBulkGradeId(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          >
+                            <option value="">Select a Grade</option>
+                            {grades.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Class Selector (needed for 'class') */}
+                      {bulkScope === 'class' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class</label>
+                          <select
+                            value={selectedBulkClassId}
+                            disabled={!bulkGradeId || isBulkClassesLoading}
+                            onChange={(e) => setSelectedBulkClassId(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900 disabled:opacity-50"
+                          >
+                            {isBulkClassesLoading ? (
+                              <option>Loading classes...</option>
+                            ) : bulkClasses.length > 0 ? (
+                              bulkClasses.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))
+                            ) : (
+                              <option value="">No classes found</option>
+                            )}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Channel Selector */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Bulk Contact Channel</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'WhatsApp', label: 'WhatsApp', desc: 'Meta Template' },
+                          { id: 'SMS', label: 'SMS', desc: 'Coming soon' },
+                          { id: 'Email', label: 'Email', desc: 'Coming soon' }
+                        ].map(ch => (
+                          <button
+                            key={ch.id}
+                            type="button"
+                            disabled={ch.id !== 'WhatsApp'}
+                            onClick={() => setBulkChannel(ch.id as any)}
+                            className={cn(
+                              "p-3.5 border rounded-2xl text-left transition-all relative flex flex-col justify-between h-[85px]",
+                              bulkChannel === ch.id
+                                ? "border-school-primary bg-school-primary/5 text-school-primary"
+                                : "border-slate-200 bg-white hover:bg-slate-50 text-slate-500",
+                              ch.id !== 'WhatsApp' && "opacity-50 cursor-not-allowed bg-slate-150 border-slate-200"
+                            )}
+                          >
+                            <div className="flex justify-between items-center w-full">
+                              <span className="font-black text-[10px] uppercase tracking-wider text-slate-800">{ch.label}</span>
+                              <div className={cn(
+                                "w-3.5 h-3.5 rounded-full border flex items-center justify-center",
+                                bulkChannel === ch.id ? "border-school-primary bg-school-primary text-white" : "border-slate-300"
+                              )}>
+                                {bulkChannel === ch.id && <Check className="w-2.5 h-2.5" />}
+                              </div>
+                            </div>
+                            <span className="text-[9px] text-slate-400 mt-2 font-medium leading-none">{ch.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Checkbox List of Learners */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Select Recipients ({selectedBulkLearnerIds.size} Selected)
+                        </span>
+                        {bulkScope === 'whole-school' && (
+                          <span className="text-[10px] font-bold text-slate-400">
+                            Showing {bulkPickerPage * bulkPickerPerPage - bulkPickerPerPage + 1} - {Math.min(bulkPickerPage * bulkPickerPerPage, bulkPickerTotal)} of {bulkPickerTotal}
+                          </span>
+                        )}
+                      </div>
+
+                      {isBulkLearnersLoading ? (
+                        <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                          <span className="text-xs font-bold text-slate-500">Loading learners list...</span>
+                        </div>
+                      ) : bulkPickerLearners.length > 0 ? (
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                          <div className="max-h-[240px] overflow-y-auto">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200 z-10">
+                                <tr>
+                                  <th className="p-3 w-12 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        bulkPickerLearners.filter(l => !!getLearnerWhatsAppPhone(l)).length > 0 &&
+                                        bulkPickerLearners.filter(l => !!getLearnerWhatsAppPhone(l)).every(l => selectedBulkLearnerIds.has(l.id))
+                                      }
+                                      onChange={() => {
+                                        const phoneHavingInView = bulkPickerLearners.filter(l => !!getLearnerWhatsAppPhone(l));
+                                        const allSelectedInView = phoneHavingInView.every(l => selectedBulkLearnerIds.has(l.id));
+                                        const next = new Set(selectedBulkLearnerIds);
+                                        if (allSelectedInView) {
+                                          phoneHavingInView.forEach(l => next.delete(l.id));
+                                        } else {
+                                          phoneHavingInView.forEach(l => next.add(l.id));
+                                        }
+                                        setSelectedBulkLearnerIds(next);
+                                      }}
+                                      className="rounded border-slate-300 text-school-primary focus:ring-school-primary h-4 w-4 cursor-pointer"
+                                    />
+                                  </th>
+                                  <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
+                                  <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Grade / Class</th>
+                                  <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">WhatsApp Number</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-150 bg-white">
+                                {bulkPickerLearners.map(learner => {
+                                  const phone = getLearnerWhatsAppPhone(learner);
+                                  const isSelected = selectedBulkLearnerIds.has(learner.id);
+                                  const isSelectable = !!phone;
+
+                                  return (
+                                    <tr
+                                      key={learner.id}
+                                      className={cn(
+                                        "hover:bg-slate-50 transition-colors",
+                                        !isSelectable && "bg-slate-50/50 opacity-60"
+                                      )}
+                                    >
+                                      <td className="p-3 text-center">
+                                        <input
+                                          type="checkbox"
+                                          disabled={!isSelectable}
+                                          checked={isSelected}
+                                          onChange={() => {
+                                            const next = new Set(selectedBulkLearnerIds);
+                                            if (next.has(learner.id)) {
+                                              next.delete(learner.id);
+                                            } else {
+                                              next.add(learner.id);
+                                            }
+                                            setSelectedBulkLearnerIds(next);
+                                          }}
+                                          className="rounded border-slate-300 text-school-primary focus:ring-school-primary h-4 w-4 cursor-pointer disabled:cursor-not-allowed"
+                                        />
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <p className="font-bold text-slate-900">{getLearnerFullName(learner)}</p>
+                                        <p className="text-[10px] text-slate-400">ADM: {learner.admission_number || '---'}</p>
+                                      </td>
+                                      <td className="px-4 py-3 text-slate-600 font-medium">
+                                        {grades.find(g => g.id === (learner.gradeId || learner.grade_id))?.name || '---'}
+                                        {learner.class_name && ` • ${learner.class_name}`}
+                                      </td>
+                                      <td className="px-4 py-3 font-mono font-bold text-slate-700">
+                                        {phone ? (
+                                          <span className="text-emerald-700">{phone}</span>
+                                        ) : (
+                                          <span className="text-rose-500 flex items-center gap-1 text-[10px] font-sans">
+                                            <AlertTriangle className="w-3.5 h-3.5" /> No Usable Phone
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Local Pagination Controls */}
+                          {bulkScope === 'whole-school' && bulkPickerTotal > bulkPickerPerPage && (
+                            <div className="flex items-center justify-between px-4 py-3 bg-slate-100 border-t border-slate-200">
+                              <button
+                                type="button"
+                                disabled={bulkPickerPage === 1}
+                                onClick={() => fetchBulkPickerLearners(bulkPickerPage - 1, false)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition-all uppercase tracking-widest"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                                Prev
+                              </button>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                Page {bulkPickerPage} of {Math.ceil(bulkPickerTotal / bulkPickerPerPage)}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={bulkPickerPage * bulkPickerPerPage >= bulkPickerTotal}
+                                onClick={() => fetchBulkPickerLearners(bulkPickerPage + 1, false)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-slate-800 disabled:opacity-50 transition-all uppercase tracking-widest"
+                              >
+                                Next
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed">
+                          <Users className="w-8 h-8 text-slate-300 mb-2 animate-pulse" />
+                          <span className="text-xs font-bold text-slate-500">
+                            {bulkScope === 'grade' && !bulkGradeId ? "Please select a grade first." :
+                             bulkScope === 'class' && (!bulkGradeId || !selectedBulkClassId) ? "Please select a grade and class first." :
+                             "No learners found for this selection."}
                           </span>
                         </div>
-                        <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 max-h-[200px] overflow-y-auto">
-                          <table className="w-full text-left border-collapse text-xs">
-                            <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200">
-                              <tr>
-                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
-                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Parent Name</th>
-                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase">Contact Input</th>
-                                <th className="px-4 py-2 font-black text-[9px] text-slate-500 uppercase text-center">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-150">
-                              {parsedBulkItems.map(item => (
-                                <tr key={item.id} className="hover:bg-slate-100/50">
-                                  <td className="px-4 py-2 font-bold text-slate-700 truncate max-w-[150px]">{item.learnerName}</td>
-                                  <td className="px-4 py-2 text-slate-500 truncate max-w-[120px]">{item.parentName}</td>
-                                  <td className="px-4 py-2 font-mono font-medium text-slate-600 truncate max-w-[200px]">{item.contactText}</td>
-                                  <td className="px-4 py-2 text-center">
-                                    <span className={cn(
-                                      "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
-                                      item.isValid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                                    )}>
-                                      {item.isValid ? 'Valid' : bulkChannel === 'Email' ? 'Invalid Email' : 'Invalid Number'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1684,11 +1924,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   <button
                     type="button"
                     onClick={handleSendBulkInvites}
-                    disabled={isProcessing === 'sending-invite' || validBulkCount === 0}
+                    disabled={isProcessing === 'sending-invite' || selectedBulkLearnerIds.size === 0}
                     className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
                   >
                     {isProcessing === 'sending-invite' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Send {validBulkCount} Invitations
+                    Send {selectedBulkLearnerIds.size} Invitations
                   </button>
                 )}
               </div>

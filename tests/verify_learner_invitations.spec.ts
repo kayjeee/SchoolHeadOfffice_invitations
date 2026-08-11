@@ -192,4 +192,52 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     // Ensure modal successfully closed and success notification was shown
     await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
   });
+
+  test('Bulk Invitation Wizard with real learner picker supports scope-based selection and dispatch', async ({ page }) => {
+    // 1. Navigate to page
+    await page.goto(`${baseUrl}/admin/${schoolSlug}/learners`);
+    await page.waitForTimeout(1000);
+
+    // 2. Switch to Invitations CRM Tab
+    await page.getByRole('button', { name: 'Invitations CRM' }).click();
+    await page.waitForTimeout(1000);
+
+    // 3. Open Invitations Wizard Modal
+    await page.getByRole('button', { name: 'Launch Invite Wizard' }).first().click();
+    await page.waitForTimeout(1000);
+
+    // 4. Click Bulk Paste Contact List Tab
+    await page.getByRole('button', { name: 'Bulk Paste Contact List' }).click();
+    await page.waitForTimeout(1000);
+
+    // Verify scope selector is visible
+    await expect(page.getByText('Recipient Selection Scope')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Whole School' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'By Grade' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'By Class' })).toBeVisible();
+
+    // Verify learners are listed
+    await expect(page.getByText('Lethabo Manana').last()).toBeVisible();
+    await expect(page.getByText('Kagiso Sello').last()).toBeVisible();
+
+    // Verify "Select All" checkbox is present
+    const checkboxes = page.locator('input[type="checkbox"]');
+    // Click Select All (first checkbox in table header)
+    await checkboxes.first().click();
+    await page.waitForTimeout(500); // Wait for state to sync
+
+    // Verify running count
+    await expect(page.getByText('Select Recipients (2 Selected)')).toBeVisible();
+
+    // Verify dispatch button text is updated to "Send 2 Invitations"
+    const sendButton = page.getByRole('button', { name: 'Send 2 Invitations' });
+    await expect(sendButton).toBeVisible();
+
+    // Click Send
+    await sendButton.click();
+    await page.waitForTimeout(1000);
+
+    // Ensure modal successfully closed
+    await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
+  });
 });
