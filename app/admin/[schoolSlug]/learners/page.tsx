@@ -584,21 +584,31 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       return;
     }
 
-    // Step 4: Dispatch WhatsApp messages via send-bulk
+    // Step 4: Dispatch WhatsApp messages via same-origin relative fetch to Next.js API route
     toast.loading(`Sending ${personalizedMessages.length} WhatsApp messages...`, { id: toastId });
 
     let sendBulkStats = { sent: 0, failed: 0 };
     try {
-      const sendBulkRes = await apiClient.post('/api/whatsapp-business/send-bulk', {
-        personalizedMessages,
-        schoolName
-      }, z.any());
+      const sendBulkRaw = await fetch('/api/whatsapp-business/send-bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizedMessages,
+          schoolName
+        })
+      });
 
-      if (sendBulkRes?.stats) {
+      const sendBulkRes = await sendBulkRaw.json();
+
+      if (sendBulkRaw.ok && sendBulkRes?.stats) {
         sendBulkStats.sent = sendBulkRes.stats.sent || 0;
         sendBulkStats.failed = sendBulkRes.stats.failed || 0;
-      } else {
+      } else if (sendBulkRaw.ok) {
         sendBulkStats.sent = personalizedMessages.length;
+      } else {
+        sendBulkStats.failed = personalizedMessages.length;
       }
     } catch (err: any) {
       console.error('WhatsApp send-bulk error:', err);
