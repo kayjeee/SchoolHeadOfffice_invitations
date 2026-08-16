@@ -88,14 +88,41 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
           })
         });
       } else if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ success: true, message: 'Dispatched successfully' })
-        });
+        const url = route.request().url();
+        if (url.includes('bulk_create')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              success: true,
+              invitations: [
+                { id: 'inv-101', token: 'tok-bulk-1', parent_phone: '+27700400585', parent_name: 'Mrs Manana' },
+                { id: 'inv-102', token: 'tok-bulk-2', parent_phone: '+27821234567', parent_name: 'Mr Sello' }
+              ]
+            })
+          });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ success: true, message: 'Dispatched successfully' })
+          });
+        }
       } else {
         await route.fallback();
       }
+    });
+
+    // Mock send-bulk endpoint
+    await page.route('**/api/whatsapp-business/send-bulk**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          stats: { total: 2, sent: 2, failed: 0 }
+        })
+      });
     });
 
     // 6. Mock Parent Portal Access Requests
