@@ -562,7 +562,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     // Step 3: Turn EVERY created invitation into a distinct entry in personalizedMessages
     const schoolName = currentSchool?.schoolName || 'School';
     const personalizedMessages = createdInvites.map((inv: any) => {
-      const phone = inv.parent_phone || inv.phone_number || inv.recipient_phone_number || inv.phone || '';
+      const phone = inv.learner_phone || inv.phone_number || inv.recipient_phone_number || inv.parent_phone || inv.phone || '';
       const token = inv.token || inv.id || inv._id || '';
       const parentName = inv.parent_name || inv.parentName || 'Parent';
       const magicLink = `?token=${token}&school=${encodeURIComponent(schoolName.trim())}`;

@@ -96,8 +96,8 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
             body: JSON.stringify({
               success: true,
               invitations: [
-                { id: 'inv-101', token: 'tok-bulk-1', parent_phone: '+27700400585', parent_name: 'Mrs Manana' },
-                { id: 'inv-102', token: 'tok-bulk-2', parent_phone: '+27821234567', parent_name: 'Mr Sello' }
+                { id: 'inv-101', token: 'tok-bulk-1', learner_phone: '0620670152', parent_name: 'Mrs Manana' },
+                { id: 'inv-102', token: 'tok-bulk-2', learner_phone: '0821234567', parent_name: 'Mr Sello' }
               ]
             })
           });
