@@ -507,6 +507,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       .map(id => bulkLearnersRegistry[id])
       .filter(Boolean);
 
+    if (selectedLearnersList.length === 0) {
+      toast.error('Selected learners details not found.');
+      return;
+    }
+
     const payload = {
       invitations: selectedLearnersList.map(l => {
         const accNo = l.admission_number || l.accession_number || (l as any).accessionNumber || '';
@@ -524,19 +529,101 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
     };
 
     setIsProcessing('sending-invite');
-    const toastId = toast.loading(`Dispatching ${selectedBulkLearnerIds.size} invitations...`);
+    const toastId = toast.loading(`Creating ${selectedLearnersList.length} invitations...`);
 
+    // Step 1: Create invitations via bulk_create
+    let bulkResponse: any;
     try {
-      await apiClient.post('/api/v1/invitations/bulk_create', payload, z.any());
-      toast.success(`Dispatched ${selectedBulkLearnerIds.size} invitations successfully!`, { id: toastId });
+      bulkResponse = await apiClient.post('/api/v1/invitations/bulk_create', payload, z.any());
+    } catch (err: any) {
+      toast.error(`Invitation creation failed: ${err.message}`, { id: toastId });
+      setIsProcessing(null);
+      return;
+    }
+
+    // Step 2: Extract created invitations & handle partial creation failure
+    const createdInvites: any[] =
+      bulkResponse?.invitations ||
+      bulkResponse?.learner_invitations ||
+      bulkResponse?.data?.invitations ||
+      bulkResponse?.data?.learner_invitations ||
+      (Array.isArray(bulkResponse) ? bulkResponse : []);
+
+    const totalRequested = selectedLearnersList.length;
+    const createdCount = createdInvites.length;
+    const creationFailedCount = Math.max(0, totalRequested - createdCount);
+
+    if (!bulkResponse || createdCount === 0) {
+      toast.error(`Failed to create invitations for any of the ${totalRequested} selected learners.`, { id: toastId });
+      setIsProcessing(null);
+      return;
+    }
+
+    // Step 3: Turn EVERY created invitation into a distinct entry in personalizedMessages
+    const schoolName = currentSchool?.schoolName || 'School';
+    const personalizedMessages = createdInvites.map((inv: any) => {
+      const phone = inv.parent_phone || inv.phone_number || inv.recipient_phone_number || inv.phone || '';
+      const token = inv.token || inv.id || inv._id || '';
+      const parentName = inv.parent_name || inv.parentName || 'Parent';
+      const magicLink = `?token=${token}&school=${encodeURIComponent(schoolName.trim())}`;
+
+      return {
+        to: phone,
+        parentName: parentName,
+        magicLink: magicLink,
+        message: `Hello ${parentName}, you are invited to join the Parent Portal for ${schoolName}. Click here: ${magicLink}`
+      };
+    }).filter(msg => !!msg.to);
+
+    if (personalizedMessages.length === 0) {
+      toast.error(`Created ${createdCount} invitation(s), but none had valid phone numbers for WhatsApp.`, { id: toastId });
       setIsInviteModalOpen(false);
       setSelectedBulkLearnerIds(new Set());
       fetchInvitations();
-    } catch (err: any) {
-      toast.error(`Dispatch failed: ${err.message}`, { id: toastId });
-    } finally {
       setIsProcessing(null);
+      return;
     }
+
+    // Step 4: Dispatch WhatsApp messages via send-bulk
+    toast.loading(`Sending ${personalizedMessages.length} WhatsApp messages...`, { id: toastId });
+
+    let sendBulkStats = { sent: 0, failed: 0 };
+    try {
+      const sendBulkRes = await apiClient.post('/api/whatsapp-business/send-bulk', {
+        personalizedMessages,
+        schoolName
+      }, z.any());
+
+      if (sendBulkRes?.stats) {
+        sendBulkStats.sent = sendBulkRes.stats.sent || 0;
+        sendBulkStats.failed = sendBulkRes.stats.failed || 0;
+      } else {
+        sendBulkStats.sent = personalizedMessages.length;
+      }
+    } catch (err: any) {
+      console.error('WhatsApp send-bulk error:', err);
+      sendBulkStats.failed = personalizedMessages.length;
+    }
+
+    // Step 5: Surface combined detailed result
+    let resultMsg = `Created ${createdCount}/${totalRequested} invitation(s). WhatsApp: ${sendBulkStats.sent} sent`;
+    if (sendBulkStats.failed > 0) {
+      resultMsg += `, ${sendBulkStats.failed} failed`;
+    }
+    if (creationFailedCount > 0) {
+      resultMsg += ` (${creationFailedCount} creation failed)`;
+    }
+
+    if (sendBulkStats.sent > 0) {
+      toast.success(resultMsg, { id: toastId, duration: 6000 });
+    } else {
+      toast.error(resultMsg, { id: toastId, duration: 6000 });
+    }
+
+    setIsInviteModalOpen(false);
+    setSelectedBulkLearnerIds(new Set());
+    fetchInvitations();
+    setIsProcessing(null);
   };
 
   // --- Phase 2 Actions ---
