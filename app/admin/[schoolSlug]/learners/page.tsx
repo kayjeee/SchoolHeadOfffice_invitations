@@ -517,7 +517,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         const accNo = l.admission_number || l.accession_number || (l as any).accessionNumber || '';
         return {
           phone_number: getLearnerWhatsAppPhone(l),
-          parent_name: l.parent_name || 'Parent',
+          parent_name: getLearnerFullName(l),
           learner_numbers: accNo ? [accNo] : [],
           grade_id: l.grade_id || l.gradeId || ''
         };
