@@ -269,8 +269,10 @@ export interface LearnerInvitation {
   id: string;
   parent_name: string;
   parent_phone: string;
-  learner_name: string;
-  status: 'Sent' | 'Delivered' | 'Accepted';
+  learner_name?: string;
+  resolved_learner_names?: string[] | string;
+  grade_name?: string;
+  status: 'Sent' | 'Delivered' | 'Accepted' | 'pending' | 'accepted' | 'expired' | 'cancelled' | 'rejected' | string;
   created_at: string;
 }
 

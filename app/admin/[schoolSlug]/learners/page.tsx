@@ -1173,7 +1173,11 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                       {invitations
                         .filter(inv => {
                           const query = invitationSearchQuery.toLowerCase();
+                          const resolvedNamesStr = Array.isArray(inv.resolved_learner_names)
+                            ? inv.resolved_learner_names.join(', ')
+                            : (inv.resolved_learner_names || inv.learner_name || '');
                           const matchesSearch =
+                            resolvedNamesStr.toLowerCase().includes(query) ||
                             inv.learner_name?.toLowerCase().includes(query) ||
                             inv.parent_name?.toLowerCase().includes(query) ||
                             inv.parent_phone?.toLowerCase().includes(query) ||
@@ -1181,16 +1185,32 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                           const matchesStatus = invitationFilterStatus === 'all' || inv.status === invitationFilterStatus;
                           return matchesSearch && matchesStatus;
                         })
-                        .map((inv) => (
-                          <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
+                        .map((inv) => {
+                          const learnerDisplayName = (() => {
+                            if (Array.isArray(inv.resolved_learner_names) && inv.resolved_learner_names.length > 0) {
+                              return inv.resolved_learner_names.join(', ');
+                            }
+                            if (typeof inv.resolved_learner_names === 'string' && inv.resolved_learner_names.trim()) {
+                              return inv.resolved_learner_names;
+                            }
+                            if (inv.learner_name && inv.learner_name.trim()) {
+                              return inv.learner_name;
+                            }
+                            return 'Unknown learner';
+                          })();
+
+                          const gradeDisplayName = inv.grade_name || (inv.grade_id ? grades.find(g => g.id === inv.grade_id)?.name : null) || 'No Grade';
+
+                          return (
+                            <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">
-                                  {inv.learner_name?.[0]}
+                                  {learnerDisplayName[0]}
                                 </div>
                                 <div>
-                                  <p className="font-bold text-slate-900">{inv.learner_name}</p>
-                                  <p className="text-xs text-slate-500">{inv.grade_name || 'No Grade'}</p>
+                                  <p className="font-bold text-slate-900">{learnerDisplayName}</p>
+                                  <p className="text-xs text-slate-500">{gradeDisplayName}</p>
                                 </div>
                               </div>
                             </td>
@@ -1267,7 +1287,8 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       {invitations.length === 0 && (
                         <tr>
                           <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
