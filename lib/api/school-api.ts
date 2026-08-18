@@ -539,6 +539,28 @@ export class SchoolAPI {
     }, z.any());
   }
 
+  // Learner Promotion System
+  static async promoteLearners(payload: {
+    school_id: string;
+    source_academic_year: string | number;
+    destination_academic_year: string | number;
+    source_grade_id: string;
+    destination_grade_id: string;
+    learner_ids: string[];
+  }): Promise<any> {
+    console.log(`🎓 [SchoolAPI.promoteLearners] Dispatching promotion payload for school: ${payload.school_id}`, payload);
+    try {
+      return await apiClient.post(`/api/v1/schools/${payload.school_id}/learners/promote`, payload, z.any());
+    } catch (err: any) {
+      console.warn('⚠️ Primary promotion route failed, attempting fallbacks...', err);
+      try {
+        return await apiClient.post(`/api/v1/learners/promote`, payload, z.any());
+      } catch (fallbackErr: any) {
+        return await apiClient.post(`/api/v1/schools/${payload.school_id}/promotions`, payload, z.any());
+      }
+    }
+  }
+
   // Grade Learners
   static async getGradeLearners(schoolId: string, gradeId: string, page = 1, perPage = 100): Promise<Learner[]> {
     console.log(`📖 [SchoolAPI.getGradeLearners] Fetching learners for grade: ${gradeId} in school: ${schoolId}`);

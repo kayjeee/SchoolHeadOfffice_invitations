@@ -162,6 +162,21 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
+  // --- Promotion System Modal State ---
+  const currentYear = new Date().getFullYear();
+  const [isPromotionModalOpen, setIsPromotionModalOpen] = useState(false);
+  const [promotionStep, setPromotionStep] = useState<1 | 2>(1); // 1: Config, 2: Review
+  const [sourceAcademicYear, setSourceAcademicYear] = useState<string | number>(currentYear);
+  const [destinationAcademicYear, setDestinationAcademicYear] = useState<string | number>(currentYear + 1);
+  const [promotionSourceGradeId, setPromotionSourceGradeId] = useState<string>('');
+  const [promotionDestinationGradeId, setPromotionDestinationGradeId] = useState<string>('');
+  const [promotionLearners, setPromotionLearners] = useState<Learner[]>([]);
+  const [selectedPromotionLearnerIds, setSelectedPromotionLearnerIds] = useState<Set<string>>(new Set());
+  const [promotionSearchQuery, setPromotionSearchQuery] = useState('');
+  const [isPromotionLearnersLoading, setIsPromotionLearnersLoading] = useState(false);
+  const [isSubmittingPromotion, setIsSubmittingPromotion] = useState(false);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
+
   // --- Data Fetching ---
   const fetchInvitations = async () => {
     if (!schoolId) return;
@@ -269,6 +284,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       if (gradesData.length > 0) {
         setSingleInvite(prev => ({ ...prev, gradeId: prev.gradeId || gradesData[0].id }));
         setBulkGradeId(prev => prev || gradesData[0].id);
+        setPromotionSourceGradeId(prev => prev || gradesData[0].id);
+        if (gradesData.length > 1) {
+          setPromotionDestinationGradeId(prev => prev || gradesData[1].id);
+        }
       }
     } catch (error: any) {
       console.error('❌ [LearnerDirectory] Critical Hydration Error:', error);
@@ -383,6 +402,117 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       });
     }
   }, [bulkPickerLearners]);
+
+  // --- Fetch Promotion Learners whenever promotionSourceGradeId changes in modal ---
+  useEffect(() => {
+    if (isPromotionModalOpen && schoolId && promotionSourceGradeId) {
+      setIsPromotionLearnersLoading(true);
+      SchoolAPI.getGradeLearners(schoolId, promotionSourceGradeId)
+        .then(learners => {
+          setPromotionLearners(learners);
+          // Default select all learners in the grade
+          setSelectedPromotionLearnerIds(new Set(learners.map(l => l.id)));
+        })
+        .catch(err => {
+          console.error('Failed to load learners for promotion grade:', err);
+          toast.error('Failed to load learners for selected grade.');
+        })
+        .finally(() => {
+          setIsPromotionLearnersLoading(false);
+        });
+    }
+  }, [isPromotionModalOpen, schoolId, promotionSourceGradeId]);
+
+  // Filter promotion learners based on search query
+  const filteredPromotionLearners = useMemo(() => {
+    return promotionLearners.filter(l => {
+      const name = getLearnerFullName(l).toLowerCase();
+      const adm = (l.admission_number || l.accession_number || (l as any).accessionNumber || '').toLowerCase();
+      const q = promotionSearchQuery.toLowerCase();
+      return name.includes(q) || adm.includes(q);
+    });
+  }, [promotionLearners, promotionSearchQuery]);
+
+  const handleOpenPromotionModal = () => {
+    setPromotionStep(1);
+    setPromotionError(null);
+    setPromotionSearchQuery('');
+    if (grades.length > 0) {
+      const srcId = promotionSourceGradeId || grades[0].id;
+      setPromotionSourceGradeId(srcId);
+      const srcIdx = grades.findIndex(g => g.id === srcId);
+      if (srcIdx >= 0 && srcIdx < grades.length - 1) {
+        setPromotionDestinationGradeId(grades[srcIdx + 1].id);
+      } else if (grades.length > 1) {
+        setPromotionDestinationGradeId(grades[1].id);
+      }
+    }
+    setIsPromotionModalOpen(true);
+  };
+
+  const handleProceedToPromotionReview = () => {
+    setPromotionError(null);
+    if (!promotionSourceGradeId) {
+      toast.error('Please select a source grade.');
+      return;
+    }
+    if (!promotionDestinationGradeId) {
+      toast.error('Please select a destination grade.');
+      return;
+    }
+    if (promotionSourceGradeId === promotionDestinationGradeId) {
+      toast.error('Source grade and destination grade cannot be the same.');
+      return;
+    }
+    if (!sourceAcademicYear || !destinationAcademicYear) {
+      toast.error('Please specify valid academic years.');
+      return;
+    }
+    if (selectedPromotionLearnerIds.size === 0) {
+      toast.error('Please select at least one learner to promote.');
+      return;
+    }
+    setPromotionStep(2);
+  };
+
+  const handleSubmitPromotion = async () => {
+    if (selectedPromotionLearnerIds.size === 0) {
+      toast.error('No learners selected.');
+      return;
+    }
+    if (!schoolId) {
+      toast.error('School context missing.');
+      return;
+    }
+
+    setIsSubmittingPromotion(true);
+    setPromotionError(null);
+    const toastId = toast.loading(`Promoting ${selectedPromotionLearnerIds.size} learner(s)...`);
+
+    const payload = {
+      school_id: schoolId,
+      source_academic_year: sourceAcademicYear,
+      destination_academic_year: destinationAcademicYear,
+      source_grade_id: promotionSourceGradeId,
+      destination_grade_id: promotionDestinationGradeId,
+      learner_ids: Array.from(selectedPromotionLearnerIds)
+    };
+
+    try {
+      const res = await SchoolAPI.promoteLearners(payload);
+      toast.success(res?.message || res?.data?.message || `Successfully promoted ${selectedPromotionLearnerIds.size} learner(s)!`, { id: toastId });
+      setIsPromotionModalOpen(false);
+      setSelectedPromotionLearnerIds(new Set());
+      fetchData(); // Instant directory refresh
+    } catch (err: any) {
+      console.error('Promotion failed:', err);
+      const errMsg = err.details?.message || err.details?.error || err.message || 'Failed to complete learner promotion.';
+      setPromotionError(errMsg);
+      toast.error(errMsg, { id: toastId });
+    } finally {
+      setIsSubmittingPromotion(false);
+    }
+  };
 
   // --- Filtered Data ---
   const filteredLearners = useMemo(() => {
@@ -1424,7 +1554,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   icon: TrendingUp,
                   phase: 2,
                   action: 'Manage Promotions',
-                  handler: () => handlePromotion()
+                  handler: handleOpenPromotionModal
                 },
                 {
                   title: 'Capacity Planning',
@@ -1498,6 +1628,353 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                  >
                    Complete Enrollment
                  </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Promotion System Modal */}
+      <AnimatePresence>
+        {isPromotionModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-school-primary/10 text-school-primary rounded-2xl">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Learner Promotion System</h3>
+                    <p className="text-xs font-medium text-slate-500">
+                      Promote learners to their new grade for the upcoming academic year.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsPromotionModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Progress Indicator */}
+              <div className="px-8 py-3 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", promotionStep === 1 ? "bg-school-primary text-white" : "bg-emerald-500 text-white")}>
+                    {promotionStep > 1 ? <Check className="w-3.5 h-3.5" /> : '1'}
+                  </span>
+                  <span className={promotionStep === 1 ? "text-slate-900 font-extrabold" : "text-slate-500"}>1. Configure Transition</span>
+                </div>
+                <div className="h-0.5 w-12 bg-slate-200"></div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", promotionStep === 2 ? "bg-school-primary text-white" : "bg-slate-200 text-slate-500")}>
+                    2
+                  </span>
+                  <span className={promotionStep === 2 ? "text-slate-900 font-extrabold" : "text-slate-500"}>2. Review & Confirm</span>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-8 overflow-y-auto space-y-6 flex-1">
+                {promotionError && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-700 text-xs font-bold">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <span>{promotionError}</span>
+                  </div>
+                )}
+
+                {promotionStep === 1 ? (
+                  <div className="space-y-6">
+                    {/* Step 1: Academic Years */}
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">
+                        Step 1 — Academic Years Transition
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 mb-1 block">Current Academic Year</label>
+                          <input
+                            type="number"
+                            value={sourceAcademicYear}
+                            onChange={(e) => setSourceAcademicYear(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                            placeholder="e.g. 2026"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 mb-1 block">Destination Academic Year</label>
+                          <input
+                            type="number"
+                            value={destinationAcademicYear}
+                            onChange={(e) => setDestinationAcademicYear(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                            placeholder="e.g. 2027"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step 2 & 4: Source & Destination Grades */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">
+                          Step 2 — Source Grade
+                        </label>
+                        <select
+                          value={promotionSourceGradeId}
+                          onChange={(e) => setPromotionSourceGradeId(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Source Grade</option>
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">
+                          Step 4 — Destination Grade
+                        </label>
+                        <select
+                          value={promotionDestinationGradeId}
+                          onChange={(e) => setPromotionDestinationGradeId(e.target.value)}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Destination Grade</option>
+                          {grades.map(g => (
+                            <option
+                              key={g.id}
+                              value={g.id}
+                              disabled={g.id === promotionSourceGradeId}
+                            >
+                              {g.name} {g.id === promotionSourceGradeId ? '(Current)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Step 3: Learner Selection */}
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                          Step 3 — Select Learners ({selectedPromotionLearnerIds.size} / {promotionLearners.length} Selected)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPromotionLearnerIds(new Set(promotionLearners.map(l => l.id)))}
+                            className="text-[10px] font-bold text-school-primary hover:underline"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-slate-300">•</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPromotionLearnerIds(new Set())}
+                            className="text-[10px] font-bold text-slate-400 hover:underline"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Learner Search Bar */}
+                      <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Filter learners by name or admission number..."
+                          value={promotionSearchQuery}
+                          onChange={(e) => setPromotionSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+                        />
+                      </div>
+
+                      {/* Learner Checkbox Table/List */}
+                      {isPromotionLearnersLoading ? (
+                        <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                          <span className="text-xs font-bold text-slate-500">Loading grade roster...</span>
+                        </div>
+                      ) : filteredPromotionLearners.length > 0 ? (
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white max-h-[220px] overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 z-10">
+                              <tr>
+                                <th className="p-3 w-10 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      filteredPromotionLearners.length > 0 &&
+                                      filteredPromotionLearners.every(l => selectedPromotionLearnerIds.has(l.id))
+                                    }
+                                    onChange={() => {
+                                      const allSelected = filteredPromotionLearners.every(l => selectedPromotionLearnerIds.has(l.id));
+                                      const next = new Set(selectedPromotionLearnerIds);
+                                      if (allSelected) {
+                                        filteredPromotionLearners.forEach(l => next.delete(l.id));
+                                      } else {
+                                        filteredPromotionLearners.forEach(l => next.add(l.id));
+                                      }
+                                      setSelectedPromotionLearnerIds(next);
+                                    }}
+                                    className="rounded border-slate-300 text-school-primary focus:ring-school-primary h-4 w-4 cursor-pointer"
+                                  />
+                                </th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-400 uppercase">Learner</th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-400 uppercase">Admission #</th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-400 uppercase">Current Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {filteredPromotionLearners.map(l => {
+                                const isSelected = selectedPromotionLearnerIds.has(l.id);
+                                return (
+                                  <tr
+                                    key={l.id}
+                                    onClick={() => {
+                                      const next = new Set(selectedPromotionLearnerIds);
+                                      if (next.has(l.id)) next.delete(l.id);
+                                      else next.add(l.id);
+                                      setSelectedPromotionLearnerIds(next);
+                                    }}
+                                    className={cn(
+                                      "cursor-pointer hover:bg-slate-50 transition-colors",
+                                      isSelected && "bg-school-primary/5"
+                                    )}
+                                  >
+                                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => {
+                                          const next = new Set(selectedPromotionLearnerIds);
+                                          if (next.has(l.id)) next.delete(l.id);
+                                          else next.add(l.id);
+                                          setSelectedPromotionLearnerIds(next);
+                                        }}
+                                        className="rounded border-slate-300 text-school-primary focus:ring-school-primary h-4 w-4 cursor-pointer"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-2.5 font-bold text-slate-900">
+                                      {getLearnerFullName(l)}
+                                    </td>
+                                    <td className="px-4 py-2.5 font-mono text-slate-600">
+                                      {l.admission_number || l.accession_number || (l as any).accessionNumber || '---'}
+                                    </td>
+                                    <td className="px-4 py-2.5">
+                                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-slate-100 text-slate-600">
+                                        {l.status || 'Active'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="py-8 text-center bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-400">
+                          No learners found in this grade.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Step 5: Promotion Review Section */
+                  <div className="space-y-6">
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Promotion Summary Review
+                      </h4>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div className="p-3 bg-white rounded-2xl border border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Academic Transition</span>
+                          <span className="font-extrabold text-slate-900">{sourceAcademicYear} → {destinationAcademicYear}</span>
+                        </div>
+                        <div className="p-3 bg-white rounded-2xl border border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Source Grade</span>
+                          <span className="font-extrabold text-slate-900">{grades.find(g => g.id === promotionSourceGradeId)?.name}</span>
+                        </div>
+                        <div className="p-3 bg-white rounded-2xl border border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Destination Grade</span>
+                          <span className="font-extrabold text-school-primary">{grades.find(g => g.id === promotionDestinationGradeId)?.name}</span>
+                        </div>
+                        <div className="p-3 bg-white rounded-2xl border border-slate-100">
+                          <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Total Learners</span>
+                          <span className="font-extrabold text-slate-900">{selectedPromotionLearnerIds.size} Students</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Selected Learners Preview List */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">
+                        Selected Learners to Promote ({selectedPromotionLearnerIds.size})
+                      </span>
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-[220px] overflow-y-auto divide-y divide-slate-100 bg-white">
+                        {Array.from(selectedPromotionLearnerIds).map(id => {
+                          const learner = promotionLearners.find(l => l.id === id);
+                          if (!learner) return null;
+                          return (
+                            <div key={id} className="p-3 flex items-center justify-between text-xs font-bold text-slate-800 hover:bg-slate-50">
+                              <span>{getLearnerFullName(learner)}</span>
+                              <span className="font-mono text-slate-400 text-[10px]">{learner.admission_number || '---'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (promotionStep === 2) setPromotionStep(1);
+                    else setIsPromotionModalOpen(false);
+                  }}
+                  disabled={isSubmittingPromotion}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-xs font-black rounded-xl hover:bg-slate-100 disabled:opacity-50 transition-all uppercase tracking-widest"
+                >
+                  {promotionStep === 2 ? 'Back to Config' : 'Cancel'}
+                </button>
+
+                {promotionStep === 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleProceedToPromotionReview}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    Review Promotion
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSubmitPromotion}
+                    disabled={isSubmittingPromotion || selectedPromotionLearnerIds.size === 0}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    {isSubmittingPromotion ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
+                    Promote Learners
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
