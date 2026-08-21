@@ -162,6 +162,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // Modal State for Bulk Excel Import
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [selectedBulkImportGradeId, setSelectedBulkImportGradeId] = useState<string>('');
 
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
@@ -678,6 +679,9 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   // --- Phase 2 Actions ---
   const handleImportData = () => {
     console.log('📂 [Action] Triggering Bulk Excel Import Modal');
+    if (grades.length > 0 && !selectedBulkImportGradeId) {
+      setSelectedBulkImportGradeId(grades[0].id);
+    }
     setIsBulkImportOpen(true);
   };
 
@@ -1483,17 +1487,82 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
       {/* Bulk Excel Import Modal */}
       {isBulkImportOpen && (
-        <BulkUploadModal
-          isOpen={isBulkImportOpen}
-          onClose={() => setIsBulkImportOpen(false)}
-          schools={currentSchool ? [{ id: schoolId, name: currentSchool.schoolName, email: currentSchool.schoolEmail }] : []}
-          user={user ? { sub: user.sub, name: user.name, email: user.email } : undefined}
-          onUploadSuccess={() => {
-            toast.success('Bulk upload complete! Directory updated.');
-            fetchData();
-            setIsBulkImportOpen(false);
-          }}
-        />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 15 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 15 }}
+            className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100 p-6 space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Bulk Excel Import</h3>
+                  <p className="text-xs font-medium text-slate-500">Select target grade and upload learner spreadsheet.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBulkImportOpen(false)}
+                className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Target Grade Selector */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
+                Target Grade Level <span className="text-rose-500 font-bold">* Required</span>
+              </label>
+              <select
+                value={selectedBulkImportGradeId}
+                onChange={(e) => setSelectedBulkImportGradeId(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+              >
+                <option value="">-- Select Target Grade --</option>
+                {grades.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+              {!selectedBulkImportGradeId && (
+                <p className="text-xs text-rose-500 font-bold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" /> A target grade must be selected before uploading learners.
+                </p>
+              )}
+            </div>
+
+            {selectedBulkImportGradeId ? (
+              <BulkUploadModal
+                isOpen={isBulkImportOpen}
+                onClose={() => setIsBulkImportOpen(false)}
+                selectedGrade={
+                  grades.find(g => g.id === selectedBulkImportGradeId)
+                    ? {
+                        id: selectedBulkImportGradeId,
+                        name: grades.find(g => g.id === selectedBulkImportGradeId)!.name,
+                        school_id: schoolId
+                      }
+                    : null
+                }
+                schools={currentSchool ? [{ id: schoolId, name: currentSchool.schoolName, email: currentSchool.schoolEmail }] : []}
+                user={user ? { sub: user.sub, name: user.name, email: user.email } : undefined}
+                onUploadSuccess={() => {
+                  toast.success('Bulk upload complete! Directory updated.');
+                  fetchData();
+                  setIsBulkImportOpen(false);
+                }}
+              />
+            ) : (
+              <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                <Upload className="w-10 h-10 mb-2 opacity-30" />
+                <p className="font-bold text-sm text-slate-600">Please select a target grade above to enable file upload.</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
       )}
 
       {/* Enroll New Learner Modal */}
