@@ -679,9 +679,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   // --- Phase 2 Actions ---
   const handleImportData = () => {
     console.log('📂 [Action] Triggering Bulk Excel Import Modal');
-    if (grades.length > 0 && !selectedBulkImportGradeId) {
-      setSelectedBulkImportGradeId(grades[0].id);
-    }
+    setSelectedBulkImportGradeId('');
     setIsBulkImportOpen(true);
   };
 

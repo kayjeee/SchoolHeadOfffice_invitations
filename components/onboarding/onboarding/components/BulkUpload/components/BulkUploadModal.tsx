@@ -152,8 +152,8 @@ export const BulkUploadModal: React.FC<BulkUploadProps> = ({
                   {schoolName && <p>School: {schoolName} ({schoolEmail})</p>}
                   {user?.name && <p>User: {user.name} ({user.email})</p>}
                   {auth0Id && <p className="font-mono text-xs">Auth ID: {auth0Id}</p>}
-                  <p className="font-mono text-xs text-red-500">
-                    Schools Count: {safeSchools.length} | Grade School ID: {selectedGrade?.school_id || selectedGrade?.schoolId || 'None'}
+                  <p className="font-mono text-xs text-gray-500">
+                    Grade: <span className="font-bold text-gray-800">{selectedGrade?.name || 'None'}</span> {selectedGrade?.id && `(ID: ${selectedGrade.id})`}
                   </p>
                 </div>
               </div>
