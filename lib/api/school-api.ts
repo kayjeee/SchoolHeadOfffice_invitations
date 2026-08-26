@@ -415,9 +415,47 @@ export class SchoolAPI {
 
   // Subjects
   static async getSubjects(schoolId: string): Promise<Subject[]> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/subjects`, z.any());
-    const subjects = response.subjects || response.data?.subjects || response.data || response;
-    return Array.isArray(subjects) ? subjects.map(s => SubjectSchema.parse(s)) : [];
+    try {
+      const response = await apiClient.get(`/api/v1/subjects?school_id=${schoolId}`, z.any());
+      const subjects = response.subjects || response.data?.subjects || response.data || response;
+      return Array.isArray(subjects) ? subjects.map(s => SubjectSchema.parse(s)) : [];
+    } catch (e) {
+      const response = await apiClient.get(`/api/v1/schools/${schoolId}/subjects`, z.any());
+      const subjects = response.subjects || response.data?.subjects || response.data || response;
+      return Array.isArray(subjects) ? subjects.map(s => SubjectSchema.parse(s)) : [];
+    }
+  }
+
+  static async createSubject(schoolId: string, data: { name: string; code?: string; description?: string; grade_ids?: string[] }): Promise<Subject> {
+    const response = await apiClient.post('/api/v1/subjects', { subject: { ...data, school_id: schoolId } }, z.any());
+    const responseData = (response as any).data || response;
+    const subj = responseData.subject || responseData;
+    return SubjectSchema.parse(subj);
+  }
+
+  static async updateSubject(subjectId: string, data: { name?: string; code?: string; description?: string; grade_ids?: string[] }): Promise<Subject> {
+    const response = await apiClient.patch(`/api/v1/subjects/${subjectId}`, { subject: data }, z.any());
+    const responseData = (response as any).data || response;
+    const subj = responseData.subject || responseData;
+    return SubjectSchema.parse(subj);
+  }
+
+  static async deleteSubject(subjectId: string): Promise<void> {
+    await apiClient.delete(`/api/v1/subjects/${subjectId}`, z.any());
+  }
+
+  static async activateSubject(subjectId: string): Promise<Subject> {
+    const response = await apiClient.patch(`/api/v1/subjects/${subjectId}/activate`, {}, z.any());
+    const responseData = (response as any).data || response;
+    const subj = responseData.subject || responseData;
+    return SubjectSchema.parse(subj);
+  }
+
+  static async deactivateSubject(subjectId: string): Promise<Subject> {
+    const response = await apiClient.patch(`/api/v1/subjects/${subjectId}/deactivate`, {}, z.any());
+    const responseData = (response as any).data || response;
+    const subj = responseData.subject || responseData;
+    return SubjectSchema.parse(subj);
   }
 
   // Attendance

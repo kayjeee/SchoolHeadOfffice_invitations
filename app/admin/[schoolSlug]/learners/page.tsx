@@ -41,7 +41,7 @@ import { toast } from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import { SchoolAPI, Grade, Learner } from '@/lib/api/school-api';
+import { SchoolAPI, Grade, Learner, Subject } from '@/lib/api/school-api';
 import { apiClient } from '@/lib/api/api-client';
 import { useSchoolContext } from '@/components/context/SchoolContext';
 import { z } from 'zod';
@@ -166,6 +166,20 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
+
+  // Subject Management Modal State
+  const [isSubjectsModalOpen, setIsSubjectsModalOpen] = useState(false);
+  const [subjectsList, setSubjectsList] = useState<Subject[]>([]);
+  const [isSubjectsLoading, setIsSubjectsLoading] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [subjectForm, setSubjectForm] = useState({
+    name: '',
+    code: '',
+    description: '',
+    grade_ids: [] as string[]
+  });
+  const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+  const [isSubjectSubmitting, setIsSubjectSubmitting] = useState(false);
 
   // Promotion System Modal State
   const [isPromotionOpen, setIsPromotionOpen] = useState(false);
@@ -716,6 +730,100 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       }
       setPromotionResult(null);
       setIsPromotionOpen(true);
+    }
+  };
+
+  // --- Subject Management Actions ---
+  const fetchSubjects = async () => {
+    if (!schoolId) return;
+    setIsSubjectsLoading(true);
+    try {
+      const data = await SchoolAPI.getSubjects(schoolId);
+      setSubjectsList(data || []);
+    } catch (err) {
+      console.error('Failed to fetch subjects:', err);
+      toast.error('Failed to load subjects.');
+    } finally {
+      setIsSubjectsLoading(false);
+    }
+  };
+
+  const handleOpenSubjectsModal = () => {
+    setEditingSubject(null);
+    setSubjectForm({ name: '', code: '', description: '', grade_ids: [] });
+    setSubjectToDelete(null);
+    setIsSubjectsModalOpen(true);
+    fetchSubjects();
+  };
+
+  const handleSaveSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subjectForm.name.trim()) {
+      toast.error('Subject name is required.');
+      return;
+    }
+    if (!schoolId) return;
+
+    setIsSubjectSubmitting(true);
+    const toastId = toast.loading(editingSubject ? 'Updating subject...' : 'Creating subject...');
+
+    try {
+      if (editingSubject) {
+        await SchoolAPI.updateSubject(editingSubject.id, {
+          name: subjectForm.name.trim(),
+          code: subjectForm.code.trim(),
+          description: subjectForm.description.trim(),
+          grade_ids: subjectForm.grade_ids
+        });
+        toast.success('Subject updated successfully!', { id: toastId });
+      } else {
+        await SchoolAPI.createSubject(schoolId, {
+          name: subjectForm.name.trim(),
+          code: subjectForm.code.trim(),
+          description: subjectForm.description.trim(),
+          grade_ids: subjectForm.grade_ids
+        });
+        toast.success('Subject created successfully!', { id: toastId });
+      }
+
+      setEditingSubject(null);
+      setSubjectForm({ name: '', code: '', description: '', grade_ids: [] });
+      fetchSubjects();
+    } catch (err: any) {
+      console.error('Save subject error:', err);
+      toast.error(`Operation failed: ${err.message}`, { id: toastId });
+    } finally {
+      setIsSubjectSubmitting(false);
+    }
+  };
+
+  const handleToggleSubjectStatus = async (subject: Subject) => {
+    const isCurrentlyActive = subject.status === 'Active' || subject.status === 'active' || !subject.status || subject.status === '1';
+    const actionLabel = isCurrentlyActive ? 'deactivating' : 'activating';
+    const toastId = toast.loading(`${actionLabel.charAt(0).toUpperCase() + actionLabel.slice(1)} subject...`);
+
+    try {
+      if (isCurrentlyActive) {
+        await SchoolAPI.deactivateSubject(subject.id);
+      } else {
+        await SchoolAPI.activateSubject(subject.id);
+      }
+      toast.success(`Subject ${isCurrentlyActive ? 'deactivated' : 'activated'}!`, { id: toastId });
+      fetchSubjects();
+    } catch (err: any) {
+      toast.error(`Failed to change status: ${err.message}`, { id: toastId });
+    }
+  };
+
+  const handleDeleteSubject = async (subject: Subject) => {
+    const toastId = toast.loading('Deleting subject...');
+    try {
+      await SchoolAPI.deleteSubject(subject.id);
+      toast.success('Subject deleted successfully!', { id: toastId });
+      setSubjectToDelete(null);
+      fetchSubjects();
+    } catch (err: any) {
+      toast.error(`Failed to delete subject: ${err.message}`, { id: toastId });
     }
   };
 
@@ -1472,7 +1580,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 { title: 'Attendance Tracking', desc: 'Daily registers and automated absence reporting.', icon: Calendar, phase: 3 },
-                { title: 'Subject Management', desc: 'Link teachers and learners to specific academic subjects.', icon: BookOpen, phase: 3 },
+                {
+                  title: 'Subject Management',
+                  desc: 'Manage school academic subjects, curriculum codes, and grade allocations.',
+                  icon: BookOpen,
+                  phase: 3,
+                  action: 'Manage Subjects',
+                  handler: handleOpenSubjectsModal
+                },
                 { title: 'Timetable Hub', desc: 'Generate and manage class schedules across the school.', icon: ClipboardList, phase: 3 },
                 { title: 'Academic Reports', desc: 'Automated report card generation and grade tracking.', icon: PieChart, phase: 3 },
               ].map((card, i) => (
@@ -1562,6 +1677,305 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           </motion.div>
         </div>
       )}
+
+      {/* Subject Management Modal */}
+      <AnimatePresence>
+        {isSubjectsModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Subject Management</h3>
+                    <p className="text-xs font-medium text-slate-500">Configure academic subjects, codes, and grade allocations.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSubjectsModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Main Body */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column: Subjects List */}
+                <div className="space-y-4 border-r border-slate-100 pr-0 md:pr-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                      Existing Subjects ({subjectsList.length})
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSubject(null);
+                        setSubjectForm({ name: '', code: '', description: '', grade_ids: [] });
+                      }}
+                      className="text-xs font-bold text-school-primary hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> New
+                    </button>
+                  </div>
+
+                  {isSubjectsLoading ? (
+                    <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                      <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                      <span className="text-xs font-bold text-slate-500">Loading subjects...</span>
+                    </div>
+                  ) : subjectsList.length > 0 ? (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                      {subjectsList.map((subject) => {
+                        const isActive = subject.status === 'Active' || subject.status === 'active' || !subject.status || subject.status === '1';
+                        const resolvedGradeNames = (subject as any).grade_names || (subject as any).grades || [];
+
+                        return (
+                          <div
+                            key={subject.id}
+                            className={cn(
+                              "p-4 border rounded-2xl transition-all relative flex flex-col justify-between gap-3",
+                              editingSubject?.id === subject.id
+                                ? "border-school-primary bg-school-primary/5"
+                                : "border-slate-200 bg-white hover:bg-slate-50/50"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h5 className="font-bold text-slate-900 text-sm">{subject.name}</h5>
+                                  {subject.code && (
+                                    <span className="px-2 py-0.5 bg-slate-100 font-mono font-bold text-[10px] text-slate-600 rounded">
+                                      {subject.code}
+                                    </span>
+                                  )}
+                                </div>
+                                {(subject as any).description && (
+                                  <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+                                    {(subject as any).description}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border flex-shrink-0",
+                                isActive ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-100 text-slate-500 border-slate-200"
+                              )}>
+                                {isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+
+                            {/* Grade Allocations */}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                Grades: {Array.isArray(resolvedGradeNames) && resolvedGradeNames.length > 0 ? resolvedGradeNames.join(', ') : 'All Grades'}
+                              </span>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSubject(subject);
+                                    setSubjectForm({
+                                      name: subject.name || '',
+                                      code: subject.code || '',
+                                      description: (subject as any).description || '',
+                                      grade_ids: (subject as any).grade_ids || []
+                                    });
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-school-primary hover:bg-slate-100 rounded-lg transition-all"
+                                  title="Edit Subject"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSubjectStatus(subject)}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-all"
+                                  title={isActive ? 'Deactivate' : 'Activate'}
+                                >
+                                  {isActive ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSubjectToDelete(subject)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-all"
+                                  title="Delete Subject"
+                                >
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                      <BookOpen className="w-8 h-8 mb-2 opacity-30" />
+                      <p className="font-bold text-xs text-slate-600">No subjects configured yet.</p>
+                      <p className="text-[10px] text-slate-400">Use the form on the right to add your first subject.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Form or Delete Confirm */}
+                <div className="space-y-4">
+                  {subjectToDelete ? (
+                    <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl space-y-4 animate-in fade-in">
+                      <div className="flex items-center gap-3 text-rose-800 font-black">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                        <span>Confirm Deletion</span>
+                      </div>
+                      <p className="text-xs text-rose-700 font-medium">
+                        Are you sure you want to delete subject <span className="font-bold text-rose-900">"{subjectToDelete.name}"</span>? This action cannot be undone.
+                      </p>
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubject(subjectToDelete)}
+                          className="flex-1 py-2.5 bg-rose-600 text-white font-black text-xs rounded-xl hover:bg-rose-700 transition-all uppercase tracking-wider"
+                        >
+                          Confirm Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSubjectToDelete(null)}
+                          className="py-2.5 px-4 bg-white border border-rose-200 text-slate-600 font-bold text-xs rounded-xl hover:bg-rose-100 transition-all"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveSubject} className="space-y-4">
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                        {editingSubject ? `Edit "${editingSubject.name}"` : 'Add New Subject'}
+                      </h4>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">
+                          Subject Name <span className="text-rose-500 font-bold">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={subjectForm.name}
+                          onChange={(e) => setSubjectForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          placeholder="e.g. Mathematics, Physical Sciences"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">
+                          Curriculum Code (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={subjectForm.code}
+                          onChange={(e) => setSubjectForm(prev => ({ ...prev, code: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900 font-mono"
+                          placeholder="e.g. MATH-10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">
+                          Description (Optional)
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={subjectForm.description}
+                          onChange={(e) => setSubjectForm(prev => ({ ...prev, description: e.target.value }))}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          placeholder="Brief overview of subject learning outcomes..."
+                        />
+                      </div>
+
+                      {/* Grade Allocations Multi-Select */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">
+                          Allocated Grades
+                        </label>
+                        <div className="grid grid-cols-2 gap-2 max-h-[120px] overflow-y-auto border border-slate-200 p-3 rounded-2xl bg-slate-50">
+                          {grades.map(g => {
+                            const isChecked = subjectForm.grade_ids.includes(g.id);
+                            return (
+                              <label key={g.id} className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    setSubjectForm(prev => {
+                                      const nextIds = isChecked
+                                        ? prev.grade_ids.filter(id => id !== g.id)
+                                        : [...prev.grade_ids, g.id];
+                                      return { ...prev, grade_ids: nextIds };
+                                    });
+                                  }}
+                                  className="rounded border-slate-300 text-school-primary focus:ring-school-primary h-4 w-4"
+                                />
+                                {g.name}
+                              </label>
+                            );
+                          })}
+                          {grades.length === 0 && (
+                            <span className="text-xs text-slate-400 font-medium">No grades available</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={isSubjectSubmitting || !subjectForm.name.trim()}
+                          className="flex-1 py-3 bg-school-primary text-white font-black text-xs rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-school-primary/10"
+                        >
+                          {isSubjectSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          {editingSubject ? 'Update Subject' : 'Save Subject'}
+                        </button>
+                        {editingSubject && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSubject(null);
+                              setSubjectForm({ name: '', code: '', description: '', grade_ids: [] });
+                            }}
+                            className="py-3 px-4 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsSubjectsModalOpen(false)}
+                  className="px-6 py-2 bg-slate-900 text-white font-black text-xs rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Enroll New Learner Modal */}
       <AnimatePresence>
