@@ -267,4 +267,122 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     // Ensure modal successfully closed
     await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
   });
+
+  test('Timetable Hub modal supports By Class / By Teacher views and displays conflict error on 422', async ({ page }) => {
+    // 1. Mock Timetable Entries GET
+    await page.route('**/api/v1/timetable_entries?**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          timetable_entries: [
+            {
+              id: 'tt-1',
+              school_class_id: 'class-1',
+              subject_id: 'sub-1',
+              teacher_id: 'teach-1',
+              subject_name: 'Mathematics',
+              teacher_name: 'Dr. Sarah Jenkins',
+              day_of_week: 1,
+              start_minute: 480,
+              end_minute: 540,
+              room: 'Lab 1',
+              start_time_display: '08:00',
+              end_time_display: '09:00'
+            }
+          ]
+        })
+      });
+    });
+
+    // 2. Mock Classes for Grade
+    await page.route('**/api/v1/grades/grade-10/classes**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          classes: [
+            { id: 'class-1', name: 'Grade 10A' }
+          ]
+        })
+      });
+    });
+
+    // 2b. Mock Teachers API
+    await page.route('**/api/v1/schools/school-123/teachers', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          teachers: [
+            { id: 'teach-1', name: 'Dr. Sarah Jenkins', department: 'Mathematics' }
+          ]
+        })
+      });
+    });
+
+    // 3. Mock Subjects API
+    await page.route('**/api/v1/subjects?**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          subjects: [
+            { id: 'sub-1', name: 'Mathematics', code: 'MATH' }
+          ]
+        })
+      });
+    });
+
+    // 4. Mock Timetable Entry POST with 422 conflict
+    await page.route('**/api/v1/timetable_entries', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Double-booking conflict: Teacher Dr. Sarah Jenkins is already scheduled in Room 101 during this time slot.'
+          })
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // Navigate to page
+    await page.goto(`${baseUrl}/admin/${schoolSlug}/learners`);
+    await page.waitForTimeout(1000);
+
+    // Switch to Academic Modules tab using the main tab list button
+    await page.getByRole('main').getByRole('button', { name: 'Academic Modules' }).click();
+    await page.waitForTimeout(1000);
+
+    // Open Timetable Hub modal
+    const timetableBtn = page.getByRole('button', { name: 'Manage Timetable' });
+    await timetableBtn.scrollIntoViewIfNeeded();
+    await timetableBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Verify header and default view
+    await expect(page.getByRole('heading', { name: 'Timetable Hub' }).last()).toBeVisible();
+    await expect(page.getByText('By Class Schedule')).toBeVisible();
+
+    // Click Add Timetable Entry
+    await page.getByRole('button', { name: 'Add Timetable Entry' }).first().click();
+    await page.waitForTimeout(500);
+
+    // Take screenshot of form
+    await page.screenshot({ path: '/home/jules/verification/screenshots/timetable_form_opened.png' });
+
+    // Submit form to trigger conflict error
+    await page.getByRole('button', { name: 'Save Entry' }).click();
+    await page.waitForTimeout(1000);
+
+    // Verify 422 conflict error message is surfaced
+    await expect(page.getByText('Double-booking conflict: Teacher Dr. Sarah Jenkins is already scheduled in Room 101 during this time slot.')).toBeVisible();
+  });
 });

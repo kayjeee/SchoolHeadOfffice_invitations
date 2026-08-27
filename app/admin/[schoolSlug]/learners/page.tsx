@@ -167,6 +167,33 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
+  // Timetable Hub Modal State
+  const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
+  const [timetableMode, setTimetableMode] = useState<'by_class' | 'by_teacher'>('by_class');
+  const [timetableGradeId, setTimetableGradeId] = useState('');
+  const [timetableClassId, setTimetableClassId] = useState('');
+  const [timetableClasses, setTimetableClasses] = useState<Class[]>([]);
+  const [isTimetableClassesLoading, setIsTimetableClassesLoading] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [timetableTeacherId, setTimetableTeacherId] = useState('');
+  const [timetableAcademicYear, setTimetableAcademicYear] = useState<number>(2026);
+  const [timetableEntries, setTimetableEntries] = useState<any[]>([]);
+  const [isTimetableLoading, setIsTimetableLoading] = useState(false);
+
+  // Timetable Add/Edit Form State
+  const [isTimetableFormOpen, setIsTimetableFormOpen] = useState(false);
+  const [editingTimetableEntryId, setEditingTimetableEntryId] = useState<string | null>(null);
+  const [timetableFormSubjectId, setTimetableFormSubjectId] = useState('');
+  const [timetableFormTeacherId, setTimetableFormTeacherId] = useState('');
+  const [timetableFormClassId, setTimetableFormClassId] = useState('');
+  const [timetableFormDayOfWeek, setTimetableFormDayOfWeek] = useState<number>(1); // 1 = Mon
+  const [timetableFormStartMinute, setTimetableFormStartMinute] = useState<number>(480); // 08:00
+  const [timetableFormEndMinute, setTimetableFormEndMinute] = useState<number>(540); // 09:00
+  const [timetableFormRoom, setTimetableFormRoom] = useState('');
+  const [timetableFormConflictError, setTimetableFormConflictError] = useState<string | null>(null);
+  const [isTimetableFormSubmitting, setIsTimetableFormSubmitting] = useState(false);
+
   // Attendance Tracking Modal State
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceTab, setAttendanceTab] = useState<'register' | 'summary'>('register');
@@ -752,6 +779,185 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       }
       setPromotionResult(null);
       setIsPromotionOpen(true);
+    }
+  };
+
+  // --- Timetable Actions & Effects ---
+  useEffect(() => {
+    if (schoolId && timetableGradeId && isTimetableModalOpen && timetableMode === 'by_class') {
+      setIsTimetableClassesLoading(true);
+      SchoolAPI.getClasses(schoolId, timetableGradeId)
+        .then(data => {
+          setTimetableClasses(data);
+          if (data.length > 0) {
+            setTimetableClassId(data[0].id);
+          } else {
+            setTimetableClassId('');
+            setTimetableEntries([]);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load timetable classes:', err);
+          toast.error('Failed to load classes.');
+        })
+        .finally(() => {
+          setIsTimetableClassesLoading(false);
+        });
+    } else {
+      setTimetableClasses([]);
+      setTimetableClassId('');
+    }
+  }, [schoolId, timetableGradeId, isTimetableModalOpen, timetableMode]);
+
+  // Fetch timetable entries
+  const fetchTimetableEntries = async () => {
+    if (!isTimetableModalOpen) return;
+    if (timetableMode === 'by_class' && !timetableClassId) {
+      setTimetableEntries([]);
+      return;
+    }
+    if (timetableMode === 'by_teacher' && !timetableTeacherId) {
+      setTimetableEntries([]);
+      return;
+    }
+
+    setIsTimetableLoading(true);
+    try {
+      const entries = await SchoolAPI.getTimetableEntries({
+        schoolClassId: timetableMode === 'by_class' ? timetableClassId : undefined,
+        teacherId: timetableMode === 'by_teacher' ? timetableTeacherId : undefined,
+        schoolId: schoolId || undefined,
+        academicYear: timetableAcademicYear
+      });
+      setTimetableEntries(entries);
+    } catch (err) {
+      console.error('Failed to fetch timetable entries:', err);
+      toast.error('Failed to load timetable schedule.');
+    } finally {
+      setIsTimetableLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isTimetableModalOpen) {
+      fetchTimetableEntries();
+    }
+  }, [isTimetableModalOpen, timetableMode, timetableClassId, timetableTeacherId, timetableAcademicYear]);
+
+  const handleOpenTimetableModal = () => {
+    setTimetableMode('by_class');
+    if (grades.length > 0) {
+      setTimetableGradeId(grades[0].id);
+    }
+    if (schoolId) {
+      SchoolAPI.getTeachers(schoolId).then(tList => {
+        setTeachers(tList);
+        if (tList.length > 0) {
+          setTimetableTeacherId(tList[0].id);
+        }
+      }).catch(err => console.error('Failed to load teachers:', err));
+
+      SchoolAPI.getSubjects(schoolId).then(sList => {
+        setSubjects(sList);
+      }).catch(err => console.error('Failed to load subjects:', err));
+    }
+    setIsTimetableModalOpen(true);
+  };
+
+  const handleOpenAddTimetableEntry = (day?: number, startMin?: number) => {
+    setEditingTimetableEntryId(null);
+    setTimetableFormConflictError(null);
+    setTimetableFormSubjectId(subjects.length > 0 ? subjects[0].id : '');
+    setTimetableFormTeacherId(timetableMode === 'by_teacher' ? timetableTeacherId : (teachers.length > 0 ? teachers[0].id : ''));
+    setTimetableFormClassId(timetableMode === 'by_class' ? timetableClassId : '');
+    setTimetableFormDayOfWeek(day || 1);
+    setTimetableFormStartMinute(startMin || 480);
+    setTimetableFormEndMinute((startMin || 480) + 60);
+    setTimetableFormRoom('');
+    setIsTimetableFormOpen(true);
+  };
+
+  const handleEditTimetableEntry = (entry: any) => {
+    setEditingTimetableEntryId(entry.id);
+    setTimetableFormConflictError(null);
+    setTimetableFormSubjectId(entry.subject_id || entry.subjectId || '');
+    setTimetableFormTeacherId(entry.teacher_id || entry.teacherId || '');
+    setTimetableFormClassId(entry.school_class_id || entry.schoolClassId || '');
+    setTimetableFormDayOfWeek(typeof entry.day_of_week === 'number' ? entry.day_of_week : parseInt(entry.day_of_week) || 1);
+    setTimetableFormStartMinute(entry.start_minute || 480);
+    setTimetableFormEndMinute(entry.end_minute || 540);
+    setTimetableFormRoom(entry.room || '');
+    setIsTimetableFormOpen(true);
+  };
+
+  const handleSubmitTimetableForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTimetableFormConflictError(null);
+
+    const targetClassId = timetableMode === 'by_class' ? timetableClassId : timetableFormClassId;
+    const targetTeacherId = timetableMode === 'by_teacher' ? timetableTeacherId : timetableFormTeacherId;
+
+    if (!targetClassId) {
+      setTimetableFormConflictError('Please select a class for this timetable entry.');
+      return;
+    }
+    if (!timetableFormSubjectId) {
+      setTimetableFormConflictError('Please select a subject.');
+      return;
+    }
+    if (!targetTeacherId) {
+      setTimetableFormConflictError('Please select a teacher.');
+      return;
+    }
+    if (timetableFormStartMinute >= timetableFormEndMinute) {
+      setTimetableFormConflictError('End time must be after start time.');
+      return;
+    }
+
+    setIsTimetableFormSubmitting(true);
+    try {
+      const payload = {
+        school_class_id: targetClassId,
+        subject_id: timetableFormSubjectId,
+        teacher_id: targetTeacherId,
+        day_of_week: timetableFormDayOfWeek,
+        start_minute: timetableFormStartMinute,
+        end_minute: timetableFormEndMinute,
+        room: timetableFormRoom,
+        academic_year: timetableAcademicYear,
+        school_id: schoolId || undefined,
+        grade_id: timetableGradeId || undefined,
+      };
+
+      if (editingTimetableEntryId) {
+        await SchoolAPI.updateTimetableEntry(editingTimetableEntryId, payload);
+        toast.success('Timetable entry updated successfully!');
+      } else {
+        await SchoolAPI.createTimetableEntry(payload);
+        toast.success('Timetable entry created successfully!');
+      }
+
+      setIsTimetableFormOpen(false);
+      fetchTimetableEntries();
+    } catch (err: any) {
+      console.error('Timetable entry error:', err);
+      const conflictMsg = err?.details?.message || err?.details?.error || err?.message || 'Failed to save timetable entry.';
+      setTimetableFormConflictError(conflictMsg);
+    } finally {
+      setIsTimetableFormSubmitting(false);
+    }
+  };
+
+  const handleDeleteTimetableEntry = async (entryId: string) => {
+    if (!confirm('Are you sure you want to delete this schedule entry?')) return;
+    try {
+      await SchoolAPI.deleteTimetableEntry(entryId);
+      toast.success('Timetable entry deleted.');
+      setIsTimetableFormOpen(false);
+      fetchTimetableEntries();
+    } catch (err) {
+      console.error('Failed to delete timetable entry:', err);
+      toast.error('Failed to delete entry.');
     }
   };
 
@@ -1753,7 +1959,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   action: 'Manage Subjects',
                   handler: handleOpenSubjectsModal
                 },
-                { title: 'Timetable Hub', desc: 'Generate and manage class schedules across the school.', icon: ClipboardList, phase: 3 },
+                {
+                  title: 'Timetable Hub',
+                  desc: 'Generate and manage class schedules across the school.',
+                  icon: ClipboardList,
+                  phase: 3,
+                  action: 'Manage Timetable',
+                  handler: handleOpenTimetableModal
+                },
                 { title: 'Academic Reports', desc: 'Automated report card generation and grade tracking.', icon: PieChart, phase: 3 },
               ].map((card, i) => (
                 <ManagementCard key={i} {...card} />
@@ -2124,6 +2337,440 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   </button>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Timetable Hub Modal */}
+      <AnimatePresence>
+        {isTimetableModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Timetable Hub</h3>
+                    <p className="text-xs font-medium text-slate-500">Generate and manage weekly class & teacher schedules across the school.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsTimetableModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Scope Mode & Filters Bar */}
+              <div className="p-6 bg-slate-50/30 border-b border-slate-100 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  {/* Mode Selector */}
+                  <div className="inline-flex p-1 bg-slate-200/60 rounded-2xl">
+                    <button
+                      type="button"
+                      onClick={() => setTimetableMode('by_class')}
+                      className={cn(
+                        "px-4 py-2 text-xs font-black rounded-xl transition-all",
+                        timetableMode === 'by_class' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      By Class Schedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimetableMode('by_teacher')}
+                      className={cn(
+                        "px-4 py-2 text-xs font-black rounded-xl transition-all",
+                        timetableMode === 'by_teacher' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      By Teacher Schedule
+                    </button>
+                  </div>
+
+                  {/* Add Entry Action */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddTimetableEntry()}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Timetable Entry
+                  </button>
+                </div>
+
+                {/* Scope Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {timetableMode === 'by_class' ? (
+                    <>
+                      {/* Grade Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Grade</label>
+                        <select
+                          value={timetableGradeId}
+                          onChange={(e) => setTimetableGradeId(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Grade</option>
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Class Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class</label>
+                        <select
+                          value={timetableClassId}
+                          disabled={!timetableGradeId || isTimetableClassesLoading}
+                          onChange={(e) => setTimetableClassId(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900 disabled:opacity-50"
+                        >
+                          {isTimetableClassesLoading ? (
+                            <option>Loading classes...</option>
+                          ) : timetableClasses.length > 0 ? (
+                            timetableClasses.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))
+                          ) : (
+                            <option value="">No classes found</option>
+                          )}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    /* Teacher Selector */
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Teacher</label>
+                      <select
+                        value={timetableTeacherId}
+                        onChange={(e) => setTimetableTeacherId(e.target.value)}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                      >
+                        <option value="">Select Teacher</option>
+                        {teachers.map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.department || 'Faculty'})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Academic Year */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Academic Year</label>
+                    <select
+                      value={timetableAcademicYear}
+                      onChange={(e) => setTimetableAcademicYear(parseInt(e.target.value))}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                    >
+                      {[2025, 2026, 2027].map(yr => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekly Schedule Grid Body */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {isTimetableLoading ? (
+                  <div className="py-16 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                    <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                    <span className="text-xs font-bold text-slate-500">Loading timetable schedule...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {[
+                      { dayNum: 1, label: 'Monday' },
+                      { dayNum: 2, label: 'Tuesday' },
+                      { dayNum: 3, label: 'Wednesday' },
+                      { dayNum: 4, label: 'Thursday' },
+                      { dayNum: 5, label: 'Friday' }
+                    ].map(({ dayNum, label }) => {
+                      const dayEntries = timetableEntries.filter(e => {
+                        const d = typeof e.day_of_week === 'number' ? e.day_of_week : parseInt(e.day_of_week);
+                        return d === dayNum;
+                      }).sort((a, b) => (a.start_minute || 0) - (b.start_minute || 0));
+
+                      return (
+                        <div key={dayNum} className="border border-slate-200 rounded-2xl bg-slate-50/50 overflow-hidden flex flex-col">
+                          {/* Day Header */}
+                          <div className="p-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-slate-700">{label}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAddTimetableEntry(dayNum)}
+                              className="p-1 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
+                              title={`Add entry to ${label}`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Day Slots */}
+                          <div className="p-2 space-y-2 flex-1 min-h-[220px]">
+                            {dayEntries.length > 0 ? (
+                              dayEntries.map((entry, idx) => {
+                                const startStr = entry.start_time_display || `${Math.floor((entry.start_minute || 480) / 60).toString().padStart(2, '0')}:${((entry.start_minute || 480) % 60).toString().padStart(2, '0')}`;
+                                const endStr = entry.end_time_display || `${Math.floor((entry.end_minute || 540) / 60).toString().padStart(2, '0')}:${((entry.end_minute || 540) % 60).toString().padStart(2, '0')}`;
+                                const subjName = entry.subject_name || subjects.find(s => s.id === (entry.subject_id || entry.subjectId))?.name || 'Subject';
+                                const secondaryLabel = timetableMode === 'by_class'
+                                  ? (entry.teacher_name || teachers.find(t => t.id === (entry.teacher_id || entry.teacherId))?.name || 'Teacher')
+                                  : (entry.class_name || timetableClasses.find(c => c.id === (entry.school_class_id || entry.schoolClassId))?.name || 'Class');
+
+                                return (
+                                  <div
+                                    key={entry.id || idx}
+                                    onClick={() => handleEditTimetableEntry(entry)}
+                                    className="p-3 bg-white border border-slate-200 hover:border-school-primary/50 hover:shadow-md rounded-xl cursor-pointer transition-all space-y-1.5 group"
+                                  >
+                                    <div className="flex items-center justify-between text-[10px] font-black text-school-primary uppercase tracking-wider">
+                                      <span>{startStr} - {endStr}</span>
+                                      {entry.room && (
+                                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+                                          Rm {entry.room}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-xs font-black text-slate-900 group-hover:text-school-primary transition-colors">
+                                      {subjName}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-500">
+                                      {secondaryLabel}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="h-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 rounded-xl text-center text-slate-400">
+                                <span className="text-[10px] font-bold">No entries</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAddTimetableEntry(dayNum)}
+                                  className="mt-1 text-[10px] font-black text-school-primary hover:underline"
+                                >
+                                  + Add Entry
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsTimetableModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                >
+                  Close
+                </button>
+                <div className="text-xs font-bold text-slate-400">
+                  Click any schedule entry to edit or delete.
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Timetable Add/Edit Form Modal */}
+      <AnimatePresence>
+        {isTimetableFormOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h4 className="text-lg font-black text-slate-900 tracking-tight">
+                  {editingTimetableEntryId ? 'Edit Timetable Entry' : 'Add Timetable Entry'}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setIsTimetableFormOpen(false)}
+                  className="p-1.5 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitTimetableForm} className="p-6 space-y-4">
+                {/* Conflict Error Alert */}
+                {timetableFormConflictError && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-700 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-black block mb-0.5">Schedule Conflict / Validation Error</span>
+                      {timetableFormConflictError}
+                    </div>
+                  </div>
+                )}
+
+                {/* Subject Selector */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Subject</label>
+                  <select
+                    value={timetableFormSubjectId}
+                    onChange={(e) => setTimetableFormSubjectId(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  >
+                    <option value="">Select Subject</option>
+                    {subjects.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.code || 'SUB'})</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Class Selector (if in By Teacher mode or general) */}
+                {timetableMode === 'by_teacher' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class</label>
+                    <select
+                      value={timetableFormClassId}
+                      onChange={(e) => setTimetableFormClassId(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                    >
+                      <option value="">Select Class</option>
+                      {timetableClasses.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Teacher Selector (if in By Class mode) */}
+                {timetableMode === 'by_class' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Teacher</label>
+                    <select
+                      value={timetableFormTeacherId}
+                      onChange={(e) => setTimetableFormTeacherId(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                    >
+                      <option value="">Select Teacher</option>
+                      {teachers.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Day of Week */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Day of Week</label>
+                  <select
+                    value={timetableFormDayOfWeek}
+                    onChange={(e) => setTimetableFormDayOfWeek(parseInt(e.target.value))}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  >
+                    {[
+                      { num: 1, name: 'Monday' },
+                      { num: 2, name: 'Tuesday' },
+                      { num: 3, name: 'Wednesday' },
+                      { num: 4, name: 'Thursday' },
+                      { num: 5, name: 'Friday' }
+                    ].map(d => (
+                      <option key={d.num} value={d.num}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Start Time & End Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Start Time</label>
+                    <select
+                      value={timetableFormStartMinute}
+                      onChange={(e) => setTimetableFormStartMinute(parseInt(e.target.value))}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                    >
+                      {[480, 540, 600, 660, 720, 780, 840, 900].map(m => {
+                        const hr = Math.floor(m / 60).toString().padStart(2, '0');
+                        const min = (m % 60).toString().padStart(2, '0');
+                        return <option key={m} value={m}>{hr}:{min}</option>;
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">End Time</label>
+                    <select
+                      value={timetableFormEndMinute}
+                      onChange={(e) => setTimetableFormEndMinute(parseInt(e.target.value))}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                    >
+                      {[540, 600, 660, 720, 780, 840, 900, 960].map(m => {
+                        const hr = Math.floor(m / 60).toString().padStart(2, '0');
+                        const min = (m % 60).toString().padStart(2, '0');
+                        return <option key={m} value={m}>{hr}:{min}</option>;
+                      })}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Room */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Room / Venue (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Lab 2 or Room 104"
+                    value={timetableFormRoom}
+                    onChange={(e) => setTimetableFormRoom(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="pt-4 flex items-center justify-between border-t border-slate-100">
+                  {editingTimetableEntryId ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTimetableEntry(editingTimetableEntryId)}
+                      className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 text-xs font-black rounded-xl hover:bg-rose-100 transition-all uppercase tracking-wider"
+                    >
+                      Delete Entry
+                    </button>
+                  ) : <div />}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsTimetableFormOpen(false)}
+                      className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isTimetableFormSubmitting}
+                      className="px-5 py-2 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-wider flex items-center gap-1.5"
+                    >
+                      {isTimetableFormSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {editingTimetableEntryId ? 'Update Entry' : 'Save Entry'}
+                    </button>
+                  </div>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

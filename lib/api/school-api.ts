@@ -148,6 +148,39 @@ export const SubjectSchema = z.object({
   class_count: data.class_count || data.classes || 0
 }));
 
+export const TimetableEntrySchema = z.object({
+  id: z.string().nullish(),
+  _id: z.string().nullish(),
+  school_class_id: z.string().nullish(),
+  schoolClassId: z.string().nullish(),
+  class_name: z.string().nullish(),
+  subject_id: z.string().nullish(),
+  subjectId: z.string().nullish(),
+  subject_name: z.string().nullish(),
+  teacher_id: z.string().nullish(),
+  teacherId: z.string().nullish(),
+  teacher_name: z.string().nullish(),
+  day_of_week: z.any().nullish(),
+  start_minute: z.number().nullish(),
+  end_minute: z.number().nullish(),
+  start_time_display: z.string().nullish(),
+  end_time_display: z.string().nullish(),
+  room: z.string().nullish(),
+  academic_year: z.any().nullish(),
+  school_id: z.string().nullish(),
+  grade_id: z.string().nullish(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  school_class_id: data.school_class_id || data.schoolClassId || '',
+  subject_id: data.subject_id || data.subjectId || '',
+  teacher_id: data.teacher_id || data.teacherId || '',
+  day_of_week: data.day_of_week ?? 1,
+  start_minute: data.start_minute ?? 480,
+  end_minute: data.end_minute ?? 540,
+  room: data.room || '',
+}));
+
 export const ClassSchema = z.object({
   id: z.string().nullish(),
   _id: z.string().nullish(),
@@ -250,6 +283,7 @@ export type Class = z.infer<typeof ClassSchema>;
 export type Teacher = z.infer<typeof TeacherSchema>;
 export type Learner = z.infer<typeof LearnerSchema>;
 export type Subject = z.infer<typeof SubjectSchema>;
+export type TimetableEntry = z.infer<typeof TimetableEntrySchema>;
 
 export interface GradeAssignment {
   id: string;
@@ -495,6 +529,64 @@ export class SchoolAPI {
     if (params.learnerId) url += `&learner_id=${params.learnerId}`;
     const response = await apiClient.get(url, z.any());
     return response.data || response;
+  }
+
+  // Timetable CRUD
+  static async getTimetableEntries(params: {
+    schoolClassId?: string;
+    teacherId?: string;
+    schoolId?: string;
+    academicYear?: string | number;
+  }): Promise<TimetableEntry[]> {
+    let url = `/api/v1/timetable_entries?`;
+    const queryParams: string[] = [];
+    if (params.schoolClassId) queryParams.push(`school_class_id=${encodeURIComponent(params.schoolClassId)}`);
+    if (params.teacherId) queryParams.push(`teacher_id=${encodeURIComponent(params.teacherId)}`);
+    if (params.schoolId) queryParams.push(`school_id=${encodeURIComponent(params.schoolId)}`);
+    if (params.academicYear) queryParams.push(`academic_year=${encodeURIComponent(params.academicYear.toString())}`);
+
+    url += queryParams.join('&');
+    const response = await apiClient.get(url, z.any());
+    const entries = response.timetable_entries || response.data?.timetable_entries || response.data || (Array.isArray(response) ? response : []);
+    return Array.isArray(entries) ? entries.map(e => TimetableEntrySchema.parse(e)) : [];
+  }
+
+  static async createTimetableEntry(payload: {
+    school_class_id: string;
+    subject_id: string;
+    teacher_id: string;
+    day_of_week: number | string;
+    start_minute: number;
+    end_minute: number;
+    room?: string;
+    academic_year?: number | string;
+    school_id?: string;
+    grade_id?: string;
+  }): Promise<TimetableEntry> {
+    const response = await apiClient.post('/api/v1/timetable_entries', payload, z.any());
+    const data = (response as any).timetable_entry || (response as any).data || response;
+    return TimetableEntrySchema.parse(data);
+  }
+
+  static async updateTimetableEntry(id: string, payload: Partial<{
+    school_class_id: string;
+    subject_id: string;
+    teacher_id: string;
+    day_of_week: number | string;
+    start_minute: number;
+    end_minute: number;
+    room?: string;
+    academic_year?: number | string;
+    school_id?: string;
+    grade_id?: string;
+  }>): Promise<TimetableEntry> {
+    const response = await apiClient.patch(`/api/v1/timetable_entries/${id}`, payload, z.any());
+    const data = (response as any).timetable_entry || (response as any).data || response;
+    return TimetableEntrySchema.parse(data);
+  }
+
+  static async deleteTimetableEntry(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/timetable_entries/${id}`, z.any());
   }
 
   // Learner Movement
