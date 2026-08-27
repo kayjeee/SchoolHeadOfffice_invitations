@@ -469,6 +469,34 @@ export class SchoolAPI {
     return response.classes || response.data?.classes || response.data || (Array.isArray(response) ? response : []);
   }
 
+  static async getAttendanceRegister(params: { schoolClassId: string; date: string }): Promise<any> {
+    const response = await apiClient.get(`/api/v1/attendance/register?school_class_id=${params.schoolClassId}&date=${params.date}`, z.any());
+    return response.data || response;
+  }
+
+  static async bulkMarkAttendance(payload: {
+    school_class_id: string;
+    date: string;
+    records: Array<{ learner_id: string; status: string; note?: string }>;
+  }): Promise<any> {
+    const response = await apiClient.post('/api/v1/attendance/bulk_mark', payload, z.any());
+    return response.data || response;
+  }
+
+  static async getAttendanceSummary(params: {
+    schoolId: string;
+    from?: string;
+    to?: string;
+    learnerId?: string;
+  }): Promise<any> {
+    let url = `/api/v1/attendance/summary?school_id=${params.schoolId}`;
+    if (params.from) url += `&from=${params.from}`;
+    if (params.to) url += `&to=${params.to}`;
+    if (params.learnerId) url += `&learner_id=${params.learnerId}`;
+    const response = await apiClient.get(url, z.any());
+    return response.data || response;
+  }
+
   // Learner Movement
   static async moveLearner(learnerId: string, data: { target_class_id: string; school_id: string; grade_id: string }): Promise<void> {
     const endpoint = `/api/v1/schools/${data.school_id}/grades/${data.grade_id}/classes/${data.target_class_id}/move_learner`;

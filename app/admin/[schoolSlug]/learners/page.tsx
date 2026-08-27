@@ -167,6 +167,28 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
+  // Attendance Tracking Modal State
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [attendanceTab, setAttendanceTab] = useState<'register' | 'summary'>('register');
+  const [attendanceGradeId, setAttendanceGradeId] = useState('');
+  const [attendanceClassId, setAttendanceClassId] = useState('');
+  const [attendanceClasses, setAttendanceClasses] = useState<Class[]>([]);
+  const [isAttendanceClassesLoading, setIsAttendanceClassesLoading] = useState(false);
+  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [attendanceRoster, setAttendanceRoster] = useState<Array<{ learner_id: string; learner_name: string; status: string; note?: string }>>([]);
+  const [isAttendanceRosterLoading, setIsAttendanceRosterLoading] = useState(false);
+  const [isAttendanceSubmitting, setIsAttendanceSubmitting] = useState(false);
+
+  // Attendance Summary State
+  const [summaryFromDate, setSummaryFromDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [summaryToDate, setSummaryToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [attendanceSummaryList, setAttendanceSummaryList] = useState<any[]>([]);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+
   // Subject Management Modal State
   const [isSubjectsModalOpen, setIsSubjectsModalOpen] = useState(false);
   const [subjectsList, setSubjectsList] = useState<Subject[]>([]);
@@ -730,6 +752,142 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       }
       setPromotionResult(null);
       setIsPromotionOpen(true);
+    }
+  };
+
+  // --- Attendance Actions & Effects ---
+  // Fetch classes when attendance grade changes
+  useEffect(() => {
+    if (schoolId && attendanceGradeId && isAttendanceModalOpen) {
+      setIsAttendanceClassesLoading(true);
+      SchoolAPI.getClasses(schoolId, attendanceGradeId)
+        .then(data => {
+          setAttendanceClasses(data);
+          if (data.length > 0) {
+            setAttendanceClassId(data[0].id);
+          } else {
+            setAttendanceClassId('');
+            setAttendanceRoster([]);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load attendance classes:', err);
+          toast.error('Failed to load classes.');
+        })
+        .finally(() => {
+          setIsAttendanceClassesLoading(false);
+        });
+    } else {
+      setAttendanceClasses([]);
+      setAttendanceClassId('');
+      setAttendanceRoster([]);
+    }
+  }, [schoolId, attendanceGradeId, isAttendanceModalOpen]);
+
+  // Fetch register roster when attendance class or date changes
+  const fetchAttendanceRegister = async () => {
+    if (!attendanceClassId || !attendanceDate) {
+      setAttendanceRoster([]);
+      return;
+    }
+    setIsAttendanceRosterLoading(true);
+    try {
+      const res = await SchoolAPI.getAttendanceRegister({ schoolClassId: attendanceClassId, date: attendanceDate });
+      const rosterData = res?.roster || res?.register || res?.learners || (Array.isArray(res) ? res : []);
+      setAttendanceRoster(rosterData.map((item: any) => ({
+        learner_id: item.learner_id || item.id || item._id,
+        learner_name: item.learner_name || item.name || getLearnerFullName(item),
+        status: item.status || 'unmarked',
+        note: item.note || ''
+      })));
+    } catch (err) {
+      console.error('Failed to fetch attendance register:', err);
+      toast.error('Failed to load attendance register.');
+    } finally {
+      setIsAttendanceRosterLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAttendanceModalOpen && attendanceTab === 'register' && attendanceClassId && attendanceDate) {
+      fetchAttendanceRegister();
+    }
+  }, [isAttendanceModalOpen, attendanceTab, attendanceClassId, attendanceDate]);
+
+  // Fetch summary when summary dates or modal tab changes
+  const fetchAttendanceSummary = async () => {
+    if (!schoolId) return;
+    setIsSummaryLoading(true);
+    try {
+      const res = await SchoolAPI.getAttendanceSummary({
+        schoolId,
+        from: summaryFromDate,
+        to: summaryToDate
+      });
+      const summaryItems = res?.summary || res?.data || res?.learners || (Array.isArray(res) ? res : []);
+      setAttendanceSummaryList(Array.isArray(summaryItems) ? summaryItems : []);
+    } catch (err) {
+      console.error('Failed to fetch attendance summary:', err);
+      toast.error('Failed to load attendance summary.');
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAttendanceModalOpen && attendanceTab === 'summary' && schoolId) {
+      fetchAttendanceSummary();
+    }
+  }, [isAttendanceModalOpen, attendanceTab, schoolId, summaryFromDate, summaryToDate]);
+
+  const handleOpenAttendanceModal = () => {
+    setAttendanceTab('register');
+    if (grades.length > 0) {
+      setAttendanceGradeId(grades[0].id);
+    }
+    setIsAttendanceModalOpen(true);
+  };
+
+  const handleMarkAllPresent = () => {
+    setAttendanceRoster(prev => prev.map(row => {
+      if (row.status === 'unmarked' || !row.status) {
+        return { ...row, status: 'present' };
+      }
+      return row;
+    }));
+    toast.success('Marked all unmarked learners as Present.');
+  };
+
+  const handleSubmitAttendance = async () => {
+    if (!attendanceClassId) {
+      toast.error('Please select a class.');
+      return;
+    }
+    const markedRecords = attendanceRoster
+      .filter(r => r.status && r.status !== 'unmarked')
+      .map(r => ({ learner_id: r.learner_id, status: r.status, note: r.note || '' }));
+
+    if (markedRecords.length === 0) {
+      toast.error('No marked records to submit. Please set at least one learner status.');
+      return;
+    }
+
+    setIsAttendanceSubmitting(true);
+    const toastId = toast.loading(`Submitting ${markedRecords.length} attendance records...`);
+
+    try {
+      await SchoolAPI.bulkMarkAttendance({
+        school_class_id: attendanceClassId,
+        date: attendanceDate,
+        records: markedRecords
+      });
+      toast.success('Attendance register saved successfully!', { id: toastId });
+      fetchAttendanceRegister();
+    } catch (err: any) {
+      console.error('Submit attendance error:', err);
+      toast.error(`Failed to submit attendance: ${err.message}`, { id: toastId });
+    } finally {
+      setIsAttendanceSubmitting(false);
     }
   };
 
@@ -1579,7 +1737,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           {activeTab === 'academic' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                { title: 'Attendance Tracking', desc: 'Daily registers and automated absence reporting.', icon: Calendar, phase: 3 },
+                {
+                  title: 'Attendance Tracking',
+                  desc: 'Daily registers and automated absence reporting.',
+                  icon: Calendar,
+                  phase: 3,
+                  action: 'Take Register',
+                  handler: handleOpenAttendanceModal
+                },
                 {
                   title: 'Subject Management',
                   desc: 'Manage school academic subjects, curriculum codes, and grade allocations.',
@@ -1677,6 +1842,292 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
           </motion.div>
         </div>
       )}
+
+      {/* Attendance Tracking Modal */}
+      <AnimatePresence>
+        {isAttendanceModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Attendance Tracking</h3>
+                    <p className="text-xs font-medium text-slate-500">Record daily class registers and view student attendance summaries.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAttendanceModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Sub-tabs */}
+              <div className="flex border-b border-slate-100 bg-slate-50/30 px-6">
+                {[
+                  { id: 'register', label: 'Take Register' },
+                  { id: 'summary', label: 'View Summary' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAttendanceTab(tab.id as any)}
+                    className={cn(
+                      "px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all relative border-b-2",
+                      attendanceTab === tab.id ? "border-school-primary text-school-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 max-h-[65vh] overflow-y-auto space-y-6">
+                {attendanceTab === 'register' ? (
+                  <div className="space-y-6">
+                    {/* Controls Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Grade Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Grade</label>
+                        <select
+                          value={attendanceGradeId}
+                          onChange={(e) => setAttendanceGradeId(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Grade</option>
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Class Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class</label>
+                        <select
+                          value={attendanceClassId}
+                          disabled={!attendanceGradeId || isAttendanceClassesLoading}
+                          onChange={(e) => setAttendanceClassId(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900 disabled:opacity-50"
+                        >
+                          {isAttendanceClassesLoading ? (
+                            <option>Loading classes...</option>
+                          ) : attendanceClasses.length > 0 ? (
+                            attendanceClasses.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))
+                          ) : (
+                            <option value="">No classes found</option>
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Date Picker */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Register Date</label>
+                        <input
+                          type="date"
+                          value={attendanceDate}
+                          onChange={(e) => setAttendanceDate(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Action & Roster List */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Class Roster ({attendanceRoster.length} Learners)
+                        </span>
+                        {attendanceRoster.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleMarkAllPresent}
+                            className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Mark All Unmarked as Present
+                          </button>
+                        )}
+                      </div>
+
+                      {isAttendanceRosterLoading ? (
+                        <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                          <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                          <span className="text-xs font-bold text-slate-500">Loading class register...</span>
+                        </div>
+                      ) : attendanceRoster.length > 0 ? (
+                        <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                          <div className="max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200 z-10">
+                                <tr>
+                                  <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
+                                  <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-center">Status Selector</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-150 bg-white">
+                                {attendanceRoster.map((row, index) => (
+                                  <tr key={row.learner_id || index} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3 font-bold text-slate-900">
+                                      {row.learner_name}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <div className="inline-flex p-1 bg-slate-100 rounded-xl gap-1">
+                                        {[
+                                          { id: 'present', label: 'Present', color: 'bg-emerald-600 text-white' },
+                                          { id: 'absent', label: 'Absent', color: 'bg-rose-600 text-white' },
+                                          { id: 'late', label: 'Late', color: 'bg-amber-600 text-white' },
+                                          { id: 'excused', label: 'Excused', color: 'bg-blue-600 text-white' },
+                                          { id: 'unmarked', label: 'Unmarked', color: 'bg-slate-400 text-white' }
+                                        ].map(opt => (
+                                          <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => {
+                                              setAttendanceRoster(prev => prev.map((item, idx) => idx === index ? { ...item, status: opt.id } : item));
+                                            }}
+                                            className={cn(
+                                              "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                                              row.status === opt.id ? opt.color : "text-slate-500 hover:text-slate-800"
+                                            )}
+                                          >
+                                            {opt.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                          <Users className="w-8 h-8 mb-2 opacity-30" />
+                          <p className="font-bold text-xs text-slate-600">
+                            {attendanceGradeId && attendanceClassId ? "No learners found in this class." : "Please select a grade and class above."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Summary Tab */
+                  <div className="space-y-6">
+                    {/* Date Range Picker */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">From Date</label>
+                        <input
+                          type="date"
+                          value={summaryFromDate}
+                          onChange={(e) => setSummaryFromDate(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">To Date</label>
+                        <input
+                          type="date"
+                          value={summaryToDate}
+                          onChange={(e) => setSummaryToDate(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        />
+                      </div>
+                    </div>
+
+                    {isSummaryLoading ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                        <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                        <span className="text-xs font-bold text-slate-500">Loading attendance summary...</span>
+                      </div>
+                    ) : attendanceSummaryList.length > 0 ? (
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                        <div className="max-h-[300px] overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200 z-10">
+                              <tr>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-center">Present</th>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-center">Absent</th>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-center">Late</th>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-center">Excused</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150 bg-white">
+                              {attendanceSummaryList.map((item, idx) => (
+                                <tr key={item.learner_id || idx} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3 font-bold text-slate-900">
+                                    {item.learner_name || item.name || 'Learner'}
+                                  </td>
+                                  <td className="px-4 py-3 text-center font-bold text-emerald-600">
+                                    {item.present_count ?? item.present ?? 0}
+                                  </td>
+                                  <td className="px-4 py-3 text-center font-bold text-rose-600">
+                                    {item.absent_count ?? item.absent ?? 0}
+                                  </td>
+                                  <td className="px-4 py-3 text-center font-bold text-amber-600">
+                                    {item.late_count ?? item.late ?? 0}
+                                  </td>
+                                  <td className="px-4 py-3 text-center font-bold text-blue-600">
+                                    {item.excused_count ?? item.excused ?? 0}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                        <Calendar className="w-8 h-8 mb-2 opacity-30" />
+                        <p className="font-bold text-xs text-slate-600">No attendance records found for this period.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsAttendanceModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                >
+                  Close
+                </button>
+
+                {attendanceTab === 'register' && (
+                  <button
+                    type="button"
+                    onClick={handleSubmitAttendance}
+                    disabled={isAttendanceSubmitting || !attendanceClassId || attendanceRoster.filter(r => r.status && r.status !== 'unmarked').length === 0}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                  >
+                    {isAttendanceSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Save Attendance Register
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Subject Management Modal */}
       <AnimatePresence>
