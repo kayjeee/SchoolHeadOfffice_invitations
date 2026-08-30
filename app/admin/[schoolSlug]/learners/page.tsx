@@ -34,7 +34,9 @@ import {
   AlertTriangle,
   Check,
   HelpCircle,
-  Info
+  Info,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -166,6 +168,16 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
 
   // Mock Modal State for Enrollment
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
+
+  // Class Management Modal State
+  const [isClassManagementOpen, setIsClassManagementOpen] = useState(false);
+  const [classGradeId, setClassGradeId] = useState('');
+  const [classesList, setClassesList] = useState<Class[]>([]);
+  const [isClassesLoading, setIsClassesLoading] = useState(false);
+  const [isClassFormOpen, setIsClassFormOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
+  const [classForm, setClassForm] = useState({ name: '', capacity: 40, class_teacher_id: '' });
+  const [isClassSubmitting, setIsClassSubmitting] = useState(false);
 
   // Timetable Hub Modal State
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
@@ -779,6 +791,119 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       }
       setPromotionResult(null);
       setIsPromotionOpen(true);
+    }
+  };
+
+  // --- Class Management Actions ---
+  const fetchClassesForGrade = async (gradeId: string) => {
+    if (!schoolId || !gradeId) {
+      setClassesList([]);
+      return;
+    }
+    setIsClassesLoading(true);
+    try {
+      const data = await SchoolAPI.getClasses(schoolId, gradeId);
+      setClassesList(data || []);
+    } catch (err) {
+      console.error('Failed to fetch classes:', err);
+      toast.error('Failed to load classes.');
+    } finally {
+      setIsClassesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isClassManagementOpen && classGradeId) {
+      fetchClassesForGrade(classGradeId);
+    }
+  }, [isClassManagementOpen, classGradeId, schoolId]);
+
+  const handleOpenClassManagement = () => {
+    if (grades.length > 0) {
+      setClassGradeId(grades[0].id);
+    }
+    if (schoolId) {
+      SchoolAPI.getTeachers(schoolId).then(setTeachers).catch(() => {});
+    }
+    setIsClassManagementOpen(true);
+  };
+
+  const handleOpenAddClass = () => {
+    setEditingClass(null);
+    setClassForm({ name: '', capacity: 40, class_teacher_id: '' });
+    setIsClassFormOpen(true);
+  };
+
+  const handleEditClass = (cls: Class) => {
+    setEditingClass(cls);
+    setClassForm({
+      name: cls.name || '',
+      capacity: cls.capacity || 40,
+      class_teacher_id: cls.class_teacher_id || ''
+    });
+    setIsClassFormOpen(true);
+  };
+
+  const handleSubmitClassForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schoolId || !classGradeId) return;
+
+    if (!classForm.name.trim()) {
+      toast.error('Class name is required.');
+      return;
+    }
+
+    setIsClassSubmitting(true);
+    try {
+      if (editingClass) {
+        await SchoolAPI.updateClass(schoolId, classGradeId, editingClass.id, {
+          name: classForm.name,
+          capacity: classForm.capacity,
+          class_teacher_id: classForm.class_teacher_id || undefined
+        });
+        if (classForm.class_teacher_id) {
+          await SchoolAPI.assignTeacher(editingClass.id, {
+            teacher_id: classForm.class_teacher_id,
+            role: 'class_teacher'
+          }).catch(() => {});
+        }
+        toast.success('Class updated successfully.');
+      } else {
+        const createdCls = await SchoolAPI.createClass(schoolId, classGradeId, {
+          name: classForm.name,
+          capacity: classForm.capacity,
+          class_teacher_id: classForm.class_teacher_id || undefined
+        });
+        if (classForm.class_teacher_id && createdCls.id) {
+          await SchoolAPI.assignTeacher(createdCls.id, {
+            teacher_id: classForm.class_teacher_id,
+            role: 'class_teacher'
+          }).catch(() => {});
+        }
+        toast.success('Class created successfully.');
+      }
+
+      setIsClassFormOpen(false);
+      fetchClassesForGrade(classGradeId);
+    } catch (err) {
+      console.error('Failed to save class:', err);
+      toast.error('Failed to save class.');
+    } finally {
+      setIsClassSubmitting(false);
+    }
+  };
+
+  const handleDeleteClass = async (classId: string) => {
+    if (!schoolId || !classGradeId) return;
+    if (!confirm('Are you sure you want to delete this class?')) return;
+
+    try {
+      await SchoolAPI.deleteClass(schoolId, classGradeId, classId);
+      toast.success('Class deleted.');
+      fetchClassesForGrade(classGradeId);
+    } catch (err) {
+      console.error('Failed to delete class:', err);
+      toast.error('Failed to delete class.');
     }
   };
 
@@ -1934,6 +2059,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   handler: handleViewMetrics,
                   loading: isProcessing === 'metrics'
                 },
+                {
+                  title: 'Class Management',
+                  desc: 'Create and configure classroom sections, capacities, and form teachers.',
+                  icon: LayoutGrid,
+                  phase: 2,
+                  action: 'Manage Classes',
+                  handler: handleOpenClassManagement
+                },
               ].map((card, i) => (
                 <ManagementCard key={i} {...card} />
               ))}
@@ -2337,6 +2470,239 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   </button>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Class Management Modal */}
+      <AnimatePresence>
+        {isClassManagementOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <LayoutGrid className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Classroom Section Management</h3>
+                    <p className="text-xs font-medium text-slate-500">Configure grade classes, student capacities, and assign class form teachers.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsClassManagementOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Controls Bar */}
+              <div className="p-6 bg-slate-50/30 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+                <div className="w-full sm:w-64 space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Select Grade</label>
+                  <select
+                    value={classGradeId}
+                    onChange={(e) => setClassGradeId(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  >
+                    <option value="">Select Grade</option>
+                    {grades.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenAddClass}
+                  disabled={!classGradeId}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Class Section
+                </button>
+              </div>
+
+              {/* Classes List */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {isClassesLoading ? (
+                  <div className="py-16 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                    <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                    <span className="text-xs font-bold text-slate-500">Loading classroom sections...</span>
+                  </div>
+                ) : classesList.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {classesList.map((cls) => {
+                      const currentLearners = cls.current_learners || 0;
+                      const cap = cls.capacity || 40;
+                      const pct = Math.min(100, Math.round((currentLearners / cap) * 100));
+
+                      return (
+                        <div
+                          key={cls.id}
+                          className="p-5 bg-white border border-slate-200 rounded-2xl hover:border-school-primary/40 transition-all space-y-3"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="text-base font-black text-slate-900">{cls.name}</h4>
+                              <p className="text-xs font-bold text-slate-500 flex items-center gap-1 mt-0.5">
+                                <Users className="w-3.5 h-3.5 text-slate-400" />
+                                {cls.class_teacher_name || 'No Form Teacher Assigned'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEditClass(cls)}
+                                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+                                title="Edit Class"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteClass(cls.id)}
+                                className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 transition-colors"
+                                title="Delete Class"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Capacity Progress Bar */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
+                              <span className="text-slate-400">Occupancy</span>
+                              <span className="text-slate-700">{currentLearners} / {cap} ({pct}%)</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all",
+                                  pct > 90 ? "bg-rose-500" : pct > 75 ? "bg-amber-500" : "bg-school-primary"
+                                )}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-16 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                    <LayoutGrid className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="font-bold text-xs text-slate-600">
+                      {classGradeId ? "No class sections found for this grade." : "Please select a grade above."}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsClassManagementOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add / Edit Class Modal */}
+      <AnimatePresence>
+        {isClassFormOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h4 className="text-lg font-black text-slate-900 tracking-tight">
+                  {editingClass ? 'Edit Class Section' : 'Add Class Section'}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setIsClassFormOpen(false)}
+                  className="p-1.5 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitClassForm} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Grade 10A or 10-Science"
+                    value={classForm.name}
+                    onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Capacity Limit</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={classForm.capacity}
+                    onChange={(e) => setClassForm({ ...classForm, capacity: parseInt(e.target.value) || 40 })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Form / Class Teacher</label>
+                  <select
+                    value={classForm.class_teacher_id}
+                    onChange={(e) => setClassForm({ ...classForm, class_teacher_id: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  >
+                    <option value="">No Teacher Assigned</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.department || 'Faculty'})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsClassFormOpen(false)}
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-wider"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isClassSubmitting}
+                    className="px-5 py-2 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                    {isClassSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {editingClass ? 'Update Class' : 'Create Class'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

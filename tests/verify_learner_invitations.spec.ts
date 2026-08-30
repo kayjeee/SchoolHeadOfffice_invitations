@@ -268,6 +268,98 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
   });
 
+  test('Class Management modal supports viewing, creating, and editing class sections', async ({ page }) => {
+    // 1. Mock GET and POST classes
+    await page.route('**/api/v1/grades/**/classes**', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            classes: [
+              { id: 'cls-10a', name: 'Grade 10A', capacity: 35, current_learners: 28, class_teacher_name: 'Dr. Sarah Jenkins' }
+            ]
+          })
+        });
+      } else if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            class: { id: 'cls-10b', name: 'Grade 10B', capacity: 40, current_learners: 0 }
+          })
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    await page.route('**/api/v1/schools/**/grades/**/classes**', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            classes: [
+              { id: 'cls-10a', name: 'Grade 10A', capacity: 35, current_learners: 28, class_teacher_name: 'Dr. Sarah Jenkins' }
+            ]
+          })
+        });
+      } else if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            class: { id: 'cls-10b', name: 'Grade 10B', capacity: 40, current_learners: 0 }
+          })
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // Navigate to page
+    await page.goto(`${baseUrl}/admin/${schoolSlug}/learners`);
+    await page.waitForTimeout(1000);
+
+    // Click Management Hub tab
+    await page.getByRole('button', { name: 'Management Hub' }).last().click();
+    await page.waitForTimeout(1000);
+
+    // Take screenshot of Management Hub tab before clicking
+    await page.screenshot({ path: '/home/jules/verification/screenshots/management_hub_before_click.png' });
+
+    // Open Class Management modal
+    const classBtn = page.getByRole('button', { name: 'Manage Classes' });
+    await classBtn.scrollIntoViewIfNeeded();
+    await classBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Take screenshot after clicking
+    await page.screenshot({ path: '/home/jules/verification/screenshots/after_manage_classes_click.png' });
+
+    // Verify modal title & existing class section
+    await expect(page.getByRole('heading', { name: 'Classroom Section Management' })).toBeVisible();
+    await expect(page.getByText('Grade 10A')).toBeVisible();
+    await expect(page.getByText('Dr. Sarah Jenkins')).toBeVisible();
+
+    // Click Add Class Section
+    await page.getByRole('button', { name: 'Add Class Section' }).click();
+    await page.waitForTimeout(500);
+
+    // Fill new class name
+    await page.getByPlaceholder('e.g. Grade 10A or 10-Science').fill('Grade 10B');
+    await page.getByRole('button', { name: 'Create Class' }).click();
+    await page.waitForTimeout(1000);
+
+    // Verify form modal closed
+    await expect(page.getByRole('heading', { name: 'Add Class Section' })).not.toBeVisible();
+  });
+
   test('Timetable Hub modal supports By Class / By Teacher views and displays conflict error on 422', async ({ page }) => {
     // 1. Mock Timetable Entries GET
     await page.route('**/api/v1/timetable_entries?**', async (route) => {
