@@ -148,6 +148,26 @@ export const SubjectSchema = z.object({
   class_count: data.class_count || data.classes || 0
 }));
 
+export const AssessmentSchema = z.object({
+  id: z.string().nullish(),
+  _id: z.string().nullish(),
+  name: z.string().nullish(),
+  title: z.string().nullish(),
+  max_score: z.number().nullish().default(100),
+  maxScore: z.number().nullish(),
+  date: z.string().nullish(),
+  grade_id: z.string().nullish(),
+  subject_id: z.string().nullish(),
+  subject_name: z.string().nullish(),
+  term: z.any().nullish(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  name: data.name || data.title || 'Unnamed Assessment',
+  max_score: data.max_score || data.maxScore || 100,
+  date: data.date || new Date().toISOString().split('T')[0],
+}));
+
 export const TimetableEntrySchema = z.object({
   id: z.string().nullish(),
   _id: z.string().nullish(),
@@ -284,6 +304,7 @@ export type Teacher = z.infer<typeof TeacherSchema>;
 export type Learner = z.infer<typeof LearnerSchema>;
 export type Subject = z.infer<typeof SubjectSchema>;
 export type TimetableEntry = z.infer<typeof TimetableEntrySchema>;
+export type Assessment = z.infer<typeof AssessmentSchema>;
 
 export interface GradeAssignment {
   id: string;
@@ -527,6 +548,61 @@ export class SchoolAPI {
     if (params.from) url += `&from=${params.from}`;
     if (params.to) url += `&to=${params.to}`;
     if (params.learnerId) url += `&learner_id=${params.learnerId}`;
+    const response = await apiClient.get(url, z.any());
+    return response.data || response;
+  }
+
+  // Assessments & Academic Results CRUD
+  static async getAssessments(params: {
+    gradeId?: string;
+    subjectId?: string;
+    term?: string | number;
+    schoolId?: string;
+  }): Promise<Assessment[]> {
+    let url = `/api/v1/assessments?`;
+    const queryParams: string[] = [];
+    if (params.gradeId) queryParams.push(`grade_id=${encodeURIComponent(params.gradeId)}`);
+    if (params.subjectId) queryParams.push(`subject_id=${encodeURIComponent(params.subjectId)}`);
+    if (params.term) queryParams.push(`term=${encodeURIComponent(params.term.toString())}`);
+    if (params.schoolId) queryParams.push(`school_id=${encodeURIComponent(params.schoolId)}`);
+
+    url += queryParams.join('&');
+    const response = await apiClient.get(url, z.any());
+    const assessments = response.assessments || response.data?.assessments || response.data || (Array.isArray(response) ? response : []);
+    return Array.isArray(assessments) ? assessments.map(a => AssessmentSchema.parse(a)) : [];
+  }
+
+  static async createAssessment(payload: {
+    name: string;
+    max_score: number;
+    date?: string;
+    grade_id?: string;
+    subject_id?: string;
+    term?: string | number;
+    school_id?: string;
+  }): Promise<Assessment> {
+    const response = await apiClient.post('/api/v1/assessments', { assessment: payload }, z.any());
+    const data = (response as any).assessment || (response as any).data || response;
+    return AssessmentSchema.parse(data);
+  }
+
+  static async bulkRecordResults(payload: {
+    assessment_id: string;
+    results: Array<{ learner_id: string; score: number; comment?: string }>;
+  }): Promise<any> {
+    const response = await apiClient.post('/api/v1/results/bulk_record', payload, z.any());
+    return response.data || response;
+  }
+
+  static async getReportCard(params: {
+    learnerId: string;
+    academicYear?: string | number;
+    term?: string | number;
+  }): Promise<any> {
+    let url = `/api/v1/results/report_card?learner_id=${encodeURIComponent(params.learnerId)}`;
+    if (params.academicYear) url += `&academic_year=${encodeURIComponent(params.academicYear.toString())}`;
+    if (params.term) url += `&term=${encodeURIComponent(params.term.toString())}`;
+
     const response = await apiClient.get(url, z.any());
     return response.data || response;
   }

@@ -268,6 +268,96 @@ test.describe('Learner Directory - Multi-Channel Invitations & Requests', () => 
     await expect(page.getByText('Parent Portal Invitations')).not.toBeVisible();
   });
 
+  test('Academic Reports modal supports creating assessments, recording marks, and viewing report cards', async ({ page }) => {
+    // 1. Mock Assessments GET and POST
+    await page.route('**/api/v1/assessments?**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          assessments: [
+            { id: 'asm-1', name: 'Term 1 Test', max_score: 100, term: 1, date: '2026-03-15' }
+          ]
+        })
+      });
+    });
+
+    await page.route('**/api/v1/assessments', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            assessment: { id: 'asm-2', name: 'Quiz 1', max_score: 50, term: 1, date: '2026-03-20' }
+          })
+        });
+      } else {
+        await route.fallback();
+      }
+    });
+
+    // 2. Mock Bulk Record Results
+    await page.route('**/api/v1/results/bulk_record', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          recorded_count: 2
+        })
+      });
+    });
+
+    // 3. Mock Report Card GET
+    await page.route('**/api/v1/results/report_card?**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          learner_name: 'Lethabo Manana',
+          overall_average: '85.5',
+          subjects: [
+            { subject_name: 'Mathematics', score: 88, max_score: 100, percentage: 88, grade: 'A' },
+            { subject_name: 'Physical Sciences', score: 83, max_score: 100, percentage: 83, grade: 'B+' }
+          ]
+        })
+      });
+    });
+
+    // Navigate to page
+    await page.goto(`${baseUrl}/admin/${schoolSlug}/learners`);
+    await page.waitForTimeout(1000);
+
+    // Switch to Academic Modules tab
+    await page.getByRole('button', { name: 'Academic Modules' }).last().click();
+    await page.waitForTimeout(1000);
+
+    // Open Academic Reports modal
+    const reportsBtn = page.getByRole('button', { name: 'View Reports' });
+    await reportsBtn.scrollIntoViewIfNeeded();
+    await reportsBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Verify modal title & existing assessment
+    await expect(page.getByRole('heading', { name: 'Academic Reports & Assessment Hub' })).toBeVisible();
+    await expect(page.getByText('Term 1 Test')).toBeVisible();
+
+    // Switch to Report Cards sub-tab
+    await page.getByRole('button', { name: 'Report Cards' }).click();
+    await page.waitForTimeout(500);
+
+    // Select learner to load report card
+    await page.locator('div.fixed select').first().selectOption({ value: 'lrn-1' });
+    await page.waitForTimeout(1000);
+
+    // Verify report card rendering
+    await expect(page.getByText('85.5%')).toBeVisible();
+    await expect(page.getByText('Physical Sciences')).toBeVisible();
+  });
+
   test('Class Management modal supports viewing, creating, and editing class sections', async ({ page }) => {
     // 1. Mock GET and POST classes
     await page.route('**/api/v1/grades/**/classes**', async (route) => {

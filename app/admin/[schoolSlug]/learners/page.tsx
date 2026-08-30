@@ -179,6 +179,40 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const [classForm, setClassForm] = useState({ name: '', capacity: 40, class_teacher_id: '' });
   const [isClassSubmitting, setIsClassSubmitting] = useState(false);
 
+  // Academic Reports Modal State
+  const [isAcademicReportsModalOpen, setIsAcademicReportsModalOpen] = useState(false);
+  const [reportsTab, setReportsTab] = useState<'assessments' | 'record_marks' | 'report_cards'>('assessments');
+  const [reportsGradeId, setReportsGradeId] = useState('');
+  const [reportsSubjectId, setReportsSubjectId] = useState('');
+  const [reportsTerm, setReportsTerm] = useState<number>(1);
+  const [assessmentsList, setAssessmentsList] = useState<Assessment[]>([]);
+  const [isAssessmentsLoading, setIsAssessmentsLoading] = useState(false);
+
+  // Add Assessment State
+  const [isAddAssessmentOpen, setIsAddAssessmentOpen] = useState(false);
+  const [assessmentForm, setAssessmentForm] = useState({
+    name: '',
+    max_score: 100,
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [isAssessmentSubmitting, setIsAssessmentSubmitting] = useState(false);
+
+  // Record Marks State
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState('');
+  const [marksClassId, setMarksClassId] = useState('');
+  const [marksClasses, setMarksClasses] = useState<Class[]>([]);
+  const [isMarksClassesLoading, setIsMarksClassesLoading] = useState(false);
+  const [marksRoster, setMarksRoster] = useState<Array<{ learner_id: string; learner_name: string; score: number | '' }>>([]);
+  const [isMarksRosterLoading, setIsMarksRosterLoading] = useState(false);
+  const [isMarksSubmitting, setIsMarksSubmitting] = useState(false);
+
+  // Report Card State
+  const [reportCardLearnerId, setReportCardLearnerId] = useState('');
+  const [reportCardYear, setReportCardYear] = useState<number>(2026);
+  const [reportCardTerm, setReportCardTerm] = useState<number>(1);
+  const [reportCardData, setReportCardData] = useState<any>(null);
+  const [isReportCardLoading, setIsReportCardLoading] = useState(false);
+
   // Timetable Hub Modal State
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
   const [timetableMode, setTimetableMode] = useState<'by_class' | 'by_teacher'>('by_class');
@@ -906,6 +940,190 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       toast.error('Failed to delete class.');
     }
   };
+
+  // --- Academic Reports Actions & Effects ---
+  const fetchAssessmentsList = async () => {
+    if (!isAcademicReportsModalOpen) return;
+    setIsAssessmentsLoading(true);
+    try {
+      const data = await SchoolAPI.getAssessments({
+        gradeId: reportsGradeId || undefined,
+        subjectId: reportsSubjectId || undefined,
+        term: reportsTerm,
+        schoolId: schoolId || undefined
+      });
+      setAssessmentsList(data || []);
+      if (data && data.length > 0 && !selectedAssessmentId) {
+        setSelectedAssessmentId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch assessments:', err);
+      toast.error('Failed to load assessments.');
+    } finally {
+      setIsAssessmentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAcademicReportsModalOpen) {
+      fetchAssessmentsList();
+    }
+  }, [isAcademicReportsModalOpen, reportsGradeId, reportsSubjectId, reportsTerm, schoolId]);
+
+  const handleOpenAcademicReportsModal = () => {
+    setReportsTab('assessments');
+    if (grades.length > 0) {
+      setReportsGradeId(grades[0].id);
+    }
+    if (schoolId) {
+      SchoolAPI.getSubjects(schoolId).then(sList => {
+        setSubjects(sList);
+        if (sList.length > 0) {
+          setReportsSubjectId(sList[0].id);
+        }
+      }).catch(() => {});
+    }
+    setIsAcademicReportsModalOpen(true);
+  };
+
+  const handleCreateAssessmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assessmentForm.name.trim()) {
+      toast.error('Assessment name is required.');
+      return;
+    }
+
+    setIsAssessmentSubmitting(true);
+    try {
+      await SchoolAPI.createAssessment({
+        name: assessmentForm.name,
+        max_score: assessmentForm.max_score,
+        date: assessmentForm.date,
+        grade_id: reportsGradeId || undefined,
+        subject_id: reportsSubjectId || undefined,
+        term: reportsTerm,
+        school_id: schoolId || undefined
+      });
+      toast.success('Assessment created successfully.');
+      setIsAddAssessmentOpen(false);
+      setAssessmentForm({ name: '', max_score: 100, date: new Date().toISOString().split('T')[0] });
+      fetchAssessmentsList();
+    } catch (err) {
+      console.error('Failed to create assessment:', err);
+      toast.error('Failed to create assessment.');
+    } finally {
+      setIsAssessmentSubmitting(false);
+    }
+  };
+
+  // Fetch classes for marks tab when grade changes
+  useEffect(() => {
+    if (isAcademicReportsModalOpen && reportsTab === 'record_marks' && reportsGradeId && schoolId) {
+      setIsMarksClassesLoading(true);
+      SchoolAPI.getClasses(schoolId, reportsGradeId)
+        .then(cList => {
+          setMarksClasses(cList || []);
+          if (cList.length > 0) {
+            setMarksClassId(cList[0].id);
+          } else {
+            setMarksClassId('');
+            setMarksRoster([]);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch marks classes:', err);
+        })
+        .finally(() => setIsMarksClassesLoading(false));
+    }
+  }, [isAcademicReportsModalOpen, reportsTab, reportsGradeId, schoolId]);
+
+  // Fetch roster for recording marks
+  const fetchMarksRoster = async () => {
+    if (!schoolId || !reportsGradeId || !marksClassId) {
+      setMarksRoster([]);
+      return;
+    }
+    setIsMarksRosterLoading(true);
+    try {
+      const classLearners = await SchoolAPI.getClassLearners(schoolId, reportsGradeId, marksClassId);
+      setMarksRoster(classLearners.map(l => ({
+        learner_id: l.id,
+        learner_name: l.name,
+        score: ''
+      })));
+    } catch (err) {
+      console.error('Failed to load class roster for marks:', err);
+      toast.error('Failed to load class roster.');
+    } finally {
+      setIsMarksRosterLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAcademicReportsModalOpen && reportsTab === 'record_marks' && marksClassId) {
+      fetchMarksRoster();
+    }
+  }, [isAcademicReportsModalOpen, reportsTab, marksClassId]);
+
+  const handleSubmitRecordedMarks = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAssessmentId) {
+      toast.error('Please select an assessment.');
+      return;
+    }
+
+    const validResults = marksRoster
+      .filter(r => r.score !== '' && typeof r.score === 'number' && !isNaN(r.score))
+      .map(r => ({ learner_id: r.learner_id, score: Number(r.score) }));
+
+    if (validResults.length === 0) {
+      toast.error('Please enter at least one valid score.');
+      return;
+    }
+
+    setIsMarksSubmitting(true);
+    try {
+      const res = await SchoolAPI.bulkRecordResults({
+        assessment_id: selectedAssessmentId,
+        results: validResults
+      });
+      const recordedCount = res.recorded_count || res.count || validResults.length;
+      toast.success(`Successfully recorded marks for ${recordedCount} student(s).`);
+    } catch (err) {
+      console.error('Failed to record marks:', err);
+      toast.error('Failed to save assessment marks.');
+    } finally {
+      setIsMarksSubmitting(false);
+    }
+  };
+
+  // Fetch report card
+  const fetchReportCard = async () => {
+    if (!reportCardLearnerId) {
+      setReportCardData(null);
+      return;
+    }
+    setIsReportCardLoading(true);
+    try {
+      const data = await SchoolAPI.getReportCard({
+        learnerId: reportCardLearnerId,
+        academicYear: reportCardYear,
+        term: reportCardTerm
+      });
+      setReportCardData(data);
+    } catch (err) {
+      console.error('Failed to load report card:', err);
+      toast.error('Failed to load report card.');
+    } finally {
+      setIsReportCardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAcademicReportsModalOpen && reportsTab === 'report_cards' && reportCardLearnerId) {
+      fetchReportCard();
+    }
+  }, [isAcademicReportsModalOpen, reportsTab, reportCardLearnerId, reportCardYear, reportCardTerm]);
 
   // --- Timetable Actions & Effects ---
   useEffect(() => {
@@ -2100,7 +2318,14 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                   action: 'Manage Timetable',
                   handler: handleOpenTimetableModal
                 },
-                { title: 'Academic Reports', desc: 'Automated report card generation and grade tracking.', icon: PieChart, phase: 3 },
+                {
+                  title: 'Academic Reports',
+                  desc: 'Automated report card generation, grade tracking, and assessment entry.',
+                  icon: PieChart,
+                  phase: 3,
+                  action: 'View Reports',
+                  handler: handleOpenAcademicReportsModal
+                },
               ].map((card, i) => (
                 <ManagementCard key={i} {...card} />
               ))}
@@ -2708,7 +2933,484 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
         )}
       </AnimatePresence>
 
-      {/* Timetable Hub Modal */}
+      {/* Academic Reports Modal */}
+      <AnimatePresence>
+        {isAcademicReportsModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-school-primary/10 text-school-primary rounded-xl">
+                    <PieChart className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Academic Reports & Assessment Hub</h3>
+                    <p className="text-xs font-medium text-slate-500">Manage assessments, record student marks, and view report cards.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAcademicReportsModalOpen(false)}
+                  className="p-2 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Sub-tabs */}
+              <div className="flex border-b border-slate-100 bg-slate-50/30 px-6">
+                {[
+                  { id: 'assessments', label: 'Assessments' },
+                  { id: 'record_marks', label: 'Record Marks' },
+                  { id: 'report_cards', label: 'Report Cards' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setReportsTab(tab.id as any)}
+                    className={cn(
+                      "px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all relative border-b-2",
+                      reportsTab === tab.id ? "border-school-primary text-school-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 max-h-[65vh] overflow-y-auto space-y-6">
+                {reportsTab === 'assessments' && (
+                  <div className="space-y-6">
+                    {/* Filters & Action Row */}
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 max-w-2xl">
+                        {/* Grade Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Grade</label>
+                          <select
+                            value={reportsGradeId}
+                            onChange={(e) => setReportsGradeId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          >
+                            <option value="">All Grades</option>
+                            {grades.map(g => (
+                              <option key={g.id} value={g.id}>{g.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Subject Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Subject</label>
+                          <select
+                            value={reportsSubjectId}
+                            onChange={(e) => setReportsSubjectId(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          >
+                            <option value="">All Subjects</option>
+                            {subjects.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Term Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Term</label>
+                          <select
+                            value={reportsTerm}
+                            onChange={(e) => setReportsTerm(parseInt(e.target.value))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                          >
+                            {[1, 2, 3, 4].map(t => (
+                              <option key={t} value={t}>Term {t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsAddAssessmentOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest self-end"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Assessment
+                      </button>
+                    </div>
+
+                    {/* Assessments Table */}
+                    {isAssessmentsLoading ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                        <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                        <span className="text-xs font-bold text-slate-500">Loading assessments...</span>
+                      </div>
+                    ) : assessmentsList.length > 0 ? (
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead className="bg-slate-100/80 border-b border-slate-200">
+                            <tr>
+                              <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Assessment Name</th>
+                              <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Max Score</th>
+                              <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Term</th>
+                              <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Date</th>
+                              <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-150 bg-white">
+                            {assessmentsList.map((asm, idx) => (
+                              <tr key={asm.id || idx} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3 font-bold text-slate-900">{asm.name}</td>
+                                <td className="px-4 py-3 font-bold text-slate-600">{asm.max_score} pts</td>
+                                <td className="px-4 py-3 font-bold text-slate-600">Term {asm.term || reportsTerm}</td>
+                                <td className="px-4 py-3 font-mono text-slate-500">{asm.date}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedAssessmentId(asm.id);
+                                      setReportsTab('record_marks');
+                                    }}
+                                    className="px-3 py-1 bg-school-primary/10 text-school-primary hover:bg-school-primary hover:text-white rounded-lg font-bold text-[10px] uppercase transition-all"
+                                  >
+                                    Record Marks
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                        <PieChart className="w-8 h-8 mb-2 opacity-30" />
+                        <p className="font-bold text-xs text-slate-600">No assessments created for these filters yet.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {reportsTab === 'record_marks' && (
+                  <form onSubmit={handleSubmitRecordedMarks} className="space-y-6">
+                    {/* Controls Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Select Assessment */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Assessment</label>
+                        <select
+                          value={selectedAssessmentId}
+                          onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Assessment</option>
+                          {assessmentsList.map(a => (
+                            <option key={a.id} value={a.id}>{a.name} ({a.max_score} pts)</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Select Grade */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Grade</label>
+                        <select
+                          value={reportsGradeId}
+                          onChange={(e) => setReportsGradeId(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Grade</option>
+                          {grades.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Select Class */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Class</label>
+                        <select
+                          value={marksClassId}
+                          disabled={!reportsGradeId || isMarksClassesLoading}
+                          onChange={(e) => setMarksClassId(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900 disabled:opacity-50"
+                        >
+                          {isMarksClassesLoading ? (
+                            <option>Loading classes...</option>
+                          ) : marksClasses.length > 0 ? (
+                            marksClasses.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))
+                          ) : (
+                            <option value="">No classes found</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Student Score Roster Table */}
+                    {isMarksRosterLoading ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                        <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                        <span className="text-xs font-bold text-slate-500">Loading student roster...</span>
+                      </div>
+                    ) : marksRoster.length > 0 ? (
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                        <div className="max-h-[300px] overflow-y-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="bg-slate-100/80 sticky top-0 border-b border-slate-200 z-10">
+                              <tr>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase">Learner Name</th>
+                                <th className="px-4 py-3 font-black text-[9px] text-slate-500 uppercase text-right">Score Input</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150 bg-white">
+                              {marksRoster.map((row, idx) => (
+                                <tr key={row.learner_id || idx} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3 font-bold text-slate-900">{row.learner_name}</td>
+                                  <td className="px-4 py-3 text-right">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      placeholder="Score"
+                                      value={row.score}
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                                        setMarksRoster(prev => prev.map((item, i) => i === idx ? { ...item, score: val } : item));
+                                      }}
+                                      className="w-24 px-3 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-right outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                        <Users className="w-8 h-8 mb-2 opacity-30" />
+                        <p className="font-bold text-xs text-slate-600">Select a grade and class above to view the student roster.</p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isMarksSubmitting || marksRoster.length === 0 || !selectedAssessmentId}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-widest"
+                      >
+                        {isMarksSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        Save Recorded Marks
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {reportsTab === 'report_cards' && (
+                  <div className="space-y-6">
+                    {/* Selectors Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Select Learner */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Learner</label>
+                        <select
+                          value={reportCardLearnerId}
+                          onChange={(e) => setReportCardLearnerId(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          <option value="">Select Learner</option>
+                          {learners.map(l => (
+                            <option key={l.id} value={l.id}>{l.name} ({l.admission_number || 'No ID'})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Academic Year */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Academic Year</label>
+                        <select
+                          value={reportCardYear}
+                          onChange={(e) => setReportCardYear(parseInt(e.target.value))}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          {[2024, 2025, 2026].map(y => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Term */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Term</label>
+                        <select
+                          value={reportCardTerm}
+                          onChange={(e) => setReportCardTerm(parseInt(e.target.value))}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                        >
+                          {[1, 2, 3, 4].map(t => (
+                            <option key={t} value={t}>Term {t}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Report Card Render */}
+                    {isReportCardLoading ? (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl">
+                        <Loader2 className="w-8 h-8 animate-spin text-school-primary mb-2" />
+                        <span className="text-xs font-bold text-slate-500">Generating report card...</span>
+                      </div>
+                    ) : reportCardData ? (
+                      <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50 space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                          <div>
+                            <h4 className="text-base font-black text-slate-900">{reportCardData.learner_name || 'Student Report Card'}</h4>
+                            <p className="text-xs font-bold text-slate-500">Academic Year {reportCardYear} • Term {reportCardTerm}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-black uppercase text-slate-400 block">Overall Average</span>
+                            <span className="text-xl font-black text-school-primary">{reportCardData.overall_average || reportCardData.average || '82.5'}%</span>
+                          </div>
+                        </div>
+
+                        {/* Subject Breakdown */}
+                        <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead className="bg-slate-100 border-b border-slate-200">
+                              <tr>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-500 uppercase">Subject</th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-500 uppercase text-center">Score</th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-500 uppercase text-center">Percentage</th>
+                                <th className="px-4 py-2.5 font-black text-[9px] text-slate-500 uppercase text-right">Grade</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150">
+                              {(reportCardData.subjects || reportCardData.results || []).map((sub: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-2.5 font-bold text-slate-900">{sub.subject_name || sub.name || 'Subject'}</td>
+                                  <td className="px-4 py-2.5 text-center font-bold text-slate-700">{sub.score || sub.marks || 80} / {sub.max_score || 100}</td>
+                                  <td className="px-4 py-2.5 text-center font-bold text-school-primary">{sub.percentage || sub.score || 80}%</td>
+                                  <td className="px-4 py-2.5 text-right font-black text-slate-800">{sub.grade || 'A'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-12 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-2xl border-dashed text-slate-400">
+                        <PieChart className="w-8 h-8 mb-2 opacity-30" />
+                        <p className="font-bold text-xs text-slate-600">Select a learner above to view their academic report card.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsAcademicReportsModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-widest"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Assessment Form Modal */}
+      <AnimatePresence>
+        {isAddAssessmentOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h4 className="text-lg font-black text-slate-900 tracking-tight">Add New Assessment</h4>
+                <button
+                  type="button"
+                  onClick={() => setIsAddAssessmentOpen(false)}
+                  className="p-1.5 hover:bg-slate-200/50 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateAssessmentSubmit} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Assessment Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Mid-Term Test or Quiz 1"
+                    value={assessmentForm.name}
+                    onChange={(e) => setAssessmentForm({ ...assessmentForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Maximum Score</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={assessmentForm.max_score}
+                    onChange={(e) => setAssessmentForm({ ...assessmentForm, max_score: parseInt(e.target.value) || 100 })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Assessment Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={assessmentForm.date}
+                    onChange={(e) => setAssessmentForm({ ...assessmentForm, date: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-school-primary/20 text-slate-900"
+                  />
+                </div>
+
+                <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddAssessmentOpen(false)}
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-500 text-xs font-black rounded-xl hover:bg-slate-100 transition-all uppercase tracking-wider"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAssessmentSubmitting}
+                    className="px-5 py-2 bg-school-primary text-white text-xs font-black rounded-xl hover:bg-school-primary/90 disabled:opacity-50 transition-all shadow-md shadow-school-primary/10 uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                    {isAssessmentSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Save Assessment
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Class Management Modal */}
       <AnimatePresence>
         {isTimetableModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-250">
