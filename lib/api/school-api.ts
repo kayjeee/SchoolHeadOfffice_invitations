@@ -478,6 +478,15 @@ export class SchoolAPI {
     return Array.isArray(invitations) ? invitations : [];
   }
 
+  // Teacher Invitations Management Endpoints
+  static async getTeacherInvitations(schoolId: string, status?: string): Promise<any[]> {
+    console.log(`📩 [SchoolAPI.getTeacherInvitations] Fetching teacher invitations for school: ${schoolId}`);
+    const url = `/api/v1/invitations?school_id=${schoolId}&role=teacher${status ? `&status=${status}` : ''}`;
+    const response = await apiClient.get(url, z.any());
+    const invitations = response.invitations || response.data?.invitations || response.data || (Array.isArray(response) ? response : []);
+    return Array.isArray(invitations) ? invitations : [];
+  }
+
   static async getPendingLearnerInvitations(schoolId: string): Promise<any[]> {
     return this.getLearnerInvitations(schoolId, 'pending');
   }
