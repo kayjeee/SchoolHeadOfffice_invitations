@@ -616,4 +616,50 @@ export class SchoolAPI {
       stats: data.stats || { total_learners: 0, active_grades: 0, pending_invites: 0, parent_connection_rate: 0 }
     };
   }
+
+  // Supply Requests API
+  static async getSupplyRequests(schoolId: string, teacherId?: string, status?: string): Promise<any[]> {
+    let url = `/api/v1/supply_requests?school_id=${schoolId}`;
+    if (teacherId) url += `&teacher_id=${teacherId}`;
+    if (status) url += `&status=${status}`;
+    const response = await apiClient.get(url, z.any());
+    const requests = response.supply_requests || response.data?.supply_requests || response.data || (Array.isArray(response) ? response : []);
+    return Array.isArray(requests) ? requests : [];
+  }
+
+  static async getSupplySummary(schoolId: string, teacherId?: string): Promise<{ requested: number, approved: number, fulfilled: number, total: number }> {
+    let url = `/api/v1/supply_requests/summary?school_id=${schoolId}`;
+    if (teacherId) url += `&teacher_id=${teacherId}`;
+    const response = await apiClient.get(url, z.any());
+    const data = response.data || response.summary || response;
+    return {
+      requested: data.requested || data.total_requested || 0,
+      approved: data.approved || data.total_approved || 0,
+      fulfilled: data.fulfilled || data.total_fulfilled || 0,
+      total: data.total || 0
+    };
+  }
+
+  static async createSupplyRequest(payload: { school_id: string, teacher_id: string, item_type?: string, quantity: number, unit?: string, reason?: string }): Promise<any> {
+    return await apiClient.post('/api/v1/supply_requests', {
+      supply_request: {
+        item_type: 'paper',
+        unit: 'pages',
+        ...payload
+      },
+      ...payload
+    }, z.any());
+  }
+
+  static async approveSupplyRequest(id: string): Promise<any> {
+    return await apiClient.patch(`/api/v1/supply_requests/${id}/approve`, {}, z.any());
+  }
+
+  static async rejectSupplyRequest(id: string, adminNote?: string): Promise<any> {
+    return await apiClient.patch(`/api/v1/supply_requests/${id}/reject`, { admin_note: adminNote }, z.any());
+  }
+
+  static async fulfillSupplyRequest(id: string): Promise<any> {
+    return await apiClient.patch(`/api/v1/supply_requests/${id}/fulfill`, {}, z.any());
+  }
 }

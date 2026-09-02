@@ -27,7 +27,11 @@ import {
   TrendingUp,
   MoreVertical,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Package,
+  CheckSquare,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -52,7 +56,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
   const { user } = useUser();
 
   // Active Main Tab
-  const [activeTab, setActiveTab] = useState<'directory' | 'invitations'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'invitations' | 'supplies'>('directory');
 
   // Directory State
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
@@ -71,6 +75,12 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
   const [invitationSearchQuery, setInvitationSearchQuery] = useState('');
   const [invitationFilterStatus, setInvitationFilterStatus] = useState<string>('all');
   const [invitationsError, setInvitationsError] = useState<string | null>(null);
+
+  // Supply Requisitions State
+  const [supplyRequests, setSupplyRequests] = useState<any[]>([]);
+  const [isSupplyLoading, setIsSupplyLoading] = useState(false);
+  const [supplySearchQuery, setSupplySearchQuery] = useState('');
+  const [supplyFilterStatus, setSupplyFilterStatus] = useState<string>('all');
 
   // Invite Wizard Modal State
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -100,6 +110,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       loadTeachers();
       fetchAuxData();
       fetchInvitations();
+      fetchSupplyRequests();
     }
   }, [schoolId]);
 
@@ -140,6 +151,54 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       setInvitationsError("Couldn't load teacher invitations — try refreshing");
     } finally {
       setIsInvitationsLoading(false);
+    }
+  };
+
+  const fetchSupplyRequests = async () => {
+    if (!schoolId) return;
+    setIsSupplyLoading(true);
+    try {
+      const requests = await SchoolAPI.getSupplyRequests(schoolId!);
+      setSupplyRequests(requests || []);
+    } catch (error) {
+      console.error('Failed to fetch supply requests:', error);
+    } finally {
+      setIsSupplyLoading(false);
+    }
+  };
+
+  // Supply Actions: Approve, Reject, Fulfill
+  const handleApproveSupply = async (id: string) => {
+    toast.loading('Approving supply request...', { id: `supply-${id}` });
+    try {
+      await SchoolAPI.approveSupplyRequest(id);
+      toast.success('Supply request approved!', { id: `supply-${id}` });
+      fetchSupplyRequests();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to approve request', { id: `supply-${id}` });
+    }
+  };
+
+  const handleRejectSupply = async (id: string) => {
+    const adminNote = prompt('Optional rejection note for teacher:') || '';
+    toast.loading('Rejecting supply request...', { id: `supply-${id}` });
+    try {
+      await SchoolAPI.rejectSupplyRequest(id, adminNote);
+      toast.success('Supply request rejected.', { id: `supply-${id}` });
+      fetchSupplyRequests();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reject request', { id: `supply-${id}` });
+    }
+  };
+
+  const handleFulfillSupply = async (id: string) => {
+    toast.loading('Fulfilling supply request...', { id: `supply-${id}` });
+    try {
+      await SchoolAPI.fulfillSupplyRequest(id);
+      toast.success('Supply request marked as fulfilled!', { id: `supply-${id}` });
+      fetchSupplyRequests();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to fulfill request', { id: `supply-${id}` });
     }
   };
 
@@ -377,7 +436,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       {/* Header */}
       <PageHeader
         title="Teacher Management"
-        description="Manage your faculty, academic workloads, invitations, and performance metrics."
+        description="Manage your faculty, academic workloads, invitations, and supply requisitions."
         actions={
           <>
             <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all">
@@ -400,7 +459,8 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
         <div className="flex gap-8">
           {[
             { id: 'directory', label: 'Faculty Directory', icon: Users },
-            { id: 'invitations', label: 'Teacher Invitations CRM', icon: ClipboardList }
+            { id: 'invitations', label: 'Teacher Invitations CRM', icon: ClipboardList },
+            { id: 'supplies', label: 'Supply Requisitions', icon: Package }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -552,7 +612,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
                 </button>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'invitations' ? (
             <div className="space-y-6">
 
               {invitationsError && (
@@ -785,14 +845,186 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
                 </div>
               </div>
             </div>
+          ) : (
+            /* Supply Requisitions Tab */
+            <div className="space-y-6">
+              {/* Quick Summary KPIs */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[
+                  { label: 'Total Requisitions', value: supplyRequests.length, sub: 'Paper & materials', icon: Package, color: 'bg-indigo-50 text-blue-600' },
+                  { label: 'Pending Triage', value: supplyRequests.filter(r => r.status === 'pending').length, sub: 'Needs review', icon: Clock, color: 'bg-amber-50 text-amber-600' },
+                  { label: 'Approved', value: supplyRequests.filter(r => r.status === 'approved').length, sub: 'Ready for fulfillment', icon: CheckSquare, color: 'bg-blue-50 text-blue-600' },
+                  { label: 'Fulfilled', value: supplyRequests.filter(r => r.status === 'fulfilled').length, sub: 'Completed', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={cn("p-2 rounded-xl", stat.color)}>
+                        <stat.icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.sub}</span>
+                    </div>
+                    <h4 className="text-2xl font-black text-slate-900">{isSupplyLoading ? <Loader2 className="w-5 h-5 animate-spin text-slate-200" /> : stat.value}</h4>
+                    <p className="text-sm font-bold text-slate-500 mt-1">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search requisitions by teacher name or item type..."
+                    value={supplySearchQuery}
+                    onChange={(e) => setSupplySearchQuery(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900"
+                  />
+                </div>
+                <div className="flex gap-3 w-full md:w-auto">
+                  <select
+                    value={supplyFilterStatus}
+                    onChange={(e) => setSupplyFilterStatus(e.target.value)}
+                    className="flex-1 md:flex-initial px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900 min-w-[160px]"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="fulfilled">Fulfilled</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+
+                  <button
+                    onClick={() => fetchSupplyRequests()}
+                    className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all"
+                    title="Refresh List"
+                  >
+                    <RefreshCw className={cn("w-4 h-4", isSupplyLoading && "animate-spin")} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Requisitions Table */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Faculty Member</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Item & Quantity</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Reason / Notes</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Requested Date</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {supplyRequests
+                        .filter(req => {
+                          const query = supplySearchQuery.toLowerCase();
+                          const teacherName = req.teacher_name || teachers.find(t => t.id === req.teacher_id)?.name || 'Teacher';
+                          const itemType = req.item_type || 'paper';
+                          const matchesSearch = teacherName.toLowerCase().includes(query) || itemType.toLowerCase().includes(query) || (req.reason || '').toLowerCase().includes(query);
+                          const matchesStatus = supplyFilterStatus === 'all' || req.status === supplyFilterStatus;
+                          return matchesSearch && matchesStatus;
+                        })
+                        .map((req) => {
+                          const teacherName = req.teacher_name || teachers.find(t => t.id === req.teacher_id)?.name || 'Faculty Member';
+
+                          return (
+                            <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-6 py-4 font-bold text-slate-900 text-sm">
+                                {teacherName}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-bold text-slate-900 text-sm">
+                                  {req.quantity} {req.unit || 'pages'}
+                                </div>
+                                <div className="text-[10px] font-black text-slate-400 uppercase">
+                                  {req.item_type || 'paper'}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-600 font-medium">
+                                {req.reason || '---'}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-500">
+                                {new Date(req.created_at || Date.now()).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={cn(
+                                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
+                                  req.status === 'fulfilled'
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                    : req.status === 'approved'
+                                    ? "bg-blue-50 text-blue-700 border-blue-100"
+                                    : req.status === 'rejected'
+                                    ? "bg-rose-50 text-rose-700 border-rose-100"
+                                    : "bg-amber-50 text-amber-700 border-amber-100"
+                                )}>
+                                  {req.status || 'pending'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {req.status === 'pending' && (
+                                    <>
+                                      <button
+                                        onClick={() => handleApproveSupply(req.id)}
+                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-wider"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectSupply(req.id)}
+                                        className="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 text-[10px] font-bold rounded-xl transition-all"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  )}
+                                  {req.status === 'approved' && (
+                                    <button
+                                      onClick={() => handleFulfillSupply(req.id)}
+                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-wider"
+                                    >
+                                      Mark Fulfilled
+                                    </button>
+                                  )}
+                                  {req.status === 'fulfilled' && (
+                                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                                      <CheckCircle2 className="w-3.5 h-3.5" /> Completed
+                                    </span>
+                                  )}
+                                  {req.status === 'rejected' && (
+                                    <span className="text-xs text-rose-500 italic">Rejected</span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {supplyRequests.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                            No supply requisitions recorded yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
 
       <TeacherProfileDrawer
         teacher={selectedTeacher}
+        schoolId={schoolId || undefined}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        onDataChange={() => fetchSupplyRequests()}
       />
 
       {/* Invite Teacher Modal */}
