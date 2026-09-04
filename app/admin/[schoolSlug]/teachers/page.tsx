@@ -239,6 +239,19 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
     }
   };
 
+  // Phone normalization utility (082... -> 2782...)
+  const normalizePhoneNumber = (phone: string) => {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('0') && digits.length === 10) {
+      return '27' + digits.slice(1);
+    }
+    if (digits.length >= 10 && digits.length <= 15) {
+      return digits;
+    }
+    return phone.trim();
+  };
+
   // Handlers for Single Invite Dispatch
   const handleSendSingleInvite = async () => {
     if (!singleInvite.name.trim()) {
@@ -254,10 +267,13 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       return;
     }
 
+    const resolvedSchoolId = schoolId || currentSchool?.id || currentSchool?._id || '';
+    const normalizedPhone = normalizePhoneNumber(singleInvite.phone);
+
     const payload = {
-      phone_number: singleInvite.phone,
+      phone_number: normalizedPhone,
       email: singleInvite.email,
-      school_id: schoolId,
+      school_id: resolvedSchoolId,
       role: 'teacher',
       invited_via: singleInvite.channel.toLowerCase(),
       teacher_name: singleInvite.name,
@@ -265,6 +281,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       teacher_type: singleInvite.teacher_type,
       assigned_grade_ids: singleInvite.assigned_grade_ids,
       subject_ids: singleInvite.subject_ids,
+      sender: user?.email || 'admin@schoolheadoffice.co.za',
       sender_id: user?.sub || 'system'
     };
 
@@ -277,13 +294,13 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       const schoolName = currentSchool?.schoolName || 'School';
       const magicLink = `?token=${invToken}&school=${encodeURIComponent(schoolName.trim())}`;
 
-      if (singleInvite.channel === 'WhatsApp' && singleInvite.phone.trim()) {
+      if (singleInvite.channel === 'WhatsApp' && normalizedPhone) {
         toast.loading('Dispatching WhatsApp message...', { id: toastId });
         try {
           await apiClient.post('/api/whatsapp-business/send-bulk', {
             personalizedMessages: [
               {
-                to: singleInvite.phone.trim(),
+                to: normalizedPhone,
                 parentName: singleInvite.name.trim(),
                 magicLink: magicLink,
                 message: `Hello ${singleInvite.name.trim()}, you are invited to join the Faculty Portal for ${schoolName}. Click here: ${magicLink}`
@@ -334,7 +351,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       const isEmail = contact.includes('@');
       return {
         name,
-        phone_number: isEmail ? '' : contact,
+        phone_number: isEmail ? '' : normalizePhoneNumber(contact),
         email: isEmail ? contact : '',
         teacher_type: bulkTeacherType,
         assigned_grade_ids: bulkAssignedGradeIds,
@@ -347,6 +364,8 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       return;
     }
 
+    const resolvedSchoolId = schoolId || currentSchool?.id || currentSchool?._id || '';
+
     const payload = {
       invitations: parsedEntries.map(e => ({
         phone_number: e.phone_number,
@@ -357,10 +376,10 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
         assigned_grade_ids: e.assigned_grade_ids,
         subject_ids: e.subject_ids
       })),
-      school_id: schoolId,
+      school_id: resolvedSchoolId,
       role: 'teacher',
       sender_id: user?.sub || 'system',
-      sender: user?.email || 'system',
+      sender: user?.email || 'admin@schoolheadoffice.co.za',
       invited_via: bulkChannel.toLowerCase()
     };
 

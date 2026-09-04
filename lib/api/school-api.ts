@@ -413,7 +413,7 @@ export class SchoolAPI {
 
   // Subjects
   static async getSubjects(schoolId: string): Promise<Subject[]> {
-    const response = await apiClient.get(`/api/v1/schools/${schoolId}/subjects`, z.any());
+    const response = await apiClient.get(`/api/v1/subjects?school_id=${schoolId}`, z.any());
     const subjects = response.subjects || response.data?.subjects || response.data || response;
     return Array.isArray(subjects) ? subjects.map(s => SubjectSchema.parse(s)) : [];
   }
