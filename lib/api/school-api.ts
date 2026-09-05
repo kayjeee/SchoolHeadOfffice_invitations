@@ -283,6 +283,17 @@ export class SchoolAPI {
   // School Lookup
   static async getSchoolBySlug(slug: string): Promise<any> {
     console.log(`🔍 [SchoolAPI.getSchoolBySlug] Resolving slug: ${slug}`);
+    try {
+      const bySlugResponse = await apiClient.get(`/api/v1/schools/by_slug/${encodeURIComponent(slug)}`, z.any());
+      const schoolBySlug = bySlugResponse.school || bySlugResponse.data?.school || bySlugResponse.data || bySlugResponse;
+      if (schoolBySlug && (schoolBySlug.id || schoolBySlug._id || schoolBySlug.schoolName)) {
+        console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved via by_slug: ${schoolBySlug.schoolName} (${schoolBySlug.id || schoolBySlug._id})`);
+        return schoolBySlug;
+      }
+    } catch (err) {
+      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] by_slug endpoint not available or 404, falling back to search query.`, err);
+    }
+
     const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
     const schools = (response.schools || response.data?.schools || []) as any[];
 
@@ -293,9 +304,6 @@ export class SchoolAPI {
     if (!school) {
       school = schools.find((s: any) => slugify(s.schoolName || s.name || '') === slug);
     }
-
-    // 3. If multiple matches might exist, we can't easily filter by current user here
-    // without passing it in, but we'll return the best match we found.
 
     if (!school && schools.length > 0) {
       console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] No exact slug match for "${slug}", but found ${schools.length} results. Returning first result as fallback.`);
