@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -34,7 +34,8 @@ import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { useApi } from '@/lib/hooks/useApi';
 import { useSchool } from '@/lib/hooks/useSchool';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { SchoolProvider } from '@/components/context/SchoolContext';
+import { SchoolProvider, useSchoolContext } from '@/components/context/SchoolContext';
+import { SchoolAPI, Term } from '@/lib/api/school-api';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -221,6 +222,124 @@ export default function AdminDashboardLayout({
 
   return (
     <SchoolProvider initialSchool={schoolData}>
+      <AdminDashboardLayoutContent
+        schoolSlug={schoolSlug}
+        schoolId={schoolId}
+        displayName={displayName}
+        themeVars={themeVars}
+        pathname={pathname}
+        userName={userName}
+        userEmail={userEmail}
+        userInitials={userInitials}
+        userRolesList={userRolesList}
+        formattedRoleString={formattedRoleString}
+        managementHub={managementHub}
+        academicModules={academicModules}
+        breadcrumbs={breadcrumbs}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+      >
+        {children}
+      </AdminDashboardLayoutContent>
+    </SchoolProvider>
+  );
+}
+
+function AdminDashboardLayoutContent({
+  children,
+  schoolSlug,
+  schoolId,
+  displayName,
+  themeVars,
+  pathname,
+  userName,
+  userEmail,
+  userInitials,
+  userRolesList,
+  formattedRoleString,
+  managementHub,
+  academicModules,
+  breadcrumbs,
+  isSidebarOpen,
+  setIsSidebarOpen,
+}: {
+  children: React.ReactNode;
+  schoolSlug: string;
+  schoolId: string;
+  displayName: string;
+  themeVars: React.CSSProperties;
+  pathname: string;
+  userName: string;
+  userEmail: string;
+  userInitials: string;
+  userRolesList: string[];
+  formattedRoleString: string;
+  managementHub: any[];
+  academicModules: any[];
+  breadcrumbs: any[];
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
+}) {
+  const {
+    selectedAcademicYear,
+    setSelectedAcademicYear,
+    currentTerm,
+    setCurrentTerm,
+    termsList,
+    setTermsList
+  } = useSchoolContext();
+
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!schoolId) return;
+
+    let isMounted = true;
+    async function loadTermsAndYear() {
+      try {
+        const [currentInfo, terms] = await Promise.all([
+          SchoolAPI.getCurrentTerm(schoolId),
+          SchoolAPI.getTerms(schoolId)
+        ]);
+
+        if (!isMounted) return;
+
+        setCurrentTerm(currentInfo.current_term);
+        setTermsList(terms);
+
+        const fallbackYear = new Date().getFullYear().toString();
+        const realCurrentYear = currentInfo.current_academic_year || fallbackYear;
+
+        // Collect distinct academic years from terms list
+        const yearsSet = new Set<string>();
+        terms.forEach(t => {
+          if (t.academic_year) yearsSet.add(String(t.academic_year));
+        });
+        yearsSet.add(realCurrentYear);
+
+        const sortedYears = Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
+        setAvailableYears(sortedYears);
+
+        // Default-select the real current_academic_year if not already set or invalid
+        if (!selectedAcademicYear || !yearsSet.has(selectedAcademicYear)) {
+          setSelectedAcademicYear(realCurrentYear);
+        }
+      } catch (err) {
+        console.error("Failed to load terms/academic year in layout:", err);
+        const fallbackYear = new Date().getFullYear().toString();
+        setAvailableYears([fallbackYear]);
+        setSelectedAcademicYear(fallbackYear);
+      }
+    }
+
+    loadTermsAndYear();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [schoolId]);
+
+  return (
     <div style={themeVars} className="min-h-screen bg-slate-50 flex">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -356,13 +475,25 @@ export default function AdminDashboardLayout({
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Academic Year Selector */}
+            {/* Academic Year & Active Term Selector Header Area */}
             <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <select className="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer">
-                <option>2024 Academic Year</option>
-                <option>2023 Academic Year</option>
+              <select
+                value={selectedAcademicYear}
+                onChange={(e) => setSelectedAcademicYear(e.target.value)}
+                className="bg-transparent text-[11px] font-bold text-slate-600 outline-none cursor-pointer"
+              >
+                {(availableYears.length > 0 ? availableYears : [selectedAcademicYear || new Date().getFullYear().toString()]).map(year => (
+                  <option key={year} value={year}>
+                    {year} Academic Year
+                  </option>
+                ))}
               </select>
+              {currentTerm && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-school-primary/10 text-school-primary border border-school-primary/20">
+                  {currentTerm.name || `Term ${currentTerm.term_number}`}
+                </span>
+              )}
             </div>
 
             <div className="hidden sm:block">
@@ -393,6 +524,5 @@ export default function AdminDashboardLayout({
         </div>
       </main>
     </div>
-    </SchoolProvider>
   );
 }
