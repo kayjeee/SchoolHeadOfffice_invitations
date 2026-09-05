@@ -33,6 +33,7 @@ import {
 import { GlobalSearch } from '@/components/admin/layout/GlobalSearch';
 import { useApi } from '@/lib/hooks/useApi';
 import { useSchool } from '@/lib/hooks/useSchool';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { SchoolProvider } from '@/components/context/SchoolContext';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -93,8 +94,40 @@ export default function AdminDashboardLayout({
   const isCommunicationsPage = pathname?.includes('/communications');
   useApi({ skipToken: isCommunicationsPage });
 
-  const { schoolId, schoolData, isLoading, error } = useSchool(schoolSlug);
+  const { schoolId, schoolData, isLoading: isSchoolLoading, error } = useSchool(schoolSlug);
+  const { user, isLoading: authLoading } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isLoading = isSchoolLoading || authLoading;
+
+  // Resolve authenticated user profile details
+  const userName =
+    user?.name ||
+    (user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : null) ||
+    user?.nickname ||
+    (user?.email ? user.email.split('@')[0] : null) ||
+    'Admin';
+
+  const userEmail = user?.email || '';
+
+  const userInitials = userName
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'A';
+
+  const rawRoles = user?.roles || user?.['https://shobackend/roles'] || user?.role || [];
+  const userRolesList: string[] = Array.isArray(rawRoles)
+    ? rawRoles
+    : typeof rawRoles === 'string'
+    ? [rawRoles]
+    : [];
+
+  const formattedRoleString = userRolesList.length > 0
+    ? userRolesList.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(' / ')
+    : 'Admin';
 
   // Active Branding Tokens
   const branding = {
@@ -129,12 +162,18 @@ export default function AdminDashboardLayout({
     { href: `/admin/${schoolSlug}/analytics`, icon: PieChart, label: 'Analytics' },
   ];
 
+  // Source of truth for school name is backend schoolData
+  const displayName =
+    schoolData?.schoolName ||
+    schoolData?.name ||
+    schoolData?.school_name ||
+    schoolSlug
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
   // Breadcrumb generation based on pathname
   const pathSegments = pathname.split('/').filter(Boolean);
-  const displayName = schoolSlug
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 
   const breadcrumbs = [
     { label: displayName, href: `/admin/${schoolSlug}` },
@@ -246,27 +285,38 @@ export default function AdminDashboardLayout({
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-slate-100 border-2 border-school-primary/20 flex items-center justify-center text-school-primary font-bold text-sm">
-                  MM
+                  {userInitials}
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-sm font-bold text-slate-900 truncate">Mrs Manana</p>
-                  <p className="text-xs text-slate-500 truncate">700400585@gdeschools.gov.za</p>
+                  <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
+                  <p className="text-xs text-slate-500 truncate">{userEmail || 'No email available'}</p>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-1 mb-4">
-                <button className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-school-primary/10 text-school-primary border border-school-primary/20 hover:bg-school-primary hover:text-white transition-colors">
-                  ADMIN
-                </button>
-                <button className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors">
-                  STAFF/TEACHER
-                </button>
+                {userRolesList.length > 0 ? (
+                  userRolesList.map((role) => (
+                    <span
+                      key={role}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-school-primary/10 text-school-primary border border-school-primary/20 uppercase"
+                    >
+                      {role}
+                    </span>
+                  ))
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-school-primary/10 text-school-primary border border-school-primary/20 uppercase">
+                    ADMIN
+                  </span>
+                )}
               </div>
 
-              <button className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-slate-100">
+              <a
+                href="/api/auth/logout"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-slate-100"
+              >
                 <LogOut className="w-3.5 h-3.5" />
                 Sign Out
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -325,11 +375,11 @@ export default function AdminDashboardLayout({
             <div className="h-8 w-[1px] bg-slate-200 mx-1 hidden sm:block"></div>
             <div className="flex items-center gap-2 pl-2">
               <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-xs font-bold text-slate-900">Mrs Manana</span>
-                <span className="text-[10px] text-slate-500 font-medium">System Admin</span>
+                <span className="text-xs font-bold text-slate-900">{userName}</span>
+                <span className="text-[10px] text-slate-500 font-medium">{formattedRoleString}</span>
               </div>
               <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white text-xs font-bold">
-                M
+                {userInitials}
               </div>
             </div>
           </div>
