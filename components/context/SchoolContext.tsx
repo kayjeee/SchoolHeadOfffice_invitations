@@ -3,12 +3,19 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { School } from '@/context/ThemeContext';
+import { Term } from '@/lib/api/school-api';
 
 interface SchoolContextType {
   currentSchool: School | null;
   setCurrentSchool: (school: School | null) => void;
   schoolsList: School[];
   setSchoolsList: (schools: School[]) => void;
+  selectedAcademicYear: string;
+  setSelectedAcademicYear: (year: string) => void;
+  currentTerm: Term | null;
+  setCurrentTerm: (term: Term | null) => void;
+  termsList: Term[];
+  setTermsList: (terms: Term[]) => void;
 }
 
 export const SchoolContext = createContext<SchoolContextType | undefined>(undefined);
@@ -30,6 +37,9 @@ interface SchoolProviderProps {
 export const SchoolProvider = ({ children, initialSchool = null, initialSchools = [] }: SchoolProviderProps) => {
   const [currentSchool, setCurrentSchool] = useState<School | null>(initialSchool);
   const [schoolsList, setSchoolsList] = useState<School[]>(initialSchools);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>(() => new Date().getFullYear().toString());
+  const [currentTerm, setCurrentTerm] = useState<Term | null>(null);
+  const [termsList, setTermsList] = useState<Term[]>([]);
 
   // Sync initial values if they change (e.g. after async fetch in layout)
   useEffect(() => {
@@ -47,7 +57,13 @@ export const SchoolProvider = ({ children, initialSchool = null, initialSchools 
       currentSchool,
       setCurrentSchool,
       schoolsList,
-      setSchoolsList
+      setSchoolsList,
+      selectedAcademicYear,
+      setSelectedAcademicYear,
+      currentTerm,
+      setCurrentTerm,
+      termsList,
+      setTermsList
     }}>
       {children}
     </SchoolContext.Provider>
