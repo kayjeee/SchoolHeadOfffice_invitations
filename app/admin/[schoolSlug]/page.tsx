@@ -2,6 +2,7 @@
 
 import React, { use } from 'react';
 import { useSchool } from '@/lib/hooks/useSchool';
+import { useAuth } from '@/lib/hooks/useAuth';
 import {
   Users,
   UserCheck,
@@ -24,13 +25,22 @@ import { PageHeader, StatsCard, DashboardSection } from '@/components/admin/comm
 
 export default function AdminDashboardOverview({ params }: { params: Promise<{ schoolSlug: string }> }) {
   const { schoolSlug } = use(params);
-  const { schoolData, isLoading } = useSchool(schoolSlug);
+  const { schoolData, isLoading: isSchoolLoading } = useSchool(schoolSlug);
+  const { user, isLoading: isAuthLoading } = useAuth();
+
+  const isLoading = isSchoolLoading || isAuthLoading;
+
+  const adminName =
+    user?.name ||
+    (user?.email ? user.email.split('@')[0] : null) ||
+    (schoolData?.user_email ? schoolData.user_email.split('@')[0] : null) ||
+    'School Admin';
 
   const stats = [
-    { label: 'Total Learners', value: '1,284', change: '+12%', icon: Users, color: 'bg-blue-500' },
-    { label: 'Teachers Active', value: '86', change: '+3%', icon: UserCheck, color: 'bg-emerald-500' },
-    { label: 'Attendance Today', value: '94.2%', change: '-0.4%', icon: Calendar, color: 'bg-amber-500' },
-    { label: 'Pending Invoices', value: 'R 42k', change: '+8%', icon: TrendingUp, color: 'bg-purple-500' },
+    { label: 'Total Learners', value: (schoolData?.learnerCount || schoolData?.learners_count || schoolData?.stats?.total_learners || '0').toString(), change: '+0%', icon: Users, color: 'bg-blue-500' },
+    { label: 'Teachers Active', value: (schoolData?.teacherCount || schoolData?.teachers_count || schoolData?.stats?.total_teachers || '0').toString(), change: '+0%', icon: UserCheck, color: 'bg-emerald-500' },
+    { label: 'Attendance Today', value: schoolData?.stats?.attendance_rate || '0%', change: '0%', icon: Calendar, color: 'bg-amber-500' },
+    { label: 'Pending Invoices', value: schoolData?.stats?.pending_invoices || 'R 0', change: '0%', icon: TrendingUp, color: 'bg-purple-500' },
   ];
 
   const quickActions = [
@@ -41,7 +51,7 @@ export default function AdminDashboardOverview({ params }: { params: Promise<{ s
   ];
 
   const recentActivity = [
-    { user: 'Mrs. Manana', action: 'Promoted 24 learners from Grade 10 to 11', time: '12 mins ago', icon: CheckCircle2, iconColor: 'text-emerald-500' },
+    { user: adminName, action: `Logged into the ${schoolData?.schoolName || 'school'} dashboard`, time: 'Just now', icon: CheckCircle2, iconColor: 'text-emerald-500' },
     { user: 'System Admin', action: 'Uploaded term 2 examination schedule', time: '45 mins ago', icon: Clock, iconColor: 'text-blue-500' },
     { user: 'Finance Dept', action: 'Generated 1,200 monthly tuition statements', time: '2 hours ago', icon: CheckCircle2, iconColor: 'text-emerald-500' },
     { user: 'Alert System', action: 'Critical: Low attendance detected in Grade 8B', time: '3 hours ago', icon: AlertCircle, iconColor: 'text-red-500' },
@@ -64,8 +74,8 @@ export default function AdminDashboardOverview({ params }: { params: Promise<{ s
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Page Header */}
       <PageHeader
-        title="School Dashboard"
-        description={<>Welcome back to the <span className="text-school-primary font-bold">{schoolData?.schoolName || 'Admin Portal'}</span> command center.</>}
+        title={`${schoolData?.schoolName || 'School'} Dashboard`}
+        description={<>Welcome back, <span className="font-bold">{adminName}</span>.</>}
         actions={
           <>
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm">
