@@ -196,7 +196,6 @@ export default function MessagingSection({
     try {
       const conv = await MessagingAPI.createConversation([], schoolId, currentUserId, {
         scope_type: 'self',
-        scope_id: currentUserId,
         title: 'Note to self'
       });
       handleSelectConversation(conv.id);

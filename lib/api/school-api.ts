@@ -306,14 +306,14 @@ export class SchoolAPI {
   static async getSchoolBySlug(slug: string): Promise<any> {
     console.log(`🔍 [SchoolAPI.getSchoolBySlug] Resolving slug: ${slug}`);
     try {
-      const bySlugResponse = await apiClient.get(`/api/v1/schools/by_slug/${encodeURIComponent(slug)}`, z.any());
+      const bySlugResponse = await apiClient.get(`/api/v1/schools/${encodeURIComponent(slug)}`, z.any());
       const schoolBySlug = bySlugResponse.school || bySlugResponse.data?.school || bySlugResponse.data || bySlugResponse;
       if (schoolBySlug && (schoolBySlug.id || schoolBySlug._id || schoolBySlug.schoolName)) {
-        console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved via by_slug: ${schoolBySlug.schoolName} (${schoolBySlug.id || schoolBySlug._id})`);
+        console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved via slug endpoint: ${schoolBySlug.schoolName} (${schoolBySlug.id || schoolBySlug._id})`);
         return schoolBySlug;
       }
     } catch (err) {
-      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] by_slug endpoint not available or 404, falling back to search query.`, err);
+      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] GET /api/v1/schools/${slug} endpoint not available or 404, falling back to search query.`, err);
     }
 
     const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
