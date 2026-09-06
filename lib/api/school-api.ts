@@ -148,6 +148,27 @@ export const SubjectSchema = z.object({
   class_count: data.class_count || data.classes || 0
 }));
 
+export const TermSchema = z.object({
+  id: z.string().nullish(),
+  _id: z.string().nullish(),
+  school_id: z.string().nullish(),
+  academic_year: z.union([z.string(), z.number()]).nullish(),
+  term_number: z.union([z.string(), z.number()]).nullish(),
+  name: z.string().nullish(),
+  start_date: z.string().nullish(),
+  end_date: z.string().nullish(),
+  is_current: z.boolean().nullish(),
+}).passthrough().transform(data => ({
+  ...data,
+  id: data.id || data._id || '',
+  academic_year: data.academic_year ? String(data.academic_year) : String(new Date().getFullYear()),
+  term_number: Number(data.term_number) || 1,
+  name: data.name || `Term ${data.term_number || 1}`,
+  start_date: data.start_date || '',
+  end_date: data.end_date || '',
+  is_current: Boolean(data.is_current)
+}));
+
 export const ClassSchema = z.object({
   id: z.string().nullish(),
   _id: z.string().nullish(),
@@ -250,6 +271,7 @@ export type Class = z.infer<typeof ClassSchema>;
 export type Teacher = z.infer<typeof TeacherSchema>;
 export type Learner = z.infer<typeof LearnerSchema>;
 export type Subject = z.infer<typeof SubjectSchema>;
+export type Term = z.infer<typeof TermSchema>;
 
 export interface GradeAssignment {
   id: string;
@@ -284,14 +306,14 @@ export class SchoolAPI {
   static async getSchoolBySlug(slug: string): Promise<any> {
     console.log(`🔍 [SchoolAPI.getSchoolBySlug] Resolving slug: ${slug}`);
     try {
-      const bySlugResponse = await apiClient.get(`/api/v1/schools/by_slug/${encodeURIComponent(slug)}`, z.any());
+      const bySlugResponse = await apiClient.get(`/api/v1/schools/${encodeURIComponent(slug)}`, z.any());
       const schoolBySlug = bySlugResponse.school || bySlugResponse.data?.school || bySlugResponse.data || bySlugResponse;
       if (schoolBySlug && (schoolBySlug.id || schoolBySlug._id || schoolBySlug.schoolName)) {
-        console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved via by_slug: ${schoolBySlug.schoolName} (${schoolBySlug.id || schoolBySlug._id})`);
+        console.log(`✅ [SchoolAPI.getSchoolBySlug] Resolved via slug endpoint: ${schoolBySlug.schoolName} (${schoolBySlug.id || schoolBySlug._id})`);
         return schoolBySlug;
       }
     } catch (err) {
-      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] by_slug endpoint not available or 404, falling back to search query.`, err);
+      console.warn(`⚠️ [SchoolAPI.getSchoolBySlug] GET /api/v1/schools/${slug} endpoint not available or 404, falling back to search query.`, err);
     }
 
     const response = await apiClient.get(`/api/v1/schools?search=${encodeURIComponent(slug)}`, z.any());
@@ -669,5 +691,71 @@ export class SchoolAPI {
 
   static async fulfillSupplyRequest(id: string): Promise<any> {
     return await apiClient.patch(`/api/v1/supply_requests/${id}/fulfill`, {}, z.any());
+  }
+
+  // Terms & Academic Year API
+  static async getTerms(schoolId: string, academicYear?: string): Promise<Term[]> {
+    try {
+      let url = `/api/v1/terms?school_id=${schoolId}`;
+      if (academicYear) url += `&academic_year=${encodeURIComponent(academicYear)}`;
+      const response = await apiClient.get(url, z.any());
+      const terms = response.terms || response.data?.terms || response.data || (Array.isArray(response) ? response : []);
+      return Array.isArray(terms) ? terms.map(t => TermSchema.parse(t)) : [];
+    } catch (err) {
+      console.warn(`⚠️ [SchoolAPI.getTerms] Error fetching terms:`, err);
+      return [];
+    }
+  }
+
+  static async getCurrentTerm(schoolId: string): Promise<{ current_term: Term | null; current_academic_year: string }> {
+    try {
+      const url = `/api/v1/terms/current?school_id=${schoolId}`;
+      const response = await apiClient.get(url, z.any());
+      const data = response.data || response;
+      const rawTerm = data.current_term || data.term || null;
+      const currentAcademicYear = String(
+        data.current_academic_year ||
+        data.academic_year ||
+        rawTerm?.academic_year ||
+        new Date().getFullYear()
+      );
+
+      return {
+        current_term: rawTerm ? TermSchema.parse(rawTerm) : null,
+        current_academic_year: currentAcademicYear
+      };
+    } catch (err) {
+      console.warn(`⚠️ [SchoolAPI.getCurrentTerm] Error fetching current term:`, err);
+      return {
+        current_term: null,
+        current_academic_year: new Date().getFullYear().toString()
+      };
+    }
+  }
+
+  static async createTerm(payload: {
+    school_id: string;
+    academic_year: string | number;
+    term_number: number;
+    name?: string;
+    start_date: string;
+    end_date: string;
+    is_current?: boolean;
+  }): Promise<Term> {
+    const response = await apiClient.post('/api/v1/terms', { term: payload, ...payload }, z.any());
+    const data = (response as any).data || response;
+    const termData = data.term || data;
+    return TermSchema.parse(termData);
+  }
+
+  static async updateTerm(id: string, payload: Partial<Term>): Promise<Term> {
+    const response = await apiClient.patch(`/api/v1/terms/${id}`, { term: payload, ...payload }, z.any());
+    const data = (response as any).data || response;
+    const termData = data.term || data;
+    return TermSchema.parse(termData);
+  }
+
+  static async deleteTerm(id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/terms/${id}`, z.any());
   }
 }

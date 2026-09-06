@@ -8,18 +8,52 @@ import { getCableConsumer } from '@/lib/cable';
 /**
  * Hook for managing conversations list
  */
-export function useConversations(options: { skipToken?: boolean } = {}) {
-  const { accessToken, isLoading: isAuthLoading } = useApi(options);
+export function useConversations(options: {
+  skipToken?: boolean;
+  schoolId?: string;
+  userId?: string;
+  scopeType?: string;
+  academicYear?: string;
+  termId?: string;
+  gradeId?: string;
+  scopeId?: string;
+} = {}) {
+  const { user, accessToken, isLoading: isAuthLoading } = useApi(options);
 
-  // If token check was intentionally skipped, we allow fetching without accessToken
-  const swrKey = options.skipToken || accessToken ? '/api/v1/conversations' : null;
+  const resolvedSchoolId = options.schoolId;
+  const resolvedUserId = options.userId || user?.sub || user?.id;
+
+  const queryParams = new URLSearchParams();
+  if (resolvedSchoolId) queryParams.append('school_id', resolvedSchoolId);
+  if (resolvedUserId) queryParams.append('user_id', resolvedUserId);
+  if (options.scopeType) queryParams.append('scope_type', options.scopeType);
+  if (options.academicYear) queryParams.append('academic_year', options.academicYear);
+  if (options.termId) queryParams.append('term_id', options.termId);
+  if (options.gradeId) queryParams.append('grade_id', options.gradeId);
+  if (options.scopeId) queryParams.append('scope_id', options.scopeId);
+
+  const queryString = queryParams.toString();
+  const isScoped = Boolean(resolvedSchoolId || resolvedUserId || options.scopeType || options.scopeId);
+
+  const swrKey = (options.skipToken || accessToken) && isScoped
+    ? `/api/v1/conversations${queryString ? `?${queryString}` : ''}`
+    : null;
+
   if (swrKey) {
     console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
   }
 
   const { data: conversations = [], error, isLoading } = useSWR(
     swrKey,
-    () => MessagingAPI.getConversations(),
+    () => MessagingAPI.getConversations({
+      school_id: resolvedSchoolId,
+      user_id: resolvedUserId,
+      scope_type: options.scopeType,
+      academic_year: options.academicYear,
+      term_id: options.termId,
+      grade_id: options.gradeId,
+      scope_id: options.scopeId,
+    }),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -32,7 +66,7 @@ export function useConversations(options: { skipToken?: boolean } = {}) {
     conversations,
     loading: isLoading || isAuthLoading,
     error,
-    refresh: () => mutate(swrKey),
+    refresh: () => mutate(key => typeof key === 'string' && key.startsWith('/api/v1/conversations')),
   };
 }
 

@@ -34,8 +34,11 @@ import {
   AlertTriangle,
   Check,
   HelpCircle,
-  Info
+  Info,
+  MessageSquare
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MessagingAPI } from '@/lib/api/messaging-api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { clsx, type ClassValue } from 'clsx';
@@ -100,6 +103,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
   const { currentSchool } = useSchoolContext();
   const schoolId = currentSchool?.id || currentSchool?._id;
   const { user } = useUser();
+  const router = useRouter();
 
   // --- State Management ---
   const [activeTab, setActiveTab] = useState<'directory' | 'invitations' | 'management' | 'academic'>('directory');
@@ -827,7 +831,7 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                     className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-school-primary/10 focus:border-school-primary transition-all outline-none text-slate-900"
                   />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
                   <div className="relative">
                     <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <select
@@ -841,6 +845,53 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
                       ))}
                     </select>
                   </div>
+
+                  <button
+                    onClick={async () => {
+                      if (!schoolId) return;
+                      const selectedGradeObj = grades.find(g => g.id === filterGrade);
+                      const targetGradeId = filterGrade !== 'all' ? filterGrade : grades[0]?.id;
+                      const targetGradeName = selectedGradeObj?.name || grades[0]?.name || 'Grade Group';
+
+                      if (!targetGradeId) {
+                        toast.error('No grade available to message.');
+                        return;
+                      }
+
+                      toast.loading(`Opening ${targetGradeName} message thread...`, { id: 'msg-grade' });
+                      try {
+                        const existing = await MessagingAPI.getConversations({
+                          scope_id: targetGradeId,
+                          school_id: schoolId
+                        });
+
+                        let conv = existing.find(c => c.scope_type === 'grade' && c.scope_id === targetGradeId);
+
+                        if (!conv) {
+                          conv = await MessagingAPI.createConversation(
+                            [],
+                            schoolId,
+                            user?.sub || 'admin-123',
+                            {
+                              scope_type: 'grade',
+                              scope_id: targetGradeId,
+                              title: `${targetGradeName} Parents & Learners`
+                            }
+                          );
+                        }
+
+                        toast.success('Redirecting to Communications...', { id: 'msg-grade' });
+                        router.push(`/admin/${schoolSlug}/communications?conversationId=${conv.id}`);
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to open conversation', { id: 'msg-grade' });
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 bg-slate-900 text-white text-xs font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-sm whitespace-nowrap"
+                    title="Message Parents/Learners in selected Grade"
+                  >
+                    <MessageSquare className="w-4 h-4 text-emerald-400" />
+                    <span>Message {filterGrade !== 'all' ? grades.find(g => g.id === filterGrade)?.name || 'Grade' : 'Grade'}</span>
+                  </button>
                 </div>
               </div>
 
