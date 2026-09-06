@@ -60,7 +60,7 @@ export default function MessagingSection({
   } | null>(null);
   const [learners, setLearners] = useState<any[]>([]);
 
-  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations({ skipToken });
+  const { conversations, loading: loadingConvs, refresh: refreshConvs } = useConversations({ skipToken, schoolId, userId: currentUserId });
   const { messages, loading: loadingMessages, isSending, sendMessage } = useMessages(activeConvId, { skipToken });
   const { accessToken } = useApi({ skipToken });
 
@@ -181,6 +181,7 @@ export default function MessagingSection({
   const handleNoteToSelf = async () => {
     // Check if a self-conversation already exists
     const selfConv = conversations.find(conv => {
+      if (conv.scope_type === 'self') return true;
       const ids = (conv.participant_ids || conv.participants || [])
         .map((p: any) => (p.id ?? p).toString());
       return ids.length === 1 && ids[0] === currentUserId.toString();
@@ -193,7 +194,11 @@ export default function MessagingSection({
 
     // Create new self-conversation if it doesn't exist
     try {
-      const conv = await MessagingAPI.createConversation([], schoolId, currentUserId);
+      const conv = await MessagingAPI.createConversation([], schoolId, currentUserId, {
+        scope_type: 'self',
+        scope_id: currentUserId,
+        title: 'Note to self'
+      });
       handleSelectConversation(conv.id);
       refreshConvs();
     } catch (err) {

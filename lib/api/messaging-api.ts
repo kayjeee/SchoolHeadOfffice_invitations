@@ -44,6 +44,8 @@ export interface ConversationFilters {
   grade_id?: string;
   scope_id?: string;
   school_id?: string;
+  user_id?: string;
+  scope_type?: string;
 }
 
 export interface Message {
@@ -107,6 +109,8 @@ export class MessagingAPI {
       if (filters.grade_id) queryParams.append('grade_id', filters.grade_id);
       if (filters.scope_id) queryParams.append('scope_id', filters.scope_id);
       if (filters.school_id) queryParams.append('school_id', filters.school_id);
+      if (filters.user_id) queryParams.append('user_id', filters.user_id);
+      if (filters.scope_type) queryParams.append('scope_type', filters.scope_type);
 
       const queryString = queryParams.toString();
       if (queryString) {
