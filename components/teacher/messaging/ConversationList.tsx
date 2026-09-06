@@ -197,6 +197,7 @@ export default function ConversationList({
             const isActive     = activeConversationId === conv.id;
             const hasUnread    = conv.unread_count > 0;
             const dateLabel    = formatDate(conv.updated_at);
+            const isGroup      = Boolean(conv.scope_type || conv.participants.length > 2);
 
             return (
               <button
@@ -211,7 +212,11 @@ export default function ConversationList({
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  {avatar ? (
+                  {isGroup ? (
+                    <div className="w-12 h-12 rounded-2xl bg-primary-accent/10 border border-primary-accent/20 flex items-center justify-center">
+                      <Users className="w-6 h-6 text-primary-accent" />
+                    </div>
+                  ) : avatar ? (
                     <img
                       src={avatar}
                       alt={displayName}
@@ -222,7 +227,7 @@ export default function ConversationList({
                       <User className="w-6 h-6 text-white/20" />
                     </div>
                   )}
-                  {isOnline && (
+                  {!isGroup && isOnline && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
                   )}
                 </div>
@@ -230,7 +235,14 @@ export default function ConversationList({
                 {/* Text */}
                 <div className="flex-1 text-left min-w-0">
                   <div className="flex justify-between items-start mb-0.5">
-                    <h4 className="font-bold text-white/90 truncate text-sm">{displayName}</h4>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <h4 className="font-bold text-white/90 truncate text-sm">{displayName}</h4>
+                      {conv.scope_type && (
+                        <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-white/10 text-white/60">
+                          {conv.scope_type}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] font-bold text-white/20 uppercase whitespace-nowrap ml-2">
                       {dateLabel}
                     </span>

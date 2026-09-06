@@ -27,10 +27,23 @@ export interface Conversation {
   participant_ids: string[];
   participants: ParticipantSnippet[];
   school_id: string | null;
+  scope_type?: 'class' | 'grade' | 'school' | 'teachers' | 'self' | string | null;
+  scope_id?: string | null;
+  academic_year?: string | null;
+  term_id?: string | null;
+  grade_id?: string | null;
   last_message: LastMessage | null;
   unread_count: number;
   updated_at: string;
   created_at: string;
+}
+
+export interface ConversationFilters {
+  academic_year?: string;
+  term_id?: string;
+  grade_id?: string;
+  scope_id?: string;
+  school_id?: string;
 }
 
 export interface Message {
@@ -84,9 +97,24 @@ export class ConversationError extends Error {
 
 export class MessagingAPI {
 
-  /** Fetch all conversations for the current user, newest first. */
-  static async getConversations(): Promise<Conversation[]> {
-    const response = await apiClient.get('/api/v1/conversations', z.any()) as any;
+  /** Fetch conversations for the current user with optional filters, newest first. */
+  static async getConversations(filters?: ConversationFilters): Promise<Conversation[]> {
+    let url = '/api/v1/conversations';
+    if (filters) {
+      const queryParams = new URLSearchParams();
+      if (filters.academic_year) queryParams.append('academic_year', filters.academic_year);
+      if (filters.term_id) queryParams.append('term_id', filters.term_id);
+      if (filters.grade_id) queryParams.append('grade_id', filters.grade_id);
+      if (filters.scope_id) queryParams.append('scope_id', filters.scope_id);
+      if (filters.school_id) queryParams.append('school_id', filters.school_id);
+
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
+
+    const response = await apiClient.get(url, z.any()) as any;
     const raw = response?.data ?? response?.conversations ?? response;
     const list: any[] = Array.isArray(raw) ? raw : [];
     return list.map(normalizeConversation);
@@ -108,7 +136,14 @@ export class MessagingAPI {
   static async createConversation(
     participantIds: string[],
     schoolId: string,
-    userId: string
+    userId: string,
+    options?: {
+      scope_type?: 'class' | 'grade' | 'school' | 'teachers' | 'self' | string;
+      scope_id?: string;
+      academic_year?: string;
+      term_id?: string;
+      title?: string;
+    }
   ): Promise<Conversation> {
     if (!schoolId) {
       throw new ConversationError(
@@ -118,13 +153,21 @@ export class MessagingAPI {
     }
 
     // Clean configuration for conversations / notes to self
-    // If participantIds is empty, the backend treats it as a "Note to self"
     const payload = {
       school_id: schoolId,
       user_id: userId,
+      scope_type: options?.scope_type,
+      scope_id: options?.scope_id,
+      academic_year: options?.academic_year,
+      term_id: options?.term_id,
       conversation: {
         school_id: schoolId,
-        participant_ids: participantIds
+        participant_ids: participantIds,
+        scope_type: options?.scope_type,
+        scope_id: options?.scope_id,
+        academic_year: options?.academic_year,
+        term_id: options?.term_id,
+        title: options?.title
       }
     };
 
@@ -365,6 +408,11 @@ export function normalizeConversation(c: any): Conversation {
     participant_ids: (c.participant_ids || []).map(String),
     participants,
     school_id:       c.school_id ? String(c.school_id) : null,
+    scope_type:      c.scope_type || null,
+    scope_id:        c.scope_id ? String(c.scope_id) : null,
+    academic_year:   c.academic_year ? String(c.academic_year) : null,
+    term_id:         c.term_id ? String(c.term_id) : null,
+    grade_id:        c.grade_id ? String(c.grade_id) : null,
     last_message:    c.last_message ? normalizeLastMessage(c.last_message) : null,
     unread_count:    Number(c.unread_count ?? 0),
     updated_at:      c.updated_at || c.last_message_at || c.created_at || new Date().toISOString(),
