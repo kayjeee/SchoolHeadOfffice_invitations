@@ -31,8 +31,11 @@ import {
   Package,
   CheckSquare,
   XCircle,
-  Clock
+  Clock,
+  MessageSquare
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MessagingAPI } from '@/lib/api/messaging-api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -54,6 +57,7 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
   const { schoolId, isLoading: isSchoolLoading } = useSchool(schoolSlug);
   const { currentSchool } = useSchoolContext();
   const { user } = useUser();
+  const router = useRouter();
 
   // Active Main Tab
   const [activeTab, setActiveTab] = useState<'directory' | 'invitations' | 'supplies'>('directory');
@@ -458,6 +462,42 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
         description="Manage your faculty, academic workloads, invitations, and supply requisitions."
         actions={
           <>
+            <button
+              onClick={async () => {
+                if (!schoolId) return;
+                toast.loading('Opening All Teachers conversation thread...', { id: 'msg-teachers' });
+                try {
+                  const existing = await MessagingAPI.getConversations({
+                    scope_id: 'all_teachers',
+                    school_id: schoolId
+                  });
+
+                  let conv = existing.find(c => c.scope_type === 'teachers');
+
+                  if (!conv) {
+                    conv = await MessagingAPI.createConversation(
+                      [],
+                      schoolId,
+                      user?.sub || 'admin-123',
+                      {
+                        scope_type: 'teachers',
+                        scope_id: 'all_teachers',
+                        title: 'All Faculty & Staff Teachers'
+                      }
+                    );
+                  }
+
+                  toast.success('Redirecting to Communications...', { id: 'msg-teachers' });
+                  router.push(`/admin/${schoolSlug}/communications?conversationId=${conv.id}`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to open conversation', { id: 'msg-teachers' });
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-black rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/20"
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-400" />
+              Message All Teachers
+            </button>
             <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all">
               <Download className="w-4 h-4" />
               Export Staff List

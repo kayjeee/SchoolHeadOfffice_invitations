@@ -372,7 +372,11 @@ export default function MessagingSection({
                   </button>
 
                   <div className="relative">
-                    {otherParticipant?.avatar ? (
+                    {activeConversation?.scope_type || resolvedParticipants.length > 2 ? (
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary-accent/10 border border-primary-accent/20 flex items-center justify-center">
+                        <Users className="w-5 h-5 md:w-6 md:h-6 text-primary-accent" />
+                      </div>
+                    ) : otherParticipant?.avatar ? (
                       <img
                         src={otherParticipant.avatar}
                         alt={otherParticipant.name}
@@ -383,7 +387,7 @@ export default function MessagingSection({
                         <User className="w-6 h-6 text-white/20" />
                       </div>
                     )}
-                    {otherParticipant?.online_status === 'online' && (
+                    {!activeConversation?.scope_type && resolvedParticipants.length <= 2 && otherParticipant?.online_status === 'online' && (
                       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-4 border-surface-container" />
                     )}
                   </div>
@@ -393,7 +397,11 @@ export default function MessagingSection({
                       {activeConversation?.title || otherParticipant?.name || 'Contact'}
                     </h3>
                     <p className="text-[10px] md:text-[11px] font-bold text-white/20 uppercase tracking-widest flex items-center gap-1.5">
-                      {otherParticipant?.online_status === 'online' ? (
+                      {activeConversation?.scope_type ? (
+                        <span className="px-2 py-0.5 rounded bg-primary-accent/10 text-primary-accent border border-primary-accent/20">
+                          {activeConversation.scope_type.toUpperCase()} • {resolvedParticipants.length} Participants
+                        </span>
+                      ) : otherParticipant?.online_status === 'online' ? (
                         <>
                           <span className="w-1 h-1 rounded-full bg-green-500" />
                           Active now
