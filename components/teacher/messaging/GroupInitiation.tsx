@@ -208,18 +208,32 @@ export default function GroupInitiation({
 
     setIsSubmitting(true);
     try {
-      const payload = {
-        school_id: schoolId,
-        scope_type: activeTab,
-        target_id: selectedTarget.id,
-        custom_name: groupName.trim() || null
-      };
+      let resolvedScopeType: string = activeTab === 'classroom' ? 'class' : activeTab;
+      let resolvedScopeId: string | undefined = selectedTarget.id;
 
-      const conversation = await MessagingAPI.groupInitiation(payload);
+      if (activeTab === 'broadcast') {
+        if (selectedTarget.id === 'all_teachers') {
+          resolvedScopeType = 'teachers';
+          resolvedScopeId = undefined;
+        } else {
+          resolvedScopeType = 'school';
+          resolvedScopeId = undefined;
+        }
+      }
+
+      const conversation = await MessagingAPI.createConversation(
+        [],
+        schoolId,
+        currentUserId,
+        {
+          scope_type: resolvedScopeType,
+          scope_id: resolvedScopeId,
+          title: groupName.trim() || selectedTarget.name
+        }
+      );
       onSuccess(conversation.id);
     } catch (err) {
       console.error('Failed to initiate group:', err);
-      // Optional: Add error toast here
     } finally {
       setIsSubmitting(false);
     }
