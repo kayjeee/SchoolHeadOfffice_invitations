@@ -158,15 +158,9 @@ export class MessagingAPI {
 
     // Clean configuration for conversations / notes to self
     const payload = {
-      school_id: schoolId,
-      user_id: userId,
-      scope_type: options?.scope_type,
-      scope_id: options?.scope_id,
-      academic_year: options?.academic_year,
-      term_id: options?.term_id,
       conversation: {
         school_id: schoolId,
-        participant_ids: participantIds,
+        user_id: userId,
         scope_type: options?.scope_type,
         scope_id: options?.scope_id,
         academic_year: options?.academic_year,
