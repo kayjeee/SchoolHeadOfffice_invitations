@@ -1,5 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { MessagingAPI } from '@/lib/api/messaging-api';
+import { SchoolAPI, Grade, Class } from '@/lib/api/school-api';
+import { apiClient } from '@/lib/api/api-client';
+import { z } from 'zod';
 import {
   Users,
   GraduationCap,
@@ -9,7 +12,8 @@ import {
   CheckCircle2,
   Sparkles,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +52,106 @@ export default function GroupInitiation({
   const [groupName, setGroupName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [loadedGrades, setLoadedGrades] = useState<{ id: string; name: string; learnerCount: number; teacherCount: number }[]>([]);
+  const [selectedGradeForClasses, setSelectedGradeForClasses] = useState<string>('');
+  const [loadedClasses, setLoadedClasses] = useState<{ id: string; name: string; learnerCount: number; teacherName: string }[]>([]);
+  const [isLoadingGrades, setIsLoadingGrades] = useState(false);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+
+  // Fetch grades + counts on mount
+  useEffect(() => {
+    if (!schoolId) return;
+
+    let isMounted = true;
+    setIsLoadingGrades(true);
+
+    async function fetchGradesAndCounts() {
+      try {
+        const rawGrades = await SchoolAPI.getGrades(schoolId);
+        if (!isMounted) return;
+
+        const detailedGrades = await Promise.all(
+          rawGrades.map(async (g) => {
+            let tCount = 0;
+            try {
+              const tRes: any = await apiClient.get(
+                `/api/v1/teacher_grade_assignments?school_id=${schoolId}&grade_id=${g.id}&status=active`,
+                z.any()
+              );
+              const list = tRes?.teacher_grade_assignments || tRes?.data || (Array.isArray(tRes) ? tRes : []);
+              tCount = Array.isArray(list) ? list.length : 0;
+            } catch (err) {
+              console.warn(`Failed to fetch teacher count for grade ${g.id}`, err);
+            }
+
+            const lCount = g.total_learners || 0;
+            return {
+              id: g.id,
+              name: g.name,
+              learnerCount: lCount,
+              teacherCount: tCount
+            };
+          })
+        );
+
+        if (isMounted) {
+          setLoadedGrades(detailedGrades);
+          if (detailedGrades.length > 0) {
+            setSelectedGradeForClasses(detailedGrades[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load grades in GroupInitiation:', err);
+      } finally {
+        if (isMounted) setIsLoadingGrades(false);
+      }
+    }
+
+    fetchGradesAndCounts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [schoolId]);
+
+  // Fetch classes when selectedGradeForClasses or activeTab === 'classroom' changes
+  useEffect(() => {
+    if (!schoolId || !selectedGradeForClasses) return;
+
+    let isMounted = true;
+    setIsLoadingClasses(true);
+
+    async function fetchClassesForGrade() {
+      try {
+        const classesData = await SchoolAPI.getClasses(schoolId, selectedGradeForClasses);
+        if (!isMounted) return;
+
+        const detailedClasses = classesData.map(c => {
+          const lCount = c.current_learners || c.learnerCount || (c as any).learner_ids?.length || 0;
+          const tName = c.class_teacher_name || (c as any).classTeacher || 'No teacher assigned';
+          return {
+            id: c.id,
+            name: c.name,
+            learnerCount: lCount,
+            teacherName: tName
+          };
+        });
+
+        setLoadedClasses(detailedClasses);
+      } catch (err) {
+        console.error('Failed to load classes for grade in GroupInitiation:', err);
+      } finally {
+        if (isMounted) setIsLoadingClasses(false);
+      }
+    }
+
+    fetchClassesForGrade();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [schoolId, selectedGradeForClasses]);
+
   // ── Data ──────────────────────────────────────────────────────────────────
 
   const broadcastOptions: TargetOption[] = [
@@ -55,10 +159,16 @@ export default function GroupInitiation({
     { id: 'all_teachers', name: 'All Teachers', description: 'Internal broadcast to all teaching staff' },
   ];
 
-  // Derive unique grades from classes (e.g., "Grade 9" from "Grade 9A Maths")
   const gradeOptions: TargetOption[] = useMemo(() => {
+    if (loadedGrades.length > 0) {
+      return loadedGrades.map(g => ({
+        id: g.id,
+        name: `${g.name} (${g.learnerCount} learners, ${g.teacherCount} teachers)`,
+        description: `All learners, parents, and ${g.teacherCount} active teachers mapped to ${g.name}`
+      }));
+    }
+
     const uniqueGrades = Array.from(new Set(classes.map(c => {
-      // Split by space and take first two parts: "Grade" + "9"
       const parts = c.grade_name.split(' ');
       return parts.slice(0, 2).join(' ');
     })));
@@ -67,15 +177,23 @@ export default function GroupInitiation({
       name: grade,
       description: `All learners and parents mapped to ${grade}`
     }));
-  }, [classes]);
+  }, [loadedGrades, classes]);
 
   const classroomOptions: TargetOption[] = useMemo(() => {
+    if (loadedClasses.length > 0) {
+      return loadedClasses.map(c => ({
+        id: c.id,
+        name: c.name,
+        description: `${c.learnerCount} learners • Teacher: ${c.teacherName}`
+      }));
+    }
+
     return classes.map(c => ({
       id: c.id,
       name: c.grade_name,
       description: `${c.learner_count} Learners • Real-time classroom stream`
     }));
-  }, [classes]);
+  }, [loadedClasses, classes]);
 
   const activeOptions = useMemo(() => {
     if (activeTab === 'broadcast') return broadcastOptions;
@@ -167,9 +285,39 @@ export default function GroupInitiation({
       <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
         {/* Item Selection */}
         <div className="space-y-3">
-          <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest px-2">
-            Select Target {activeTab === 'classroom' ? 'Class' : activeTab}
-          </p>
+          <div className="flex items-center justify-between px-2">
+            <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
+              Select Target {activeTab === 'classroom' ? 'Class' : activeTab}
+            </p>
+            {((activeTab === 'grade' && isLoadingGrades) || (activeTab === 'classroom' && isLoadingClasses)) && (
+              <span className="text-[10px] text-white/40 font-bold flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin text-primary-accent" /> Loading real counts...
+              </span>
+            )}
+          </div>
+
+          {activeTab === 'classroom' && loadedGrades.length > 0 && (
+            <div className="space-y-1.5 mb-2 px-1">
+              <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-primary-accent" />
+                Select Grade to view Classes
+              </label>
+              <select
+                value={selectedGradeForClasses}
+                onChange={(e) => {
+                  setSelectedGradeForClasses(e.target.value);
+                  setSelectedTarget(null);
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-xs font-bold text-white/90 outline-none focus:bg-white/10 cursor-pointer"
+              >
+                {loadedGrades.map(g => (
+                  <option key={g.id} value={g.id} className="bg-slate-900 text-white font-bold">
+                    {g.name} ({g.learnerCount} learners)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className={cn(
             "grid gap-3",
