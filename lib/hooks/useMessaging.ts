@@ -201,7 +201,7 @@ function mergeMessageUpdate(
 /**
  * Hook for managing messages in a specific conversation
  */
-export function useMessages(conversationId: string | null, options: { skipToken?: boolean } = {}) {
+export function useMessages(conversationId: string | null, options: { skipToken?: boolean; schoolId?: string } = {}) {
   const { accessToken, isLoading: isAuthLoading } = useApi(options);
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
@@ -249,6 +249,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
   const sendMessage = async (
     content: string,
     senderId: string,
+    schoolId: string,
     attachment?: { url: string; type: string; name: string; size?: number },
     replyToId?: string
   ) => {
@@ -274,7 +275,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
 
     try {
       setIsSending(true);
-      const realMessage = await MessagingAPI.sendMessage(convIdStr, content, attachment, replyToId);
+      const realMessage = await MessagingAPI.sendMessage(convIdStr, content, senderId, schoolId, attachment, replyToId);
 
       // Update cache and clear optimistic
       // Using functional update to avoid stale closures

@@ -217,10 +217,16 @@ export class MessagingAPI {
   static async sendMessage(
     conversationId: string,
     content: string,
+    userId: string,
+    schoolId: string,
     attachment?: { url: string; type: string; name: string; size?: number },
     replyToId?: string
   ): Promise<Message> {
-    const messagePayload: any = { content };
+    const messagePayload: any = {
+      content,
+      user_id: userId,
+      school_id: schoolId
+    };
     if (attachment) {
       messagePayload.attachment_url = attachment.url;
       messagePayload.attachment_type = attachment.type;
@@ -321,21 +327,6 @@ export class MessagingAPI {
     return list.map(normalizeMessage);
   }
 
-  /** Initiate a group conversation for broadcasts, grades, or classes. */
-  static async groupInitiation(payload: {
-    school_id: string;
-    scope_type: 'broadcast' | 'grade' | 'classroom';
-    target_id: string;
-    custom_name?: string | null;
-  }): Promise<Conversation> {
-    const response = await apiClient.post(
-      '/api/v1/conversations/group_initiation',
-      payload,
-      z.any()
-    ) as any;
-    const raw = response?.data ?? response?.conversation ?? response;
-    return normalizeConversation(raw);
-  }
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
