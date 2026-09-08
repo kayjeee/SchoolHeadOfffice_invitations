@@ -68,6 +68,18 @@ const getLearnerFullName = (learner: any): string => {
   return `${fName} ${lName}`.trim() || 'Unnamed Learner';
 };
 
+const normalizePhoneNumber = (phone: string) => {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('0') && digits.length === 10) {
+    return '27' + digits.slice(1);
+  }
+  if (digits.length >= 10 && digits.length <= 15) {
+    return digits;
+  }
+  return phone.trim();
+};
+
 const getLearnerWhatsAppPhone = (learner: any): string => {
   if (!learner) return '';
   const phoneFields = [
@@ -89,7 +101,7 @@ const getLearnerWhatsAppPhone = (learner: any): string => {
       if (cleanPhone !== '' && !cleanPhone.startsWith('011')) {
         const digitCount = (cleanPhone.match(/\d/g) || []).length;
         if (digitCount >= 7) {
-          return cleanPhone;
+          return normalizePhoneNumber(cleanPhone);
         }
       }
     }
@@ -461,8 +473,10 @@ export default function LearnerDirectoryPage({ params }: { params: Promise<{ sch
       return;
     }
 
+    const normalizedParentPhone = normalizePhoneNumber(singleInvite.parentPhone);
+
     const payload = {
-      phone_number: singleInvite.parentPhone,
+      phone_number: normalizedParentPhone,
       school_id: schoolId,
       role: 'parent',
       invited_via: 'whatsapp',
