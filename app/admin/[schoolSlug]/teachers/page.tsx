@@ -301,17 +301,21 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
       if (singleInvite.channel === 'WhatsApp' && normalizedPhone) {
         toast.loading('Dispatching WhatsApp message...', { id: toastId });
         try {
-          await apiClient.post('/api/whatsapp-business/send-bulk', {
-            personalizedMessages: [
-              {
-                to: normalizedPhone,
-                parentName: singleInvite.name.trim(),
-                magicLink: magicLink,
-                message: `Hello ${singleInvite.name.trim()}, you are invited to join the Faculty Portal for ${schoolName}. Click here: ${magicLink}`
-              }
-            ],
-            schoolName
-          }, z.any());
+          await fetch('/api/whatsapp-business/send-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              personalizedMessages: [
+                {
+                  to: normalizedPhone,
+                  parentName: singleInvite.name.trim(),
+                  magicLink: magicLink,
+                  message: `Hello ${singleInvite.name.trim()}, you are invited to join the Faculty Portal for ${schoolName}. Click here: ${magicLink}`
+                }
+              ],
+              schoolName
+            })
+          });
         } catch (wsErr: any) {
           console.warn('WhatsApp business dispatch warning:', wsErr);
         }
@@ -432,10 +436,14 @@ export default function TeachersCRMPage({ params }: { params: Promise<{ schoolSl
     if (personalizedMessages.length > 0 && bulkChannel === 'WhatsApp') {
       toast.loading(`Sending ${personalizedMessages.length} WhatsApp messages...`, { id: toastId });
       try {
-        await apiClient.post('/api/whatsapp-business/send-bulk', {
-          personalizedMessages,
-          schoolName
-        }, z.any());
+        await fetch('/api/whatsapp-business/send-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personalizedMessages,
+            schoolName
+          })
+        });
       } catch (wsErr) {
         console.error('WhatsApp send-bulk error:', wsErr);
       }
