@@ -57,17 +57,14 @@ export const getServerSideProps: GetServerSideProps<TeacherSchoolProps> = async 
   let schoolIdFromLookup: string | null = null;
   if (school && (!invitationData || !invitationData.school_id)) {
     try {
-      const schoolRes = await fetch(`${cleanBase}/schools?search=${encodeURIComponent(school)}`);
+      const schoolRes = await fetch(`${cleanBase}/schools/${encodeURIComponent(school)}`);
       if (schoolRes.ok) {
         const schoolJson = await schoolRes.json();
-        const schoolsList = schoolJson.schools || schoolJson.data?.schools || schoolJson.data || [];
-        if (Array.isArray(schoolsList) && schoolsList.length > 0) {
-          const matched = schoolsList.find((s: any) => s.slug === school || s.schoolName === school || s.name === school) || schoolsList[0];
-          schoolIdFromLookup = matched.id || matched._id;
-        }
+        const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson;
+        schoolIdFromLookup = resolvedSchool?.id || resolvedSchool?._id || null;
       }
     } catch (err: any) {
-      console.error(`⚠️ [TeacherSchoolGSSP] School lookup failed:`, err.message);
+      console.error(`⚠️ [TeacherSchoolGSSP] Safe school lookup failed:`, err.message);
     }
   }
 

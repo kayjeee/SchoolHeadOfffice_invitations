@@ -83,6 +83,12 @@ export default function TeacherOnboardingFlow({
         }
       }
 
+      if (!resolvedSchoolId) {
+        setErrorMessage('Unable to determine school context for invitation. Please access this page using the invitation link provided by your administrator.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // 2. Call InvitationAPI.matchByPhone
       const matchResult = await InvitationAPI.matchByPhone(
         cleanPhone,
