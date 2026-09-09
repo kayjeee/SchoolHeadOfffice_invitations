@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { InvitationAPI, InvitationData } from '../../../lib/api/invitation-api';
 import {
@@ -11,7 +11,8 @@ import {
   Loader2,
   ArrowRight,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from 'lucide-react';
 
 interface TeacherOnboardingFlowProps {
@@ -37,21 +38,78 @@ export default function TeacherOnboardingFlow({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // School picker state when token has no schoolId
+  const initialSchoolId = schoolId || invitationData?.school_id || null;
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState(schoolName || '');
+  const [schoolSuggestions, setSchoolSuggestions] = useState<any[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<{ id: string; name: string } | null>(null);
+  const [isSearchingSchools, setIsSearchingSchools] = useState(false);
+  const [showSchoolSuggestions, setShowSchoolSuggestions] = useState(false);
+
+  const isSchoolLocked = Boolean(initialSchoolId);
+
   const resolvedSchoolName =
+    selectedSchool?.name ||
     schoolName ||
     invitationData?.school_name ||
     invitationData?.school ||
     'School';
 
-  const resolvedSchoolId =
-    schoolId ||
-    invitationData?.school_id ||
+  const finalSchoolId =
+    initialSchoolId ||
+    selectedSchool?.id ||
     '';
 
   const resolvedSlug =
     schoolSlug ||
     invitationData?.school_slug ||
     (resolvedSchoolName !== 'School' ? resolvedSchoolName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'school');
+
+  // Debounced school search
+  useEffect(() => {
+    if (isSchoolLocked) return;
+    if (!schoolSearchQuery.trim()) {
+      setSchoolSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingSchools(true);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+        const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
+        const res = await fetch(`${cleanBase}/schools?search=${encodeURIComponent(schoolSearchQuery.trim())}`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = json.schools || json.data?.schools || json.data || [];
+          setSchoolSuggestions(Array.isArray(list) ? list : []);
+        }
+      } catch (err) {
+        console.error('Error searching schools:', err);
+      } finally {
+        setIsSearchingSchools(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [schoolSearchQuery, isSchoolLocked]);
+
+  const handleSchoolInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSchoolSearchQuery(val);
+    setShowSchoolSuggestions(true);
+    if (selectedSchool && selectedSchool.name !== val) {
+      setSelectedSchool(null);
+    }
+  };
+
+  const handleSelectSchool = (schoolItem: any) => {
+    const id = schoolItem.id || schoolItem._id;
+    const name = schoolItem.schoolName || schoolItem.name || 'School';
+    setSelectedSchool({ id, name });
+    setSchoolSearchQuery(name);
+    setShowSchoolSuggestions(false);
+  };
 
   const normalizePhone = (phone: string) => {
     const digits = phone.replace(/\D/g, '');
@@ -83,8 +141,8 @@ export default function TeacherOnboardingFlow({
         }
       }
 
-      if (!resolvedSchoolId) {
-        setErrorMessage('Unable to determine school context for invitation. Please access this page using the invitation link provided by your administrator.');
+      if (!finalSchoolId) {
+        setErrorMessage('Please select your school from the list before proceeding.');
         setIsSubmitting(false);
         return;
       }
@@ -93,7 +151,7 @@ export default function TeacherOnboardingFlow({
       const matchResult = await InvitationAPI.matchByPhone(
         cleanPhone,
         user?.sub || 'system',
-        resolvedSchoolId
+        finalSchoolId
       );
 
       if (matchResult.success && matchResult.matched_count > 0) {
@@ -169,6 +227,59 @@ export default function TeacherOnboardingFlow({
             </div>
           )}
 
+          {/* School Selection Field */}
+          <div className="space-y-2 relative">
+            <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+              School
+            </label>
+            {isSchoolLocked ? (
+              <div className="p-3.5 bg-slate-100 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm flex items-center gap-2">
+                <School className="w-5 h-5 text-slate-400" />
+                <span>{resolvedSchoolName}</span>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={schoolSearchQuery}
+                  onChange={handleSchoolInputChange}
+                  onFocus={() => setShowSchoolSuggestions(true)}
+                  placeholder="Search your school e.g. Kagiso High School..."
+                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                />
+
+                {/* Dropdown Suggestions */}
+                {showSchoolSuggestions && (schoolSuggestions.length > 0 || isSearchingSchools) && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                    {isSearchingSchools ? (
+                      <div className="p-4 text-center text-slate-400 text-xs font-bold flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Searching schools...</span>
+                      </div>
+                    ) : (
+                      schoolSuggestions.map((schoolItem) => (
+                        <button
+                          key={schoolItem.id || schoolItem._id}
+                          type="button"
+                          onClick={() => handleSelectSchool(schoolItem)}
+                          className="w-full text-left px-4 py-3 hover:bg-emerald-50 text-xs font-bold text-slate-800 transition-colors flex items-center justify-between"
+                        >
+                          <span>{schoolItem.schoolName || schoolItem.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{schoolItem.city || schoolItem.province || 'School'}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {schoolSearchQuery && !selectedSchool && !isSearchingSchools && (
+                  <p className="text-[11px] text-amber-600 font-extrabold mt-1">Please select a school from the suggestions dropdown above</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
               Mobile / WhatsApp Number
@@ -188,7 +299,7 @@ export default function TeacherOnboardingFlow({
 
           <button
             type="submit"
-            disabled={isSubmitting || !phoneNumber.trim()}
+            disabled={isSubmitting || !phoneNumber.trim() || !finalSchoolId}
             className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-wider"
           >
             {isSubmitting ? (
