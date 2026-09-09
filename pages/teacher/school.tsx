@@ -51,24 +51,7 @@ export const getServerSideProps: GetServerSideProps<TeacherSchoolProps> = async 
     }
   }
 
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
-  const cleanBase = apiBase.endsWith('/api/v1') ? apiBase : `${apiBase}/api/v1`;
-
-  let schoolIdFromLookup: string | null = null;
-  if (school && (!invitationData || !invitationData.school_id)) {
-    try {
-      const schoolRes = await fetch(`${cleanBase}/schools/${encodeURIComponent(school)}`);
-      if (schoolRes.ok) {
-        const schoolJson = await schoolRes.json();
-        const resolvedSchool = schoolJson.school || schoolJson.data?.school || schoolJson;
-        schoolIdFromLookup = resolvedSchool?.id || resolvedSchool?._id || null;
-      }
-    } catch (err: any) {
-      console.error(`⚠️ [TeacherSchoolGSSP] Safe school lookup failed:`, err.message);
-    }
-  }
-
-  const resolvedSchoolId = invitationData?.school_id || schoolIdFromLookup || null;
+  const resolvedSchoolId = invitationData?.school_id || null;
 
   if (!session?.user) {
     return {
