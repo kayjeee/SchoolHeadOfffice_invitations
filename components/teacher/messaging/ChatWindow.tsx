@@ -116,7 +116,7 @@ export default function ChatWindow({
   }, [sendReadSignal]);
 
   const getParticipant = (id: string) => {
-    return participants.find(p => p.id?.toString() === id?.toString());
+    return participants.find(p => p.id?.toString() === id?.toString() || (p as any).user_id?.toString() === id?.toString());
   };
 
   const formatDate = (dateStr: string) => {

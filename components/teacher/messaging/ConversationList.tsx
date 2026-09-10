@@ -14,6 +14,7 @@ interface ConversationListProps {
   onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
   onNoteToSelf?: () => void;
+  contactMap?: Map<string, any>;
 }
 
 export default function ConversationList({
@@ -27,6 +28,7 @@ export default function ConversationList({
   onShowSaved,
   onNoteToSelf,
   schoolId,
+  contactMap,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -76,9 +78,21 @@ export default function ConversationList({
   const getPreviewText = (conv: Conversation): string => {
     if (!conv.last_message) return 'Start a conversation';
     const isOwn = conv.last_message.sender_id === currentUserId;
-    const prefix = isOwn ? 'You: ' : '';
+    let prefix = '';
+    if (isOwn) {
+      prefix = 'You: ';
+    } else {
+      const senderId = conv.last_message.sender_id;
+      const sender = (conv.participants || []).find(p => (p.id ?? (p as any).user_id)?.toString() === senderId.toString())
+        || (contactMap ? contactMap.get(senderId.toString()) : null);
+      const senderName = sender?.name || sender?.user_name || sender?.email;
+      if (senderName) {
+        prefix = `${senderName}: `;
+      }
+    }
     const content = conv.last_message.content;
-    return prefix + (content.length > 60 ? content.slice(0, 57) + '…' : content);
+    const fullText = prefix + content;
+    return fullText.length > 60 ? fullText.slice(0, 57) + '…' : fullText;
   };
 
   const formatDate = (dateStr: string): string => {
