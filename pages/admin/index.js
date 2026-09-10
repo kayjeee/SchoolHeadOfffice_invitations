@@ -227,14 +227,14 @@ function PublicLanding() {
 
           <div className="flex justify-center gap-4">
            <a
-  href="/api/auth/login?returnTo=/parent"
+  href="/api/auth/login?returnTo=/admin"
   className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold"
 >
   Sign In
 </a>
 
 <a
-  href="/api/auth/signup?returnTo=/parent"
+  href="/api/auth/signup?returnTo=/admin"
   className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold shadow"
 >
   Create Free Account
