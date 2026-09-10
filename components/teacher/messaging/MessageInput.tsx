@@ -305,7 +305,7 @@ export default function MessageInput({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-bold text-primary-accent uppercase tracking-widest truncate">
-                Replying to {replyTo.reply_to_preview?.sender_name || replyTo.sender_name || 'Contact'}
+                Replying to {replyTo.reply_to_preview?.sender_name && replyTo.reply_to_preview.sender_name !== 'Contact' ? replyTo.reply_to_preview.sender_name : (replyTo.sender_name && replyTo.sender_name !== 'Contact' ? replyTo.sender_name : 'User')}
               </p>
               <p className="text-sm text-white/60 truncate italic">
                 {replyTo.content || (replyTo.attachment_url ? `[${replyTo.attachment_type || 'Attachment'}]` : '...')}

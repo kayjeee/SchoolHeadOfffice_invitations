@@ -222,7 +222,7 @@ export default function MessageBubble({
             <button
               type="button"
               className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-accent/60"
-              onClick={() => onReply?.({ ...message, sender_name: isMine ? 'You' : (sender?.name || 'Contact') })}
+              onClick={() => onReply?.({ ...message, sender_name: isMine ? 'You' : (sender?.name && sender.name !== 'Contact' ? sender.name : (sender as any)?.email || 'User') })}
               disabled={message.is_optimistic}
               aria-label="Reply"
               title="Reply"
@@ -284,7 +284,7 @@ export default function MessageBubble({
             {/* Sender Name for incoming messages */}
             {!isMine && (
               <div className="mb-1 text-xs font-bold text-primary-accent">
-                {sender?.name || sender?.user_name || (sender as any)?.email || 'Contact'}
+                {sender?.name && sender.name !== 'Contact' ? sender.name : (sender as any)?.email || sender?.user_name || 'User'}
               </div>
             )}
 
