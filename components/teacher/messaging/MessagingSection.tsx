@@ -114,27 +114,39 @@ export default function MessagingSection({
 
     const allIds = Array.from(
       new Set([
-        ...participants.map((p: any) => p.id?.toString()),
+        ...participants.flatMap((p: any) => [p.id?.toString(), p.user_id?.toString()]),
         ...participantIds.map((id: any) => id?.toString()),
+        ...messages.map((m: any) => m.sender_id?.toString()),
       ])
     ).filter(Boolean) as string[];
 
     return allIds.map(id => {
       const fromDirectory = contactMap.get(id);
-      const fromConv = participants.find((p: any) => p.id?.toString() === id);
+      const fromConv = participants.find((p: any) => p.id?.toString() === id || p.user_id?.toString() === id);
 
       let resolved: Participant =
-        fromConv || ({ id, name: 'Contact', role: 'staff' } as Participant);
+        fromConv || fromDirectory || ({ id, name: id, role: 'staff' } as Participant);
 
       if (fromDirectory) {
         resolved = { ...resolved, ...fromDirectory };
-      } else if (id === currentUserId?.toString()) {
+      }
+
+      if (id === currentUserId?.toString()) {
         resolved = { ...resolved, name: 'You', role: 'teacher' };
       }
 
-      return resolved;
+      const cleanName =
+        (resolved.name && resolved.name !== 'Contact')
+          ? resolved.name
+          : ((resolved as any).email || (resolved as any).user_name || id);
+
+      return {
+        ...resolved,
+        name: cleanName,
+        full_name: cleanName,
+      };
     });
-  }, [activeConversation, contactMap, currentUserId]);
+  }, [activeConversation, messages, contactMap, currentUserId]);
 
   const otherParticipant = useMemo(() => {
     if (resolvedParticipants.length === 0) return null;
@@ -398,7 +410,7 @@ export default function MessagingSection({
 
                   <div className="min-w-0">
                     <h3 className="font-bold text-white/90 text-sm md:text-base truncate">
-                      {activeConversation?.title || otherParticipant?.name || 'Contact'}
+                      {activeConversation?.title || (otherParticipant?.name && otherParticipant.name !== 'Contact' ? otherParticipant.name : (otherParticipant as any)?.email) || 'Conversation'}
                     </h3>
                     <p className="text-[10px] md:text-[11px] font-bold text-white/20 uppercase tracking-widest flex items-center gap-1.5">
                       {activeConversation?.scope_type ? (
