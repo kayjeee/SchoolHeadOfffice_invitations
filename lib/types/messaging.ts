@@ -16,6 +16,10 @@ export const MessageSchema = z.object({
   id: z.string(),
   conversation_id: z.string(),
   sender_id: z.string(),
+  sender: z.object({
+    email: z.string().optional(),
+    name: z.string().optional(),
+  }).nullable().optional(),
   content: z.string(),
   timestamp: z.string(),
   status: z.enum(['sent', 'delivered', 'read', 'failed']).default('sent'),
