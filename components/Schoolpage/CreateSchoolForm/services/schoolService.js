@@ -196,6 +196,27 @@ export const addSchoolToUser = async (auth0Id, schoolId) => {
   return res.json();
 };
 
+export const updateUserProfile = async (auth0Id, profileData) => {
+  const res = await fetch(
+    `${API_BASE}/api/v1/users/update_profile?auth0_id=${encodeURIComponent(auth0Id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: profileData.title || profileData.adminTitle,
+        first_name: profileData.first_name || profileData.adminFirstName,
+        surname: profileData.surname || profileData.adminSurname,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    console.warn(`Profile update warning: ${await res.text()}`);
+  }
+
+  return res.json().catch(() => ({}));
+};
+
 // -------------------------------------------------
 // 5. Full Provisioning Flow
 // -------------------------------------------------
@@ -226,6 +247,19 @@ export const provisionNewSchool = async (formData, user, token) => {
 
   if (!userRes.ok && userRes.status !== 422) {
     throw new Error(await userRes.text());
+  }
+
+  // Update admin profile if title, first_name, or surname are provided
+  if (formData.adminFirstName || formData.adminSurname || formData.adminTitle) {
+    try {
+      await updateUserProfile(user.sub, {
+        title: formData.adminTitle,
+        first_name: formData.adminFirstName,
+        surname: formData.adminSurname,
+      });
+    } catch (err) {
+      console.error("Failed to update admin profile:", err);
+    }
   }
 
   // 4. Assign Admin role
