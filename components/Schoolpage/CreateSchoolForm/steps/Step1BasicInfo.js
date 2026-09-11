@@ -11,10 +11,16 @@ const THEME_PRESETS = [
 ];
 
 const Step1BasicInfo = ({
+  adminTitle = "",
+  adminFirstName = "",
+  adminSurname = "",
   schoolName = "",
   schoolEmail = "",
   phoneNumber = "",
   theme,
+  onAdminTitleChange = () => {},
+  onAdminFirstNameChange = () => {},
+  onAdminSurnameChange = () => {},
   onFileChange = () => {},
   onSchoolNameChange = () => {},
   onSchoolEmailChange = () => {},
@@ -46,6 +52,9 @@ const Step1BasicInfo = ({
 
   const validateForm = () => {
     const newErrors = {};
+
+    if (!adminFirstName.trim()) newErrors.adminFirstName = "First name is required";
+    if (!adminSurname.trim()) newErrors.adminSurname = "Surname is required";
 
     if (!schoolName.trim()) newErrors.schoolName = "School name is required";
 
@@ -137,6 +146,88 @@ const Step1BasicInfo = ({
               </div>
               <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full w-1/3 bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-500 ease-out" />
+              </div>
+            </div>
+
+            {/* Administrator Profile Section */}
+            <div className="mb-10 pb-8 border-b border-gray-200">
+              <h2 className="text-3xl font-bold mb-4 text-gray-900 flex items-center">
+                <div className="w-2 h-8 bg-blue-600 rounded-full mr-4" />
+                Administrator Details
+              </h2>
+              <p className="text-gray-600 text-lg mb-6">
+                Enter your personal profile details as the primary administrator.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title
+                  </label>
+                  <select
+                    value={adminTitle}
+                    onChange={onAdminTitleChange}
+                    onFocus={() => setFocusedField("adminTitle")}
+                    onBlur={() => setFocusedField(null)}
+                    className="w-full px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 transition-all"
+                  >
+                    <option value="">Select Title</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Dr">Dr</option>
+                    <option value="Prof">Prof</option>
+                    <option value="Rev">Rev</option>
+                  </select>
+                </div>
+
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={adminFirstName}
+                    onChange={onAdminFirstNameChange}
+                    onFocus={() => setFocusedField("adminFirstName")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="e.g. Kagiso"
+                    className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500 transition-all duration-300 focus:outline-none ${
+                      errors.adminFirstName
+                        ? "border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                    }`}
+                  />
+                  {errors.adminFirstName && (
+                    <p className="text-red-600 text-sm mt-2">{errors.adminFirstName}</p>
+                  )}
+                </div>
+
+                {/* Surname */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Surname *
+                  </label>
+                  <input
+                    type="text"
+                    value={adminSurname}
+                    onChange={onAdminSurnameChange}
+                    onFocus={() => setFocusedField("adminSurname")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="e.g. Sebogodi"
+                    className={`w-full px-4 py-4 bg-gray-50 border rounded-lg text-black placeholder-gray-500 transition-all duration-300 focus:outline-none ${
+                      errors.adminSurname
+                        ? "border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                    }`}
+                  />
+                  {errors.adminSurname && (
+                    <p className="text-red-600 text-sm mt-2">{errors.adminSurname}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -255,15 +346,15 @@ const Step1BasicInfo = ({
                   </span>
                   .
                 </p>
-                
+
                 <div className="bg-gray-100/50 border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-300">
                   {/* Logo Preview */}
                   {logoPreview ? (
                     <div className="mb-4 text-center">
                       <div className="relative inline-block">
-                        <img 
-                          src={logoPreview} 
-                          alt="School logo preview" 
+                        <img
+                          src={logoPreview}
+                          alt="School logo preview"
                           className="w-32 h-32 object-contain rounded-lg border-2 border-gray-300 mx-auto"
                         />
                         <button
