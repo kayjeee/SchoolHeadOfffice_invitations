@@ -157,16 +157,14 @@ export const createSchool = async (formData, user, logoUrl) => {
 // -------------------------------------------------
 // 4. Backend User Helpers
 // -------------------------------------------------
-
 export const syncBackendRole = async (auth0Id, roles) => {
-  const normalized = roles.map(
-    (r) => r.charAt(0).toUpperCase() + r.slice(1).toLowerCase()
-  );
+  // Do NOT title-case — backend stores lowercase role strings.
+  const normalized = roles.map((r) => r.toLowerCase());
 
   const res = await fetch(
     `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/update_roles`,
     {
-      method: "PATCH",
+      method: "PATCH",   // confirm this matches routes.rb; controller says PUT
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roles: normalized }),
     }
@@ -231,7 +229,8 @@ export const provisionNewSchool = async (formData, user, token) => {
   // 2. Create school
   const school = await createSchool(formData, user, logoUrl);
 
-  // 3. Ensure user exists
+  // 3. Ensure user exists — DO NOT send roles: [] here.
+  //    Let the DB default apply, or send the intended role directly.
   const userRes = await fetch(`${API_BASE}/api/v1/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -240,7 +239,7 @@ export const provisionNewSchool = async (formData, user, token) => {
         name: user.name,
         email: user.email,
         auth0_id: user.sub,
-        roles: [],
+        roles: ["admin"],   // ← was []
       },
     }),
   });
@@ -249,7 +248,7 @@ export const provisionNewSchool = async (formData, user, token) => {
     throw new Error(await userRes.text());
   }
 
-  // Update admin profile if title, first_name, or surname are provided
+  // 4. Update admin profile (unchanged)
   if (formData.adminFirstName || formData.adminSurname || formData.adminTitle) {
     try {
       await updateUserProfile(user.sub, {
@@ -262,18 +261,17 @@ export const provisionNewSchool = async (formData, user, token) => {
     }
   }
 
-  // 4. Assign Admin role
+  // 5. Assign Admin role in Auth0
   const accessToken = token || (await getAccessToken());
   const roles = await fetchAuth0Roles(accessToken);
   const adminRole = roles.find((r) => r.name === "Admin");
-
   if (!adminRole) throw new Error("Admin role not found in Auth0");
-
   await assignAuth0Role(user.sub, accessToken, [adminRole.id]);
-  await syncBackendRole(user.sub, ["admin"]);
 
-  // 5. Attach school
+  // 6. Sync backend role — do this LAST, after add_school, so nothing overwrites it.
+  //    Also match the casing your backend actually stores.
   await addSchoolToUser(user.sub, school._id);
+  await syncBackendRole(user.sub, ["admin"]);
 
   return school;
 };
