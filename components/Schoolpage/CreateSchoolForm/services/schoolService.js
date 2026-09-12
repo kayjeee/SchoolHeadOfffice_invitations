@@ -158,13 +158,12 @@ export const createSchool = async (formData, user, logoUrl) => {
 // 4. Backend User Helpers
 // -------------------------------------------------
 export const syncBackendRole = async (auth0Id, roles) => {
-  // Do NOT title-case — backend stores lowercase role strings.
   const normalized = roles.map((r) => r.toLowerCase());
 
   const res = await fetch(
-    `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/update_roles`,
+    `${API_BASE}/api/v1/users/update_roles?auth0_id=${encodeURIComponent(auth0Id)}`,
     {
-      method: "PATCH",   // confirm this matches routes.rb; controller says PUT
+      method: "PUT",   // routes.rb declares PUT
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roles: normalized }),
     }
@@ -179,9 +178,9 @@ export const syncBackendRole = async (auth0Id, roles) => {
 
 export const addSchoolToUser = async (auth0Id, schoolId) => {
   const res = await fetch(
-    `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/add_school`,
+    `${API_BASE}/api/v1/users/add_school?auth0_id=${encodeURIComponent(auth0Id)}`,
     {
-      method: "PATCH",
+      method: "POST",  // routes.rb declares POST
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ schoolId }),
     }
