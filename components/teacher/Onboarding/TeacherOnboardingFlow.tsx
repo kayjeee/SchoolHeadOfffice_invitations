@@ -31,9 +31,16 @@ export default function TeacherOnboardingFlow({
   schoolName
 }: TeacherOnboardingFlowProps) {
   const router = useRouter();
+  const [step, setStep] = useState<'verify' | 'profile'>('verify');
   const [phoneNumber, setPhoneNumber] = useState(
     user?.phone_number || invitationData?.recipient_phone_number || ''
   );
+
+  // Profile Step State
+  const [title, setTitle] = useState('');
+  const [firstName, setFirstName] = useState(user?.given_name || user?.first_name || '');
+  const [surname, setSurname] = useState(user?.family_name || user?.surname || '');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -155,17 +162,19 @@ export default function TeacherOnboardingFlow({
       );
 
       if (matchResult.success && matchResult.matched_count > 0) {
-        setSuccessMessage('Invitation matched! Redirecting to your teacher portal...');
+        setSuccessMessage('Invitation matched! Please enter your profile details.');
         setTimeout(() => {
-          router.push(`/teacher/${encodeURIComponent(resolvedSlug)}`);
-        }, 1200);
+          setSuccessMessage(null);
+          setStep('profile');
+        }, 800);
       } else {
-        // Fallback: If token was present, or school slug is known, navigate directly if match returned success
+        // Fallback: If token was present, or school slug is known, proceed to profile step
         if (invitationData?.token) {
-          setSuccessMessage('Invitation accepted! Redirecting to teacher dashboard...');
+          setSuccessMessage('Invitation accepted! Please enter your profile details.');
           setTimeout(() => {
-            router.push(`/teacher/${encodeURIComponent(resolvedSlug)}`);
-          }, 1200);
+            setSuccessMessage(null);
+            setStep('profile');
+          }, 800);
         } else {
           setErrorMessage(
             `No pending teacher invitation found for ${phoneNumber}. Please ensure your administrator sent an invitation to this exact phone number.`
@@ -176,10 +185,11 @@ export default function TeacherOnboardingFlow({
       console.error('Teacher phone verification error:', err);
       if (invitationData?.token) {
         // Handle token fallback gracefully
-        setSuccessMessage('Redirecting to your school dashboard...');
+        setSuccessMessage('Proceeding to profile setup...');
         setTimeout(() => {
-          router.push(`/teacher/${encodeURIComponent(resolvedSlug)}`);
-        }, 1200);
+          setSuccessMessage(null);
+          setStep('profile');
+        }, 800);
       } else {
         setErrorMessage(
           err.message || 'Verification failed. Please check your phone number and try again.'
@@ -190,22 +200,180 @@ export default function TeacherOnboardingFlow({
     }
   };
 
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!firstName.trim() || !surname.trim()) {
+      setErrorMessage('First name and surname are required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
+      const cleanBase = apiBase.endsWith('/api/v1') ? apiBase.replace(/\/api\/v1$/, '') : apiBase;
+      const auth0Id = user?.sub;
+
+      if (!auth0Id) {
+        throw new Error('User session not found.');
+      }
+
+      const res = await fetch(
+        `${cleanBase}/api/v1/users/update_profile?auth0_id=${encodeURIComponent(auth0Id)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title || undefined,
+            first_name: firstName.trim(),
+            surname: surname.trim()
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Profile update failed: ${errorText}`);
+      }
+
+      setSuccessMessage('Profile updated successfully! Redirecting to teacher portal...');
+      setTimeout(() => {
+        router.push(`/teacher/${encodeURIComponent(resolvedSlug)}`);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Teacher profile update error:', err);
+      setErrorMessage(err.message || 'Failed to update profile. Please check your information and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
       <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in duration-300">
-        {/* Header Block */}
-        <div className="p-8 bg-slate-900 text-white text-center relative overflow-hidden">
-          <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
-            <School className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-black tracking-tight mb-1">Faculty Verification</h2>
-          <p className="text-xs text-slate-400 font-medium">
-            Connect to <span className="text-white font-bold">{resolvedSchoolName}</span>
-          </p>
-        </div>
+        {step === 'profile' ? (
+          <>
+            {/* Header Block */}
+            <div className="p-8 bg-slate-900 text-white text-center relative overflow-hidden">
+              <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                <UserCheck className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-black tracking-tight mb-1">Faculty Profile Setup</h2>
+              <p className="text-xs text-slate-400 font-medium">
+                Personal details for <span className="text-white font-bold">{resolvedSchoolName}</span>
+              </p>
+            </div>
 
-        {/* Verification Form */}
-        <form onSubmit={handleVerifyPhone} className="p-8 space-y-6">
+            {/* Profile Details Form */}
+            <form onSubmit={handleSaveProfile} className="p-8 space-y-6">
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-900 font-medium leading-relaxed">
+                  Please enter your full name and title to complete your faculty profile registration.
+                </p>
+              </div>
+
+              {errorMessage && (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-800 text-xs font-semibold">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">{errorMessage}</div>
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3 text-emerald-800 text-xs font-semibold">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">{successMessage}</div>
+                </div>
+              )}
+
+              {/* Title Select */}
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                  Title
+                </label>
+                <select
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                >
+                  <option value="">Select Title (Optional)</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Dr">Dr</option>
+                  <option value="Prof">Prof</option>
+                  <option value="Rev">Rev</option>
+                </select>
+              </div>
+
+              {/* First Name Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="e.g. Kagiso"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                />
+              </div>
+
+              {/* Surname Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider block">
+                  Surname *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  placeholder="e.g. Sebogodi"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 text-sm outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || !firstName.trim() || !surname.trim()}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-wider"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Saving Profile...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Complete Profile & Proceed</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            {/* Header Block */}
+            <div className="p-8 bg-slate-900 text-white text-center relative overflow-hidden">
+              <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                <School className="w-8 h-8" />
+              </div>
+              <h2 className="text-2xl font-black tracking-tight mb-1">Faculty Verification</h2>
+              <p className="text-xs text-slate-400 font-medium">
+                Connect to <span className="text-white font-bold">{resolvedSchoolName}</span>
+              </p>
+            </div>
+
+            {/* Verification Form */}
+            <form onSubmit={handleVerifyPhone} className="p-8 space-y-6">
           <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <p className="text-xs text-emerald-900 font-medium leading-relaxed">
@@ -324,6 +492,8 @@ export default function TeacherOnboardingFlow({
             </a>
           </div>
         </form>
+          </>
+        )}
       </div>
     </div>
   );
