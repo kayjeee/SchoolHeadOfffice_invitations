@@ -52,6 +52,7 @@ export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
+  sender?: { email?: string; name?: string } | null;
   content: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
@@ -448,6 +449,7 @@ export function normalizeMessage(m: any): Message {
     id:              String(m.id || m._id?.$oid || m._id || `msg-${Date.now()}`),
     conversation_id: String(m.conversation_id || ''),
     sender_id:       String(m.sender_id || m.user_id || m.author_id || ''),
+    sender:          m.sender ? { email: m.sender.email, name: m.sender.name } : null,
     content:         m.content || m.body || m.text || '',
     timestamp:       m.timestamp || m.created_at || new Date().toISOString(),
     status:          m.status || 'sent',

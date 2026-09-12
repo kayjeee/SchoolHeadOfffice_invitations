@@ -69,7 +69,7 @@ export default function PinnedMessagesPanel({
                           </div>
                         )}
                         <span className="text-[10px] font-bold text-white/60 truncate">
-                          {sender?.name || 'Contact'}
+                          {sender?.name && sender.name !== 'Contact' ? sender.name : (sender as any)?.email || 'User'}
                         </span>
                       </div>
                       <p className="text-xs text-white/80 line-clamp-2 leading-relaxed mb-2">

@@ -16,6 +16,9 @@ const CreateSchoolForm = ({ user }) => {
   const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
+    adminTitle: '',
+    adminFirstName: '',
+    adminSurname: '',
     schoolName: '',
     schoolEmail: '',
     phone: '',
@@ -68,10 +71,16 @@ const CreateSchoolForm = ({ user }) => {
       case 1:
         return (
           <Step1BasicInfo
+            adminTitle={formData.adminTitle}
+            adminFirstName={formData.adminFirstName}
+            adminSurname={formData.adminSurname}
             schoolName={formData.schoolName}
             schoolEmail={formData.schoolEmail}
             phoneNumber={formData.phone}
             theme={formData.theme}
+            onAdminTitleChange={(e) => updateField('adminTitle', e.target.value)}
+            onAdminFirstNameChange={(e) => updateField('adminFirstName', e.target.value)}
+            onAdminSurnameChange={(e) => updateField('adminSurname', e.target.value)}
             onFileChange={(file) => updateField('logo', file)}
             onSchoolNameChange={(e) => updateField('schoolName', e.target.value)}
             onSchoolEmailChange={(e) => updateField('schoolEmail', e.target.value)}

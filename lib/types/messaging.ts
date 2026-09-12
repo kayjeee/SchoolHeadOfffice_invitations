@@ -4,6 +4,7 @@ export const ParticipantSchema = z.object({
   id: z.string(),
   user_id: z.string().optional(),
   user_name: z.string().optional(),
+  email: z.string().optional(),
   messageable: z.boolean().optional().default(true),
   name: z.string(),
   avatar: z.string().optional(),
@@ -15,6 +16,10 @@ export const MessageSchema = z.object({
   id: z.string(),
   conversation_id: z.string(),
   sender_id: z.string(),
+  sender: z.object({
+    email: z.string().optional(),
+    name: z.string().optional(),
+  }).nullable().optional(),
   content: z.string(),
   timestamp: z.string(),
   status: z.enum(['sent', 'delivered', 'read', 'failed']).default('sent'),
