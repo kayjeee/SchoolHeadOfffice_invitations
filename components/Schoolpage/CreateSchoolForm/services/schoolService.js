@@ -157,13 +157,16 @@ export const createSchool = async (formData, user, logoUrl) => {
 // -------------------------------------------------
 // 4. Backend User Helpers
 // -------------------------------------------------
+
 export const syncBackendRole = async (auth0Id, roles) => {
-  const normalized = roles.map((r) => r.toLowerCase());
+  const normalized = roles.map(
+    (r) => r.charAt(0).toUpperCase() + r.slice(1).toLowerCase()
+  );
 
   const res = await fetch(
-    `${API_BASE}/api/v1/users/update_roles?auth0_id=${encodeURIComponent(auth0Id)}`,
+    `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/update_roles`,
     {
-      method: "PUT",   // routes.rb declares PUT
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roles: normalized }),
     }
@@ -178,9 +181,9 @@ export const syncBackendRole = async (auth0Id, roles) => {
 
 export const addSchoolToUser = async (auth0Id, schoolId) => {
   const res = await fetch(
-    `${API_BASE}/api/v1/users/add_school?auth0_id=${encodeURIComponent(auth0Id)}`,
+    `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/add_school`,
     {
-      method: "POST",  // routes.rb declares POST
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ schoolId }),
     }
@@ -214,6 +217,23 @@ export const updateUserProfile = async (auth0Id, profileData) => {
   return res.json().catch(() => ({}));
 };
 
+export const addUserRole = async (auth0Id, roleName = "admin") => {
+  const res = await fetch(
+    `${API_BASE}/api/v1/users/${encodeURIComponent(auth0Id)}/add_role`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: roleName }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to add user role '${roleName}': ${await res.text()}`);
+  }
+
+  return res.json();
+};
+
 // -------------------------------------------------
 // 5. Full Provisioning Flow
 // -------------------------------------------------
@@ -228,8 +248,7 @@ export const provisionNewSchool = async (formData, user, token) => {
   // 2. Create school
   const school = await createSchool(formData, user, logoUrl);
 
-  // 3. Ensure user exists — DO NOT send roles: [] here.
-  //    Let the DB default apply, or send the intended role directly.
+  // 3. Ensure user exists
   const userRes = await fetch(`${API_BASE}/api/v1/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -238,7 +257,7 @@ export const provisionNewSchool = async (formData, user, token) => {
         name: user.name,
         email: user.email,
         auth0_id: user.sub,
-        roles: ["admin"],   // ← was []
+        roles: [],
       },
     }),
   });
@@ -247,7 +266,7 @@ export const provisionNewSchool = async (formData, user, token) => {
     throw new Error(await userRes.text());
   }
 
-  // 4. Update admin profile (unchanged)
+  // Update admin profile if title, first_name, or surname are provided
   if (formData.adminFirstName || formData.adminSurname || formData.adminTitle) {
     try {
       await updateUserProfile(user.sub, {
@@ -260,17 +279,21 @@ export const provisionNewSchool = async (formData, user, token) => {
     }
   }
 
-  // 5. Assign Admin role in Auth0
+  // Add 'admin' role to backend user
+  await addUserRole(user.sub, "admin");
+
+  // 4. Assign Admin role
   const accessToken = token || (await getAccessToken());
   const roles = await fetchAuth0Roles(accessToken);
   const adminRole = roles.find((r) => r.name === "Admin");
-  if (!adminRole) throw new Error("Admin role not found in Auth0");
-  await assignAuth0Role(user.sub, accessToken, [adminRole.id]);
 
-  // 6. Sync backend role — do this LAST, after add_school, so nothing overwrites it.
-  //    Also match the casing your backend actually stores.
-  await addSchoolToUser(user.sub, school._id);
+  if (!adminRole) throw new Error("Admin role not found in Auth0");
+
+  await assignAuth0Role(user.sub, accessToken, [adminRole.id]);
   await syncBackendRole(user.sub, ["admin"]);
+
+  // 5. Attach school
+  await addSchoolToUser(user.sub, school._id);
 
   return school;
 };
