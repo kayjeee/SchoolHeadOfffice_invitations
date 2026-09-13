@@ -31,11 +31,9 @@ async function matchByPhone(phoneNumber: string, auth0Id: string, schoolId: stri
   }
 }
 
-// Updated schema to include title, first_name, surname, phone, email
+// Updated schema to include phone
 const profileSchema = z.object({
-  title: z.string().optional(),
-  first_name: z.string().min(2, 'First name must be at least 2 characters'),
-  surname: z.string().min(2, 'Surname must be at least 2 characters'),
+  name: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
   email: z.string().email('Please enter a valid email address'),
 });
@@ -43,11 +41,8 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface ProfileSetupProps {
-  onComplete: (data: ProfileFormData & { name?: string; school_id?: string; school_name?: string }) => void;
+  onComplete: (data: ProfileFormData & { school_id?: string; school_name?: string }) => void;
   prefillData?: {
-    title?: string;
-    first_name?: string;
-    surname?: string;
     name?: string;
     phone?: string;
     email?: string;
@@ -84,9 +79,7 @@ export default function ProfileSetup({
     resolver: zodResolver(profileSchema),
     mode: 'onChange',
     defaultValues: {
-      title: '',
-      first_name: '',
-      surname: '',
+      name: '',
       phone: '',
       email: '',
     },
@@ -110,21 +103,7 @@ export default function ProfileSetup({
   // Set initial form values from prefill data
   useEffect(() => {
     if (prefillData) {
-      if (prefillData.title) {
-        setValue('title', prefillData.title);
-      }
-      if (prefillData.first_name) {
-        setValue('first_name', prefillData.first_name);
-      }
-      if (prefillData.surname) {
-        setValue('surname', prefillData.surname);
-      } else if (prefillData.name) {
-        const parts = prefillData.name.trim().split(' ');
-        const firstName = parts[0] || '';
-        const surname = parts.slice(1).join(' ') || '';
-        if (firstName) setValue('first_name', firstName);
-        if (surname) setValue('surname', surname);
-      }
+      if (prefillData.name) setValue('name', prefillData.name);
       if (prefillData.phone) setValue('phone', prefillData.phone);
       if (prefillData.email) setValue('email', prefillData.email);
       if (prefillData.school_id && prefillData.school_name) {
@@ -185,9 +164,7 @@ export default function ProfileSetup({
       const apiUrl = `${cleanBase}/users/update_profile?auth0_id=${encodedUserId}`;
       
       const payload = {
-        title: data.title ? data.title.trim() : undefined,
-        first_name: data.first_name.trim(),
-        surname: data.surname.trim(),
+        name: data.name.trim(),
         phone: data.phone.trim(),
         email: data.email.trim().toLowerCase(),
       };
@@ -306,60 +283,21 @@ export default function ProfileSetup({
 
       <form onSubmit={handleFormSubmit}>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title
-              </label>
-              <select
-                {...register('title')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
-                disabled={isSaving}
-              >
-                <option value="">Select Title (Optional)</option>
-                <option value="Mr">Mr</option>
-                <option value="Mrs">Mrs</option>
-                <option value="Ms">Ms</option>
-                <option value="Miss">Miss</option>
-                <option value="Dr">Dr</option>
-                <option value="Prof">Prof</option>
-                <option value="Rev">Rev</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name *
-              </label>
-              <input
-                {...register('first_name')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
-                placeholder="First Name"
-                disabled={isSaving}
-              />
-              {errors.first_name && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.first_name.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Surname *
-              </label>
-              <input
-                {...register('surname')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
-                placeholder="Surname"
-                disabled={isSaving}
-              />
-              {errors.surname && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.surname.message}
-                </p>
-              )}
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name *
+            </label>
+            <input
+              {...register('name')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-black focus:border-green-500 focus:ring-green-500 p-2 border"
+              placeholder="Enter your full name"
+              disabled={isSaving}
+            />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.name.message}
+              </p>
+            )}
           </div>
 
           <div>

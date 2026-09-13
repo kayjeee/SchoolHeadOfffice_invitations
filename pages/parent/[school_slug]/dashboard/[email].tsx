@@ -62,8 +62,11 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
       ParentService.getLearners(userId),
     ]);
 
-    if (!profile) {
-      console.log(`⏳ [ParentDashboardPageSlashed.GSSP] Profile missing for ${userId}. Redirecting to gateway.`);
+    // Check if the user is onboarded. If not, redirect to the onboarding flow gateway.
+    const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;
+
+    if (!profile || !isOnboardingComplete) {
+      console.log(`⏳ [ParentDashboardPageSlashed.GSSP] Onboarding incomplete for ${userId}. Redirecting to gateway.`);
       const onboardingPath = `/parent?school=${encodeURIComponent(schoolName)}`;
       return {
         redirect: {
