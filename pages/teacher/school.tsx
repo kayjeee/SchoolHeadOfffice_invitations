@@ -10,6 +10,7 @@ import AuthGate from '../../components/auth/AuthGate';
 
 import { InvitationAPI, InvitationData } from '../../lib/api/invitation-api';
 import TeacherOnboardingFlow from '../../components/teacher/Onboarding/TeacherOnboardingFlow';
+import { slugify } from '../../utils/slugify';
 
 const FrontPageLayout = dynamic(
   () => import("../../components/Layouts/FrontPageLayout"),
@@ -28,6 +29,37 @@ interface TeacherSchoolProps {
 
 export const getServerSideProps: GetServerSideProps<TeacherSchoolProps> = async (context) => {
   const session = await getSession(context.req, context.res);
+
+  // Early check: If teacher is already onboarded and attached to a school, redirect to their dashboard
+  if (session?.user?.sub) {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://shobackendv2-production.up.railway.app';
+      const cleanBase = apiBase.endsWith('/api/v1') ? apiBase.replace(/\/api\/v1$/, '') : apiBase;
+      const res = await fetch(`${cleanBase}/api/v1/users/schools?auth0_id=${encodeURIComponent(session.user.sub)}`);
+
+      if (res.ok) {
+        const json = await res.json();
+        const schoolsList = json?.data?.schools || json?.schools || (Array.isArray(json?.data) ? json.data : []);
+
+        if (Array.isArray(schoolsList) && schoolsList.length > 0) {
+          const s = schoolsList[0];
+          const rawSlug = s.slug || s.school_slug || (s.schoolName || s.name ? slugify(s.schoolName || s.name) : null);
+
+          if (rawSlug) {
+            console.log(`🚀 [TeacherSchoolGSSP] Already onboarded teacher found, redirecting to /teacher/${rawSlug}`);
+            return {
+              redirect: {
+                destination: `/teacher/${encodeURIComponent(rawSlug)}`,
+                permanent: false,
+              },
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ [TeacherSchoolGSSP] Failed to check teacher onboarded schools:', err);
+    }
+  }
 
   const rawToken = typeof context.query.token === 'string' ? context.query.token : null;
   const token = rawToken ? rawToken.split('&')[0].split('\\u0026')[0].trim() : null;
