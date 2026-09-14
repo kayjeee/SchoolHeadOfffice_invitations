@@ -34,7 +34,8 @@ export function useConversations(options: {
 
   const queryString = queryParams.toString();
 
-  const swrKey = options.skipToken || accessToken
+  // Require a valid accessToken before fetching conversations
+  const swrKey = accessToken
     ? `/api/v1/conversations${queryString ? `?${queryString}` : ''}`
     : null;
 
@@ -63,7 +64,7 @@ export function useConversations(options: {
 
   return {
     conversations,
-    loading: isLoading || isAuthLoading,
+    loading: isAuthLoading || (!accessToken && !error) || isLoading,
     error,
     refresh: () => mutate(key => typeof key === 'string' && key.startsWith('/api/v1/conversations')),
   };
@@ -208,7 +209,8 @@ export function useMessages(conversationId: string | null, options: { skipToken?
   // Explicitly cast ID to string to handle BSON objects from backend
   const convIdStr = conversationId?.toString();
 
-  const swrKey = (options.skipToken || accessToken) && convIdStr
+  // Require a valid accessToken before fetching messages
+  const swrKey = accessToken && convIdStr
     ? `/api/v1/conversations/${convIdStr}/messages`
     : null;
 
@@ -301,7 +303,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
 
   return {
     messages,
-    loading: isLoading,
+    loading: isAuthLoading || (Boolean(convIdStr) && !accessToken && !error) || isLoading,
     error,
     isSending,
     sendMessage,

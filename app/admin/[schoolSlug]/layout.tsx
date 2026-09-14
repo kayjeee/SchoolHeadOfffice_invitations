@@ -91,9 +91,7 @@ export default function AdminDashboardLayout({
   const { schoolSlug } = use(params);
   const pathname = usePathname();
 
-  // Conditionally skip token fetch for communications page as requested
-  const isCommunicationsPage = pathname?.includes('/communications');
-  useApi({ skipToken: isCommunicationsPage });
+  useApi();
 
   const { schoolId, schoolData, isLoading: isSchoolLoading, error } = useSchool(schoolSlug);
   const { user, isLoading: authLoading } = useAuth();
