@@ -341,7 +341,7 @@ export class MessagingAPI {
   static async removeParticipant(conversationId: string, participantId: string): Promise<{ success: boolean }> {
     const response = await apiClient.post(
       `/api/v1/conversations/${conversationId}/remove_participant`,
-      { participant_id: participantId, user_id: participantId },
+      { target_user_id: participantId },
       z.any()
     ) as any;
     return response?.data ?? response ?? { success: true };

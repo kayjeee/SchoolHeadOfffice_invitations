@@ -14,6 +14,9 @@ interface ConversationListProps {
   onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
   onNoteToSelf?: () => void;
+  canCreateDirectConversation?: boolean;
+  canCreateGroup?: boolean;
+  canBrowseDirectory?: boolean;
 }
 
 export default function ConversationList({
@@ -27,6 +30,9 @@ export default function ConversationList({
   onShowSaved,
   onNoteToSelf,
   schoolId,
+  canCreateDirectConversation = true,
+  canCreateGroup = true,
+  canBrowseDirectory = true,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -118,13 +124,15 @@ export default function ConversationList({
             >
               <Star className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
             </button>
-            <button
-              onClick={onNewGroupMessage}
-              className="p-2 bg-primary-accent text-on-primary-fixed hover:bg-primary-accent/90 rounded-xl transition-all group shadow-lg shadow-primary-accent/20"
-              title="New Group Message"
-            >
-              <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </button>
+            {canCreateGroup && (
+              <button
+                onClick={onNewGroupMessage}
+                className="p-2 bg-primary-accent text-on-primary-fixed hover:bg-primary-accent/90 rounded-xl transition-all group shadow-lg shadow-primary-accent/20"
+                title="New Group Message"
+              >
+                <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
             <button
               onClick={onNoteToSelf}
               className="p-2 hover:bg-white/5 rounded-xl transition-all group"
@@ -132,13 +140,15 @@ export default function ConversationList({
             >
               <User className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
             </button>
-            <button
-              onClick={onNewMessage}
-              className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all group border border-white/10"
-              title="New Message"
-            >
-              <Plus className="w-5 h-5 text-white/60 group-hover:scale-110 transition-transform" />
-            </button>
+            {(canBrowseDirectory || canCreateDirectConversation) && (
+              <button
+                onClick={onNewMessage}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all group border border-white/10"
+                title="New Message"
+              >
+                <Plus className="w-5 h-5 text-white/60 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
           </div>
         </div>
 

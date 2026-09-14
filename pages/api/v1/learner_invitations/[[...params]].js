@@ -123,7 +123,7 @@ export default async function handler(req, res) {
 
         const newInvite = {
           school_id: schoolId || invite.school_id || '',
-          school_name: schoolName || invite.school_name || 'Far North Secondary School',
+          school_name: schoolName || invite.school_name || 'School',
           learner_name: learnerName,
           parent_name: parentName,
           parent_phone: parentPhone,

@@ -159,22 +159,20 @@ export const getServerSideProps: GetServerSideProps<
         const fromProfile = profile?.primary_school_name;
         const fromOnboarding = profile?.onboarding_status?.client_metadata?.upload_learners_metadata?.school_id;
 
-        let finalSchoolName = fromLearner || fromProfile || fromOnboarding || 'Far North Secondary School';
-        if (!finalSchoolName || finalSchoolName === 'School') {
-          finalSchoolName = 'Far North Secondary School';
+        let finalSchoolName = fromLearner || fromProfile || fromOnboarding;
+        if (finalSchoolName && finalSchoolName !== 'School') {
+          const email = profile?.email || session.user.email || '';
+          const emailEncoded = encodeURIComponent(email);
+          const destination = `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${emailEncoded}`;
+
+          console.log(`🚀 [ParentGSSP] Redirecting completed parent directly to: ${destination}`);
+          return {
+            redirect: {
+              destination,
+              permanent: false,
+            },
+          };
         }
-
-        const email = profile?.email || session.user.email || '';
-        const emailEncoded = encodeURIComponent(email);
-        const destination = `/parent/${finalSchoolName}dashboard/${emailEncoded}`;
-
-        console.log(`🚀 [ParentGSSP] Redirecting completed parent directly to: ${destination}`);
-        return {
-          redirect: {
-            destination,
-            permanent: false,
-          },
-        };
       }
 
       return {
@@ -256,16 +254,10 @@ export default function ParentPage(props: ParentPageProps) {
     const fromQuery = props.school;
     const fromMerged = mergedInvitationData?.school_name;
 
-    let schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged || 'School';
+    let schoolName = fromLearner || fromProfile || fromOnboarding || fromInvitation || fromQuery || fromMerged;
 
-    if (schoolName === 'School' && !onboarding.isLoading) {
-       // If we are onboarded but have no learners yet, they might still be fetching via SWR/React Query
-       if (onboarding.learners?.length === 0) return;
-    }
-
-    // Default to 'Far North Secondary School' if school name is 'School' or empty
     if (!schoolName || schoolName === 'School') {
-      schoolName = 'Far North Secondary School';
+      return;
     }
 
     const parentName = onboarding.profile?.name || onboarding.user?.name || 'Parent';
@@ -328,6 +320,14 @@ export default function ParentPage(props: ParentPageProps) {
     return <div className="p-8 text-center">{props.error}</div>;
   }
 
+  const hasResolvedSchool = Boolean(
+    onboarding.learners?.[0]?.school_name ||
+    onboarding.profile?.primary_school_name ||
+    onboarding.onboardingData?.school_name ||
+    props.invitationData?.school_name ||
+    props.school
+  );
+
   return (
     <ErrorBoundary>
       <FrontPageLayout user={onboarding.user} userRoles={["parent"]}>
@@ -336,12 +336,19 @@ export default function ParentPage(props: ParentPageProps) {
             user={onboarding.user}
             invitationData={mergedInvitationData}
           />
-        ) : (
+        ) : hasResolvedSchool ? (
           <ParentDashboard
             user={onboarding.user}
             profile={onboarding.profile}
             learners={onboarding.learners}
           />
+        ) : (
+          <div className="max-w-2xl mx-auto my-12 p-8 bg-white border border-gray-200 rounded-3xl text-center space-y-4 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-900">No Linked School Found</h2>
+            <p className="text-sm text-gray-600">
+              No active school is linked to this parent account. Please contact your school administrator.
+            </p>
+          </div>
         )}
       </FrontPageLayout>
     </ErrorBoundary>
