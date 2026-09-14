@@ -90,14 +90,16 @@ export default function MessagingSection({
     // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
     if (!accessToken) return;
 
-    SchoolAPI.getDirectory(schoolId)
-      .then(data => setDirectory(data))
-      .catch(err => console.error('Failed to fetch directory:', err));
+    if (canBrowseDirectory) {
+      SchoolAPI.getDirectory(schoolId)
+        .then(data => setDirectory(data))
+        .catch(err => console.error('Failed to fetch directory:', err));
+    }
 
     SchoolAPI.getSchoolLearners(schoolId)
       .then(data => setLearners(data.learners))
       .catch(err => console.error('Failed to fetch learners:', err));
-  }, [schoolId, accessToken]);
+  }, [schoolId, accessToken, canBrowseDirectory]);
 
   // Memoised ID → Participant map
   // We index by both 'id' (legacy/profile) and 'user_id' (core account)
