@@ -16,6 +16,7 @@ import { Message, Participant } from '@/lib/types/messaging';
 import {
   User, Phone, Video, Search, MoreHorizontal, ArrowLeft,
   LayoutDashboard, Sparkles, Wand2, Users, Pin, Plus as PlusIcon,
+  LogOut, UserX, X, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +51,12 @@ export default function MessagingSection({
   const [showSaved, setShowSaved] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<(Message & { sender_name: string }) | null>(null);
+
+  // Group Conversation Actions State
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [confirmLeaveModal, setConfirmLeaveModal] = useState(false);
+  const [confirmRemoveParticipant, setConfirmRemoveParticipant] = useState<Participant | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -246,6 +253,37 @@ export default function MessagingSection({
   };
 
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
+
+  const isGroup = Boolean(activeConversation?.scope_type || resolvedParticipants.length > 2);
+
+  const handleLeaveConversation = async () => {
+    if (!activeConvId) return;
+    setIsActionLoading(true);
+    try {
+      await MessagingAPI.leaveConversation(activeConvId);
+      setActiveConvId(null);
+      setConfirmLeaveModal(false);
+      refreshConvs();
+    } catch (err) {
+      console.error('Failed to leave conversation:', err);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRemoveParticipant = async () => {
+    if (!activeConvId || !confirmRemoveParticipant) return;
+    setIsActionLoading(true);
+    try {
+      await MessagingAPI.removeParticipant(activeConvId, confirmRemoveParticipant.id);
+      setConfirmRemoveParticipant(null);
+      refreshConvs();
+    } catch (err) {
+      console.error('Failed to remove participant:', err);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] md:h-[700px] bg-surface-container/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
@@ -445,11 +483,150 @@ export default function MessagingSection({
                       <span className="absolute top-2 right-2 w-2 h-2 bg-primary-accent rounded-full border-2 border-surface-container" />
                     )}
                   </button>
+                  {isGroup && (
+                    <>
+                      <button
+                        onClick={() => setShowParticipantsModal(true)}
+                        className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all"
+                        title="Manage Participants"
+                      >
+                        <Users className="w-5 h-5 text-primary-accent" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmLeaveModal(true)}
+                        className="p-2.5 md:p-3 text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-2xl transition-all"
+                        title="Leave Group"
+                      >
+                        <LogOut className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
               </div>
+
+              {/* Participants Modal */}
+              {showParticipantsModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-md w-full space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-primary-accent" />
+                        <h4 className="font-bold text-white text-base">
+                          Participants ({resolvedParticipants.length})
+                        </h4>
+                      </div>
+                      <button
+                        onClick={() => setShowParticipantsModal(false)}
+                        className="text-white/40 hover:text-white transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                      {resolvedParticipants.map((p) => {
+                        const isSelf = p.id?.toString() === currentUserId?.toString();
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white/60 shrink-0">
+                                <User className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-white truncate">
+                                  {p.name || p.email} {isSelf && '(You)'}
+                                </p>
+                                {p.role && (
+                                  <p className="text-[10px] text-white/40 uppercase font-medium">
+                                    {p.role}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {godMode && !isSelf && (
+                              <button
+                                onClick={() => setConfirmRemoveParticipant(p)}
+                                className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-400 text-[10px] font-extrabold rounded-lg uppercase tracking-wider transition-all"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirm Leave Modal */}
+              {confirmLeaveModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center">
+                    <div className="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+                      <LogOut className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-lg font-bold text-white">Leave Conversation?</h4>
+                    <p className="text-xs text-white/60">
+                      Are you sure you want to leave <span className="text-white font-bold">{activeConversation?.title || 'this group'}</span>? You will no longer receive new messages.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => setConfirmLeaveModal(false)}
+                        className="flex-1 py-2.5 bg-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/20 transition-all"
+                        disabled={isActionLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleLeaveConversation}
+                        className="flex-1 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5"
+                        disabled={isActionLoading}
+                      >
+                        {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Leave Group'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirm Remove Participant Modal */}
+              {confirmRemoveParticipant && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center">
+                    <div className="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mx-auto">
+                      <UserX className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-lg font-bold text-white">Remove Participant?</h4>
+                    <p className="text-xs text-white/60">
+                      Are you sure you want to remove <span className="text-white font-bold">{confirmRemoveParticipant.name}</span> from this conversation?
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => setConfirmRemoveParticipant(null)}
+                        className="flex-1 py-2.5 bg-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/20 transition-all"
+                        disabled={isActionLoading}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRemoveParticipant}
+                        className="flex-1 py-2.5 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-all flex items-center justify-center gap-1.5"
+                        disabled={isActionLoading}
+                      >
+                        {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remove'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Pinned Messages Panel */}
               <PinnedMessagesPanel

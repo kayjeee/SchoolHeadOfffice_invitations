@@ -327,6 +327,26 @@ export class MessagingAPI {
     return list.map(normalizeMessage);
   }
 
+  /** Leave a group conversation. */
+  static async leaveConversation(conversationId: string): Promise<{ success: boolean }> {
+    const response = await apiClient.post(
+      `/api/v1/conversations/${conversationId}/leave`,
+      {},
+      z.any()
+    ) as any;
+    return response?.data ?? response ?? { success: true };
+  }
+
+  /** Remove a participant from a group conversation (admin only). */
+  static async removeParticipant(conversationId: string, participantId: string): Promise<{ success: boolean }> {
+    const response = await apiClient.post(
+      `/api/v1/conversations/${conversationId}/remove_participant`,
+      { participant_id: participantId, user_id: participantId },
+      z.any()
+    ) as any;
+    return response?.data ?? response ?? { success: true };
+  }
+
 }
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
