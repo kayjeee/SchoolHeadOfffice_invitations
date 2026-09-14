@@ -18,14 +18,14 @@ export function useConversations(options: {
   gradeId?: string;
   scopeId?: string;
 } = {}) {
-  const { user, accessToken, isLoading: isAuthLoading } = useApi(options);
+  const { accessToken, isLoading: isAuthLoading } = useApi(options);
 
   const resolvedSchoolId = options.schoolId;
-  const resolvedUserId = options.userId || user?.sub || user?.id;
+  const targetUserId = options.userId;
 
   const queryParams = new URLSearchParams();
   if (resolvedSchoolId) queryParams.append('school_id', resolvedSchoolId);
-  if (resolvedUserId) queryParams.append('user_id', resolvedUserId);
+  if (targetUserId) queryParams.append('user_id', targetUserId);
   if (options.scopeType) queryParams.append('scope_type', options.scopeType);
   if (options.academicYear) queryParams.append('academic_year', options.academicYear);
   if (options.termId) queryParams.append('term_id', options.termId);
@@ -33,9 +33,8 @@ export function useConversations(options: {
   if (options.scopeId) queryParams.append('scope_id', options.scopeId);
 
   const queryString = queryParams.toString();
-  const isScoped = Boolean(resolvedSchoolId || resolvedUserId || options.scopeType || options.scopeId);
 
-  const swrKey = (options.skipToken || accessToken) && isScoped
+  const swrKey = options.skipToken || accessToken
     ? `/api/v1/conversations${queryString ? `?${queryString}` : ''}`
     : null;
 
@@ -47,7 +46,7 @@ export function useConversations(options: {
     swrKey,
     () => MessagingAPI.getConversations({
       school_id: resolvedSchoolId,
-      user_id: resolvedUserId,
+      user_id: targetUserId,
       scope_type: options.scopeType,
       academic_year: options.academicYear,
       term_id: options.termId,

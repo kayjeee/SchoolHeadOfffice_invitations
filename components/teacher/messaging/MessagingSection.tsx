@@ -30,6 +30,11 @@ interface MessagingSectionProps {
     grade_name: string;
     learner_count: number;
   }[];
+  canCreateDirectConversation?: boolean;
+  canCreateGroup?: boolean;
+  canBrowseDirectory?: boolean;
+  canRemoveParticipants?: boolean;
+  canLeaveGroups?: boolean;
 }
 
 export default function MessagingSection({
@@ -38,7 +43,13 @@ export default function MessagingSection({
   godMode = false,
   skipToken = false,
   classes = [],
+  canCreateDirectConversation = true,
+  canCreateGroup = true,
+  canBrowseDirectory = true,
+  canRemoveParticipants,
+  canLeaveGroups = true,
 }: MessagingSectionProps) {
+  const allowRemoveParticipants = canRemoveParticipants ?? godMode;
   useEffect(() => {
     console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}`);
   }, [currentUserId, schoolId]);
@@ -335,17 +346,21 @@ export default function MessagingSection({
                 schoolId={schoolId}
                 onNoteToSelf={handleNoteToSelf}
                 onNewMessage={() => {
-                  setShowDirectory(true);
-                  setShowGroupInitiation(false);
-                  setShowSaved(false);
-                  setActiveConvId(null);
+                  if (canBrowseDirectory || canCreateDirectConversation) {
+                    setShowDirectory(true);
+                    setShowGroupInitiation(false);
+                    setShowSaved(false);
+                    setActiveConvId(null);
+                  }
                 }}
                 onNewGroupMessage={() => {
-                  setShowGroupInitiation(true);
-                  setShowDirectory(false);
-                  setShowSaved(false);
-                  setActiveConvId(null);
-                  setShowMobileList(false);
+                  if (canCreateGroup) {
+                    setShowGroupInitiation(true);
+                    setShowDirectory(false);
+                    setShowSaved(false);
+                    setActiveConvId(null);
+                    setShowMobileList(false);
+                  }
                 }}
                 onShowSaved={() => {
                   setShowSaved(true);
@@ -355,6 +370,9 @@ export default function MessagingSection({
                   setShowMobileList(false);
                 }}
                 contactMap={contactMap}
+                canCreateDirectConversation={canCreateDirectConversation}
+                canCreateGroup={canCreateGroup}
+                canBrowseDirectory={canBrowseDirectory}
               />
             )}
           </div>
@@ -369,17 +387,21 @@ export default function MessagingSection({
               schoolId={schoolId}
               onNoteToSelf={handleNoteToSelf}
               onNewMessage={() => {
-                setShowDirectory(true);
-                setShowGroupInitiation(false);
-                setShowSaved(false);
-                setActiveConvId(null);
+                if (canBrowseDirectory || canCreateDirectConversation) {
+                  setShowDirectory(true);
+                  setShowGroupInitiation(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                }
               }}
               onNewGroupMessage={() => {
-                setShowGroupInitiation(true);
-                setShowDirectory(false);
-                setShowSaved(false);
-                setActiveConvId(null);
-                setShowMobileList(false);
+                if (canCreateGroup) {
+                  setShowGroupInitiation(true);
+                  setShowDirectory(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                  setShowMobileList(false);
+                }
               }}
               onShowSaved={() => {
                 setShowSaved(true);
@@ -389,6 +411,9 @@ export default function MessagingSection({
                 setShowMobileList(false);
               }}
               contactMap={contactMap}
+              canCreateDirectConversation={canCreateDirectConversation}
+              canCreateGroup={canCreateGroup}
+              canBrowseDirectory={canBrowseDirectory}
             />
           </div>
         </div>
@@ -492,13 +517,15 @@ export default function MessagingSection({
                       >
                         <Users className="w-5 h-5 text-primary-accent" />
                       </button>
-                      <button
-                        onClick={() => setConfirmLeaveModal(true)}
-                        className="p-2.5 md:p-3 text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-2xl transition-all"
-                        title="Leave Group"
-                      >
-                        <LogOut className="w-5 h-5" />
-                      </button>
+                      {canLeaveGroups && (
+                        <button
+                          onClick={() => setConfirmLeaveModal(true)}
+                          className="p-2.5 md:p-3 text-rose-400/60 hover:text-rose-400 hover:bg-rose-500/10 rounded-2xl transition-all"
+                          title="Leave Group"
+                        >
+                          <LogOut className="w-5 h-5" />
+                        </button>
+                      )}
                     </>
                   )}
                   <button className="p-2.5 md:p-3 text-white/20 hover:text-white/60 hover:bg-white/5 rounded-2xl transition-all">
@@ -550,7 +577,7 @@ export default function MessagingSection({
                               </div>
                             </div>
 
-                            {godMode && !isSelf && (
+                            {allowRemoveParticipants && !isSelf && (
                               <button
                                 onClick={() => setConfirmRemoveParticipant(p)}
                                 className="px-3 py-1 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-rose-400 text-[10px] font-extrabold rounded-lg uppercase tracking-wider transition-all"
@@ -793,31 +820,35 @@ export default function MessagingSection({
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => {
-                    setShowGroupInitiation(true);
-                    setShowDirectory(false);
-                    setShowSaved(false);
-                  }}
-                  className="px-8 py-3.5 bg-primary-accent text-on-primary-fixed rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/90 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px] shadow-xl shadow-primary-accent/20"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  New Group Message
-                </button>
-                <button
-                  onClick={() => setShowDirectory(true)}
-                  className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
-                >
-                  <Users
-                    className={cn(
-                      'w-4 h-4 transition-colors',
-                      godMode
-                        ? 'group-hover/btn:text-secondary-accent'
-                        : 'group-hover/btn:text-primary-accent'
-                    )}
-                  />
-                  Open Directory
-                </button>
+                {canCreateGroup && (
+                  <button
+                    onClick={() => {
+                      setShowGroupInitiation(true);
+                      setShowDirectory(false);
+                      setShowSaved(false);
+                    }}
+                    className="px-8 py-3.5 bg-primary-accent text-on-primary-fixed rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/90 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px] shadow-xl shadow-primary-accent/20"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    New Group Message
+                  </button>
+                )}
+                {canBrowseDirectory && (
+                  <button
+                    onClick={() => setShowDirectory(true)}
+                    className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
+                  >
+                    <Users
+                      className={cn(
+                        'w-4 h-4 transition-colors',
+                        godMode
+                          ? 'group-hover/btn:text-secondary-accent'
+                          : 'group-hover/btn:text-primary-accent'
+                      )}
+                    />
+                    Open Directory
+                  </button>
+                )}
               </div>
             </div>
           )}
