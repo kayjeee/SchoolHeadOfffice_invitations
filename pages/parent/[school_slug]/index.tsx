@@ -104,19 +104,18 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
     }
 
     // Fully onboarded - Redirect to the dynamic dashboard path
-    let finalSchoolName = profile.primary_school_name || schoolName;
-    if (!finalSchoolName || finalSchoolName === 'School') {
-      finalSchoolName = 'Far North Secondary School';
-    }
-    const parentName = profile.name || session.user.name || 'Parent';
+    let finalSchoolName = profile.primary_school_name || learners?.[0]?.school_name || schoolName;
+    if (finalSchoolName && finalSchoolName !== 'School') {
+      const parentName = profile.name || session.user.name || 'Parent';
 
-    console.log(`🚀 [SchoolDashboard.GSSP] Onboarding complete. Redirecting to dynamic dashboard: ${finalSchoolName}`);
-    return {
-      redirect: {
-        destination: `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${encodeURIComponent(parentName)}`,
-        permanent: false,
-      },
-    };
+      console.log(`🚀 [SchoolDashboard.GSSP] Onboarding complete. Redirecting to dynamic dashboard: ${finalSchoolName}`);
+      return {
+        redirect: {
+          destination: `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${encodeURIComponent(parentName)}`,
+          permanent: false,
+        },
+      };
+    }
 
   } catch (err: any) {
     console.error('❌ [SchoolDashboard.GSSP] Error loading dashboard data:', err.message);

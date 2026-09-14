@@ -123,10 +123,9 @@ export default function OnboardingFlow({ user, invitationData }: OnboardingFlowP
   const redirectUrl = useMemo(() => {
     const parentNameParam = existingProfile?.name || safeUserName(safeUser) || 'Parent';
 
-    // Default to 'Far North Secondary School' if school name is 'School' or empty
     let schoolName = resolvedSchoolName;
     if (!schoolName || schoolName === 'School') {
-      schoolName = 'Far North Secondary School';
+      return '/parent';
     }
 
     const schoolNameEncoded = encodeURIComponent(schoolName);
@@ -813,16 +812,6 @@ case 'PROFILE_SETUP':
               Go to Dashboard Now
             </button>
 
-            {/* DEMO / NESTED ROUTE LINK */}
-            <div style={styles.demoSection}>
-              <p style={styles.demoLabel}>Test Nested Route:</p>
-              <a
-                href="/parent/far%20north%20secondary%20school"
-                style={styles.demoLink}
-              >
-                Far North Secondary School
-              </a>
-            </div>
           </div>
         );
 
