@@ -423,13 +423,13 @@ export default function MessagingSection({
         {/* ── Right panel ── */}
         <div
           className={cn(
-            'flex-1 flex flex-col min-w-0 transition-all duration-300',
+            'flex-1 flex flex-col min-w-0 h-full min-h-0 transition-all duration-300 overflow-hidden',
             showMobileList && 'hidden md:flex'
           )}
         >
           {/* ✅ FIX: Priority — activeConvId wins over showDirectory and showSaved */}
           {activeConvId ? (
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col h-full min-h-0 justify-between overflow-hidden">
               {/* Chat header */}
               <div className="p-4 md:p-6 border-b border-white/5 bg-surface-container flex items-center justify-between shadow-sm shrink-0">
                 <div className="flex items-center gap-4 min-w-0">
