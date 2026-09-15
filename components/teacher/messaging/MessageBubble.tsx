@@ -186,12 +186,14 @@ export default function MessageBubble({
     }
   };
 
+  const senderDisplayName = sender?.name || (sender as any)?.full_name || sender?.email || 'Contact';
+
   return (
     <div className={cn('group flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
       {!isMine && (
         <div className="mt-1 shrink-0">
           {sender?.avatar ? (
-            <img src={sender.avatar} alt={sender.name} className="h-8 w-8 rounded-xl object-cover" />
+            <img src={sender.avatar} alt={sender.name || 'Contact'} className="h-8 w-8 rounded-xl object-cover" />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5">
               <User className="h-4 w-4 text-white/20" />
@@ -201,6 +203,11 @@ export default function MessageBubble({
       )}
 
       <div className="space-y-1">
+        {!isMine && (
+          <div className="px-1 text-[11px] font-bold text-white/50 tracking-wide">
+            {senderDisplayName}
+          </div>
+        )}
         <div ref={reactionPickerRef} className="relative">
           <div
             className={cn(

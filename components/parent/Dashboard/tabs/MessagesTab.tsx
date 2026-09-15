@@ -8,7 +8,13 @@ interface MessagesTabProps {
 }
 
 export default function MessagesTab({ user, profile, learners }: MessagesTabProps) {
-  const currentUserId = profile?.id || profile?.user_id || user?.sub || user?.id || "";
+  const currentUserId =
+    profile?._id?.toString() ||
+    profile?.id?.toString() ||
+    profile?.user_id?.toString() ||
+    user?.sub?.toString() ||
+    user?.id?.toString() ||
+    "";
 
   // Helper to verify if candidate string looks like a BSON ObjectId / BSON hex string or valid database ID
   // Database school IDs in MongoDB / Rails are 24-character hex strings or UUIDs/numeric strings, not school names.
@@ -89,7 +95,14 @@ export default function MessagesTab({ user, profile, learners }: MessagesTabProp
         <h2 className="text-xl font-bold text-gray-900">Parent-Teacher Messaging</h2>
       </div>
 
-      {isLoadingSchool ? (
+      {!currentUserId ? (
+        <div className="p-8 text-center bg-gray-50 border border-gray-200 rounded-2xl text-gray-600">
+          <p className="font-semibold text-base mb-1">User profile is loading or unavailable</p>
+          <p className="text-xs text-gray-400">
+            We could not resolve your user identity to initialize messaging.
+          </p>
+        </div>
+      ) : isLoadingSchool ? (
         <div className="p-8 text-center bg-gray-50 border border-gray-200 rounded-2xl text-gray-600">
           <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
           <p className="text-xs text-gray-400">Loading school information...</p>

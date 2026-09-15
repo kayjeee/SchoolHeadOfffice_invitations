@@ -429,9 +429,9 @@ export default function MessagingSection({
         >
           {/* ✅ FIX: Priority — activeConvId wins over showDirectory and showSaved */}
           {activeConvId ? (
-            <>
+            <div className="flex-1 flex flex-col min-h-0">
               {/* Chat header */}
-              <div className="p-4 md:p-6 border-b border-white/5 bg-surface-container flex items-center justify-between shadow-sm">
+              <div className="p-4 md:p-6 border-b border-white/5 bg-surface-container flex items-center justify-between shadow-sm shrink-0">
                 <div className="flex items-center gap-4 min-w-0">
                   <button
                     onClick={handleBackToList}
@@ -728,7 +728,7 @@ export default function MessagingSection({
               )}
 
               {/* Input + AI trigger */}
-              <div className="relative group">
+              <div className="relative group shrink-0 mt-auto">
                 <MessageInput
                   onSendMessage={onSendMessage}
                   onTyping={handleTyping}
@@ -760,7 +760,7 @@ export default function MessagingSection({
                   </button>
                 </div>
               </div>
-            </>
+            </div>
           ) : showDirectory ? (
             /* ✅ FIX: directory renders in right panel on desktop */
             <div className="flex-1 overflow-hidden">
