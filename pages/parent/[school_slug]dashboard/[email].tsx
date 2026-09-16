@@ -1,4 +1,4 @@
-// pages/parent/[school_slug]/index.tsx
+// pages/parent/[school_slug]dashboard/[email].tsx
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import { getSession } from "@auth0/nextjs-auth0";
 
 import { ParentService } from "../../../lib/services/parent.service";
-import { InvitationAPI } from "../../../lib/api/invitation-api";
 import AuthGate from "../../../components/auth/AuthGate";
 import ParentDashboard from "../../../components/parent/Dashboard/ParentDashboard";
 import ErrorBoundary from "../../../components/common/ErrorBoundary";
@@ -16,58 +15,42 @@ const FrontPageLayout = dynamic(
   { ssr: true }
 );
 
-interface SchoolDashboardProps {
+interface ParentDashboardProps {
   school_slug: string;
   schoolName: string;
-  token: string | null;
-  invitationData: any | null;
+  email: string;
   isAuthenticated: boolean;
   initialProfile: any | null;
   initialLearners: any[];
   error?: string | null;
 }
 
-export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = async (context) => {
-  const { school_slug } = context.params as { school_slug: string };
+export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = async (context) => {
+  const { school_slug, email } = context.params as { school_slug: string; email: string };
   const session = await getSession(context.req, context.res);
 
-  // Decode school name: "Far+North+Secondary+School" -> "Far North Secondary School"
-  const schoolName = decodeURIComponent(school_slug.replace(/\+/g, ' '));
+  // Extract school name from the concatenated segment if needed, e.g. "Far North Secondary Schooldashboard" -> "Far North Secondary School"
+  let schoolName = school_slug;
+  if (schoolName && schoolName.endsWith('dashboard')) {
+    schoolName = schoolName.substring(0, schoolName.length - 'dashboard'.length);
+  }
 
-  // Extract token, handling weird glued parameters (e.g., ?token=xxx\u0026school=)
-  const rawToken = context.query.token as string;
-  const token = rawToken
-    ? rawToken.split('&')[0].split('\\u0026')[0].trim()
-    : null;
+  // schoolName is unencoded so spaces appear literally, but we decode just in case
+  schoolName = decodeURIComponent(schoolName.replace(/\+/g, ' '));
+  const decodedEmail = decodeURIComponent(email.replace(/\+/g, ' '));
 
-  console.log(`🏫 [SchoolDashboard.GSSP] slug: ${school_slug}, name: ${schoolName}, token: ${token?.substring(0, 8)}...`);
+  console.log(`🏫 [ParentDashboardPage.GSSP] slug: ${school_slug}, school: ${schoolName}, email: ${decodedEmail}`);
 
   // --- CASE 1: UNAUTHENTICATED ---
   if (!session?.user) {
-    let invitationData = null;
-    let verifyError = null;
-
-    if (token) {
-      try {
-        console.log(`🔍 [SchoolDashboard.GSSP] Verifying token: ${token.substring(0, 8)}...`);
-        invitationData = await InvitationAPI.verifyToken(token);
-        console.log(`✅ [SchoolDashboard.GSSP] Token verified for: ${invitationData?.school_name}`);
-      } catch (err: any) {
-        console.error(`❌ [SchoolDashboard.GSSP] Token verification failed:`, err.message);
-        verifyError = "We couldn't verify your invitation. You can still sign in below.";
-      }
-    }
-
     return {
       props: {
         school_slug,
-        schoolName: invitationData?.school_name || schoolName,
-        token,
-        invitationData,
+        schoolName,
+        email: decodedEmail,
         isAuthenticated: false,
         initialProfile: null,
         initialLearners: [],
-        error: verifyError,
       },
     };
   }
@@ -75,9 +58,9 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
   // --- CASE 2: AUTHENTICATED ---
   try {
     const userId = session.user.sub;
-    console.log(`👤 [SchoolDashboard.GSSP] Authenticated user: ${userId}`);
+    console.log(`👤 [ParentDashboardPage.GSSP] Authenticated user: ${userId}`);
 
-    // ✅ Synchronize user & assign 'parent' role on DB and Auth0
+    // Synchronize parent user & role first
     await ParentService.syncParentRole(userId, session.user.email, session.user.name);
 
     const [profile, learners] = await Promise.all([
@@ -86,15 +69,11 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
     ]);
 
     // Check if the user is onboarded. If not, redirect to the onboarding flow gateway.
-    // We check the specific parent_onboarding_completed flag from the backend
     const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;
 
     if (!profile || !isOnboardingComplete) {
-      console.log(`⏳ [SchoolDashboard.GSSP] Onboarding incomplete for ${userId}. Redirecting to gateway.`);
-      const onboardingPath = token
-        ? `/parent?token=${encodeURIComponent(token)}&school=${encodeURIComponent(school_slug)}`
-        : `/parent?school=${encodeURIComponent(school_slug)}`;
-
+      console.log(`⏳ [ParentDashboardPage.GSSP] Onboarding incomplete for ${userId}. Redirecting to gateway.`);
+      const onboardingPath = `/parent?school=${encodeURIComponent(schoolName)}`;
       return {
         redirect: {
           destination: onboardingPath,
@@ -103,29 +82,26 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
       };
     }
 
-    // Fully onboarded - Redirect to the dynamic dashboard path
-    let finalSchoolName = profile.primary_school_name || schoolName;
-    if (!finalSchoolName || finalSchoolName === 'School') {
-      finalSchoolName = 'Far North Secondary School';
-    }
-    const parentName = profile.name || session.user.name || 'Parent';
-
-    console.log(`🚀 [SchoolDashboard.GSSP] Onboarding complete. Redirecting to dynamic dashboard: ${finalSchoolName}`);
+    // Fully onboarded - Show Dashboard
+    console.log(`✅ [ParentDashboardPage.GSSP] Showing dashboard for ${schoolName}`);
     return {
-      redirect: {
-        destination: `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${encodeURIComponent(parentName)}`,
-        permanent: false,
+      props: {
+        school_slug,
+        schoolName: profile.primary_school_name || schoolName,
+        email: decodedEmail,
+        isAuthenticated: true,
+        initialProfile: profile,
+        initialLearners: learners,
       },
     };
 
   } catch (err: any) {
-    console.error('❌ [SchoolDashboard.GSSP] Error loading dashboard data:', err.message);
+    console.error('❌ [ParentDashboardPage.GSSP] Error loading dashboard data:', err.message);
     return {
       props: {
         school_slug,
         schoolName,
-        token,
-        invitationData: null,
+        email: decodedEmail,
         isAuthenticated: true,
         initialProfile: null,
         initialLearners: [],
@@ -135,12 +111,11 @@ export const getServerSideProps: GetServerSideProps<SchoolDashboardProps> = asyn
   }
 };
 
-export default function SchoolDashboardPage(props: SchoolDashboardProps) {
+export default function ParentDashboardPage(props: ParentDashboardProps) {
   const {
-    schoolName,
     school_slug,
-    token,
-    invitationData,
+    schoolName,
+    email,
     isAuthenticated,
     initialProfile,
     initialLearners,
@@ -150,25 +125,23 @@ export default function SchoolDashboardPage(props: SchoolDashboardProps) {
   // --- RENDERING FOR UNAUTHENTICATED ---
   if (!isAuthenticated) {
     const authGateInvitation = {
-      token: invitationData?.token || token || undefined,
-      school_name: invitationData?.school_name || schoolName,
-      school_logo: invitationData?.school_logo || null,
-      grade_name: invitationData?.grade_name || null,
-      learner_name: invitationData?.learner_number || invitationData?.learner_numbers?.[0] || null,
+      school_name: schoolName,
+      school_logo: null,
+      grade_name: null,
+      learner_name: null,
     };
 
     return (
       <>
         <Head>
           <title>{`${schoolName} - Parent Portal`}</title>
-          <meta name="description" content={`You've been invited to join ${schoolName}'s parent portal. stay connected with your child's education.`} />
-          <meta property="og:title" content={`${schoolName} - Parent Portal`} />
+          <meta name="description" content={`Access the parent portal for ${schoolName}.`} />
           <meta name="robots" content="noindex,nofollow" />
         </Head>
 
         <AuthGate
           invitationData={authGateInvitation}
-          returnTo={`/parent/${encodeURIComponent(school_slug)}`}
+          returnTo={`/parent/${encodeURIComponent(school_slug)}dashboard/${encodeURIComponent(email)}`}
         />
       </>
     );

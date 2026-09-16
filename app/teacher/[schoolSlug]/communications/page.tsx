@@ -48,6 +48,7 @@ export default function TeacherCommunicationsPage({ params }: { params: Promise<
             currentUserId={currentUserId}
             schoolId={schoolId || ''}
             godMode={false}
+            skipToken={true}
           />
         </div>
       </div>

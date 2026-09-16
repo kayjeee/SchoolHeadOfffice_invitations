@@ -18,14 +18,14 @@ export function useConversations(options: {
   gradeId?: string;
   scopeId?: string;
 } = {}) {
-  const { accessToken, isLoading: isAuthLoading } = useApi(options);
+  const { user, accessToken, isLoading: isAuthLoading } = useApi(options);
 
   const resolvedSchoolId = options.schoolId;
-  const targetUserId = options.userId;
+  const resolvedUserId = options.userId || user?.sub || user?.id;
 
   const queryParams = new URLSearchParams();
   if (resolvedSchoolId) queryParams.append('school_id', resolvedSchoolId);
-  if (targetUserId) queryParams.append('user_id', targetUserId);
+  if (resolvedUserId) queryParams.append('user_id', resolvedUserId);
   if (options.scopeType) queryParams.append('scope_type', options.scopeType);
   if (options.academicYear) queryParams.append('academic_year', options.academicYear);
   if (options.termId) queryParams.append('term_id', options.termId);
@@ -33,9 +33,9 @@ export function useConversations(options: {
   if (options.scopeId) queryParams.append('scope_id', options.scopeId);
 
   const queryString = queryParams.toString();
+  const isScoped = Boolean(resolvedSchoolId || resolvedUserId || options.scopeType || options.scopeId);
 
-  // Require a valid accessToken before fetching conversations
-  const swrKey = accessToken
+  const swrKey = (options.skipToken || accessToken) && isScoped
     ? `/api/v1/conversations${queryString ? `?${queryString}` : ''}`
     : null;
 
@@ -47,7 +47,7 @@ export function useConversations(options: {
     swrKey,
     () => MessagingAPI.getConversations({
       school_id: resolvedSchoolId,
-      user_id: targetUserId,
+      user_id: resolvedUserId,
       scope_type: options.scopeType,
       academic_year: options.academicYear,
       term_id: options.termId,
@@ -64,7 +64,7 @@ export function useConversations(options: {
 
   return {
     conversations,
-    loading: isAuthLoading || (!accessToken && !error) || isLoading,
+    loading: isLoading || isAuthLoading,
     error,
     refresh: () => mutate(key => typeof key === 'string' && key.startsWith('/api/v1/conversations')),
   };
@@ -209,8 +209,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
   // Explicitly cast ID to string to handle BSON objects from backend
   const convIdStr = conversationId?.toString();
 
-  // Require a valid accessToken before fetching messages
-  const swrKey = accessToken && convIdStr
+  const swrKey = (options.skipToken || accessToken) && convIdStr
     ? `/api/v1/conversations/${convIdStr}/messages`
     : null;
 
@@ -303,7 +302,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
 
   return {
     messages,
-    loading: isAuthLoading || (Boolean(convIdStr) && !accessToken && !error) || isLoading,
+    loading: isLoading,
     error,
     isSending,
     sendMessage,

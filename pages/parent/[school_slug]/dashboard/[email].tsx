@@ -57,13 +57,10 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardProps> = asyn
     // Synchronize parent user & role first
     await ParentService.syncParentRole(userId, session.user.email, session.user.name);
 
-    const profile = await ParentService.getProfile(userId);
-    let learners: any[] = [];
-    try {
-      learners = await ParentService.getLearners(userId);
-    } catch (learnerErr: any) {
-      console.error(`⚠️ [ParentDashboardPageSlashed.GSSP] Non-fatal error loading learners for ${userId}:`, learnerErr.message);
-    }
+    const [profile, learners] = await Promise.all([
+      ParentService.getProfile(userId),
+      ParentService.getLearners(userId),
+    ]);
 
     // Check if the user is onboarded. If not, redirect to the onboarding flow gateway.
     const isOnboardingComplete = profile?.onboarding_status?.parent_onboarding_completed === true;

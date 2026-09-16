@@ -131,6 +131,10 @@ class ApiClient {
 
           console.error(`❌ [API Response ${requestId}] FAILED (${response.status}) ${duration}ms`, errorData);
 
+          if (response.status === 401 && typeof window !== 'undefined') {
+            window.location.href = '/api/auth/login';
+          }
+
           throw new APIError(response.status, response.statusText, errorData);
         }
 
