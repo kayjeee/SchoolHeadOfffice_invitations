@@ -140,7 +140,7 @@ export default function ChatWindow({
   });
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-8 bg-surface-container/30 custom-scrollbar" ref={scrollRef}>
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8 bg-surface-container/30 custom-scrollbar" ref={scrollRef}>
       {loading && (
         <div className="flex justify-center py-4">
           <Loader2 className="w-6 h-6 animate-spin text-white/20" />

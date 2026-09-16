@@ -264,8 +264,8 @@ export default function CommunicationsPage({ params }: CommunicationsPageProps) 
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-2xl shadow-slate-200/50 h-[700px] flex flex-col">
-          <div className="flex-1 h-full min-h-0">
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-2xl shadow-slate-200/50 min-h-[700px] flex flex-col">
+          <div className="flex-1">
             <MessagingSection
               currentUserId={currentUserId}
               schoolId={schoolId || ''}
