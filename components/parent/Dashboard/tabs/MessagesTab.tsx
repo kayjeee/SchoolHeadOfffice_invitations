@@ -1,10 +1,26 @@
 import React from "react";
+import { DashboardProps } from "../types/dashboard.types";
 
-export default function MessagesTab() {
+export interface MessagesTabProps {
+  user?: any;
+  profile?: DashboardProps["profile"];
+  learners?: DashboardProps["learners"];
+}
+
+export default function MessagesTab({ user, profile, learners }: MessagesTabProps) {
+  const learnerCount = learners?.length || 0;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-900">Parent-Teacher Messaging</h2>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Parent-Teacher Messaging</h2>
+          {profile?.name && (
+            <p className="text-xs text-gray-500 mt-1">
+              Logged in as {profile.name} ({profile.email}) &bull; {learnerCount} linked learner{learnerCount === 1 ? '' : 's'}
+            </p>
+          )}
+        </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors">
           New Message
         </button>
