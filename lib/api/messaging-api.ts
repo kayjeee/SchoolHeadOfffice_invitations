@@ -55,6 +55,7 @@ export interface Message {
   content: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
+  sent_as_role?: 'parent' | 'teacher' | 'admin' | null;
   is_optimistic?: boolean;
   attachment_url?: string;
   attachment_type?: string;
@@ -220,13 +221,17 @@ export class MessagingAPI {
     userId: string,
     schoolId: string,
     attachment?: { url: string; type: string; name: string; size?: number },
-    replyToId?: string
+    replyToId?: string,
+    sentAsRole?: 'parent' | 'teacher' | 'admin'
   ): Promise<Message> {
     const messagePayload: any = {
       content,
       user_id: userId,
       school_id: schoolId
     };
+    if (sentAsRole) {
+      messagePayload.sent_as_role = sentAsRole;
+    }
     if (attachment) {
       messagePayload.attachment_url = attachment.url;
       messagePayload.attachment_type = attachment.type;
@@ -451,6 +456,7 @@ export function normalizeMessage(m: any): Message {
     content:         m.content || m.body || m.text || '',
     timestamp:       m.timestamp || m.created_at || new Date().toISOString(),
     status:          m.status || 'sent',
+    sent_as_role:    m.sent_as_role || null,
     is_optimistic:   false,
     attachment_url:  m.attachment_url,
     attachment_type: m.attachment_type,

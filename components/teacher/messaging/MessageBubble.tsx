@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   sender?: Participant;
   isMine: boolean;
   currentUserId: string;
+  scopeType?: string;
   formattedTime: string;
   isHighlighted?: boolean;
   onReply?: (message: Message & { sender_name: string }) => void;
@@ -26,6 +27,7 @@ export default function MessageBubble({
   sender,
   isMine,
   currentUserId,
+  scopeType,
   formattedTime,
   isHighlighted = false,
   onReply,
@@ -186,6 +188,34 @@ export default function MessageBubble({
     }
   };
 
+  const renderRoleBadge = () => {
+    if (scopeType === 'self') return null;
+
+    const role = message.sent_as_role;
+    if (role === 'admin') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          Admin
+        </span>
+      );
+    }
+    if (role === 'teacher') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          Teacher
+        </span>
+      );
+    }
+    if (role === 'parent') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          Parent
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className={cn('group flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
       {!isMine && (
@@ -201,6 +231,21 @@ export default function MessageBubble({
       )}
 
       <div className="space-y-1">
+        {!isMine && (sender?.name || renderRoleBadge()) && (
+          <div className="flex items-center gap-2 mb-1 px-1">
+            {sender?.name && (
+              <span className="text-xs font-bold text-white/70">{sender.name}</span>
+            )}
+            {renderRoleBadge()}
+          </div>
+        )}
+
+        {isMine && renderRoleBadge() && (
+          <div className="flex items-center justify-end gap-2 mb-1 px-1">
+            {renderRoleBadge()}
+          </div>
+        )}
+
         <div ref={reactionPickerRef} className="relative">
           <div
             className={cn(

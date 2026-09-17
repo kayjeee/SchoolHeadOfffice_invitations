@@ -29,6 +29,7 @@ export default function MessagesTab({ user, profile, learners }: MessagesTabProp
         <MessagingSection
           currentUserId={currentUserId}
           schoolId={schoolId}
+          sendingAsRole="parent"
           skipToken={true}
         />
       </div>

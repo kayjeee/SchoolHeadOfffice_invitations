@@ -18,6 +18,7 @@ export const MessageSchema = z.object({
   content: z.string(),
   timestamp: z.string(),
   status: z.enum(['sent', 'delivered', 'read', 'failed']).default('sent'),
+  sent_as_role: z.enum(['parent', 'teacher', 'admin']).nullable().optional(),
   is_optimistic: z.boolean().optional(),
   attachment_url: z.string().optional(),
   attachment_type: z.string().optional(),

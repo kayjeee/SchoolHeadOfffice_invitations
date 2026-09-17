@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 interface MessagingSectionProps {
   currentUserId: string;
   schoolId: string;
+  sendingAsRole: 'parent' | 'teacher' | 'admin';
   godMode?: boolean;
   skipToken?: boolean;
   classes?: {
@@ -34,13 +35,14 @@ interface MessagingSectionProps {
 export default function MessagingSection({
   currentUserId,
   schoolId,
+  sendingAsRole,
   godMode = false,
   skipToken = false,
   classes = [],
 }: MessagingSectionProps) {
   useEffect(() => {
-    console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}`);
-  }, [currentUserId, schoolId]);
+    console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}, sendingAsRole=${sendingAsRole}`);
+  }, [currentUserId, schoolId, sendingAsRole]);
 
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
@@ -129,12 +131,12 @@ export default function MessagingSection({
       if (fromDirectory) {
         resolved = { ...resolved, ...fromDirectory };
       } else if (id === currentUserId?.toString()) {
-        resolved = { ...resolved, name: 'You', role: 'teacher' };
+        resolved = { ...resolved, name: 'You', role: sendingAsRole };
       }
 
       return resolved;
     });
-  }, [activeConversation, contactMap, currentUserId]);
+  }, [activeConversation, contactMap, currentUserId, sendingAsRole]);
 
   const otherParticipant = useMemo(() => {
     if (resolvedParticipants.length === 0) return null;
@@ -216,7 +218,7 @@ export default function MessagingSection({
   const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => {
     if (!activeConvId) return;
     try {
-      await sendMessage(content, currentUserId, attachment, replyTo?.id);
+      await sendMessage(content, currentUserId, schoolId, attachment, replyTo?.id, sendingAsRole);
       setAiSuggestion(null);
       setReplyTo(null);
       refreshConvs();
@@ -470,6 +472,7 @@ export default function MessagingSection({
                 messages={messages}
                 participants={resolvedParticipants}
                 currentUserId={currentUserId}
+                scopeType={activeConversation?.scope_type || undefined}
                 loading={loadingMessages}
                 highlightedMessageId={highlightedMessageId}
                 onReply={setReplyTo}
