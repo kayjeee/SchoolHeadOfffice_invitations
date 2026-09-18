@@ -31,6 +31,11 @@ export default function MessagesTab({ user, profile, learners }: MessagesTabProp
           schoolId={schoolId}
           sendingAsRole="parent"
           skipToken={true}
+          canCreateGroup={false}
+          canBrowseDirectory={false}
+          canRemoveParticipants={false}
+          canCreateDirectConversation={false}
+          canLeaveGroups={true}
         />
       </div>
     </div>

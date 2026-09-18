@@ -25,6 +25,11 @@ interface MessagingSectionProps {
   sendingAsRole: 'parent' | 'teacher' | 'admin';
   godMode?: boolean;
   skipToken?: boolean;
+  canCreateGroup?: boolean;
+  canBrowseDirectory?: boolean;
+  canRemoveParticipants?: boolean;
+  canLeaveGroups?: boolean;
+  canCreateDirectConversation?: boolean;
   classes?: {
     id: string;
     grade_name: string;
@@ -38,6 +43,11 @@ export default function MessagingSection({
   sendingAsRole,
   godMode = false,
   skipToken = false,
+  canCreateGroup = true,
+  canBrowseDirectory = true,
+  canRemoveParticipants = true,
+  canLeaveGroups = true,
+  canCreateDirectConversation = true,
   classes = [],
 }: MessagingSectionProps) {
   useEffect(() => {
@@ -69,23 +79,22 @@ export default function MessagingSection({
   // ✅ FIX: hook exports `isOtherTyping`, not `isTyping`
   const { isOtherTyping, handleTyping } = useTyping(activeConvId, { skipToken });
 
-  // Fetch directory once for contact name resolution
+  // Fetch directory once for contact name resolution if permitted
   useEffect(() => {
-    // 🛡️ Guard: Ensure we have an access token before fetching school directory to avoid 401
     if (!accessToken) return;
 
-    SchoolAPI.getDirectory(schoolId)
-      .then(data => setDirectory(data))
-      .catch(err => console.error('Failed to fetch directory:', err));
+    if (canBrowseDirectory) {
+      SchoolAPI.getDirectory(schoolId)
+        .then(data => setDirectory(data))
+        .catch(err => console.error('Failed to fetch directory:', err));
+    }
 
     SchoolAPI.getSchoolLearners(schoolId)
       .then(data => setLearners(data.learners))
       .catch(err => console.error('Failed to fetch learners:', err));
-  }, [schoolId, accessToken]);
+  }, [schoolId, accessToken, canBrowseDirectory]);
 
   // Memoised ID → Participant map
-  // We index by both 'id' (legacy/profile) and 'user_id' (core account)
-  // to ensure name resolution works across different reference layers.
   const contactMap = useMemo(() => {
     const map = new Map<string, Participant>();
     if (!directory) return map;
@@ -141,18 +150,14 @@ export default function MessagingSection({
   const otherParticipant = useMemo(() => {
     if (resolvedParticipants.length === 0) return null;
 
-    // Filter out the current user to find the "other" person
-    // Using .toString() for robust comparison with BSON IDs
     const others = resolvedParticipants.filter(
       p => p.id?.toString() !== currentUserId?.toString()
     );
 
-    // Case: It's a conversation with someone else
     if (others.length > 0) {
       return others[0];
     }
 
-    // Case: Self-conversation (only current user found or single-participant)
     const me = resolvedParticipants.find(
       p => p.id?.toString() === currentUserId?.toString()
     );
@@ -164,7 +169,6 @@ export default function MessagingSection({
     return resolvedParticipants[0] || null;
   }, [resolvedParticipants, currentUserId]);
 
-  // ✅ FIX: always close directory and update mobile state together
   const handleSelectConversation = (id: string) => {
     setActiveConvId(id);
     setShowDirectory(false);
@@ -181,7 +185,6 @@ export default function MessagingSection({
   };
 
   const handleNoteToSelf = async () => {
-    // Check if a self-conversation already exists
     const selfConv = conversations.find(conv => {
       if (conv.scope_type === 'self') return true;
       const ids = (conv.participant_ids || conv.participants || [])
@@ -194,7 +197,6 @@ export default function MessagingSection({
       return;
     }
 
-    // Create new self-conversation if it doesn't exist
     try {
       const conv = await MessagingAPI.createConversation([], schoolId, currentUserId, {
         scope_type: 'self',
@@ -207,7 +209,6 @@ export default function MessagingSection({
     }
   };
 
-  // Mark as read when switching conversations
   useEffect(() => {
     if (!activeConvId) return;
     MessagingAPI.markAsRead(activeConvId)
@@ -224,7 +225,7 @@ export default function MessagingSection({
       refreshConvs();
     } catch (err) {
       console.error('Failed to send message:', err);
-      throw err; // Propagate error to MessageInput so it doesn't clear the field
+      throw err;
     }
   };
 
@@ -251,7 +252,6 @@ export default function MessagingSection({
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] md:h-[700px] bg-surface-container/50 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
-      {/* Background glow */}
       <div
         className={cn(
           'absolute -top-32 -left-32 w-64 h-64 blur-[120px] opacity-10 pointer-events-none transition-all duration-1000',
@@ -267,10 +267,9 @@ export default function MessagingSection({
             !showMobileList && 'hidden md:flex'
           )}
         >
-          {/* ✅ FIX: show directory/group initiation in sidebar only on mobile; on desktop it always shows the conversation list in the sidebar */}
           <div className="flex-1 flex flex-col md:hidden">
             {(showDirectory || showGroupInitiation) && showMobileList ? (
-              showDirectory ? (
+              showDirectory && canBrowseDirectory ? (
                 <DirectoryList
                   schoolId={schoolId}
                   onSelectConversation={handleSelectConversation}
@@ -297,19 +296,28 @@ export default function MessagingSection({
                 onSelectConversation={handleSelectConversation}
                 currentUserId={currentUserId}
                 schoolId={schoolId}
+                canCreateGroup={canCreateGroup}
+                canBrowseDirectory={canBrowseDirectory}
+                canRemoveParticipants={canRemoveParticipants}
+                canLeaveGroups={canLeaveGroups}
+                canCreateDirectConversation={canCreateDirectConversation}
                 onNoteToSelf={handleNoteToSelf}
                 onNewMessage={() => {
-                  setShowDirectory(true);
-                  setShowGroupInitiation(false);
-                  setShowSaved(false);
-                  setActiveConvId(null);
+                  if (canBrowseDirectory) {
+                    setShowDirectory(true);
+                    setShowGroupInitiation(false);
+                    setShowSaved(false);
+                    setActiveConvId(null);
+                  }
                 }}
                 onNewGroupMessage={() => {
-                  setShowGroupInitiation(true);
-                  setShowDirectory(false);
-                  setShowSaved(false);
-                  setActiveConvId(null);
-                  setShowMobileList(false);
+                  if (canCreateGroup) {
+                    setShowGroupInitiation(true);
+                    setShowDirectory(false);
+                    setShowSaved(false);
+                    setActiveConvId(null);
+                    setShowMobileList(false);
+                  }
                 }}
                 onShowSaved={() => {
                   setShowSaved(true);
@@ -331,19 +339,28 @@ export default function MessagingSection({
               onSelectConversation={handleSelectConversation}
               currentUserId={currentUserId}
               schoolId={schoolId}
+              canCreateGroup={canCreateGroup}
+              canBrowseDirectory={canBrowseDirectory}
+              canRemoveParticipants={canRemoveParticipants}
+              canLeaveGroups={canLeaveGroups}
+              canCreateDirectConversation={canCreateDirectConversation}
               onNoteToSelf={handleNoteToSelf}
               onNewMessage={() => {
-                setShowDirectory(true);
-                setShowGroupInitiation(false);
-                setShowSaved(false);
-                setActiveConvId(null);
+                if (canBrowseDirectory) {
+                  setShowDirectory(true);
+                  setShowGroupInitiation(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                }
               }}
               onNewGroupMessage={() => {
-                setShowGroupInitiation(true);
-                setShowDirectory(false);
-                setShowSaved(false);
-                setActiveConvId(null);
-                setShowMobileList(false);
+                if (canCreateGroup) {
+                  setShowGroupInitiation(true);
+                  setShowDirectory(false);
+                  setShowSaved(false);
+                  setActiveConvId(null);
+                  setShowMobileList(false);
+                }
               }}
               onShowSaved={() => {
                 setShowSaved(true);
@@ -364,7 +381,6 @@ export default function MessagingSection({
             showMobileList && 'hidden md:flex'
           )}
         >
-          {/* ✅ FIX: Priority — activeConvId wins over showDirectory and showSaved */}
           {activeConvId ? (
             <>
               {/* Chat header */}
@@ -461,8 +477,6 @@ export default function MessagingSection({
                 participants={resolvedParticipants}
                 onJumpToMessage={(messageId) => {
                   setHighlightedMessageId(messageId);
-                  // Optional: Close panel on jump? Usually better to keep open if user wants to see others.
-                  // For now keep it open.
                 }}
               />
 
@@ -486,7 +500,6 @@ export default function MessagingSection({
                 onJumpToMessage={(messageId) => {
                   setHighlightedMessageId(messageId);
                   setShowSearch(false);
-                  // Clear highlight after 3 seconds
                   setTimeout(() => {
                     setHighlightedMessageId(null);
                   }, 3000);
@@ -558,8 +571,7 @@ export default function MessagingSection({
                 </div>
               </div>
             </>
-          ) : showDirectory ? (
-            /* ✅ FIX: directory renders in right panel on desktop */
+          ) : showDirectory && canBrowseDirectory ? (
             <div className="flex-1 overflow-hidden">
               <DirectoryList
                 schoolId={schoolId}
@@ -570,8 +582,7 @@ export default function MessagingSection({
                 skipToken={skipToken}
               />
             </div>
-          ) : showGroupInitiation ? (
-            /* Group initiation renders in right panel on desktop */
+          ) : showGroupInitiation && canCreateGroup ? (
             <div className="flex-1 overflow-hidden">
               <GroupInitiation
                 schoolId={schoolId}
@@ -615,35 +626,41 @@ export default function MessagingSection({
               <div className="space-y-2">
                 <h3 className="text-xl font-black text-white/90">Select a conversation</h3>
                 <p className="text-sm text-white/40 max-w-xs mx-auto">
-                  Choose a contact from the left panel or open the school directory to start communicating.
+                  {canBrowseDirectory
+                    ? "Choose a contact from the left panel or open the school directory to start communicating."
+                    : "Choose a conversation from the left panel to view messages."}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => {
-                    setShowGroupInitiation(true);
-                    setShowDirectory(false);
-                    setShowSaved(false);
-                  }}
-                  className="px-8 py-3.5 bg-primary-accent text-on-primary-fixed rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/90 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px] shadow-xl shadow-primary-accent/20"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  New Group Message
-                </button>
-                <button
-                  onClick={() => setShowDirectory(true)}
-                  className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
-                >
-                  <Users
-                    className={cn(
-                      'w-4 h-4 transition-colors',
-                      godMode
-                        ? 'group-hover/btn:text-secondary-accent'
-                        : 'group-hover/btn:text-primary-accent'
-                    )}
-                  />
-                  Open Directory
-                </button>
+                {canCreateGroup && (
+                  <button
+                    onClick={() => {
+                      setShowGroupInitiation(true);
+                      setShowDirectory(false);
+                      setShowSaved(false);
+                    }}
+                    className="px-8 py-3.5 bg-primary-accent text-on-primary-fixed rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary-accent/90 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px] shadow-xl shadow-primary-accent/20"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    New Group Message
+                  </button>
+                )}
+                {canBrowseDirectory && (
+                  <button
+                    onClick={() => setShowDirectory(true)}
+                    className="px-8 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2 group/btn min-w-[180px]"
+                  >
+                    <Users
+                      className={cn(
+                        'w-4 h-4 transition-colors',
+                        godMode
+                          ? 'group-hover/btn:text-secondary-accent'
+                          : 'group-hover/btn:text-primary-accent'
+                      )}
+                    />
+                    Open Directory
+                  </button>
+                )}
               </div>
             </div>
           )}

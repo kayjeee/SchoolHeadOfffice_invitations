@@ -166,7 +166,7 @@ export const getServerSideProps: GetServerSideProps<
 
         const email = profile?.email || session.user.email || '';
         const emailEncoded = encodeURIComponent(email);
-        const destination = `/parent/${encodeURIComponent(finalSchoolName)}/dashboard/${emailEncoded}`;
+        const destination = `/parent/${finalSchoolName}dashboard/${emailEncoded}`;
 
         console.log(`🚀 [ParentGSSP] Redirecting completed parent directly to: ${destination}`);
         return {

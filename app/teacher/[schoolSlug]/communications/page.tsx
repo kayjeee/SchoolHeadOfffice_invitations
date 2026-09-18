@@ -47,7 +47,6 @@ export default function TeacherCommunicationsPage({ params }: { params: Promise<
           <MessagingSection
             currentUserId={currentUserId}
             schoolId={schoolId || ''}
-            sendingAsRole="teacher"
             godMode={false}
             skipToken={true}
           />

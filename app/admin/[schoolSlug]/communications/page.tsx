@@ -269,7 +269,6 @@ export default function CommunicationsPage({ params }: CommunicationsPageProps) 
             <MessagingSection
               currentUserId={currentUserId}
               schoolId={schoolId || ''}
-              sendingAsRole="admin"
               godMode={true}
               skipToken={true}
             />

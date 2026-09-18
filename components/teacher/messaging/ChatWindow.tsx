@@ -12,7 +12,6 @@ interface ChatWindowProps {
   messages: Message[];
   participants: Participant[];
   currentUserId: string;
-  scopeType?: string;
   loading?: boolean;
   highlightedMessageId?: string | null;
   onReply?: (message: Message & { sender_name: string }) => void;
@@ -23,7 +22,6 @@ export default function ChatWindow({
   messages,
   participants,
   currentUserId,
-  scopeType,
   loading = false,
   highlightedMessageId = null,
   onReply,
@@ -201,7 +199,6 @@ export default function ChatWindow({
                       sender={sender}
                       isMine={isMine}
                       currentUserId={currentUserId}
-                      scopeType={scopeType}
                       formattedTime={formatDate(msg.timestamp)}
                       isHighlighted={highlightedMessageId === msg.id}
                       onReply={onReply}
