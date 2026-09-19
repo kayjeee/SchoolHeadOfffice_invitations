@@ -251,7 +251,8 @@ export function useMessages(conversationId: string | null, options: { skipToken?
     senderId: string,
     schoolId: string,
     attachment?: { url: string; type: string; name: string; size?: number },
-    replyToId?: string
+    replyToId?: string,
+    sentAsRole?: 'parent' | 'teacher' | 'admin'
   ) => {
     if (!convIdStr || (!content.trim() && !attachment)) return;
 
@@ -263,6 +264,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
       content,
       timestamp: new Date().toISOString(),
       status: 'sent',
+      sent_as_role: sentAsRole || null,
       is_optimistic: true,
       attachment_url: attachment?.url,
       attachment_type: attachment?.type,
@@ -275,7 +277,7 @@ export function useMessages(conversationId: string | null, options: { skipToken?
 
     try {
       setIsSending(true);
-      const realMessage = await MessagingAPI.sendMessage(convIdStr, content, senderId, schoolId, attachment, replyToId);
+      const realMessage = await MessagingAPI.sendMessage(convIdStr, content, senderId, schoolId, attachment, replyToId, sentAsRole);
 
       // Update cache and clear optimistic
       // Using functional update to avoid stale closures
