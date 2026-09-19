@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   sender?: Participant;
   isMine: boolean;
   currentUserId: string;
+  scopeType?: string;
   formattedTime: string;
   isHighlighted?: boolean;
   onReply?: (message: Message & { sender_name: string }) => void;
@@ -26,6 +27,7 @@ export default function MessageBubble({
   sender,
   isMine,
   currentUserId,
+  scopeType,
   formattedTime,
   isHighlighted = false,
   onReply,
@@ -186,12 +188,42 @@ export default function MessageBubble({
     }
   };
 
+  const renderRoleBadge = () => {
+    if (scopeType === 'self') return null;
+
+    const role = message.sent_as_role;
+    if (role === 'admin') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          Admin
+        </span>
+      );
+    }
+    if (role === 'teacher') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          Teacher
+        </span>
+      );
+    }
+    if (role === 'parent') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-500/20 text-blue-300 border border-blue-500/30">
+          Parent
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const senderDisplayName = sender?.name || sender?.email || 'Contact';
+
   return (
     <div className={cn('group flex max-w-[85%] gap-3 md:max-w-[70%]', isMine ? 'flex-row-reverse' : 'flex-row')}>
       {!isMine && (
         <div className="mt-1 shrink-0">
           {sender?.avatar ? (
-            <img src={sender.avatar} alt={sender.name} className="h-8 w-8 rounded-xl object-cover" />
+            <img src={sender.avatar} alt={senderDisplayName} className="h-8 w-8 rounded-xl object-cover" />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5">
               <User className="h-4 w-4 text-white/20" />
@@ -201,6 +233,13 @@ export default function MessageBubble({
       )}
 
       <div className="space-y-1">
+        {!isMine && (
+          <div className="flex items-center gap-2 mb-1 px-1">
+            <span className="text-xs font-bold text-white/70">{senderDisplayName}</span>
+            {renderRoleBadge()}
+          </div>
+        )}
+
         <div ref={reactionPickerRef} className="relative">
           <div
             className={cn(
@@ -222,7 +261,7 @@ export default function MessageBubble({
             <button
               type="button"
               className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-container/90 text-white/60 shadow-lg shadow-black/20 transition hover:scale-105 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-accent/60"
-              onClick={() => onReply?.({ ...message, sender_name: isMine ? 'You' : (sender?.name || 'Contact') })}
+              onClick={() => onReply?.({ ...message, sender_name: isMine ? 'You' : senderDisplayName })}
               disabled={message.is_optimistic}
               aria-label="Reply"
               title="Reply"
