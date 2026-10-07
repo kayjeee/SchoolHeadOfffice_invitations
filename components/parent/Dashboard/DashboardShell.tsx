@@ -20,8 +20,9 @@ const TABS = [
   { key: 'behavior', label: 'behavior', path: '/behavior' },
   { key: 'assignments', label: 'assignments', path: '/assignments' },
   { key: 'messages', label: 'messages', path: '/communications' },
+  { key: 'resources', label: 'resources', path: '/resources' },
+  { key: 'events', label: 'calendar & events', path: '/events' },
   { key: 'reports', label: 'reports', path: '/reports' },
-  { key: 'analytics', label: 'analytics', path: '/analytics' },
   { key: 'premium', label: 'premium', path: '/premium' },
 ];
 

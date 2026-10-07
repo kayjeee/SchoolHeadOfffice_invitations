@@ -4,7 +4,6 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 
 import AuthGate from '../../../../../components/auth/AuthGate';
-import AnalyticsTab from '../../../../../components/parent/Dashboard/tabs/AnalyticsTab';
 import DashboardShell from '../../../../../components/parent/Dashboard/DashboardShell';
 import ErrorBoundary from '../../../../../components/common/ErrorBoundary';
 import {
@@ -21,7 +20,7 @@ export const getServerSideProps: GetServerSideProps<ParentDashboardPageProps> = 
   return resolveParentDashboardProps(context);
 };
 
-export default function AnalyticsPage(props: ParentDashboardPageProps) {
+export default function ResourcesPage(props: ParentDashboardPageProps) {
   const {
     school_slug,
     schoolName,
@@ -35,18 +34,17 @@ export default function AnalyticsPage(props: ParentDashboardPageProps) {
     return (
       <AuthGate
         invitationData={{ school_name: schoolName, school_logo: null, grade_name: null, learner_name: null }}
-        returnTo={`/parent/${encodeURIComponent(school_slug)}/dashboard/${encodeURIComponent(email)}/analytics`}
+        returnTo={`/parent/${encodeURIComponent(school_slug)}/dashboard/${encodeURIComponent(email)}/resources`}
       />
     );
   }
 
   const displayName = initialProfile?.primary_school_name || schoolName || 'Your School';
-  const isPremium = initialProfile?.subscription === 'premium';
 
   return (
     <ErrorBoundary>
       <Head>
-        <title>{`${displayName} - Analytics | Parent Portal`}</title>
+        <title>{`${displayName} - Resources | Parent Portal`}</title>
       </Head>
 
       <FrontPageLayout user={initialProfile} userRoles={['parent']}>
@@ -56,7 +54,18 @@ export default function AnalyticsPage(props: ParentDashboardPageProps) {
           learners={initialLearners}
           schoolName={displayName}
         >
-          <AnalyticsTab isPremium={isPremium} />
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center space-y-4">
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto text-xl font-bold">
+              📚
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">School Resources</h2>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
+              Access textbooks, school policies, guidelines, and study materials. This module is under active development.
+            </p>
+            <span className="inline-block px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold uppercase tracking-wider">
+              Module Locked (Under Dev)
+            </span>
+          </div>
         </DashboardShell>
       </FrontPageLayout>
     </ErrorBoundary>
