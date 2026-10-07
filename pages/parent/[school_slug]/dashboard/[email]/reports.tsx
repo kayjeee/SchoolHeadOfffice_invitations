@@ -1,7 +1,6 @@
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
 
 import AuthGate from '../../../../../components/auth/AuthGate';
 import ReportsTab from '../../../../../components/parent/Dashboard/tabs/ReportsTab';
@@ -11,11 +10,6 @@ import {
   resolveParentDashboardProps,
   ParentDashboardPageProps,
 } from '../../../../../lib/services/resolveParentDashboardProps';
-
-const FrontPageLayout = dynamic(
-  () => import('../../../../../components/Layouts/FrontPageLayout'),
-  { ssr: true }
-);
 
 export const getServerSideProps: GetServerSideProps<ParentDashboardPageProps> = async (context) => {
   return resolveParentDashboardProps(context);
@@ -49,16 +43,14 @@ export default function ReportsPage(props: ParentDashboardPageProps) {
         <title>{`${displayName} - Reports | Parent Portal`}</title>
       </Head>
 
-      <FrontPageLayout user={initialProfile} userRoles={['parent']}>
-        <DashboardShell
-          user={initialProfile}
-          profile={initialProfile}
-          learners={initialLearners}
-          schoolName={displayName}
-        >
-          <ReportsTab isPremium={isPremium} />
-        </DashboardShell>
-      </FrontPageLayout>
+      <DashboardShell
+        user={initialProfile}
+        profile={initialProfile}
+        learners={initialLearners}
+        schoolName={displayName}
+      >
+        <ReportsTab isPremium={isPremium} />
+      </DashboardShell>
     </ErrorBoundary>
   );
 }

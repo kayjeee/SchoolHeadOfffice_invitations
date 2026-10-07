@@ -1,7 +1,6 @@
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
 
 import AuthGate from '../../../../../components/auth/AuthGate';
 import OverviewTab from '../../../../../components/parent/Dashboard/tabs/OverviewTab';
@@ -12,11 +11,6 @@ import {
   resolveParentDashboardProps,
   ParentDashboardPageProps,
 } from '../../../../../lib/services/resolveParentDashboardProps';
-
-const FrontPageLayout = dynamic(
-  () => import('../../../../../components/Layouts/FrontPageLayout'),
-  { ssr: true }
-);
 
 export const getServerSideProps: GetServerSideProps<ParentDashboardPageProps> = async (context) => {
   return resolveParentDashboardProps(context);
@@ -64,18 +58,16 @@ export default function ParentDashboardOverviewPage(props: ParentDashboardPagePr
 
   if (error && !initialProfile) {
     return (
-      <FrontPageLayout user={null}>
-        <div className="p-8 text-center bg-red-50 text-red-700 rounded-lg m-8">
-          <h2 className="text-xl font-bold mb-2">Notice</h2>
-          <p>{error}</p>
-          <button
-            onClick={() => (window.location.href = '/parent')}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Return to Portal
-          </button>
-        </div>
-      </FrontPageLayout>
+      <div className="p-8 text-center bg-red-50 text-red-700 rounded-lg m-8">
+        <h2 className="text-xl font-bold mb-2">Notice</h2>
+        <p>{error}</p>
+        <button
+          onClick={() => (window.location.href = '/parent')}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Return to Portal
+        </button>
+      </div>
     );
   }
 
@@ -89,16 +81,14 @@ export default function ParentDashboardOverviewPage(props: ParentDashboardPagePr
         />
       </Head>
 
-      <FrontPageLayout user={initialProfile} userRoles={['parent']}>
-        <DashboardShell
-          user={initialProfile}
-          profile={initialProfile}
-          learners={initialLearners}
-          schoolName={displayName}
-        >
-          <OverviewTab learners={initialLearners} stats={stats} notifications={notifications} />
-        </DashboardShell>
-      </FrontPageLayout>
+      <DashboardShell
+        user={initialProfile}
+        profile={initialProfile}
+        learners={initialLearners}
+        schoolName={displayName}
+      >
+        <OverviewTab learners={initialLearners} stats={stats} notifications={notifications} />
+      </DashboardShell>
     </ErrorBoundary>
   );
 }

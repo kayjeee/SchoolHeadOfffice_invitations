@@ -1,7 +1,6 @@
 import React from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
 
 import AuthGate from '../../../../../components/auth/AuthGate';
 import PremiumTab from '../../../../../components/parent/Dashboard/tabs/PremiumTab';
@@ -11,11 +10,6 @@ import {
   resolveParentDashboardProps,
   ParentDashboardPageProps,
 } from '../../../../../lib/services/resolveParentDashboardProps';
-
-const FrontPageLayout = dynamic(
-  () => import('../../../../../components/Layouts/FrontPageLayout'),
-  { ssr: true }
-);
 
 export const getServerSideProps: GetServerSideProps<ParentDashboardPageProps> = async (context) => {
   return resolveParentDashboardProps(context);
@@ -48,16 +42,14 @@ export default function PremiumPage(props: ParentDashboardPageProps) {
         <title>{`${displayName} - Premium | Parent Portal`}</title>
       </Head>
 
-      <FrontPageLayout user={initialProfile} userRoles={['parent']}>
-        <DashboardShell
-          user={initialProfile}
-          profile={initialProfile}
-          learners={initialLearners}
-          schoolName={displayName}
-        >
-          <PremiumTab />
-        </DashboardShell>
-      </FrontPageLayout>
+      <DashboardShell
+        user={initialProfile}
+        profile={initialProfile}
+        learners={initialLearners}
+        schoolName={displayName}
+      >
+        <PremiumTab />
+      </DashboardShell>
     </ErrorBoundary>
   );
 }
