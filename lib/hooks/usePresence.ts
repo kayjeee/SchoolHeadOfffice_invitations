@@ -1,32 +1,37 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { UsersAPI } from '@/lib/api/users-api';
 
-const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds
+const HEARTBEAT_INTERVAL_MS = 25_000; // 25 seconds
 
 /**
  * usePresence hook
  *
- * Sends a heartbeat to the backend every 30 seconds to track user presence.
+ * Sends a heartbeat to the backend every 25 seconds to track user presence.
  * Only fires when the document is visible to optimize resources.
  *
- * @param auth0Id The Auth0 ID of the current user
+ * @param userId The unique ID of the current user (Auth0 ID or Database ID)
  */
-export function usePresence(auth0Id?: string) {
+export function usePresence(userId?: string) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const sendHeartbeat = useCallback(async () => {
-    if (!auth0Id) return;
+    if (!userId) return;
 
     try {
-      await UsersAPI.heartbeat(auth0Id);
+      // Robustly handle ID as string
+      // The backend now handles both Auth0 ID and internal database ID.
+      // Priority: Auth0 sub (userId) passed from layout.
+      const id = userId.toString();
+      console.log("Presence Active for:", id);
+      await UsersAPI.heartbeat(id);
     } catch (error) {
       // Fire-and-forget: we don't want to interrupt the user experience if heartbeat fails
       console.warn('📡 [Presence] Heartbeat failed:', error);
     }
-  }, [auth0Id]);
+  }, [userId]);
 
   useEffect(() => {
-    if (!auth0Id) return;
+    if (!userId) return;
 
     const startHeartbeat = () => {
       // Send immediately when starting/becoming visible
@@ -63,5 +68,5 @@ export function usePresence(auth0Id?: string) {
       stopHeartbeat();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [auth0Id, sendHeartbeat]);
+  }, [userId, sendHeartbeat]);
 }

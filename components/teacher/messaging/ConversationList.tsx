@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Conversation } from '@/lib/api/messaging-api';
-import { Search, User, Plus } from 'lucide-react';
+import { Search, User, Plus, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConversationListProps {
@@ -9,6 +9,7 @@ interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   currentUserId: string;
   onNewMessage?: () => void;
+  onShowSaved?: () => void;
 }
 
 export default function ConversationList({
@@ -17,6 +18,7 @@ export default function ConversationList({
   onSelectConversation,
   currentUserId,
   onNewMessage,
+  onShowSaved,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -94,13 +96,22 @@ export default function ConversationList({
       <div className="p-6 border-b border-white/5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white/90">Messages</h2>
-          <button
-            onClick={onNewMessage}
-            className="p-2 bg-primary-accent/10 hover:bg-primary-accent/20 rounded-xl transition-all group"
-            title="New Message"
-          >
-            <Plus className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onShowSaved}
+              className="p-2 hover:bg-white/5 rounded-xl transition-all group"
+              title="Saved Messages"
+            >
+              <Star className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
+            </button>
+            <button
+              onClick={onNewMessage}
+              className="p-2 bg-primary-accent/10 hover:bg-primary-accent/20 rounded-xl transition-all group"
+              title="New Message"
+            >
+              <Plus className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
         </div>
 
         <div className="relative group">

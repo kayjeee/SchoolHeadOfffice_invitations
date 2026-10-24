@@ -19,7 +19,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CourierProvider } from '@trycourier/react-provider';
+import { CourierProvider, useCourier } from '@trycourier/react-provider';
 import { Inbox } from '@trycourier/react-inbox';
 import { Toast } from '@trycourier/react-toast';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -37,6 +37,7 @@ interface DashboardLayoutWrapperProps {
 
 function InnerLayout(props: DashboardLayoutWrapperProps) {
   const { children, schoolSlug, teacherSlug, userId, courierClientKey } = props;
+  const courier = useCourier();
   // Support both App Router and Pages Router
   const nextPathname = usePathname();
   const pagesRouter = useRouter();
@@ -45,8 +46,12 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
   const { godMode } = useGodmode();
   const { user } = useUser();
 
+  // Prioritize Auth0 sub as the primary identifier for notifications and presence
+  const finalUserId = user?.sub || userId || '';
+
   // Wire up the "Heartbeat" presence tracker with periodic updates
-  usePresence(user?.sub);
+  // Pass the same identifier used for OneSignal and Courier
+  usePresence(finalUserId);
 
   useEffect(() => {
     const oneSignalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -63,11 +68,29 @@ function InnerLayout(props: DashboardLayoutWrapperProps) {
         console.log('✅ [OneSignal] Initialized');
 
         // Use the database ID as the external ID for both Courier and OneSignal
-        if (userId) {
+        if (finalUserId) {
           // In react-onesignal v3+, use login() to set external ID
-          OneSignal.login(userId);
-          console.log(`🔗 [OneSignal] External User ID set via login: ${userId}`);
+          OneSignal.login(finalUserId);
+          console.log(`🔗 [OneSignal] External User ID set via login: ${finalUserId}`);
         }
+
+        // Handle push subscription changes and sync with Courier
+        OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
+          if (event.current.optedIn && event.current.token) {
+            console.log('🔔 [OneSignal] Push opted in, syncing token with Courier');
+
+            // Explicitly sync the OneSignal push token to Courier's "push" channel
+            // This ensures Courier can route push notifications through OneSignal
+            if (courier && typeof courier.setSubscription === 'function') {
+              courier.setSubscription({
+                id: 'onesignal',
+                enabled: true,
+                status: 'OPTED_IN',
+              });
+              console.log('✅ [Courier] Push subscription state synced');
+            }
+          }
+        });
       });
     }
 
@@ -208,8 +231,8 @@ export default function DashboardLayoutWrapper(props: DashboardLayoutWrapperProp
   const { user } = useUser();
   const courierClientKey = process.env.NEXT_PUBLIC_COURIER_CLIENT_KEY;
 
-  // Prioritize the passed userId (database ID) over the Auth0 sub
-  const finalUserId = props.userId || user?.sub || '';
+  // Prioritize Auth0 sub as the primary identifier for notifications and presence
+  const finalUserId = user?.sub || props.userId || '';
 
   return (
     <GodmodeProvider>

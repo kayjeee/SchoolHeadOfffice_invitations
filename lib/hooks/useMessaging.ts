@@ -44,13 +44,16 @@ export function useConversationSubscription(conversationId: string | null) {
   useEffect(() => {
     if (!conversationId || !user?.email || !accessToken) return;
 
+    // Explicitly cast ID to string to handle BSON objects from backend
+    const convIdStr = conversationId.toString();
+
     const consumer = getCableConsumer(user.email);
     if (!consumer) return;
 
-    console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${conversationId}`);
+    console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${convIdStr}`);
 
     const subscription = consumer.subscriptions.create(
-      { channel: 'MessagesChannel', conversation_id: conversationId },
+      { channel: 'MessagesChannel', conversation_id: convIdStr },
       {
         received(data: any) {
           console.log('📨 [ActionCable] New message received:', data);
@@ -67,7 +70,7 @@ export function useConversationSubscription(conversationId: string | null) {
             return;
           }
 
-          const messagesSwrKey = `/api/v1/conversations/${conversationId}/messages`;
+          const messagesSwrKey = `/api/v1/conversations/${convIdStr}/messages`;
           const convsSwrKey = '/api/v1/conversations';
 
           // Update messages list
@@ -168,8 +171,11 @@ export function useMessages(conversationId: string | null) {
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
-  const swrKey = accessToken && conversationId
-    ? `/api/v1/conversations/${conversationId}/messages`
+  // Explicitly cast ID to string to handle BSON objects from backend
+  const convIdStr = conversationId?.toString();
+
+  const swrKey = accessToken && convIdStr
+    ? `/api/v1/conversations/${convIdStr}/messages`
     : null;
 
   if (swrKey) {
@@ -178,7 +184,7 @@ export function useMessages(conversationId: string | null) {
 
   const { data: remoteMessages = [], error, isLoading } = useSWR(
     swrKey,
-    () => MessagingAPI.getMessages(conversationId!),
+    () => MessagingAPI.getMessages(convIdStr!),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -211,12 +217,12 @@ export function useMessages(conversationId: string | null) {
     attachment?: { url: string; type: string; name: string; size?: number },
     replyToId?: string
   ) => {
-    if (!conversationId || (!content.trim() && !attachment)) return;
+    if (!convIdStr || (!content.trim() && !attachment)) return;
 
     // Optimistic update
     const optimisticMessage: Message = {
       id: `opt-${Date.now()}`,
-      conversation_id: conversationId,
+      conversation_id: convIdStr,
       sender_id: senderId,
       content,
       timestamp: new Date().toISOString(),
@@ -233,7 +239,7 @@ export function useMessages(conversationId: string | null) {
 
     try {
       setIsSending(true);
-      const realMessage = await MessagingAPI.sendMessage(conversationId, content, attachment, replyToId);
+      const realMessage = await MessagingAPI.sendMessage(convIdStr, content, attachment, replyToId);
 
       // Update cache and clear optimistic
       // Using functional update to avoid stale closures
@@ -278,8 +284,10 @@ export function useTyping(conversationId: string | null) {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const remoteTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const convIdStr = conversationId?.toString();
+
   useEffect(() => {
-    if (!conversationId) return;
+    if (!convIdStr) return;
 
     const handleTypingEvent = (event: any) => {
       const { userId, isTyping } = event.detail;
@@ -300,19 +308,19 @@ export function useTyping(conversationId: string | null) {
       }
     };
 
-    window.addEventListener(`typing:${conversationId}` as any, handleTypingEvent);
+    window.addEventListener(`typing:${convIdStr}` as any, handleTypingEvent);
     return () => {
-      window.removeEventListener(`typing:${conversationId}` as any, handleTypingEvent);
+      window.removeEventListener(`typing:${convIdStr}` as any, handleTypingEvent);
       if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
     };
-  }, [conversationId, user]);
+  }, [convIdStr, user]);
 
   const handleTyping = useCallback(() => {
-    if (!conversationId) return;
+    if (!convIdStr) return;
 
     if (!isLocalTypingRef.current) {
       isLocalTypingRef.current = true;
-      MessagingAPI.setTyping(conversationId, true).catch(() => {});
+      MessagingAPI.setTyping(convIdStr, true).catch(() => {});
     }
 
     if (typingTimeoutRef.current) {
@@ -321,9 +329,9 @@ export function useTyping(conversationId: string | null) {
 
     typingTimeoutRef.current = setTimeout(() => {
       isLocalTypingRef.current = false;
-      MessagingAPI.setTyping(conversationId, false).catch(() => {});
+      MessagingAPI.setTyping(convIdStr, false).catch(() => {});
     }, 2000);
-  }, [conversationId]);
+  }, [convIdStr]);
 
   return {
     isOtherTyping,
