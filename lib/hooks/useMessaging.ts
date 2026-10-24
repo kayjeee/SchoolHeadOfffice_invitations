@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
-import { MessagingAPI } from '@/lib/api/messaging-api';
+import { MessagingAPI, normalizeMessage, normalizeReactions } from '@/lib/api/messaging-api';
 import { Message, Conversation } from '@/lib/types/messaging';
 import { useApi } from './useApi';
+import { getCableConsumer } from '@/lib/cable';
 
 /**
  * Hook for managing conversations list
@@ -10,13 +11,19 @@ import { useApi } from './useApi';
 export function useConversations() {
   const { accessToken, isLoading: isAuthLoading } = useApi();
 
+  const swrKey = accessToken ? '/api/v1/conversations' : null;
+  if (swrKey) {
+    console.log(`🔑 [useConversations] SWR Key generated: ${swrKey}`);
+  }
+
   const { data: conversations = [], error, isLoading } = useSWR(
-    accessToken ? '/conversations' : null,
+    swrKey,
     () => MessagingAPI.getConversations(),
     {
-      refreshInterval: 5000,
-      revalidateOnFocus: true,
-      dedupingInterval: 2000,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshInterval: 0,
+      dedupingInterval: 60000,
     }
   );
 
@@ -24,8 +31,109 @@ export function useConversations() {
     conversations,
     loading: isLoading || isAuthLoading,
     error,
-    refresh: () => mutate('/conversations'),
+    refresh: () => mutate(swrKey),
   };
+}
+
+/**
+ * Hook for managing real-time conversation updates via Action Cable
+ */
+export function useConversationSubscription(conversationId: string | null) {
+  const { user, accessToken } = useApi();
+
+  useEffect(() => {
+    if (!conversationId || !user?.email || !accessToken) return;
+
+    const consumer = getCableConsumer(user.email);
+    if (!consumer) return;
+
+    console.log(`📡 [ActionCable] Subscribing to ConversationChannel:${conversationId}`);
+
+    const subscription = consumer.subscriptions.create(
+      { channel: 'MessagesChannel', conversation_id: conversationId },
+      {
+        received(data: any) {
+          console.log('📨 [ActionCable] New message received:', data);
+          const swrKey = `/api/v1/conversations/${conversationId}/messages`;
+
+          mutate(swrKey, (currentData: Message[] | undefined) => {
+            const messages = currentData || [];
+            const incoming = data?.message || data;
+            const messageId = String(
+              incoming?.id ||
+              incoming?.message_id ||
+              incoming?._id?.$oid ||
+              incoming?._id ||
+              ''
+            );
+
+            if (!messageId) return messages;
+
+            if (messages.some(m => m.id === messageId)) {
+              return messages.map(message =>
+                message.id === messageId
+                  ? mergeMessageUpdate(message, incoming, data)
+                  : message
+              );
+            }
+
+            const normalized = normalizeMessage(incoming);
+            return [...messages, normalized];
+          }, false);
+        },
+        connected() {
+          console.log(`✅ [ActionCable] Handshake successful! Connected to MessagesChannel for ID: ${conversationId}`);
+        },
+        disconnected() {
+          console.log(`❌ [ActionCable] Connection lost for conversation: ${conversationId}`);
+        },
+        rejected() {
+          console.error(`🚫 [ActionCable] Subscription rejected for conversation: ${conversationId}`);
+          console.log(`💡 [ActionCable] Troubleshooting: Ensure the WebSocket URL includes ?user_email=${user.email} and that the Rails server's Connection#connect allows this user.`);
+        }
+      }
+    );
+
+    return () => {
+      console.log(`🔌 [ActionCable] Unsubscribing from conversation:${conversationId}`);
+      subscription.unsubscribe();
+    };
+  }, [conversationId, user?.email, accessToken]);
+}
+
+function mergeMessageUpdate(
+  currentMessage: Message,
+  incoming: any,
+  broadcast: any
+): Message {
+  const hasFullMessage =
+    incoming?.content !== undefined ||
+    incoming?.body !== undefined ||
+    incoming?.text !== undefined ||
+    incoming?.timestamp ||
+    incoming?.created_at;
+
+  const nextMessage = hasFullMessage
+    ? { ...currentMessage, ...normalizeMessage(incoming) }
+    : { ...currentMessage };
+
+  const status = broadcast?.status || incoming?.status || incoming?.status_update;
+  if (status) {
+    nextMessage.status = status;
+  }
+
+  const reactionPayload =
+    broadcast?.reactions ||
+    incoming?.reactions ||
+    broadcast?.reaction ||
+    incoming?.reaction ||
+    incoming?.reaction_counts;
+
+  if (reactionPayload) {
+    nextMessage.reactions = normalizeReactions(reactionPayload);
+  }
+
+  return nextMessage;
 }
 
 /**
@@ -37,16 +145,21 @@ export function useMessages(conversationId: string | null) {
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   const swrKey = accessToken && conversationId
-    ? `/conversations/${conversationId}/messages`
+    ? `/api/v1/conversations/${conversationId}/messages`
     : null;
+
+  if (swrKey) {
+    console.log(`🔑 [useMessages] SWR Key generated: ${swrKey}`);
+  }
 
   const { data: remoteMessages = [], error, isLoading } = useSWR(
     swrKey,
     () => MessagingAPI.getMessages(conversationId!),
     {
-      refreshInterval: 3000,
-      revalidateOnFocus: true,
-      dedupingInterval: 1500,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshInterval: 0,
+      dedupingInterval: 60000,
     }
   );
 
@@ -68,8 +181,12 @@ export function useMessages(conversationId: string | null) {
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
-  const sendMessage = async (content: string, senderId: string) => {
-    if (!conversationId || !content.trim()) return;
+  const sendMessage = async (
+    content: string,
+    senderId: string,
+    attachment?: { url: string; type: string; name: string; size?: number }
+  ) => {
+    if (!conversationId || (!content.trim() && !attachment)) return;
 
     // Optimistic update
     const optimisticMessage: Message = {
@@ -80,16 +197,26 @@ export function useMessages(conversationId: string | null) {
       timestamp: new Date().toISOString(),
       status: 'sent',
       is_optimistic: true,
+      attachment_url: attachment?.url,
+      attachment_type: attachment?.type,
+      attachment_name: attachment?.name,
+      attachment_size: attachment?.size,
     } as any;
 
     setOptimisticMessages(prev => [...prev, optimisticMessage]);
 
     try {
       setIsSending(true);
-      const realMessage = await MessagingAPI.sendMessage(conversationId, content);
+      const realMessage = await MessagingAPI.sendMessage(conversationId, content, attachment);
 
       // Update cache and clear optimistic
-      mutate(swrKey, [...remoteMessages, realMessage], false);
+      // Using functional update to avoid stale closures
+      mutate(swrKey, (current: Message[] | undefined) => {
+        const existing = current || [];
+        if (existing.some(m => m.id === realMessage.id)) return existing;
+        return [...existing, realMessage];
+      }, false);
+
       setOptimisticMessages(prev =>
         prev.filter(m => m.id !== optimisticMessage.id)
       );
@@ -120,7 +247,7 @@ export function useMessages(conversationId: string | null) {
  */
 export function useTyping(conversationId: string | null) {
   const [isLocalTyping, setIsLocalTyping] = useState(false);
-  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [isOtherTyping] = useState(false); // ✅ RESTORED to maintain hook count
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = useCallback(() => {
@@ -141,15 +268,9 @@ export function useTyping(conversationId: string | null) {
     }, 2000);
   }, [conversationId, isLocalTyping]);
 
-  // Poll for typing status from others
-  useSWR(
-    conversationId ? `/conversations/${conversationId}/typing` : null,
-    async () => {
-      // Replace with real API call when backend supports it
-      return null;
-    },
-    { refreshInterval: 10_000 }
-  );
+  // TODO: Add Action Cable typing indicator support when backend is ready
+  // RESTORED: useSWR call with null key to maintain hook count and avoid React errors
+  useSWR(null, async () => null);
 
   return {
     isOtherTyping,  // ← correct export name consumed by MessagingSection

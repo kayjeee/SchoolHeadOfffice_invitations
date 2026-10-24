@@ -25,6 +25,10 @@ export default function MessagingSection({
   schoolId,
   godMode = false,
 }: MessagingSectionProps) {
+  useEffect(() => {
+    console.log(`🚀 [MessagingSection] mounted with IDs: currentUserId=${currentUserId}, schoolId=${schoolId}`);
+  }, [currentUserId, schoolId]);
+
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [showDirectory, setShowDirectory] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
@@ -94,13 +98,31 @@ export default function MessagingSection({
     });
   }, [activeConversation, contactMap, currentUserId]);
 
-  const otherParticipant = useMemo(
-    () =>
-      resolvedParticipants.find(
-        p => p.id?.toString() !== currentUserId?.toString()
-      ) || resolvedParticipants[0] || null,
-    [resolvedParticipants, currentUserId]
-  );
+  const otherParticipant = useMemo(() => {
+    if (resolvedParticipants.length === 0) return null;
+
+    // Filter out the current user to find the "other" person
+    // Using .toString() for robust comparison with BSON IDs
+    const others = resolvedParticipants.filter(
+      p => p.id?.toString() !== currentUserId?.toString()
+    );
+
+    // Case: It's a conversation with someone else
+    if (others.length > 0) {
+      return others[0];
+    }
+
+    // Case: Self-conversation (only current user found or single-participant)
+    const me = resolvedParticipants.find(
+      p => p.id?.toString() === currentUserId?.toString()
+    );
+
+    if (me) {
+      return { ...me, name: 'Me (Private)' };
+    }
+
+    return resolvedParticipants[0] || null;
+  }, [resolvedParticipants, currentUserId]);
 
   // ✅ FIX: always close directory and update mobile state together
   const handleSelectConversation = (id: string) => {
@@ -121,10 +143,10 @@ export default function MessagingSection({
       .catch(err => console.warn('markAsRead failed:', err));
   }, [activeConvId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onSendMessage = async (content: string) => {
+  const onSendMessage = async (content: string, attachment?: { url: string; type: string; name: string; size?: number }) => {
     if (!activeConvId) return;
     try {
-      await sendMessage(content, currentUserId);
+      await sendMessage(content, currentUserId, attachment);
       setAiSuggestion(null);
       refreshConvs();
     } catch (err) {
@@ -268,6 +290,7 @@ export default function MessagingSection({
 
               {/* Messages */}
               <ChatWindow
+                conversationId={activeConvId}
                 messages={messages}
                 participants={resolvedParticipants}
                 currentUserId={currentUserId}

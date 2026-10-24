@@ -55,7 +55,7 @@ export interface DashboardData {
     learner_count: number;
     connection_rate?: number;
   }[];
-  stats: {
+  stats?: {
     totalLearners: number;
     activeGrades: number;
     pendingInvites: number;

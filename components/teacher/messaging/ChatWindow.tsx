@@ -1,10 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { Message, Participant } from '@/lib/types/messaging';
-import { Check, CheckCheck, Loader2, User } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConversationSubscription } from '@/lib/hooks/useMessaging';
+import { MessagingAPI } from '@/lib/api/messaging-api';
+import MessageBubble from './MessageBubble';
 
 interface ChatWindowProps {
+  conversationId: string | null;
   messages: Message[];
   participants: Participant[];
   currentUserId: string;
@@ -12,13 +16,18 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({
+  conversationId,
   messages,
   participants,
   currentUserId,
   loading = false,
 }: ChatWindowProps) {
+  // Initialize real-time subscription
+  useConversationSubscription(conversationId);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastReadSignalRef = useRef<string | null>(null);
   const [lastSeenTimestamp, setLastSeenTimestamp] = React.useState<string | null>(null);
 
   useEffect(() => {
@@ -37,8 +46,57 @@ export default function ChatWindow({
     }
   }, [messages, currentUserId]);
 
+  const isNearBottom = React.useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return true;
+
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 96;
+  }, []);
+
+  const sendReadSignal = React.useCallback((requireBottom: boolean) => {
+    if (!conversationId) return;
+    if (typeof document !== 'undefined') {
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+    }
+    if (requireBottom && !isNearBottom()) return;
+
+    const latestIncomingMessage = [...messages]
+      .reverse()
+      .find(message => message.sender_id !== currentUserId);
+    if (!latestIncomingMessage) return;
+
+    const readSignature = `${conversationId}:${latestIncomingMessage.id}`;
+    if (lastReadSignalRef.current === readSignature) return;
+
+    lastReadSignalRef.current = readSignature;
+    MessagingAPI.markAsRead(conversationId).catch(error => {
+      lastReadSignalRef.current = null;
+      console.warn('markAsRead failed:', error);
+    });
+  }, [conversationId, currentUserId, isNearBottom, messages]);
+
+  useEffect(() => {
+    sendReadSignal(false);
+  }, [sendReadSignal]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    const handleFocusRead = () => sendReadSignal(false);
+    const handleScrollRead = () => sendReadSignal(true);
+
+    window.addEventListener('focus', handleFocusRead);
+    document.addEventListener('visibilitychange', handleFocusRead);
+    container?.addEventListener('scroll', handleScrollRead, { passive: true });
+
+    return () => {
+      window.removeEventListener('focus', handleFocusRead);
+      document.removeEventListener('visibilitychange', handleFocusRead);
+      container?.removeEventListener('scroll', handleScrollRead);
+    };
+  }, [sendReadSignal]);
+
   const getParticipant = (id: string) => {
-    return participants.find(p => p.id === id);
+    return participants.find(p => p.id?.toString() === id?.toString());
   };
 
   const formatDate = (dateStr: string) => {
@@ -113,55 +171,16 @@ export default function ChatWindow({
                     isMine ? "justify-end" : "justify-start"
                   )}
                 >
-                  <div className={cn(
-                    "flex gap-3 max-w-[85%] md:max-w-[70%]",
-                    isMine ? "flex-row-reverse" : "flex-row"
-                  )}>
-                    {/* Avatar for others */}
-                    {!isMine && (
-                      <div className="shrink-0 mt-1">
-                        {sender?.avatar ? (
-                          <img src={sender.avatar} alt={sender.name} className="w-8 h-8 rounded-xl object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                            <User className="w-4 h-4 text-white/20" />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Message Bubble */}
-                    <div className="space-y-1">
-                      <div className={cn(
-                        "relative p-4 rounded-2xl md:rounded-[24px] text-sm md:text-base transition-all",
-                        isMine
-                          ? "bg-primary-fixed text-on-primary-fixed font-medium rounded-tr-none shadow-xl shadow-primary-fixed/10"
-                          : "bg-surface-container text-white/90 rounded-tl-none border border-white/5"
-                      )}>
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                      </div>
-
-                      {/* Message Footer */}
-                      <div className={cn(
-                        "flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-wider",
-                        isMine ? "flex-row-reverse text-white/20" : "flex-row text-white/20"
-                      )}>
-                        <span>{formatDate(msg.timestamp)}</span>
-                        {isMine && (
-                          <span className={cn(
-                            "flex items-center",
-                            msg.status === 'read' ? "text-primary-accent" : "text-white/20"
-                          )}>
-                            {msg.status === 'sent' ? (
-                               <Check className="w-3 h-3" />
-                            ) : (
-                               <CheckCheck className="w-3 h-3" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  {conversationId && (
+                    <MessageBubble
+                      conversationId={conversationId}
+                      message={msg}
+                      sender={sender}
+                      isMine={isMine}
+                      currentUserId={currentUserId}
+                      formattedTime={formatDate(msg.timestamp)}
+                    />
+                  )}
                 </motion.div>
                 </React.Fragment>
               );

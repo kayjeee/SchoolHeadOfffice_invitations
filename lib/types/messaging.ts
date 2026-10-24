@@ -14,8 +14,18 @@ export const MessageSchema = z.object({
   sender_id: z.string(),
   content: z.string(),
   timestamp: z.string(),
-  status: z.enum(['sent', 'delivered', 'read']).default('sent'),
+  status: z.enum(['sent', 'delivered', 'read', 'failed']).default('sent'),
   is_optimistic: z.boolean().optional(),
+  attachment_url: z.string().optional(),
+  attachment_type: z.string().optional(),
+  attachment_name: z.string().optional(),
+  attachment_size: z.number().optional(),
+  reactions: z.array(z.object({
+    emoji: z.string(),
+    count: z.number(),
+    current_user_reacted: z.boolean().optional(),
+    user_ids: z.array(z.string()).optional(),
+  })).optional(),
 });
 
 export const ConversationSchema = z.object({

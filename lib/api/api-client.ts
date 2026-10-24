@@ -48,9 +48,22 @@ class ApiClient {
     let lastError: Error | null = null;
     
     // ✅ FIX: Do not prepend API_BASE_URL if endpoint is already a full URL
-    const url = endpoint.startsWith('http') 
-      ? endpoint 
-      : `${API_BASE_URL}${endpoint}`;
+    // Also handle /api/v1 prefixing correctly to avoid doubling
+    let url: string;
+    if (endpoint.startsWith('http')) {
+      url = endpoint;
+    } else {
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      if (cleanEndpoint.startsWith('/api/v1')) {
+        // Strip the duplicate prefix if API_BASE_URL already has it
+        const base = API_BASE_URL.endsWith('/api/v1')
+          ? API_BASE_URL.replace(/\/api\/v1$/, '')
+          : API_BASE_URL;
+        url = `${base}${cleanEndpoint}`;
+      } else {
+        url = `${API_BASE_URL}${cleanEndpoint}`;
+      }
+    }
 
     const method = options.method || 'GET';
     const requestId = Math.random().toString(36).substring(7);
