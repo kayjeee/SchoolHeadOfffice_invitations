@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const getApiBaseUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!envUrl) return 'https://shobackendv2-production.up.railway.app/api/v1';
+  if (!envUrl) return 'http://localhost:4000/api/v1';
 
   if (envUrl.includes('/api/v1')) {
     return envUrl.replace(/\/$/, '');

@@ -1,4 +1,5 @@
 import { Grade } from '../../../types';
+import { API_BASE_URL } from '../../../utils/constants';
 
 export const gradeService = {
   getGrades: async (schoolId: string): Promise<Grade[]> => {
@@ -10,7 +11,7 @@ export const gradeService = {
     }
 
     try {
-      const response = await fetch(`https://shobackendv2-production.up.railway.app/api/v1/schools/${schoolId}/grades`);
+      const response = await fetch(`${API_BASE_URL}/api/v1/schools/${schoolId}/grades`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
       const data = await response.json();
