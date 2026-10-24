@@ -168,8 +168,8 @@ export default function DashboardClient({
         {activeTab === 'messages' ? (
           <div className="pt-4">
             <MessagingSection
-              currentUserId={data.teacher.id.toString()}
-              schoolId={data.school.id.toString()}
+              currentUserId={data.teacher?.id?.toString() || ''}
+              schoolId={data.school?.id?.toString() || ''}
               godMode={godMode}
             />
           </div>
