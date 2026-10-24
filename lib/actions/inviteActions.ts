@@ -109,6 +109,7 @@ export async function validateInvite(schoolSlug: string, token: string) {
           status: apiInvite.status || 'pending', // Use actual status from API
           expiresAt: apiInvite.expires_at || apiInvite.expired_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           teacherName: apiInvite.teacher_name,
+          teacherSlug: apiInvite.teacher_slug,
           schoolSlug: apiInvite.school_slug
         } as any;
 

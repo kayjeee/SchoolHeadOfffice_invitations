@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import AcceptInviteButton from '@/components/teacher/AcceptInviteButton';
 import AcceptTeacherInvite from '@/components/teacher/AcceptTeacherInvite';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,12 +70,38 @@ export default async function InvitePage({ params }: PageProps) {
               </p>
             </div>
 
-            <AcceptTeacherInvite
-              schoolSlug={schoolSlug}
-              inviteToken={inviteToken}
-            />
+            {isAccepted ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                   </div>
+                   <div>
+                      <p className="text-sm font-bold text-green-900">Invitation Accepted</p>
+                      <p className="text-xs text-green-700">You are already a member of this school.</p>
+                   </div>
+                </div>
 
-            <div className="mt-8 pt-8 border-t border-gray-100 opacity-50">
+                <Link
+                  href={`/teacher/school/${schoolSlug}/teachers/${invite.teacherName?.toLowerCase().replace(/ /g, '-') || 'dashboard'}/dashboard`}
+                  className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+                >
+                  Go to Dashboard
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
+              </div>
+            ) : (
+              <AcceptTeacherInvite
+                schoolSlug={schoolSlug}
+                inviteToken={inviteToken}
+              />
+            )}
+
+            <div className={cn("mt-8 pt-8 border-t border-gray-100", isAccepted ? "opacity-20 pointer-events-none" : "opacity-50")}>
                <p className="text-xs text-gray-400 text-center uppercase tracking-widest mb-4">Alternative Option</p>
                <AcceptInviteButton
                  schoolId={school._id.toString()}

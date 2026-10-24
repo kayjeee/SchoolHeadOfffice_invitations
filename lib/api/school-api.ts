@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { apiClient } from './api-client';
+import { Participant } from '../types/messaging';
 
 export interface School {
   id: string;
@@ -365,5 +366,43 @@ export class SchoolAPI {
       success: z.boolean(),
     });
     return await apiClient.post(`/learner_invitations/${invitationId}/resend`, {}, responseSchema);
+  }
+
+  static async getDirectory(schoolId: string): Promise<{ admins: Participant[]; teachers: Participant[]; parents: Participant[] }> {
+    console.log(`📇 [SchoolAPI.getDirectory] Fetching directory for school: ${schoolId}`);
+
+    const ParticipantSchema = z.object({
+      id: z.string(),
+      name: z.string(),
+      avatar: z.string().optional(),
+      role: z.enum(['teacher', 'parent', 'principal', 'admin', 'staff']),
+      online_status: z.enum(['online', 'offline']).optional().default('offline'),
+    });
+
+    const responseSchema = z.object({
+      status: z.string().optional(),
+      data: z.object({
+        admins: z.array(ParticipantSchema).optional(),
+        teachers: z.array(ParticipantSchema).optional(),
+        parents: z.array(ParticipantSchema).optional(),
+      }).optional(),
+      admins: z.array(ParticipantSchema).optional(),
+      teachers: z.array(ParticipantSchema).optional(),
+      parents: z.array(ParticipantSchema).optional(),
+    });
+
+    try {
+      const response = await apiClient.get(`/schools/${schoolId}/directory`, responseSchema);
+      const data = response.data || response;
+
+      return {
+        admins: data.admins || [],
+        teachers: data.teachers || [],
+        parents: data.parents || [],
+      };
+    } catch (error) {
+      console.error(`❌ [SchoolAPI.getDirectory] Failed to fetch directory:`, error);
+      return { admins: [], teachers: [], parents: [] };
+    }
   }
 }

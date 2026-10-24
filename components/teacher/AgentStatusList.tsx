@@ -5,18 +5,11 @@ import {
   Shield,
   Eye,
   Activity,
-  Radio,
-  Circle,
   AlertCircle,
   MoreVertical,
-  CheckCircle2
+  Plus as PlusIcon
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
 
 interface AgentStatus {
   id: string;
@@ -66,12 +59,12 @@ const AgentIcon = ({ status, godMode }: { status: AgentStatus['status'], godMode
   }
 };
 
-export default function AgentStatusList({ agents, godMode = false }: AgentStatusListProps) {
+export default function AgentStatusList({ agents = [], godMode = false }: AgentStatusListProps) {
   const accentColor = godMode ? 'text-secondary-accent' : 'text-primary-accent';
 
   return (
     <div className="space-y-4">
-      {agents.length > 0 ? (
+      {agents && agents.length > 0 ? (
         agents.map((agent) => (
           <div
             key={agent.id}
@@ -111,7 +104,7 @@ export default function AgentStatusList({ agents, godMode = false }: AgentStatus
         "w-full mt-2 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-bold uppercase tracking-widest",
         accentColor
       )}>
-        <Plus className="w-4 h-4" />
+        <PlusIcon className="w-4 h-4" />
         Deploy New Agent
       </button>
     </div>
