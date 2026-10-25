@@ -18,9 +18,9 @@ const DesktopHome = ({ schools }) => {
     { name: "Teacher", icon: "📚", href: "/teacher/school" },
     { name: "Parent", icon: "🏠", href: "/parent" },
     { name: "Student", icon: "🎓", href: "/student" },
-    { name: "School Leader", icon: "🏫", href: "/admin" },
+    { name: "School Admin", icon: "🏫", href: "/admin" },
     { name: "District Leader", icon: "📍", href: "/district" },
-    { name: "School Vacations", icon: "🌴", href: "/vacations" },
+   
     { name: "School Principal", icon: "👨‍💼", href: "/principal" },
   ];
 
