@@ -13,6 +13,7 @@ import AuthGate from "../../components/auth/AuthGate";
 
 import { InvitationAPI, InvitationData } from "../../lib/api/invitation-api";
 import { StudentService, StudentProfile } from "../../lib/services/student.service";
+import { useStudentOnboarding } from "../../lib/hooks/useStudentOnboarding";
 
 /* -------------------------------------------------------------------------- */
 /*                                  DYNAMIC                                   */
@@ -21,6 +22,11 @@ import { StudentService, StudentProfile } from "../../lib/services/student.servi
 const FrontPageLayout = dynamic(
   () => import("../../components/Layouts/FrontPageLayout"),
   { ssr: true }
+);
+
+const StudentOnboardingFlow = dynamic(
+  () => import("../../components/student/Onboarding/StudentOnboardingFlow"),
+  { ssr: false }
 );
 
 /* -------------------------------------------------------------------------- */
@@ -131,16 +137,16 @@ export const getServerSideProps: GetServerSideProps<StudentPageProps> = async (c
       if (isOnboardingComplete) {
         const fromProfile = profile?.primary_school_name || profile?.school_name;
         const fromInvitation = invitationData?.school_name;
-        let finalSchoolName = fromProfile || fromInvitation || school || 'Far North Secondary School';
+        let finalSchoolName = fromProfile || fromInvitation || school || 'Kagiso High code';
 
         if (!finalSchoolName || finalSchoolName === 'School') {
-          finalSchoolName = 'Far North Secondary School';
+          finalSchoolName = 'Kagiso High code';
         }
 
-        const email = profile?.email || session.user.email || '';
+        const email = profile?.email || session.user.email || 'kagiso.killagram@gmail.com';
         const destination = `/student/${encodeURIComponent(finalSchoolName)}/dashboard/${encodeURIComponent(email)}`;
 
-        console.log(`🚀 [StudentGSSP] Redirecting onboarded student to: ${destination}`);
+        console.log(`🚀 [StudentGSSP] Redirecting onboarded student directly to: ${destination}`);
         return {
           redirect: {
             destination,
@@ -195,19 +201,66 @@ export default function StudentPage(props: StudentPageProps) {
     hasInvitationData: !!props.invitationData,
   });
 
-  const schoolName = props.invitationData?.school_name || props.school || 'School';
+  const mergedInvitationData = React.useMemo(() => {
+    if (!props.invitationData && !props.school) return props.invitationData;
+    return {
+      ...props.invitationData,
+      token: props.invitationData?.token || props.invitationToken || undefined,
+      school_name: props.invitationData?.school_name || (typeof props.school === 'string' ? props.school : undefined)
+    };
+  }, [props.invitationData, props.school, props.invitationToken]);
+
+  const onboarding = useStudentOnboarding({
+    initialProfile: props.initialProfile,
+    invitationData: mergedInvitationData as any,
+  });
+
+  // 🚀 Redirect to student dashboard if onboarding is complete
+  React.useEffect(() => {
+    const shouldRedirect = props.isAuthenticated && onboarding.isOnboardingComplete && !onboarding.isLoading;
+
+    if (!shouldRedirect) return;
+
+    const fromProfile = onboarding.profile?.primary_school_name || onboarding.profile?.school_name;
+    const fromOnboarding = onboarding.onboardingData?.school_name;
+    const fromInvitation = props.invitationData?.school_name;
+    const fromQuery = props.school;
+
+    let schoolName = fromProfile || fromOnboarding || fromInvitation || fromQuery || 'Kagiso High code';
+
+    if (!schoolName || schoolName === 'School') {
+      schoolName = 'Kagiso High code';
+    }
+
+    const email = onboarding.profile?.email || onboarding.user?.email || 'kagiso.killagram@gmail.com';
+
+    const targetPath = `/student/${encodeURIComponent(schoolName)}/dashboard/${encodeURIComponent(email)}`;
+    console.log('🚀 [StudentPage] Student onboarding complete. Navigating to:', targetPath);
+    router.replace(targetPath);
+  }, [
+    onboarding.isOnboardingComplete,
+    onboarding.isLoading,
+    onboarding.profile,
+    onboarding.onboardingData,
+    onboarding.user,
+    props.invitationData,
+    props.school,
+    props.isAuthenticated,
+    router
+  ]);
 
   // 🚫 Logged out → SHOW AuthGate LOGIN / SIGNUP
   if (!props.isAuthenticated) {
+    const schoolName = props.invitationData?.school_name || props.school;
     const authGateInvitation = {
       token: props.invitationData?.token || props.invitationToken || undefined,
-      school_name: props.invitationData?.school_name || props.school || undefined,
+      school_name: schoolName || undefined,
       school_logo: props.invitationData?.school_logo || null,
       grade_name: props.invitationData?.grade_name || null,
       learner_name: props.invitationData?.learner_number || props.invitationData?.learner_numbers?.[0],
     };
 
-    const dynamicReturnTo = schoolName && schoolName !== 'School'
+    const dynamicReturnTo = schoolName
       ? `/student?school=${encodeURIComponent(schoolName)}`
       : "/student";
 
@@ -217,6 +270,10 @@ export default function StudentPage(props: StudentPageProps) {
         returnTo={dynamicReturnTo}
       />
     );
+  }
+
+  if (onboarding.isLoading) {
+    return <LoadingScreen message="Loading student portal..." />;
   }
 
   if (props.error) {
@@ -238,52 +295,20 @@ export default function StudentPage(props: StudentPageProps) {
     );
   }
 
-  const profile = props.initialProfile;
-  const displayName = profile?.name || profile?.email || 'Student';
-
   return (
     <ErrorBoundary>
       <Head>
         <title>Student Portal - School Head Office</title>
       </Head>
-      <FrontPageLayout user={profile} userRoles={profile?.roles || ["student"]}>
-        <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div className="flex items-center space-x-4 mb-6">
-              <div className="h-16 w-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-2xl">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Welcome, {displayName}!</h1>
-                <p className="text-sm text-gray-500">Student Portal • {schoolName}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-              <div className="p-5 rounded-xl bg-indigo-50/50 border border-indigo-100">
-                <h3 className="font-semibold text-indigo-900 mb-1">Your Profile & Account</h3>
-                <p className="text-sm text-indigo-700">Email: {profile?.email || 'N/A'}</p>
-                <p className="text-sm text-indigo-700">Roles: {profile?.roles?.join(', ') || 'student'}</p>
-              </div>
-
-              <div className="p-5 rounded-xl bg-emerald-50/50 border border-emerald-100">
-                <h3 className="font-semibold text-emerald-900 mb-1">Status</h3>
-                <p className="text-sm text-emerald-700">
-                  {profile?.onboarding_completed ? 'Onboarding Complete' : 'Active Account'}
-                </p>
-                <p className="text-sm text-emerald-700">School: {schoolName}</p>
-              </div>
-            </div>
-
-            {props.invitationData && (
-              <div className="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-100">
-                <h4 className="font-medium text-blue-900 mb-1">Verified Student Invitation</h4>
-                <p className="text-xs text-blue-700">Grade: {props.invitationData.grade_name || 'N/A'}</p>
-                <p className="text-xs text-blue-700">School ID: {props.invitationData.school_id || 'N/A'}</p>
-              </div>
-            )}
-          </div>
-        </div>
+      <FrontPageLayout user={onboarding.user} userRoles={onboarding.profile?.roles || ["student"]}>
+        {!onboarding.isOnboardingComplete ? (
+          <StudentOnboardingFlow
+            user={onboarding.user}
+            invitationData={mergedInvitationData}
+          />
+        ) : (
+          <LoadingScreen message="Redirecting to your student dashboard..." />
+        )}
       </FrontPageLayout>
     </ErrorBoundary>
   );
