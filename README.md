@@ -1,8 +1,11 @@
 # SchoolHeadOffice (SHO)
 
+
+
 SchoolHeadOffice is an all-in-one educational communication, school administration, and learning support platform connecting school administrators, educators, parents, and students. Built to serve resource-constrained and developing school ecosystems—particularly in South Africa—the platform digitizes routine school workflows, eliminates paper expenses, bridges communication gaps through multi-channel delivery, and empowers teachers and students with purpose-built digital tools.
 
 ---
+[![School-Head-Office: Unifying Education](https://repoclip.io/api/badge/d9821a32-9789-4985-a444-f0b03be2ad98)](https://repoclip.io/v/d9821a32-9789-4985-a444-f0b03be2ad98)
 
 ## 🌟 Executive Summary
 
