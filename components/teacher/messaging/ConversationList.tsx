@@ -10,6 +10,11 @@ interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   currentUserId: string;
   schoolId?: string;
+  canCreateGroup?: boolean;
+  canBrowseDirectory?: boolean;
+  canRemoveParticipants?: boolean;
+  canLeaveGroups?: boolean;
+  canCreateDirectConversation?: boolean;
   onNewMessage?: () => void;
   onNewGroupMessage?: () => void;
   onShowSaved?: () => void;
@@ -22,11 +27,16 @@ export default function ConversationList({
   activeConversationId,
   onSelectConversation,
   currentUserId,
+  schoolId,
+  canCreateGroup = true,
+  canBrowseDirectory = true,
+  canRemoveParticipants = true,
+  canLeaveGroups = true,
+  canCreateDirectConversation = true,
   onNewMessage,
   onNewGroupMessage,
   onShowSaved,
   onNoteToSelf,
-  schoolId,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -38,12 +48,6 @@ export default function ConversationList({
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  /**
-   * The display name for a conversation.
-   * 1. Use conv.title (set by the backend to the other participant's name).
-   * 2. Fall back to building it from conv.participants, excluding self.
-   * 3. Last resort: "Conversation".
-   */
   const getDisplayName = (conv: Conversation): string => {
     if (conv.title) return conv.title;
 
@@ -53,26 +57,16 @@ export default function ConversationList({
     return others.map(p => p.name.split(' ')[0]).join(' & ');
   };
 
-  /**
-   * The avatar to show — the other participant's avatar, or null.
-   */
   const getAvatar = (conv: Conversation): string | null | undefined => {
     const other = conv.participants.find(p => p.id !== currentUserId);
     return other?.avatar;
   };
 
-  /**
-   * Online status of the other participant.
-   */
   const getOnlineStatus = (conv: Conversation): boolean => {
     const other = conv.participants.find(p => p.id !== currentUserId);
     return other?.online_status === 'online';
   };
 
-  /**
-   * Preview text shown under the name.
-   * Shows the last message content, or a prompt if none.
-   */
   const getPreviewText = (conv: Conversation): string => {
     if (!conv.last_message) return 'Start a conversation';
     const isOwn = conv.last_message.sender_id === currentUserId;
@@ -118,13 +112,15 @@ export default function ConversationList({
             >
               <Star className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
             </button>
-            <button
-              onClick={onNewGroupMessage}
-              className="p-2 bg-primary-accent text-on-primary-fixed hover:bg-primary-accent/90 rounded-xl transition-all group shadow-lg shadow-primary-accent/20"
-              title="New Group Message"
-            >
-              <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </button>
+            {canCreateGroup && (
+              <button
+                onClick={onNewGroupMessage}
+                className="p-2 bg-primary-accent text-on-primary-fixed hover:bg-primary-accent/90 rounded-xl transition-all group shadow-lg shadow-primary-accent/20"
+                title="New Group Message"
+              >
+                <Users className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
             <button
               onClick={onNoteToSelf}
               className="p-2 hover:bg-white/5 rounded-xl transition-all group"
@@ -132,13 +128,15 @@ export default function ConversationList({
             >
               <User className="w-5 h-5 text-primary-accent group-hover:scale-110 transition-transform" />
             </button>
-            <button
-              onClick={onNewMessage}
-              className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all group border border-white/10"
-              title="New Message"
-            >
-              <Plus className="w-5 h-5 text-white/60 group-hover:scale-110 transition-transform" />
-            </button>
+            {canBrowseDirectory && (
+              <button
+                onClick={onNewMessage}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all group border border-white/10"
+                title="New Message"
+              >
+                <Plus className="w-5 h-5 text-white/60 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -268,7 +266,7 @@ export default function ConversationList({
         )}
 
         {/* Learners Section */}
-        {learners && learners.length > 0 && (
+        {canCreateDirectConversation && learners && learners.length > 0 && (
           <div className="mt-8 pb-12">
             <div className="px-6 mb-4 flex items-center justify-between">
               <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Registered Learners</h3>
@@ -279,15 +277,12 @@ export default function ConversationList({
                 <button
                   key={learner.id}
                   onClick={async () => {
-                    // Try to find if we already have a conversation with this learner (by ID)
                     const existing = conversations.find(c =>
                       (c.participant_ids || []).map(String).includes(String(learner.id))
                     );
                     if (existing) {
                       onSelectConversation(existing.id);
                     } else if (schoolId) {
-                      // Try to initiate new conversation if we have enough info
-                      // For now, we'll try to use the learner's ID as the participant ID
                       try {
                         const conv = await MessagingAPI.createConversation([learner.id], schoolId, currentUserId);
                         onSelectConversation(conv.id);
