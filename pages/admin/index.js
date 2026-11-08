@@ -1,5 +1,5 @@
-// pages/index.js
-import React, { useEffect, useState } from "react";
+// pages/admin/index.js
+import React, { useEffect, useState, useCallback } from "react";
 import { getSession } from "@auth0/nextjs-auth0";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import Head from "next/head";
@@ -56,26 +56,18 @@ export async function getServerSideProps(context) {
 /* -------------------------------------------------------------------------- */
 
 export default function Home({ isAuthenticated }) {
-  let { user, isLoading: authLoading } = useUser();
-
-  if (!user && isAuthenticated) {
-    user = {
-      sub: 'admin-123',
-      name: 'System Admin',
-      email: 'admin@school.com',
-      nickname: 'admin'
-    };
-    authLoading = false;
-  }
+  const { user, isLoading: authLoading, error: authError } = useUser();
 
   const [schools, setSchools] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
   const [loadingSchools, setLoadingSchools] = useState(false);
+  const [syncingUser, setSyncingUser] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
   const [onboardingStatus, setOnboardingStatus] = useState(null);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [step, setStep] = useState(1);
   const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(null);
 
   /* -------------------------------------------------------------------------- */
   /*                             🚫 NOT LOGGED IN                              */
@@ -89,34 +81,78 @@ export default function Home({ isAuthenticated }) {
   /*                            AUTHENTICATED LOGIC                             */
   /* -------------------------------------------------------------------------- */
 
-  useEffect(() => {
-    if (!user?.sub) return;
+  /**
+   * Idempotent user synchronization with Rails backend.
+   * Ensures MongoDB has a User document matching the real Auth0 ID before fetching schools.
+   */
+  const syncUserWithBackend = useCallback(async (authUser) => {
+    if (!authUser?.sub) {
+      throw new Error("User authentication information is missing. Please log in again.");
+    }
 
-    fetchSchools();
-    fetchUserRoles();
-    checkOnboardingStatus();
-  }, [user?.sub]);
+    const encodedUserId = encodeURIComponent(authUser.sub);
 
-  const fetchUserRoles = async () => {
+    // 1. Check if user already exists
+    try {
+      const checkRes = await fetch(`${API_BASE_URL}/api/v1/users/${encodedUserId}`);
+      if (checkRes.ok) {
+        return; // User already exists in backend MongoDB
+      }
+      if (checkRes.status !== 404) {
+        throw new Error(`Failed to verify user profile (Status: ${checkRes.status})`);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("Failed to verify user profile")) {
+        throw err;
+      }
+      // Network or other error during check: proceed to attempt creation
+    }
+
+    // 2. User not found (404), create the user record
+    const userPayload = {
+      user: {
+        auth0_id: authUser.sub,
+        name: authUser.name || authUser.email || authUser.sub,
+        email: authUser.email || "",
+        roles: ["default_role"],
+      },
+    };
+
+    const createRes = await fetch(`${API_BASE_URL}/api/v1/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userPayload),
+    });
+
+    // 200, 201: created; 422: user already exists / duplicate key (treated as idempotent success)
+    if (!createRes.ok && createRes.status !== 422) {
+      const errorText = await createRes.text().catch(() => "");
+      throw new Error(errorText || `User registration failed with status ${createRes.status}`);
+    }
+  }, []);
+
+  const fetchUserRoles = useCallback(async (userId) => {
     try {
       const res = await fetch(
-        `/api/getUserRoles?userId=${encodeURIComponent(user.sub)}`
+        `/api/getUserRoles?userId=${encodeURIComponent(userId)}`
       );
+      if (!res.ok) {
+        setUserRoles([]);
+        return;
+      }
       const data = await res.json();
       setUserRoles(data.roles?.map((r) => r.name) || []);
     } catch {
       setUserRoles([]);
     }
-  };
+  }, []);
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async (userId) => {
     setLoadingSchools(true);
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/users/schools?auth0_id=${encodeURIComponent(
-          user.sub
-        )}`
+        `${API_BASE_URL}/api/v1/users/schools?auth0_id=${encodeURIComponent(userId)}`
       );
 
       if (res.status === 404) {
@@ -125,24 +161,37 @@ export default function Home({ isAuthenticated }) {
         return;
       }
 
+      if (!res.ok) {
+        throw new Error(`Failed to load schools (Status: ${res.status})`);
+      }
+
       const json = await res.json();
       setSchools(json.data?.schools || []);
-    } catch {
+    } catch (err) {
       setMessage("Unable to load schools.");
+      throw err;
     } finally {
       setLoadingSchools(false);
     }
-  };
+  }, []);
 
-  const checkOnboardingStatus = async () => {
+  const checkOnboardingStatus = useCallback(async (userId) => {
     setCheckingOnboarding(true);
 
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/v1/users/onboarding_status?auth0_id=${encodeURIComponent(
-          user.sub
-        )}`
+        `${API_BASE_URL}/api/v1/users/onboarding_status?auth0_id=${encodeURIComponent(userId)}`
       );
+
+      if (res.status === 404) {
+        setOnboardingStatus(null);
+        setIsOnboardingComplete(false);
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Failed to check onboarding status (Status: ${res.status})`);
+      }
 
       const json = await res.json();
       setOnboardingStatus(json);
@@ -153,18 +202,119 @@ export default function Home({ isAuthenticated }) {
         json.data?.guest_onboarding_completed;
 
       setIsOnboardingComplete(Boolean(completed));
+    } catch {
+      // Inability to check onboarding status shouldn't block school creation if schools are empty
     } finally {
       setCheckingOnboarding(false);
     }
-  };
+  }, []);
+
+  const initializeAdminDashboard = useCallback(async () => {
+    if (!user?.sub) return;
+
+    setErrorMessage(null);
+    setSyncingUser(true);
+
+    try {
+      // 1. Sync user with Rails backend first to ensure DB record exists
+      await syncUserWithBackend(user);
+
+      // 2. Fetch schools, roles, and onboarding status in parallel
+      await Promise.all([
+        fetchSchools(user.sub),
+        fetchUserRoles(user.sub),
+        checkOnboardingStatus(user.sub),
+      ]);
+    } catch (err) {
+      console.error("[initializeAdminDashboard] Initialization error:", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An error occurred while loading your admin account."
+      );
+    } finally {
+      setSyncingUser(false);
+    }
+  }, [user, syncUserWithBackend, fetchSchools, fetchUserRoles, checkOnboardingStatus]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (user?.sub) {
+      initializeAdminDashboard();
+    }
+  }, [user?.sub, authLoading, initializeAdminDashboard]);
 
   const renderContent = () => {
-    if (authLoading || loadingSchools || checkingOnboarding) {
-      return <LoadingSpinner />;
+    if (authLoading || syncingUser || loadingSchools || checkingOnboarding) {
+      return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center">
+          <LoadingSpinner />
+          {syncingUser && (
+            <p className="mt-4 text-sm text-gray-500 font-medium">
+              Synchronizing admin account...
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (authError) {
+      return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md">
+            <h3 className="font-semibold text-lg mb-2">Authentication Error</h3>
+            <p className="text-sm mb-4">{authError.message}</p>
+            <a
+              href="/api/auth/login?returnTo=/admin"
+              className="inline-block bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 transition"
+            >
+              Sign In Again
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (!user?.sub) {
+      return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-4 rounded-lg max-w-md">
+            <h3 className="font-semibold text-lg mb-2">Session Required</h3>
+            <p className="text-sm mb-4">Your user session could not be verified. Please sign in to access the admin portal.</p>
+            <a
+              href="/api/auth/login?returnTo=/admin"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition"
+            >
+              Sign In
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (errorMessage) {
+      return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md">
+            <h3 className="font-semibold text-lg mb-2">Unable to Load Admin Portal</h3>
+            <p className="text-sm mb-4">{errorMessage}</p>
+            <button
+              onClick={() => initializeAdminDashboard()}
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
     }
 
     if (!schools.length) {
-      return <CreateSchoolForm user={user} onComplete={fetchSchools} />;
+      return (
+        <CreateSchoolForm
+          user={user}
+          onComplete={() => fetchSchools(user.sub)}
+        />
+      );
     }
 
     if (!isOnboardingComplete) {
