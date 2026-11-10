@@ -95,37 +95,43 @@ export const uploadFileToCloudinary = async (file) => {
 // 2. School Payload (SINGLE SOURCE OF TRUTH)
 // -------------------------------------------------
 
-const buildSchoolPayload = (formData, user, logoUrl) => ({
-  schoolName: formData.schoolName,
-  schoolEmail: formData.schoolEmail,
-  logo: logoUrl || "",
+const buildSchoolPayload = (formData, user, logoUrl) => {
+  if (!user?.sub) {
+    throw new Error("Authenticated user ID is required to create a school.");
+  }
 
-  line1: formData.addressLine1 ?? "",
-  line2: formData.addressLine2 ?? "",
+  return {
+    schoolName: formData.schoolName,
+    schoolEmail: formData.schoolEmail,
+    logo: logoUrl || "",
 
-  city: formData.city,
-  province: formData.province,
-  country: formData.country,
-  postalCode: formData.postalCode,
+    line1: formData.addressLine1 ?? "",
+    line2: formData.addressLine2 ?? "",
 
-  latitude: formData.location?.lat ?? null,
-  longitude: formData.location?.lng ?? null,
+    city: formData.city,
+    province: formData.province,
+    country: formData.country,
+    postalCode: formData.postalCode,
 
-  website: formData.website || "",
-  facebook: formData.facebook || "",
-  linkedin: formData.linkedin || "",
-  tiktok: formData.tiktok || "",
+    latitude: formData.location?.lat ?? null,
+    longitude: formData.location?.lng ?? null,
 
-  theme: formData.theme, // backend expects Hash
-  status: "active",
+    website: formData.website || "",
+    facebook: formData.facebook || "",
+    linkedin: formData.linkedin || "",
+    tiktok: formData.tiktok || "",
 
-  adminUsers: formData.adminUsers || [],
+    theme: formData.theme, // backend expects Hash
+    status: "active",
 
-  // ✅ ownership & audit (ALWAYS present)
-  user_id: user?.sub,
-  user_email: user?.email,
-  school_created_by: user?.email,
-});
+    adminUsers: formData.adminUsers || [],
+
+    // ✅ ownership & audit (ALWAYS present)
+    user_id: user?.sub,
+    user_email: user?.email,
+    school_created_by: user?.email,
+  };
+};
 
 // -------------------------------------------------
 // 3. Create School
@@ -201,32 +207,38 @@ export const addSchoolToUser = async (auth0Id, schoolId) => {
 // -------------------------------------------------
 
 export const provisionNewSchool = async (formData, user, token) => {
+  if (!user?.sub) {
+    throw new Error("Valid authenticated user is required to provision a school.");
+  }
+
   // 1. Upload logo
   let logoUrl = "";
   if (formData.logo) {
     logoUrl = await uploadFileToCloudinary(formData.logo);
   }
 
-  // 2. Create school
-  const school = await createSchool(formData, user, logoUrl);
-
-  // 3. Ensure user exists
+  // 2. Ensure user exists in backend before creating school
+  // (Prevents backend 500 when creating school if user sync had not completed)
   const userRes = await fetch(`${API_BASE}/api/v1/users`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       user: {
-        name: user.name,
-        email: user.email,
+        name: user.name || user.email || user.sub,
+        email: user.email || "",
         auth0_id: user.sub,
-        roles: [],
+        roles: ["default_role"],
       },
     }),
   });
 
   if (!userRes.ok && userRes.status !== 422) {
-    throw new Error(await userRes.text());
+    const errorText = await userRes.text().catch(() => "");
+    throw new Error(errorText || `User verification failed with status ${userRes.status}`);
   }
+
+  // 3. Create school (backend checks User.find_by(auth0_id: user_id))
+  const school = await createSchool(formData, user, logoUrl);
 
   // 4. Assign Admin role
   const accessToken = token || (await getAccessToken());

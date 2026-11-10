@@ -21,6 +21,7 @@ const TABS = [
   { key: 'assignments', label: 'assignments', path: '/assignments' },
   { key: 'messages', label: 'messages', path: '/communications' },
   { key: 'resources', label: 'resources', path: '/resources' },
+  { key: 'shop', label: 'school shop', path: '/shop' },
   { key: 'events', label: 'calendar & events', path: '/events' },
   { key: 'reports', label: 'reports', path: '/reports' },
   { key: 'premium', label: 'premium', path: '/premium' },
